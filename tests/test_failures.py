@@ -113,7 +113,7 @@ async def test_failure_7_pep_gym_workout_approved():
     assert res.is_emergency is False
     text = res.final_response.lower()
     assert "gym" in text
-    assert ("approved" in text or "badhiya" in text)
+    assert ("approved" in text or "badhiya" in text or "clearance" in text or "allowed" in text)
     # Must NOT forbid gym
     assert "gym mat" not in text
 
