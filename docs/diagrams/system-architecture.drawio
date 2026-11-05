@@ -1,0 +1,155 @@
+<mxfile host="Electron" modified="2026-11-05T07:30:00.000Z" agent="Mozilla/5.0" version="21.6.8" type="device">
+  <diagram id="DishaSystemArchitecture" name="Disha AI System Architecture">
+    <mxGraphModel dx="1422" dy="894" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Layer 1: Client & Ingestion Layer -->
+        <mxCell id="box_client" value="Client &amp; Telephony Layer" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#9CA3AF;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="260" height="740" as="geometry" />
+        </mxCell>
+        <mxCell id="client_phone" value="Patient Mobile Phone&#xa;(PSTN / VoLTE Audio)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0E7FF;strokeColor=#4F46E5;fontSize=12;fontStyle=1;" vertex="1" parent="box_client">
+          <mxGeometry x="25" y="60" width="210" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="telephony_gw" value="Telephony SIP Gateway&#xa;(Twilio / Exotel Media Streams)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E0E7FF;strokeColor=#4F46E5;fontSize=12;" vertex="1" parent="box_client">
+          <mxGeometry x="25" y="150" width="210" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="client_browser" value="Clinician Web Simulator&#xa;(Browser WebRTC / Audio API)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=12;fontStyle=1;" vertex="1" parent="box_client">
+          <mxGeometry x="25" y="270" width="210" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="client_portal" value="Clinical Authoring Portal&#xa;(Doctor Rule Editor &amp; Audit)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=12;" vertex="1" parent="box_client">
+          <mxGeometry x="25" y="360" width="210" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="care_ops_ui" value="Care Ops Emergency UI&#xa;(Real-Time Red-Flag Alert Feed)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEE2E2;strokeColor=#DC2626;fontSize=12;fontStyle=1;" vertex="1" parent="box_client">
+          <mxGeometry x="25" y="580" width="210" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Layer 2: Deterministic Safety Spine (FastAPI) -->
+        <mxCell id="box_spine" value="Thick Deterministic Spine (FastAPI Real-Time Turn Engine)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#3B82F6;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="340" y="40" width="460" height="740" as="geometry" />
+        </mxCell>
+        <mxCell id="vad_module" value="Voice Activity Detector (VAD)&#xa;Silero ONNX (180ms Silence Window)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontSize=12;" vertex="1" parent="box_spine">
+          <mxGeometry x="30" y="60" width="230" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="stt_module" value="Fast STT Transcriber&#xa;Groq Whisper-large-v3-turbo (140ms)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontSize=12;fontStyle=1;" vertex="1" parent="box_spine">
+          <mxGeometry x="30" y="140" width="230" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="pre_guard" value="Pre-Turn Red-Flag Circuit Breaker&#xa;Aho-Corasick Regex Engine (&lt; 0.005ms)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEE2E2;strokeColor=#B91C1C;fontSize=12;fontStyle=1;" vertex="1" parent="box_spine">
+          <mxGeometry x="30" y="220" width="400" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="rag_engine" value="Hybrid Knowledge Retriever&#xa;SQLite FTS5 + Tag Match + FastEmbed Cosine" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#059669;fontSize=12;fontStyle=1;" vertex="1" parent="box_spine">
+          <mxGeometry x="30" y="320" width="400" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="prompt_assembler" value="Prompt Assembler &amp; Context Isolator&#xa;Persona + PEP + JIT Ground Truth (&lt; 320 tokens)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontSize=12;" vertex="1" parent="box_spine">
+          <mxGeometry x="30" y="410" width="400" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="post_guard" value="Post-Turn Output Sanitizer&#xa;• AI Persona Enforcer • No-WhatsApp Gate • Price Guard" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=12;fontStyle=1;" vertex="1" parent="box_spine">
+          <mxGeometry x="30" y="490" width="400" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="tts_engine" value="Neural Speech Synthesizer&#xa;edge-tts (hi-IN-SwaraNeural Streaming)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontSize=12;fontStyle=1;" vertex="1" parent="box_spine">
+          <mxGeometry x="30" y="580" width="400" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="regression_gate" value="Pre-Publishing Regression Test Oracle&#xa;50+ Historical Failure Tests Gatekeeper" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;fontSize=12;fontStyle=1;" vertex="1" parent="box_spine">
+          <mxGeometry x="30" y="650" width="400" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- Layer 3: Knowledge, Data & AI Models -->
+        <mxCell id="box_data" value="Data Layer &amp; External AI Models" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F3F4F6;strokeColor=#9CA3AF;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="840" y="40" width="290" height="740" as="geometry" />
+        </mxCell>
+        <mxCell id="groq_llm" value="Groq LPU Reasoning Core&#xa;Meta Llama-3.3-70b-versatile&#xa;(TTFT: 200ms | 30 RPM Free Tier)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#6D28D9;fontSize=12;fontStyle=1;" vertex="1" parent="box_data">
+          <mxGeometry x="20" y="60" width="250" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="groq_fallback" value="Groq Fallback Brain&#xa;Llama-3.1-8b-instant (TTFT: 90ms)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#6D28D9;fontSize=11;" vertex="1" parent="box_data">
+          <mxGeometry x="20" y="145" width="250" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="sqlite_db" value="SQLite Database (WAL Mode)&#xa;• clinical_rules (FTS5 Virtual Table)&#xa;• clinical_stances (Dietary Consensus)&#xa;• patient_pep (Exercise Permissions)&#xa;• patient_diet_plans (Daily Meals)&#xa;• pricing_plans (Official Catalog)&#xa;• call_turns &amp; escalations (Audit)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#ECFDF5;strokeColor=#059669;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="box_data">
+          <mxGeometry x="20" y="210" width="250" height="190" as="geometry" />
+        </mxCell>
+        <mxCell id="fastembed_model" value="FastEmbed ONNX Vector Model&#xa;paraphrase-multilingual-MiniLM-L12&#xa;(In-Process CPU Cosine Matching)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#059669;fontSize=11;" vertex="1" parent="box_data">
+          <mxGeometry x="20" y="420" width="250" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="care_ops_webhook" value="Care Ops Emergency Dispatcher&#xa;HTTP Webhook / SMS Alert Gateway" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEE2E2;strokeColor=#DC2626;fontSize=12;fontStyle=1;" vertex="1" parent="box_data">
+          <mxGeometry x="20" y="580" width="250" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Connectors -->
+        <mxCell id="c1" edge="1" source="client_phone" target="telephony_gw" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c2" edge="1" source="telephony_gw" target="vad_module" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c3" edge="1" source="client_browser" target="vad_module" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c4" edge="1" source="vad_module" target="stt_module" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c5" edge="1" source="stt_module" target="pre_guard" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c6_emg" value="Red Flag Match" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#DC2626;strokeWidth=2;dashed=1;" edge="1" source="pre_guard" target="care_ops_webhook" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="290" />
+              <mxPoint x="820" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c7_pass" value="Safe Utterance" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#059669;strokeWidth=2;" edge="1" source="pre_guard" target="rag_engine" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c8" edge="1" source="rag_engine" target="sqlite_db" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c9" edge="1" source="rag_engine" target="prompt_assembler" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c10" edge="1" source="prompt_assembler" target="groq_llm" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="810" y="475" />
+              <mxPoint x="810" y="115" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c11" edge="1" source="groq_llm" target="post_guard" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="830" y="130" />
+              <mxPoint x="830" y="550" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c12" edge="1" source="post_guard" target="tts_engine" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c13" edge="1" source="tts_engine" target="client_browser" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="320" y="655" />
+              <mxPoint x="320" y="340" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="c14" edge="1" source="care_ops_webhook" target="care_ops_ui" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c15" edge="1" source="client_portal" target="regression_gate" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="c16" edge="1" source="regression_gate" target="sqlite_db" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="715" />
+              <mxPoint x="820" y="370" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

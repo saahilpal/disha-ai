@@ -1,0 +1,116 @@
+<mxfile host="Electron" modified="2026-11-05T07:40:00.000Z" agent="Mozilla/5.0" version="21.6.8" type="device">
+  <diagram id="DishaAgentWorkflow" name="Disha AI Clinical Authoring & Agent Workflow">
+    <mxGraphModel dx="1422" dy="894" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Actor: Clinician -->
+        <mxCell id="actor_doc" value="Non-Technical Clinician&#xa;(Doctor / Dietitian / Coach)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#FEF3C7;strokeColor=#D97706;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="60" y="80" width="40" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Studio UI -->
+        <mxCell id="box_studio" value="1. Clinical Rule Studio Web Portal&#xa;• Enter Trigger Keywords (Hinglish/English)&#xa;• Enter Approved Clinical Remedy&#xa;• Select Category (Symptom / Food Stance)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontStyle=1;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="160" y="80" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Step 2: Conflict Analyzer Agent -->
+        <mxCell id="agent_conflict" value="2. Clinical Conflict Analyzer Agent&#xa;(Groq Llama-3.1-8B-instant)&#xa;Scans for medical &amp; dietary contradictions&#xa;against active rule catalog" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="490" y="80" width="270" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Step 3: Interactive Sandbox -->
+        <mxCell id="box_sandbox" value="3. Single-Turn Sandbox Preview&#xa;Clinician tests candidate rule with live audio/text&#xa;and inspects prompt injection &amp; guardrail trace" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="810" y="80" width="290" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Step 4: Regression Gatekeeper -->
+        <mxCell id="oracle_gate" value="4. Automated Regression Test Oracle&#xa;(The Zero-Regression Gatekeeper)&#xa;Executes 50+ Historical Failure Scenarios" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FDF2F8;strokeColor=#DB2777;fontStyle=1;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="495" y="230" width="260" height="130" as="geometry" />
+        </mxCell>
+
+        <!-- Failure Branch: Blocked -->
+        <mxCell id="box_blocked" value="5A. DEPLOYMENT BLOCKED&#xa;• Visual diff of failing historical test&#xa;• Highlighted conflicting rule code&#xa;• Doctor advised on required adjustments" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEE2E2;strokeColor=#DC2626;fontStyle=1;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="160" y="255" width="280" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Success Branch: Published -->
+        <mxCell id="box_published" value="5B. PUBLISHED TO PRODUCTION&#xa;• Atomic write to SQLite database&#xa;• Rebuild FTS5 index &amp; FastEmbed cache&#xa;• Zero code deploys / Zero server restarts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#059669;fontStyle=1;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="810" y="255" width="290" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Step 6: Live Calls -->
+        <mxCell id="box_live_calls" value="6. Live Patient Voice Follow-Up Calls&#xa;Synchronous Turn Pipeline:&#xa;Pre-Guard (<2µs) ──> JIT RAG (<5ms) ──> Groq 70B (200ms) ──> edge-tts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="495" y="440" width="605" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Step 7: Post-Call QA Agent -->
+        <mxCell id="agent_qa" value="7. Post-Call Clinical QA Auditor Agent (Asynchronous)&#xa;• Evaluates transcript protocol adherence&#xa;• Discovers uncatalogued Hinglish slang / symptoms&#xa;• Flags emerging patient questions for doctor review" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EDE9FE;strokeColor=#7C3AED;fontStyle=1;fontSize=12;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="495" y="560" width="605" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- Feedback Loop to Clinician -->
+        <mxCell id="box_feedback" value="8. Weekly Clinician Review Batch&#xa;High-impact feedback cards presented to doctors&#xa;to author next generation of clinical rules" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontStyle=1;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="160" y="565" width="280" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Connectors -->
+        <mxCell id="wf1" edge="1" source="actor_doc" target="box_studio" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wf2" edge="1" source="box_studio" target="agent_conflict" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wf3" edge="1" source="agent_conflict" target="box_sandbox" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wf4" edge="1" source="box_sandbox" target="oracle_gate" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="955" y="200" />
+              <mxPoint x="625" y="200" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="wf_fail" value="Regression (Pass &lt; 98%)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#DC2626;strokeWidth=2;" edge="1" source="oracle_gate" target="box_blocked" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wf_retry" value="Doctor revises rule" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#DC2626;dashed=1;" edge="1" source="box_blocked" target="box_studio" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf_pass" value="100% Safety Pass" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#059669;strokeWidth=2;" edge="1" source="oracle_gate" target="box_published" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf5" edge="1" source="box_published" target="box_live_calls" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="955" y="390" />
+              <mxPoint x="800" y="390" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <mxCell id="wf6" edge="1" source="box_live_calls" target="agent_qa" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf7" edge="1" source="agent_qa" target="box_feedback" parent="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="wf8" edge="1" source="box_feedback" target="actor_doc" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="80" y="600" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
