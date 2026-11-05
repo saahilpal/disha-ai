@@ -35,3 +35,4 @@ def test_patient_missing_meal_closed_domain_fallback():
     meal = patient_context_resolver.get_meal_plan("pt_101", meal_type="midnight_snack", day_of_week="Funday")
     assert meal["found"] is False
     assert "record not found" in meal["summary"].lower()
+

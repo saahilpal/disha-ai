@@ -42,3 +42,4 @@ class EgressGate:
         if not text:
             return False
         return any(pattern.search(text) is not None for _, pattern in cls.PATTERNS)
+

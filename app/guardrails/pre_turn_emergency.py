@@ -67,3 +67,4 @@ class PreTurnEmergencyCircuitBreaker:
 
 # Global singleton
 emergency_circuit_breaker = PreTurnEmergencyCircuitBreaker()
+

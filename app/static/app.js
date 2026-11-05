@@ -240,7 +240,9 @@ function updateTelemetry(result) {
     result.retrieved_rules.forEach(r => {
       const p = document.createElement('p');
       p.className = 'bg-white p-1.5 rounded border border-slate-200 text-teal-800 text-[11px]';
-      p.innerHTML = `<strong>[${escapeHtml(r.rule_code)}]</strong> ${escapeHtml(r.clinical_remedy)}`;
+      const code = typeof r === 'string' ? r : (r.rule_code || 'RULE');
+      const text = typeof r === 'string' ? r : (r.clinical_remedy || '');
+      p.innerHTML = `<strong>[${escapeHtml(code)}]</strong> ${escapeHtml(text)}`;
       rulesList.appendChild(p);
     });
     if (result.matched_stance) {
@@ -279,6 +281,21 @@ async function synthesizeAndPlayAudio(text) {
   if (!text) return;
   const playerContainer = document.getElementById('audio-player-container');
   const audioPlayer = document.getElementById('tts-audio-player');
+  const equalizer = document.getElementById('soundwave-equalizer');
+
+  // Setup soundwave visualizer listeners once
+  if (!audioPlayer.dataset.hasListeners) {
+    audioPlayer.addEventListener('play', () => {
+      if (equalizer) equalizer.classList.add('equalizer-active');
+    });
+    audioPlayer.addEventListener('pause', () => {
+      if (equalizer) equalizer.classList.remove('equalizer-active');
+    });
+    audioPlayer.addEventListener('ended', () => {
+      if (equalizer) equalizer.classList.remove('equalizer-active');
+    });
+    audioPlayer.dataset.hasListeners = "true";
+  }
 
   try {
     playerContainer.classList.remove('hidden');
@@ -605,3 +622,4 @@ window.addEventListener('DOMContentLoaded', () => {
   loadCapabilities();
   loadPricing();
 });
+

@@ -91,3 +91,4 @@ async def run_latency_benchmark(num_iterations: int = 50) -> Dict[str, float]:
 
 if __name__ == "__main__":
     asyncio.run(run_latency_benchmark(50))
+

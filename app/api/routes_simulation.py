@@ -156,3 +156,4 @@ def get_audit_logs():
         "recent_turns": turns,
         "emergency_escalations": escalations
     }
+

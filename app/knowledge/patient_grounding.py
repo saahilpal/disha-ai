@@ -96,3 +96,4 @@ class PatientContextResolver:
 
 # Global singleton
 patient_context_resolver = PatientContextResolver()
+

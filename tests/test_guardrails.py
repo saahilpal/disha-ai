@@ -71,3 +71,4 @@ def test_egress_gate_sanitizes_credentials_and_abha():
     assert "[REDACTED_INDIAN_PHONE]" in clean
     assert "[REDACTED_GROQ_KEY]" in clean
     assert "12-3456-7890-1234" not in clean
+

@@ -93,3 +93,4 @@ async def websocket_call_endpoint(websocket: WebSocket, patient_id: str):
             await websocket.close()
         except Exception:
             pass
+

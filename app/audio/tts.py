@@ -45,3 +45,4 @@ class TextToSpeechSynthesizer:
 
 # Global singleton
 tts_synthesizer = TextToSpeechSynthesizer()
+

@@ -141,3 +141,4 @@ def list_pricing():
     rows = [dict(r) for r in cursor.fetchall()]
     conn.close()
     return rows
+

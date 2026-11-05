@@ -69,3 +69,4 @@ class LLMClient:
 
 # Global singleton
 llm_client = LLMClient()
+

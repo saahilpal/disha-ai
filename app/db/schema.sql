@@ -167,3 +167,4 @@ CREATE TABLE IF NOT EXISTS regression_test_suite (
     should_emergency_halt BOOLEAN DEFAULT 0,
     is_active BOOLEAN DEFAULT 1
 );
+

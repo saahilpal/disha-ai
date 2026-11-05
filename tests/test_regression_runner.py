@@ -70,3 +70,4 @@ async def test_simulation_turn_api_endpoint():
         body_emg = resp_emg.json()
         assert body_emg["is_emergency"] is True
         assert "112" in body_emg["final_response"] or "ambulance" in body_emg["final_response"]
+

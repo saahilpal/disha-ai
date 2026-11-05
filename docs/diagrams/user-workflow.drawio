@@ -1,0 +1,102 @@
+<mxfile host="Electron" modified="2026-11-05T07:50:00.000Z" agent="Mozilla/5.0" version="21.6.8" type="device">
+  <diagram id="DishaUserWorkflow" name="Disha AI User Workflows">
+    <mxGraphModel dx="1422" dy="894" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1169" pageHeight="827" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Lane 1: Patient Voice Journey -->
+        <mxCell id="lane_patient" value="Patient Voice Call Workflow (Real-Time Voice Call)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontStyle=1;fontSize=13;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="1080" height="230" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p_start" value="Answers Voice Call&#xa;from Disha AI" style="shape=ellipse;whiteSpace=wrap;html=1;fillColor=#E0E7FF;strokeColor=#4F46E5;fontStyle=1;fontSize=11;" vertex="1" parent="lane_patient">
+          <mxGeometry x="30" y="70" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p_speak" value="Speaks Query / Symptom&#xa;(e.g. 'Pet me bloating ho rahi hai'&#xa;or 'Aaj dinner me kya hai?')" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontSize=11;" vertex="1" parent="lane_patient">
+          <mxGeometry x="200" y="65" width="190" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p_eval" value="Sub-Second Turn Engine&#xa;• &lt;0.005ms Emergency Guard&#xa;• SQLite FTS5 RAG Match&#xa;• Bounded LLM Reasoning" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontStyle=1;fontSize=10;" vertex="1" parent="lane_patient">
+          <mxGeometry x="430" y="45" width="190" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p_normal" value="Hears Grounded Hinglish Reply&#xa;• Vetted remedy (jeera water)&#xa;• Real DB dinner (paneer bhurji)&#xa;• AI coach identity affirmed" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#059669;fontSize=11;fontStyle=1;" vertex="1" parent="lane_patient">
+          <mxGeometry x="670" y="45" width="200" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p_emg" value="112 Emergency Triage Audio&#xa;Workout halted immediately&#xa;Ambulance guidance played" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEE2E2;strokeColor=#DC2626;fontSize=11;fontStyle=1;" vertex="1" parent="lane_patient">
+          <mxGeometry x="670" y="130" width="200" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="p_end" value="Call Ends or Continues&#xa;Next Proactive Check-In" style="shape=ellipse;whiteSpace=wrap;html=1;fillColor=#F1F5F9;strokeColor=#64748B;fontSize=11;" vertex="1" parent="lane_patient">
+          <mxGeometry x="920" y="80" width="130" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Lane 2: Clinician Rule Authoring Journey -->
+        <mxCell id="lane_clinician" value="Clinician Self-Serve Rule Authoring Workflow (Doctors &amp; Dietitians)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontStyle=1;fontSize=13;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="40" y="290" width="1080" height="230" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c_start" value="Clinician Identifies&#xa;New Medical Protocol" style="shape=ellipse;whiteSpace=wrap;html=1;fillColor=#E0E7FF;strokeColor=#4F46E5;fontStyle=1;fontSize=11;" vertex="1" parent="lane_clinician">
+          <mxGeometry x="30" y="75" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c_form" value="Fills Clinical Rule Form&#xa;• Rule Code &amp; Category&#xa;• Hinglish Trigger Keywords&#xa;• Approved Clinical Remedy&#xa;• Doctor Rationale" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontSize=11;" vertex="1" parent="lane_clinician">
+          <mxGeometry x="210" y="60" width="180" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c_gate" value="Pre-Publishing&#xa;Zero-Regression Gate&#xa;Runs 17 Golden Tests" style="rhombus;whiteSpace=wrap;html=1;fillColor=#FEF3C7;strokeColor=#D97706;fontStyle=1;fontSize=10;" vertex="1" parent="lane_clinician">
+          <mxGeometry x="430" y="55" width="190" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c_pass" value="Rule Published to Production&#xa;• SQLite FTS5 synced&#xa;• Version bumped&#xa;• Live in calls immediately" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#059669;fontStyle=1;fontSize=11;" vertex="1" parent="lane_clinician">
+          <mxGeometry x="670" y="45" width="200" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c_fail" value="Publication Blocked&#xa;Exact regression diff displayed&#xa;Zero prior behaviors broken" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FEE2E2;strokeColor=#DC2626;fontStyle=1;fontSize=11;" vertex="1" parent="lane_clinician">
+          <mxGeometry x="670" y="130" width="200" height="65" as="geometry" />
+        </mxCell>
+
+        <!-- Lane 3: Care Ops Escalation Journey -->
+        <mxCell id="lane_ops" value="Care Operations Emergency Escalation Workflow" style="swimlane;whiteSpace=wrap;html=1;fillColor=#F8FAFC;strokeColor=#CBD5E1;fontStyle=1;fontSize=13;startSize=30;" vertex="1" parent="1">
+          <mxGeometry x="40" y="540" width="1080" height="190" as="geometry" />
+        </mxCell>
+
+        <mxCell id="o_event" value="Emergency Circuit&#xa;Breaker Triggered" style="shape=ellipse;whiteSpace=wrap;html=1;fillColor=#FEE2E2;strokeColor=#DC2626;fontStyle=1;fontSize=11;" vertex="1" parent="lane_ops">
+          <mxGeometry x="30" y="65" width="140" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="o_webhook" value="Care Ops Webhook Dispatched&#xa;• Patient ID &amp; Phone&#xa;• Red-Flag Category &amp; Phrases&#xa;• Audio Snippet URL" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#EFF6FF;strokeColor=#2563EB;fontSize=11;" vertex="1" parent="lane_ops">
+          <mxGeometry x="220" y="60" width="200" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="o_triage" value="On-Call Coordinator Alert&#xa;Audio played with Red Banner&#xa;One-click doctor callback initiated" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECFDF5;strokeColor=#059669;fontStyle=1;fontSize=11;" vertex="1" parent="lane_ops">
+          <mxGeometry x="480" y="60" width="210" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="o_resolve" value="Incident Marked RESOLVED&#xa;Persisted in SQLite Audit Ledger" style="shape=ellipse;whiteSpace=wrap;html=1;fillColor=#E0E7FF;strokeColor=#4F46E5;fontStyle=1;fontSize=11;" vertex="1" parent="lane_ops">
+          <mxGeometry x="750" y="65" width="190" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Edges -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#2563EB;strokeWidth=2;" edge="1" source="p_start" target="p_speak" parent="lane_patient" />
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#2563EB;strokeWidth=2;" edge="1" source="p_speak" target="p_eval" parent="lane_patient" />
+        <mxCell id="e3" value="Safe Turn" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#059669;strokeWidth=2;" edge="1" source="p_eval" target="p_normal" parent="lane_patient" />
+        <mxCell id="e4" value="Red Flag" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#DC2626;strokeWidth=2;" edge="1" source="p_eval" target="p_emg" parent="lane_patient" />
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#64748B;strokeWidth=2;" edge="1" source="p_normal" target="p_end" parent="lane_patient" />
+
+        <mxCell id="ec1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#2563EB;strokeWidth=2;" edge="1" source="c_start" target="c_form" parent="lane_clinician" />
+        <mxCell id="ec2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#2563EB;strokeWidth=2;" edge="1" source="c_form" target="c_gate" parent="lane_clinician" />
+        <mxCell id="ec3" value="100% Pass" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#059669;strokeWidth=2;" edge="1" source="c_gate" target="c_pass" parent="lane_clinician" />
+        <mxCell id="ec4" value="Regression" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#DC2626;strokeWidth=2;" edge="1" source="c_gate" target="c_fail" parent="lane_clinician" />
+
+        <mxCell id="eo1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#DC2626;strokeWidth=2;" edge="1" source="o_event" target="o_webhook" parent="lane_ops" />
+        <mxCell id="eo2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#2563EB;strokeWidth=2;" edge="1" source="o_webhook" target="o_triage" parent="lane_ops" />
+        <mxCell id="eo3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#059669;strokeWidth=2;" edge="1" source="o_triage" target="o_resolve" parent="lane_ops" />
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

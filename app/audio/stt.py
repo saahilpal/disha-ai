@@ -43,3 +43,4 @@ class SpeechToTextTranscriber:
 
 # Global singleton
 stt_transcriber = SpeechToTextTranscriber()
+

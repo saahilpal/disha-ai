@@ -99,6 +99,15 @@
               <span class="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-1 rounded">Turn Latency Target: &lt;1.2s</span>
             </h2>
 
+            <!-- Founder Testing Context Banner -->
+            <div class="mb-3.5 bg-gradient-to-r from-indigo-50 to-emerald-50/40 border border-indigo-100/80 rounded-lg p-2.5 flex items-start space-x-2.5 text-xs text-slate-700">
+              <i class="fa-solid fa-circle-info text-indigo-600 mt-0.5 text-sm shrink-0"></i>
+              <div>
+                <span class="font-bold text-indigo-950">Founder Live Demo Mode:</span>
+                <span>Disha conducts proactive Hinglish voice follow-up calls. Click any failure mode below to test real-time deterministic guardrails (&lt;0.005ms), live DB grounding, and neural speech synthesis.</span>
+              </div>
+            </div>
+
             <!-- Quick Failure Scenario Chips -->
             <div class="mb-4">
               <label class="block text-xs font-medium text-slate-500 uppercase tracking-wider mb-2">Simulate Known Production Failure Modes:</label>
@@ -128,11 +137,17 @@
 
             <!-- Audio Player Bar -->
             <div id="audio-player-container" class="mt-3 hidden items-center justify-between bg-indigo-50 border border-indigo-100 p-2.5 rounded-lg">
-              <div class="flex items-center space-x-2 text-xs text-indigo-900 font-medium">
-                <i class="fa-solid fa-volume-high text-indigo-600 animate-pulse"></i>
-                <span>Streaming Speech Synthesis (edge-tts / hi-IN-SwaraNeural):</span>
+              <div class="flex items-center space-x-3 text-xs text-indigo-900 font-medium">
+                <div class="equalizer-container" id="soundwave-equalizer">
+                  <div class="equalizer-bar"></div>
+                  <div class="equalizer-bar"></div>
+                  <div class="equalizer-bar"></div>
+                  <div class="equalizer-bar"></div>
+                  <div class="equalizer-bar"></div>
+                </div>
+                <span>Neural Speech Audio (<span class="font-mono text-indigo-700">edge-tts / hi-IN-SwaraNeural</span>):</span>
               </div>
-              <audio id="tts-audio-player" controls autoplay class="h-8"></audio>
+              <audio id="tts-audio-player" controls autoplay class="h-8 max-w-[200px]"></audio>
             </div>
 
             <!-- Input Bar -->
@@ -476,3 +491,4 @@
   <script src="/static/app.js"></script>
 </body>
 </html>
+

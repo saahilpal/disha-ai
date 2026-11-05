@@ -136,3 +136,4 @@ class HybridKnowledgeRetriever:
 
 # Global singleton
 hybrid_retriever = HybridKnowledgeRetriever()
+

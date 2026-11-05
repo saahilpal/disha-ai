@@ -83,6 +83,16 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 - **Hugging Face Spaces (Docker):** 100% free hosting with 2 vCPU and 16GB RAM, ideal for public clinical demonstration.
 - **Persistent Storage:** Attach a free 1GB persistent volume for `disha_clinical.db` to retain clinician rule updates across deploys.
 
+### Option D: Live Public Cloudflare Tunnel (Active Founder Demo URL)
+- **Public URL:** `https://prostores-daughters-div-deutschland.trycloudflare.com`
+- **Execution Command:**
+  ```bash
+  source venv/bin/activate
+  uvicorn app.main:app --host 0.0.0.0 --port 8000 &
+  cloudflared tunnel --url http://127.0.0.1:8000
+  ```
+- **Capabilities:** Full HTTPS SSL termination, WebSocket voice streaming support, DDoS shielding, accessible on desktop, iOS Safari, and Android Chrome.
+
 ---
 
 ## 3. Environment Variables & Secret Configuration

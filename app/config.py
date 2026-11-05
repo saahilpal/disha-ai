@@ -30,3 +30,4 @@ class Settings(BaseSettings):
         extra = "ignore"
 
 settings = Settings()
+
