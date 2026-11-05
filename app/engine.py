@@ -61,6 +61,14 @@ def classify_intent(text: str) -> IntentType:
 
     # Greetings & informal openers
     if re.search(r"^(hi|hello|hey|namaste|pranam|good\s*(?:morning|afternoon|evening)|gud\s*mrng|gm|ge|ga|kese ho|kaise ho)\b", clean):
+        clinical_keywords = [
+            "bloat", "pet", "dard", "pain", "dinner", "khana", "diet", "gym", "workout",
+            "jalan", "aam", "weight", "sugar", "bp", "fever", "cough", "exercise", "walk",
+            "drink", "eat", "kha", "kya", "can i", "btao", "batao", "help", "tablets",
+            "medicine", "dawa", "should i", "meal"
+        ]
+        if any(w in clean for w in clinical_keywords) or len(tokens) > 5:
+            return IntentType.CLINICAL_QUERY
         return IntentType.GREETING
 
     return IntentType.CLINICAL_QUERY
@@ -92,6 +100,7 @@ COMMUNICATION PRINCIPLES:
    - Understand typos ('wht' for what, 'cn i' for can I, 'krna h' for karna hai, 'gud mrng' for good morning) naturally without correcting the user.
 4. Truthful Grounding & Missing Data:
    - Ground answers strictly in the verified clinical facts, patient PEP, and scheduled diet charts below.
+   - When stating a scheduled meal from the diet chart, always mention both the meal items and the calorie count (e.g. 420 kcal) from the record.
    - If a user asks for their meal plan and no scheduled meal exists in their diet chart, honestly state that no plan has been set up yet.
    - If a user asks for gym workouts and their PEP does not have gym clearance, advise light walking/home exercises and doctor clearance.
    - If a user asks for BMR or calorie calculations and their height/weight are missing, inform them honestly that height and weight are needed.
@@ -114,6 +123,7 @@ class PromptBuilder:
         utterance: str,
         history: Optional[List[Dict[str, str]]] = None,
         patient_biometrics: Optional[Dict[str, Any]] = None,
+        user_memories: Optional[List[Dict[str, Any]]] = None,
     ) -> List[Dict[str, str]]:
         lang = detect_language(utterance)
         lang_directive = {
@@ -126,6 +136,7 @@ class PromptBuilder:
         bio_text = f"Age: {bio.get('age', 'Unknown')}, Gender: {bio.get('gender', 'Unknown')}, Height: {bio.get('height_cm', 'Unknown')}cm, Weight: {bio.get('weight_kg', 'Unknown')}kg, Goal: {bio.get('primary_goal', 'General Health')}"
         pep_text = f"Allowed Exercise: {', '.join(pep.get('allowed_exercise', ['walking']))}; Diet: {pep.get('dietary_preference', 'Vegetarian')}"
         facts_text = "\n".join(f"- {f}" for f in facts) if facts else "- No specific clinical facts triggered."
+        mem_text = "\n".join(f"- {m['key']}: {m['value']}" for m in (user_memories or [])) if user_memories else "- No stored personal memories yet."
 
         system = f"""{SYSTEM_PROMPT}
 LANGUAGE DIRECTIVE:
@@ -134,6 +145,8 @@ LANGUAGE DIRECTIVE:
 PATIENT PROFILE: {patient_name}
 BIOMETRICS: {bio_text}
 PEP PROTOCOL: {pep_text}
+CONFIRMED USER MEMORIES:
+{mem_text}
 
 VERIFIED CLINICAL KNOWLEDGE & SYSTEM DATA:
 {facts_text}
@@ -795,6 +808,14 @@ class TurnOrchestrator:
         retrieved_rules.extend(rules_facts)
 
         # STEP 3: Prompt & LLM Call
+        user_memories = []
+        try:
+            with get_db(self.db_path) as conn:
+                m_rows = conn.execute("SELECT key, value FROM user_memories WHERE user_id = ? AND status = 'confirmed' ORDER BY updated_at DESC LIMIT 5", (patient_id,)).fetchall()
+                user_memories = [dict(r) for r in m_rows]
+        except Exception:
+            pass
+
         messages = PromptBuilder.build(
             patient_name=patient_name,
             pep=pep,
@@ -802,6 +823,7 @@ class TurnOrchestrator:
             utterance=utterance,
             history=history,
             patient_biometrics=patient,
+            user_memories=user_memories,
         )
         raw_llm = await llm_client.generate(messages)
 

@@ -238,10 +238,6 @@ def is_persona_violation(text: str) -> bool:
     return bool(FORBIDDEN_HUMAN.search(text))
 
 def is_channel_violation(text: str) -> bool:
-    lower = text.lower()
-    # If the text explicitly explains WhatsApp is NOT supported or redirects to in-app
-    if any(neg in lower for neg in ["whatsapp par nahi", "whatsapp nahi", "not on whatsapp", "do not send on whatsapp", "cannot send on whatsapp", "bhejte nahi"]):
-        return False
     return bool(FORBIDDEN_CHANNELS.search(text))
 
 class PostTurnSanitizer:

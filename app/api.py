@@ -360,6 +360,14 @@ async def chat_stream_endpoint(req: ChatRequest):
         facts.extend(rules_facts)
         retrieved_rules.extend(rules_facts)
 
+        user_memories = []
+        try:
+            with get_db() as conn:
+                m_rows = conn.execute("SELECT key, value FROM user_memories WHERE user_id = ? AND status = 'confirmed' ORDER BY updated_at DESC LIMIT 5", (patient_id,)).fetchall()
+                user_memories = [dict(r) for r in m_rows]
+        except Exception:
+            pass
+
         messages = PromptBuilder.build(
             patient_name=patient_name,
             pep=pep,
@@ -367,6 +375,7 @@ async def chat_stream_endpoint(req: ChatRequest):
             utterance=req.utterance,
             history=req.history,
             patient_biometrics=patient,
+            user_memories=user_memories,
         )
 
         accumulated = ""
