@@ -84,7 +84,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 - **Persistent Storage:** Attach a free 1GB persistent volume for `disha_clinical.db` to retain clinician rule updates across deploys.
 
 ### Option D: Live Public Cloudflare Tunnel (Active Founder Demo URL)
-- **Public URL:** `https://prostores-daughters-div-deutschland.trycloudflare.com`
+- **Public URL:** `https://documented-superb-prozac-joined.trycloudflare.com`
 - **Execution Command:**
   ```bash
   source venv/bin/activate

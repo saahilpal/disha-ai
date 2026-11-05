@@ -3,7 +3,7 @@
 > **A production-ready, zero-cost, deterministic Hinglish voice turn engine designed to eliminate hallucinated pricing, missed clinical remedies, false capability promises, persona violations, missed red-flag emergencies, and clinical stance contradictions in proactive voice follow-up calls under a <1–2s latency budget.**
 
 ### 🌐 Live Public Founder Testing Application
-- **Live Public URL:** [https://prostores-daughters-div-deutschland.trycloudflare.com](https://prostores-daughters-div-deutschland.trycloudflare.com)
+- **Live Public URL:** [https://documented-superb-prozac-joined.trycloudflare.com](https://documented-superb-prozac-joined.trycloudflare.com)
 - **Deployment Status:** Active, SSL-Secured (`trycloudflare.com`), Zero-Cost ($0.00/min)
 - **Ready for Founder Demo:** Open in desktop or mobile browser. No login required. Live Voice Simulator, Clinical Rule Studio, Diet Plan Grounding, and Zero-Regression Benchmark Oracle are all active!
 
