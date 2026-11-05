@@ -1,0 +1,96 @@
+<mxfile host="app.diagrams.net" modified="2026-11-05T09:15:00.000Z" agent="Antigravity Lead Architect" version="24.0.0" type="device">
+  <diagram id="Disha-Clinician-Flow" name="Clinician Rule Authoring & Zero-Regression Simulation">
+    <mxGraphModel dx="1422" dy="850" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="1050" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- TITLE -->
+        <mxCell id="title" value="DISHA AI - CLINICIAN SELF-SERVE RULE AUTHORING &amp; ZERO-REGRESSION SIMULATION GATE" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=18;fontStyle=1;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="250" y="20" width="1000" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- STAGE 1: CLINICIAN COCKPIT -->
+        <mxCell id="c_box" value="STAGE 1: NO-CODE AUTHORING IN DISHA PROTOCOL STUDIO (Doctor / Dietitian)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f0fdf4;strokeColor=#16a34a;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="80" width="380" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="c_meta" value="1. Define Clinical Rule Metadata&#xa;Rule Code: 'NUT-FRUIT-MANGO-001'&#xa;Category: Dietary Stance / Boundary" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;" vertex="1" parent="c_box">
+          <mxGeometry x="20" y="40" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="c_trig" value="2. Enter Hinglish Colloquial Triggers&#xa;'Kya weight loss mein aam kha sakta hoon?'&#xa;[Auto-generate 50 phonetic variations via AI]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;" vertex="1" parent="c_box">
+          <mxGeometry x="20" y="105" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c_stance" value="3. Input Vetted Stance &amp; Mandatory Tokens&#xa;Stance: 'Aam seasonal moderation mein allowed hai'&#xa;Tokens: ['aam', '100g', 'moderation']" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;" vertex="1" parent="c_box">
+          <mxGeometry x="20" y="180" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="c_cite" value="4. Literature Citation &amp; Rationale&#xa;'ICMR-NIN Dietary Guidelines for Indians, Ch 7'&#xa;Medical Reg No: MCI-2018-84729" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;" vertex="1" parent="c_box">
+          <mxGeometry x="20" y="255" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- STAGE 2: SIMULATION GATE -->
+        <mxCell id="sim_box" value="STAGE 2: PRE-PUBLISHING ZERO-REGRESSION SIMULATION GATE" style="swimlane;whiteSpace=wrap;html=1;fillColor=#eff6ff;strokeColor=#2563eb;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="520" y="80" width="460" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="sim_golden" value="1. Run 1,500 Pinned Golden Historical Cases&#xa;Guarantees 100% Pass on Prior Failures (#1 - #8)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#1d4ed8;fontStyle=1;" vertex="1" parent="sim_box">
+          <mxGeometry x="20" y="40" width="420" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="sim_mutate" value="2. Adversarial Synthetic Defect Mutator&#xa;* Inverted Negations ('Mujhe chest pain nahi hai')&#xa;* Dialect variations (Bambaiya, Bihari, Punjabi slang)&#xa;* Typo and phonetic distortion robustness" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#1d4ed8;" vertex="1" parent="sim_box">
+          <mxGeometry x="20" y="105" width="420" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="sim_wilson" value="3. Statistical Safety Bounds Verification&#xa;Calculate Wilson Score Interval at 95% Confidence&#xa;False Verification Rate (FVR) &lt; 0.1% (p &lt; 0.05)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#1d4ed8;fontStyle=1;" vertex="1" parent="sim_box">
+          <mxGeometry x="20" y="190" width="420" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="sim_diff" value="4. Automated Golden Case Diff Generator&#xa;Displays exact token assertions &amp; pass/fail logs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#1d4ed8;" vertex="1" parent="sim_box">
+          <mxGeometry x="20" y="265" width="420" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- STAGE 3: APPROVAL & DEPLOYMENT -->
+        <mxCell id="dep_box" value="STAGE 3: CLINICAL GOVERNANCE &amp; HOT-RELOAD (&lt;60s)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#faf5ff;strokeColor=#7e22ce;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="80" width="380" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="app_doc" value="Medical Director Peer Review Gate&#xa;Requires Digital Signature &amp; Approval" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#6b21a8;fontStyle=1;" vertex="1" parent="dep_box">
+          <mxGeometry x="20" y="40" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="app_sql" value="Atomic Commit to PostgreSQL / SQLite&#xa;Table: 'clinical_knowledge_base' (ACID Transaction)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#6b21a8;" vertex="1" parent="dep_box">
+          <mxGeometry x="20" y="110" width="340" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="app_reload" value="Zero-Downtime Hot-Reload to Running Workers&#xa;Redis PubSub / SQLite WAL poll (&lt;50ms)&#xa;Zero Code Deploys | Zero Dropped Voice Calls" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontStyle=1;" vertex="1" parent="dep_box">
+          <mxGeometry x="20" y="180" width="340" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="app_live" value="LIVE ON PROD IN &lt;2 HOURS&#xa;All active voice calls &amp; chats inherit new rule immediately" style="ellipse;whiteSpace=wrap;html=1;fillColor=#bbf7d0;strokeColor=#16a34a;fontStyle=1;" vertex="1" parent="dep_box">
+          <mxGeometry x="30" y="260" width="320" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- REJECTION FLOW -->
+        <mxCell id="rej_box" value="REJECTION &amp; REMEDIATION PATH (Safety Invariants Enforced)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#fff1f2;strokeColor=#be123c;fontStyle=1;fontColor=#881337;" vertex="1" parent="1">
+          <mxGeometry x="520" y="470" width="460" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="rej_reason" value="SIMULATION GATE REJECTS RULE IF:&#xa;* ANY regression detected in Failures #1 - #8&#xa;* Emergency Red-Flag Sensitivity &lt; 100.0%&#xa;* False Positive Rate &gt; 0.2% on routine lifestyle questions&#xa;* Prompt token inflation exceeds +45 tokens" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe4e6;strokeColor=#e11d48;fontStyle=1;align=left;spacingLeft=12;" vertex="1" parent="rej_box">
+          <mxGeometry x="20" y="40" width="420" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="rej_feedback" value="Visual diff and failure traces sent back to Clinician for remediation" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe4e6;strokeColor=#e11d48;" vertex="1" parent="rej_box">
+          <mxGeometry x="20" y="130" width="420" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- EDGES -->
+        <mxCell id="e_c_sim" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="c_cite" target="sim_golden">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sim_dep" value="PASS (100% Golden &amp; FVR &lt; 0.1%)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#16a34a;strokeWidth=2;fontColor=#15803d;fontStyle=1;" edge="1" parent="1" source="sim_diff" target="app_doc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_sim_rej" value="FAIL (Any Regression)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#be123c;strokeWidth=2;fontColor=#be123c;fontStyle=1;" edge="1" parent="1" source="sim_diff" target="rej_reason">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_rej_back" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="rej_feedback" target="c_stance">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="750" y="680" />
+              <mxPoint x="270" y="680" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

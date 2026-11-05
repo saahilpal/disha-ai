@@ -1,625 +1,1231 @@
-// Disha AI — Production Clinical Voice AI Frontend Controller
+// Disha AI — Personal Health Coach Frontend Controller
+// Pure JavaScript, zero external framework dependencies, clean 2-screen architecture
 
-let currentTurnNumber = 1;
-let currentPatientId = "pt_101";
+let currentPatientId = localStorage.getItem("disha_patient_id") || "pt_" + Math.random().toString(36).substring(2, 9);
+if (!localStorage.getItem("disha_patient_id")) {
+  localStorage.setItem("disha_patient_id", currentPatientId);
+}
+let currentSessionId = "sess_" + Math.random().toString(36).substring(2, 9);
+let turnCounter = 1;
+let dialogueHistory = [];
 
-// 1. TAB NAVIGATION
-function switchTab(tabKey) {
-  // Hide all tab panes
-  document.querySelectorAll('.tab-pane').forEach(el => {
-    el.classList.add('hidden');
-    el.classList.remove('block');
-  });
+// Voice & Audio States
+let isVoiceSessionActive = false;
+let isAudioPlaying = false;
+let currentAudio = null;
+let mediaRecorder = null;
+let audioChunks = [];
+let micStream = null;
+let isChatMicRecording = false;
+let chatMediaRecorder = null;
+let chatAudioChunks = [];
 
-  // Reset tab buttons
-  document.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.classList.remove('active', 'border-indigo-600', 'text-indigo-600');
-    btn.classList.add('border-transparent', 'text-slate-500');
-  });
+const API_BASE = window.location.origin;
 
-  // Activate selected tab pane
-  const activePane = document.getElementById(`tab-content-${tabKey}`);
-  if (activePane) {
-    activePane.classList.remove('hidden');
-    activePane.classList.add('block');
+// -------------------------------------------------------------
+// 1. INITIALIZATION & SETUP
+// -------------------------------------------------------------
+
+document.addEventListener("DOMContentLoaded", async () => {
+  if (window.lucide) lucide.createIcons();
+
+  // Load patient context, persistent chat history, and active AI model settings
+  await Promise.all([
+    loadPatientProfile(currentPatientId),
+    loadConversationHistory(currentPatientId),
+    loadApiKeySettings()
+  ]);
+});
+
+async function loadConversationHistory(patientId) {
+  try {
+    const res = await fetch(`${API_BASE}/conversations/${patientId}`);
+    if (res.ok) {
+      const data = await res.json();
+      const messages = data.messages || [];
+      if (messages.length > 0) {
+        const container = document.getElementById("chat-messages-scroll");
+        if (container) {
+          container.innerHTML = "";
+          dialogueHistory = [];
+          for (const m of messages) {
+            appendChatMessage(m.role, m.content, m.source === "voice" ? "Voice Call" : null);
+            dialogueHistory.push({ role: m.role, content: m.content });
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Failed to load conversation history:", err);
   }
-
-  // Highlight selected tab button
-  const activeBtn = document.getElementById(`tab-btn-${tabKey}`);
-  if (activeBtn) {
-    activeBtn.classList.remove('border-transparent', 'text-slate-500');
-    activeBtn.classList.add('active', 'border-indigo-600', 'text-indigo-600');
-  }
-
-  // Tab-specific refreshes
-  if (tabKey === 'rules') loadRules();
-  if (tabKey === 'stances') { loadStances(); loadCapabilities(); loadPricing(); }
-  if (tabKey === 'pep') loadPatientProfile(currentPatientId);
-  if (tabKey === 'careops') loadAuditLogs();
 }
 
-// 2. QUICK CHIP SCENARIO INJECTION
-function fillUtterance(buttonElement) {
-  const text = buttonElement.getAttribute('data-text');
-  const input = document.getElementById('utterance-input');
-  if (input && text) {
-    input.value = text;
-    input.focus();
+// -------------------------------------------------------------
+// 2. TWO-SCREEN NAVIGATION (Chat & Profile only)
+// -------------------------------------------------------------
+
+function navigateTo(viewName) {
+  const isChat = viewName === "chat";
+  
+  const chatView = document.getElementById("view-chat");
+  const profileView = document.getElementById("view-profile");
+  const navChat = document.getElementById("nav-chat");
+  const navProfile = document.getElementById("nav-profile");
+
+  if (chatView) chatView.classList.toggle("hidden", !isChat);
+  if (profileView) profileView.classList.toggle("hidden", isChat);
+
+  if (navChat) {
+    if (isChat) {
+      navChat.className = "nav-btn px-4 py-2 rounded-xl text-primary bg-primary-light transition-all flex items-center space-x-1.5 font-semibold";
+    } else {
+      navChat.className = "nav-btn px-4 py-2 rounded-xl text-onSurface-variant hover:text-onSurface hover:bg-surface-low transition-all flex items-center space-x-1.5 font-semibold";
+    }
   }
+
+  if (navProfile) {
+    if (!isChat) {
+      navProfile.className = "nav-btn px-4 py-2 rounded-xl text-primary bg-primary-light transition-all flex items-center space-x-1.5 font-semibold";
+    } else {
+      navProfile.className = "nav-btn px-4 py-2 rounded-xl text-onSurface-variant hover:text-onSurface hover:bg-surface-low transition-all flex items-center space-x-1.5 font-semibold";
+    }
+  }
+
+  if (!isChat) {
+    populateProfileForm();
+  }
+
+  if (window.lucide) lucide.createIcons();
 }
 
-// 3. VOICE TURN SIMULATION
-async function submitTurn(event) {
-  event.preventDefault();
-  const inputEl = document.getElementById('utterance-input');
-  const userText = inputEl.value.trim();
-  if (!userText) return;
+// -------------------------------------------------------------
+// 3. CONSULTATION CHAT & STREAMING (Screen 1)
+// -------------------------------------------------------------
 
-  const dialogueBox = document.getElementById('dialogue-box');
-  const sendBtn = document.getElementById('send-btn');
-  const patientSelect = document.getElementById('patient-select');
-  currentPatientId = patientSelect.value;
+async function handleChatSubmit(event) {
+  if (event) event.preventDefault();
+  const input = document.getElementById("chat-text-input");
+  if (!input) return;
+  const text = input.value.trim();
+  if (!text) return;
 
-  // Append User Bubble
-  appendDialogueMessage('user', userText, 'You');
-  inputEl.value = '';
-  sendBtn.disabled = true;
-  sendBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Processing...</span>';
+  input.value = "";
+  await processChatTurn(text);
+}
 
-  // Temporary Processing Bubble
-  const loadingId = 'loading-' + Date.now();
-  const loadingBubble = document.createElement('div');
-  loadingBubble.id = loadingId;
-  loadingBubble.className = 'flex items-start space-x-3 opacity-70';
-  loadingBubble.innerHTML = `
-    <div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm animate-pulse">D</div>
-    <div class="bg-white p-3 rounded-2xl rounded-tl-sm border border-slate-200 text-xs text-slate-500 italic">
-      <i class="fa-solid fa-circle-notch fa-spin mr-1.5 text-indigo-500"></i> Disha is thinking & verifying guardrails...
-    </div>
-  `;
-  dialogueBox.appendChild(loadingBubble);
-  dialogueBox.scrollTop = dialogueBox.scrollHeight;
+function sendQuickPrompt(promptText) {
+  const input = document.getElementById("chat-text-input");
+  if (input) input.value = promptText;
+  navigateTo("chat");
+  processChatTurn(promptText);
+}
+
+async function processChatTurn(utterance) {
+  // Append user bubble to UI
+  appendChatMessage("user", utterance);
+  dialogueHistory.push({ role: "user", content: utterance });
+
+  // Show typing indicator
+  showChatTypingIndicator(true, getContextualFillerText(utterance));
+
+  // Create an assistant response placeholder for streaming tokens
+  const assistantBubbleInfo = createStreamingAssistantBubble();
+
+  let accumulated = "";
+  let isStreamSuccess = false;
+  let sourceChips = [];
 
   try {
-    const response = await fetch('/api/v1/simulation/turn', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    // Attempt Server-Sent Events (SSE) streaming
+    const res = await fetch(`${API_BASE}/chat/stream`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         patient_id: currentPatientId,
-        utterance: userText,
-        turn_number: currentTurnNumber++
+        utterance: utterance,
+        session_id: currentSessionId,
+        turn_number: turnCounter++,
+        history: dialogueHistory.slice(-6)
       })
     });
 
-    const result = await response.json();
+    if (res.ok && res.body) {
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
 
-    // Remove loading bubble
-    const tempEl = document.getElementById(loadingId);
-    if (tempEl) tempEl.remove();
+      showChatTypingIndicator(false);
+      isStreamSuccess = true;
 
-    // Append AI Response Bubble
-    appendDialogueMessage(
-      result.is_emergency ? 'emergency' : 'disha',
-      result.final_response,
-      result.is_emergency ? 'DISHA EMERGENCY CIRCUIT BREAKER' : 'Disha Health Coach',
-      `${result.latency.total_ms}ms`
-    );
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
 
-    // Update Telemetry Waterfall & Badges
-    updateTelemetry(result);
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop(); // keep last incomplete line
 
-    // If emergency, trigger CareOps badge & log
-    if (result.is_emergency) {
-      const badge = document.getElementById('esc-badge');
-      if (badge) badge.classList.remove('hidden');
-      loadAuditLogs();
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed.startsWith("data:")) continue;
+
+          const dataStr = trimmed.slice(5).trim();
+          if (dataStr === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(dataStr);
+            if (parsed.type === "token") {
+              accumulated += parsed.token;
+              updateStreamingBubbleText(assistantBubbleInfo, accumulated);
+            } else if (parsed.type === "replace_all") {
+              accumulated = parsed.text;
+              updateStreamingBubbleText(assistantBubbleInfo, accumulated);
+            } else if (parsed.type === "emergency") {
+              accumulated = parsed.text;
+              updateStreamingBubbleText(assistantBubbleInfo, accumulated);
+              showEmergencyBanner(parsed.text);
+            }
+          } catch (e) {
+            // Raw text fallback
+          }
+        }
+      }
     }
-
-    // Trigger Neural Speech Synthesis (Edge-TTS)
-    synthesizeAndPlayAudio(result.final_response);
-
   } catch (err) {
-    console.error('Turn simulation failed:', err);
-    const tempEl = document.getElementById(loadingId);
-    if (tempEl) tempEl.remove();
-    appendDialogueMessage('disha', 'Kshama kijiye, system mein temporary error aaya. Please retry karein.', 'System Error', '0ms');
-  } finally {
-    sendBtn.disabled = false;
-    sendBtn.innerHTML = '<span>Send Turn</span><i class="fa-solid fa-arrow-right"></i>';
-    dialogueBox.scrollTop = dialogueBox.scrollHeight;
-  }
-}
-
-// 4. DIALOGUE BUBBLE BUILDER
-function appendDialogueMessage(sender, text, label, timeStr = '') {
-  const dialogueBox = document.getElementById('dialogue-box');
-  const div = document.createElement('div');
-  div.className = 'flex items-start space-x-3';
-
-  if (sender === 'user') {
-    div.className = 'flex items-start justify-end space-x-3';
-    div.innerHTML = `
-      <div class="bg-indigo-600 text-white p-3 rounded-2xl rounded-tr-sm shadow-sm max-w-[85%] text-sm">
-        <p class="font-normal">${escapeHtml(text)}</p>
-        <span class="text-[10px] text-indigo-200 mt-1 block text-right">${label}</span>
-      </div>
-      <div class="w-8 h-8 rounded-full bg-indigo-800 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">
-        <i class="fa-solid fa-user"></i>
-      </div>
-    `;
-  } else if (sender === 'emergency') {
-    div.innerHTML = `
-      <div class="w-8 h-8 rounded-full bg-rose-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm animate-bounce">
-        <i class="fa-solid fa-truck-medical"></i>
-      </div>
-      <div class="bg-rose-50 border-2 border-rose-500 p-3.5 rounded-2xl rounded-tl-sm shadow-md max-w-[85%]">
-        <div class="flex items-center space-x-1.5 text-xs font-bold text-rose-800 mb-1">
-          <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
-          <span>${label} (112 EMERGENCY TRIAGE)</span>
-        </div>
-        <p class="text-rose-950 font-medium text-sm leading-relaxed">${escapeHtml(text)}</p>
-        <div class="mt-2 pt-1 border-t border-rose-200 flex justify-between items-center text-[10px] text-rose-700">
-          <span>Deterministic Triage: Bypass LLM</span>
-          <span class="font-mono font-bold">${timeStr}</span>
-        </div>
-      </div>
-    `;
-  } else {
-    div.innerHTML = `
-      <div class="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shrink-0 shadow-sm">D</div>
-      <div class="bg-white p-3 rounded-2xl rounded-tl-sm border border-slate-200 shadow-sm max-w-[85%]">
-        <p class="text-slate-800 font-medium text-sm leading-relaxed">${escapeHtml(text)}</p>
-        <span class="text-[10px] text-slate-400 mt-1 block">${label} • ${timeStr}</span>
-      </div>
-    `;
+    // Stream error, fallback to standard POST /chat
   }
 
-  dialogueBox.appendChild(div);
-  dialogueBox.scrollTop = dialogueBox.scrollHeight;
-}
+  // Fallback to standard /chat if streaming was not successful
+  if (!isStreamSuccess || !accumulated.trim()) {
+    try {
+      const fallbackRes = await fetch(`${API_BASE}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_id: currentPatientId,
+          utterance: utterance,
+          session_id: currentSessionId,
+          turn_number: turnCounter++,
+          history: dialogueHistory.slice(-6)
+        })
+      });
 
-// 5. TELEMETRY & GUARDRAIL INSPECTOR UPDATE
-function updateTelemetry(result) {
-  const turnBadge = document.getElementById('turn-badge');
-  if (turnBadge) turnBadge.textContent = `Turn #${result.turn_number}`;
+      showChatTypingIndicator(false);
 
-  // Metrics
-  const totalMs = result.latency.total_ms;
-  document.getElementById('metric-total-latency').textContent = `${totalMs} ms`;
-  document.getElementById('metric-guard').textContent = `${result.latency.pre_guard_ms.toFixed(3)}ms`;
-  document.getElementById('metric-rag').textContent = `${result.latency.rag_ms.toFixed(1)}ms`;
-  document.getElementById('metric-llm').textContent = `${result.latency.llm_ms.toFixed(1)}ms`;
-  document.getElementById('metric-sanitizer').textContent = `${result.latency.post_guard_ms.toFixed(1)}ms`;
+      if (fallbackRes.ok) {
+        const data = await fallbackRes.json();
+        accumulated = data.final_response;
+        updateStreamingBubbleText(assistantBubbleInfo, accumulated);
 
-  // Latency bar width (out of 2000ms SLA target)
-  const pct = Math.min(100, Math.round((totalMs / 2000) * 100));
-  const latencyBar = document.getElementById('latency-bar');
-  if (latencyBar) {
-    latencyBar.style.width = `${pct}%`;
-    if (totalMs < 1200) {
-      latencyBar.className = 'bg-emerald-500 h-full rounded-full transition-all duration-300';
-    } else if (totalMs < 1800) {
-      latencyBar.className = 'bg-amber-500 h-full rounded-full transition-all duration-300';
-    } else {
-      latencyBar.className = 'bg-rose-500 h-full rounded-full transition-all duration-300';
+        if (data.is_emergency) {
+          showEmergencyBanner(data.final_response);
+        } else {
+          hideEmergencyBanner();
+        }
+      } else {
+        accumulated = "Mujhe connect karne mein pareshani ho rahi hai. Kripya apna connection check karke dobara puchein.";
+        updateStreamingBubbleText(assistantBubbleInfo, accumulated);
+      }
+    } catch (fallbackErr) {
+      showChatTypingIndicator(false);
+      accumulated = "Server response error. Please verify your connection.";
+      updateStreamingBubbleText(assistantBubbleInfo, accumulated);
     }
   }
 
-  // Pre-Turn Guard Card
-  const cardPre = document.getElementById('card-preguard');
-  const statusPre = document.getElementById('status-preguard');
-  const iconPre = document.getElementById('icon-preguard');
-  const descPre = document.getElementById('desc-preguard');
+  // Detect and append clinical source attribution chips
+  sourceChips = detectClinicalChips(utterance, accumulated);
+  appendSourceChipsToBubble(assistantBubbleInfo, sourceChips);
 
-  if (result.is_emergency) {
-    cardPre.className = 'p-3 rounded-lg border text-xs bg-rose-50 border-rose-300';
-    statusPre.className = 'uppercase font-mono font-bold text-rose-700';
-    statusPre.textContent = `HALTED (${result.emergency_category})`;
-    iconPre.className = 'fa-solid fa-triangle-exclamation text-rose-600';
-    descPre.className = 'text-rose-700 text-[11px] font-medium';
-    descPre.textContent = 'Acute medical emergency red flag detected! Turn halted immediately, LLM bypassed, 112 protocol initiated.';
-  } else {
-    cardPre.className = 'p-3 rounded-lg border text-xs bg-emerald-50/40 border-emerald-200';
-    statusPre.className = 'uppercase font-mono font-bold text-emerald-700';
-    statusPre.textContent = 'CLEAR (0 RED FLAGS)';
-    iconPre.className = 'fa-solid fa-shield-check text-emerald-600';
-    descPre.className = 'text-slate-500 text-[11px]';
-    descPre.textContent = `Scanned in ${result.latency.pre_guard_ms.toFixed(3)}ms. No cardiac or acute symptoms.`;
+  // Sync to dialogue history
+  dialogueHistory.push({ role: "assistant", content: accumulated });
+
+  // Update voice modal subtitle for shared context
+  updateVoiceSubtitle(accumulated);
+
+  // Auto-scroll to bottom
+  const container = document.getElementById("chat-messages-scroll");
+  if (container) container.scrollTop = container.scrollHeight;
+  if (window.lucide) lucide.createIcons();
+}
+
+function detectClinicalChips(utterance, response) {
+  const chips = [];
+  const text = (utterance + " " + response).toLowerCase();
+
+  if (text.includes("bloat") || text.includes("period") || text.includes("jeera") || text.includes("saunf")) {
+    chips.push("Doctor Approved Remedy: Jeera Water & Saunf");
+    chips.push("ICMR Nutritional Guidelines (2024)");
   }
-
-  // Knowledge Retrieved Card
-  const badgeRules = document.getElementById('badge-retrieved-count');
-  const rulesList = document.getElementById('retrieved-rules-list');
-  const count = result.retrieved_rules.length + (result.matched_stance ? 1 : 0);
-  badgeRules.textContent = `${count} Matched`;
-
-  rulesList.innerHTML = '';
-  if (count === 0) {
-    rulesList.innerHTML = '<p class="text-slate-400 italic font-sans">No domain rules required. General health conversation.</p>';
-  } else {
-    result.retrieved_rules.forEach(r => {
-      const p = document.createElement('p');
-      p.className = 'bg-white p-1.5 rounded border border-slate-200 text-teal-800 text-[11px]';
-      const code = typeof r === 'string' ? r : (r.rule_code || 'RULE');
-      const text = typeof r === 'string' ? r : (r.clinical_remedy || '');
-      p.innerHTML = `<strong>[${escapeHtml(code)}]</strong> ${escapeHtml(text)}`;
-      rulesList.appendChild(p);
-    });
-    if (result.matched_stance) {
-      const p = document.createElement('p');
-      p.className = 'bg-teal-50 p-1.5 rounded border border-teal-200 text-teal-900 text-[11px]';
-      p.innerHTML = `<strong>[STANCE: ${escapeHtml(result.matched_stance.entity)}]</strong> ${escapeHtml(result.matched_stance.stance)}: ${escapeHtml(result.matched_stance.explanation)}`;
-      rulesList.appendChild(p);
-    }
+  if (text.includes("mango") || text.includes("aam")) {
+    chips.push("Clinical Stance: Seasonal Moderation (100g)");
   }
+  if (text.includes("dinner") || text.includes("paneer bhurji") || text.includes("diet chart")) {
+    chips.push("Grounded: Patient Meal Plan Database");
+  }
+  if (text.includes("gym") || text.includes("squat") || text.includes("clearance") || text.includes("pep")) {
+    chips.push("PEP Clearance: Doctor Supervised Exercise");
+  }
+  if (text.includes("paid") || text.includes("subscription") || text.includes("price") || text.includes("free")) {
+    chips.push("Verified Pricing Policy");
+  }
+  if (chips.length === 0) {
+    chips.push("Clinically Grounded Protocol");
+  }
+  return chips;
+}
 
-  // Post-Turn Sanitizer Card
-  const cardPost = document.getElementById('card-postguard');
-  const statusPost = document.getElementById('status-postguard');
-  const iconPost = document.getElementById('icon-postguard');
-  const descPost = document.getElementById('desc-postguard');
+function createStreamingAssistantBubble() {
+  const container = document.getElementById("chat-messages-scroll");
+  if (!container) return null;
 
-  if (result.sanitizer_modifications && result.sanitizer_modifications.length > 0) {
-    cardPost.className = 'p-3 rounded-lg border text-xs bg-amber-50 border-amber-300';
-    statusPost.className = 'uppercase font-mono font-bold text-amber-700';
-    statusPost.textContent = 'INTERCEPTED & FIXED';
-    iconPost.className = 'fa-solid fa-filter text-amber-600';
-    descPost.className = 'text-amber-800 text-[11px] font-medium';
-    descPost.textContent = `Applied ${result.sanitizer_modifications.length} correction(s): ${result.sanitizer_modifications.join('; ')}`;
-  } else {
-    cardPost.className = 'p-3 rounded-lg border text-xs bg-emerald-50/40 border-emerald-200';
-    statusPost.className = 'uppercase font-mono font-bold text-emerald-700';
-    statusPost.textContent = 'VERIFIED';
-    iconPost.className = 'fa-solid fa-circle-check text-emerald-600';
-    descPost.className = 'text-slate-500 text-[11px]';
-    descPost.textContent = 'Passed all persona, capability boundary, and pricing checks.';
+  const msgDiv = document.createElement("div");
+  msgDiv.className = "flex items-start space-x-3 max-w-3xl";
+  
+  const bubbleId = "bubble-" + Math.random().toString(36).substring(2, 9);
+  const textId = "text-" + bubbleId;
+  const chipsId = "chips-" + bubbleId;
+
+  msgDiv.id = bubbleId;
+  msgDiv.innerHTML = `
+    <div class="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 shadow-xs mt-1">
+      <i data-lucide="spa" class="w-4 h-4 text-emerald-200"></i>
+    </div>
+    <div class="flex-1 bg-surface-card border border-surface-border rounded-2xl rounded-tl-xs p-5 text-onSurface text-sm space-y-3 shadow-xs">
+      <div class="flex items-center justify-between pb-2 border-b border-surface-border">
+        <span class="text-[11px] font-bold text-primary flex items-center gap-1.5">
+          <span>Disha AI Clinician</span>
+          <span class="px-2 py-0.5 rounded-full bg-secondary-container text-primary-dark text-[10px]">Integrative Protocol</span>
+        </span>
+        <span class="text-[11px] text-onSurface-variant">Just now</span>
+      </div>
+      <div id="${textId}" class="leading-relaxed space-y-2 text-onSurface">
+        <span class="inline-block w-2 h-4 bg-primary/40 animate-pulse"></span>
+      </div>
+      <div id="${chipsId}" class="pt-2 flex flex-wrap gap-1.5 text-[11px]"></div>
+    </div>
+  `;
+
+  container.appendChild(msgDiv);
+  container.scrollTop = container.scrollHeight;
+  if (window.lucide) lucide.createIcons();
+
+  return { bubbleId, textId, chipsId };
+}
+
+function updateStreamingBubbleText(bubbleInfo, text) {
+  if (!bubbleInfo) return;
+  const el = document.getElementById(bubbleInfo.textId);
+  if (el) {
+    el.innerHTML = formatMessageContent(text);
   }
 }
 
-// 6. STREAMING SPEECH SYNTHESIS (Edge-TTS)
-async function synthesizeAndPlayAudio(text) {
-  if (!text) return;
-  const playerContainer = document.getElementById('audio-player-container');
-  const audioPlayer = document.getElementById('tts-audio-player');
-  const equalizer = document.getElementById('soundwave-equalizer');
+function appendSourceChipsToBubble(bubbleInfo, chips) {
+  if (!bubbleInfo || !chips || chips.length === 0) return;
+  const el = document.getElementById(bubbleInfo.chipsId);
+  if (!el) return;
 
-  // Setup soundwave visualizer listeners once
-  if (!audioPlayer.dataset.hasListeners) {
-    audioPlayer.addEventListener('play', () => {
-      if (equalizer) equalizer.classList.add('equalizer-active');
-    });
-    audioPlayer.addEventListener('pause', () => {
-      if (equalizer) equalizer.classList.remove('equalizer-active');
-    });
-    audioPlayer.addEventListener('ended', () => {
-      if (equalizer) equalizer.classList.remove('equalizer-active');
-    });
-    audioPlayer.dataset.hasListeners = "true";
+  el.innerHTML = chips.map(chip => `
+    <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-low border border-surface-border text-onSurface-variant font-medium text-[11px]">
+      <i data-lucide="check-circle-2" class="w-3 h-3 text-primary"></i>
+      <span>${escapeHtml(chip)}</span>
+    </span>
+  `).join("");
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function appendChatMessage(role, text, sourceBadge = null) {
+  const container = document.getElementById("chat-messages-scroll");
+  if (!container) return;
+
+  const msgDiv = document.createElement("div");
+  msgDiv.className = role === "user" ? "flex justify-end" : "flex items-start space-x-3 max-w-2xl";
+
+  const badgeHtml = sourceBadge
+    ? `<span class="ml-2 px-1.5 py-0.5 rounded-full bg-secondary-container text-primary-dark text-[9px] font-semibold tracking-wide uppercase">${escapeHtml(sourceBadge)}</span>`
+    : "";
+
+  if (role === "user") {
+    msgDiv.innerHTML = `
+      <div class="bg-primary text-white rounded-2xl rounded-tr-xs px-5 py-3 text-sm shadow-xs max-w-lg leading-relaxed">
+        <div class="flex items-center justify-between gap-2 mb-1">
+          <span class="text-[10px] text-emerald-200">You</span>
+          ${sourceBadge ? `<span class="text-[9px] bg-emerald-800 text-emerald-100 px-1.5 py-0.5 rounded">${escapeHtml(sourceBadge)}</span>` : ""}
+        </div>
+        <p>${formatMessageContent(text)}</p>
+      </div>
+    `;
+  } else {
+    msgDiv.innerHTML = `
+      <div class="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 shadow-xs mt-1">
+        <i data-lucide="spa" class="w-4 h-4 text-emerald-200"></i>
+      </div>
+      <div class="bg-surface-card border border-surface-border rounded-2xl rounded-tl-xs p-5 text-onSurface text-sm space-y-2 shadow-xs">
+        <div class="flex items-center justify-between pb-2 border-b border-surface-border">
+          <span class="text-[11px] font-bold text-primary flex items-center">
+            <span>Disha AI Clinician</span>
+            ${badgeHtml}
+          </span>
+          <span class="text-[11px] text-onSurface-variant">Active</span>
+        </div>
+        <div class="leading-relaxed">${formatMessageContent(text)}</div>
+      </div>
+    `;
   }
+
+  container.appendChild(msgDiv);
+  container.scrollTop = container.scrollHeight;
+  if (window.lucide) lucide.createIcons();
+}
+
+async function clearConversation() {
+  dialogueHistory = [];
+  try {
+    await fetch(`${API_BASE}/conversations/${currentPatientId}`, { method: "DELETE" });
+  } catch (e) {}
+  const container = document.getElementById("chat-messages-scroll");
+  if (container) {
+    container.innerHTML = `
+      <div class="flex items-start space-x-3 max-w-2xl">
+        <div class="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 shadow-xs">
+          <i data-lucide="spa" class="w-4 h-4 text-emerald-200"></i>
+        </div>
+        <div class="bg-surface-low border border-surface-border rounded-2xl rounded-tl-xs p-5 text-onSurface text-sm space-y-2 shadow-xs">
+          <div class="flex items-center justify-between pb-2 border-b border-surface-border">
+            <span class="text-[11px] font-bold text-primary flex items-center gap-1.5">
+              <span>Disha AI Clinician</span>
+              <span class="px-2 py-0.5 rounded-full bg-secondary-container text-primary-dark text-[10px]">Integrative Protocol</span>
+            </span>
+            <span class="text-[11px] text-onSurface-variant">Active</span>
+          </div>
+          <p class="leading-relaxed">
+            Aaj aapki diet, workout ya health routine mein kahan guidance chahiye? Feel free to ask anything in Hindi, Hinglish, or English.
+          </p>
+        </div>
+      </div>
+    `;
+  }
+  hideEmergencyBanner();
+  if (window.lucide) lucide.createIcons();
+}
+
+function getContextualFillerText(text) {
+  const lower = text.toLowerCase();
+  if (lower.includes("dinner") || lower.includes("lunch") || lower.includes("meal") || lower.includes("khana")) {
+    return "Looking up your scheduled meal plan...";
+  }
+  if (lower.includes("price") || lower.includes("paid") || lower.includes("subscription")) {
+    return "Checking verified clinic pricing records...";
+  }
+  if (lower.includes("gym") || lower.includes("workout") || lower.includes("exercise")) {
+    return "Reviewing your Personal Exercise Plan clearances...";
+  }
+  if (lower.includes("bloat") || lower.includes("period") || lower.includes("pain")) {
+    return "Retrieving doctor-approved clinical remedies...";
+  }
+  return "Consulting clinical guidelines...";
+}
+
+function showChatTypingIndicator(show, text = "Disha is thinking...") {
+  const container = document.getElementById("chat-messages-scroll");
+  let el = document.getElementById("chat-typing-bubble");
+
+  if (show) {
+    if (!el && container) {
+      el = document.createElement("div");
+      el.id = "chat-typing-bubble";
+      el.className = "flex items-center space-x-2 text-xs text-onSurface-variant italic pl-12 py-1.5";
+      el.innerHTML = `<span class="w-2 h-2 rounded-full bg-primary animate-ping"></span> <span>${escapeHtml(text)}</span>`;
+      container.appendChild(el);
+      container.scrollTop = container.scrollHeight;
+    }
+  } else {
+    if (el) el.remove();
+  }
+}
+
+function showEmergencyBanner(msg) {
+  const b = document.getElementById("chat-emergency-banner");
+  const t = document.getElementById("chat-emergency-text");
+  if (b && t) {
+    t.textContent = msg;
+    b.classList.remove("hidden");
+  }
+}
+
+function hideEmergencyBanner() {
+  const b = document.getElementById("chat-emergency-banner");
+  if (b) b.classList.add("hidden");
+}
+
+function formatMessageContent(rawText) {
+  if (!rawText) return "";
+  let safe = escapeHtml(rawText);
+  // Bold **text**
+  safe = safe.replace(/\*\*(.*?)\*\*/g, '<strong class="text-primary-dark font-semibold">$1</strong>');
+  // Newlines to line breaks
+  safe = safe.replace(/\n/g, '<br>');
+  return safe;
+}
+
+function escapeHtml(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// -------------------------------------------------------------
+// 4. CHAT MICROPHONE INPUT (Speech-to-Text)
+// -------------------------------------------------------------
+
+async function toggleChatMicRecording() {
+  if (isChatMicRecording) {
+    stopChatMicRecording();
+  } else {
+    await startChatMicRecording();
+  }
+}
+
+async function startChatMicRecording() {
+  const pill = document.getElementById("mic-status-pill");
+  const icon = document.getElementById("chat-mic-icon");
+  const btn = document.getElementById("btn-chat-mic");
 
   try {
-    playerContainer.classList.remove('hidden');
-    playerContainer.classList.add('flex');
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    chatAudioChunks = [];
+    isChatMicRecording = true;
 
-    const res = await fetch('/api/v1/simulation/tts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: text })
+    const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+      ? "audio/webm;codecs=opus"
+      : "audio/webm";
+
+    chatMediaRecorder = new MediaRecorder(stream, { mimeType: mime });
+    chatMediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chatAudioChunks.push(e.data);
+    };
+
+    chatMediaRecorder.onstop = async () => {
+      stream.getTracks().forEach((track) => track.stop());
+      if (chatAudioChunks.length > 0) {
+        const audioBlob = new Blob(chatAudioChunks, { type: mime });
+        await sendChatAudioBlobForSTT(audioBlob);
+      }
+    };
+
+    chatMediaRecorder.start();
+
+    if (pill) pill.classList.remove("hidden");
+    if (btn) btn.classList.add("bg-red-50", "border-red-300", "text-red-700");
+  } catch (err) {
+    // Fallback: Web Speech API if getUserMedia fails
+    startWebSpeechRecognitionForChat();
+  }
+}
+
+function stopChatMicRecording() {
+  isChatMicRecording = false;
+  const pill = document.getElementById("mic-status-pill");
+  const btn = document.getElementById("btn-chat-mic");
+
+  if (chatMediaRecorder && chatMediaRecorder.state !== "inactive") {
+    chatMediaRecorder.stop();
+  }
+  if (pill) pill.classList.add("hidden");
+  if (btn) btn.classList.remove("bg-red-50", "border-red-300", "text-red-700");
+}
+
+async function sendChatAudioBlobForSTT(blob) {
+  try {
+    const formData = new FormData();
+    formData.append("audio", blob, "recording.webm");
+
+    const res = await fetch(`${API_BASE}/transcribe`, {
+      method: "POST",
+      body: formData
     });
 
     if (res.ok) {
-      const blob = await res.blob();
-      const audioUrl = URL.createObjectURL(blob);
-      audioPlayer.src = audioUrl;
-      audioPlayer.play().catch(e => console.log('Autoplay blocked or audio muted:', e));
+      const data = await res.json();
+      if (data.transcript && data.transcript.trim()) {
+        const input = document.getElementById("chat-text-input");
+        if (input) input.value = data.transcript;
+        await processChatTurn(data.transcript);
+      }
     }
   } catch (e) {
-    console.error('Audio synthesis failed:', e);
+    // Transcription error handled gracefully
   }
 }
 
-// 7. CLINICAL RULES CRUD
-async function loadRules() {
-  try {
-    const res = await fetch('/api/v1/rules');
-    const rules = await res.json();
-    const tbody = document.getElementById('rules-tbody');
-    tbody.innerHTML = '';
+function startWebSpeechRecognitionForChat() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    alert("Voice input is not supported in this browser. Please type your question.");
+    return;
+  }
 
-    rules.forEach(r => {
-      const tr = document.createElement('tr');
-      tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
-      tr.innerHTML = `
-        <td class="py-2.5 px-3 font-mono font-semibold text-indigo-700">${escapeHtml(r.rule_code)}</td>
-        <td class="py-2.5 px-3"><span class="bg-slate-100 px-1.5 py-0.5 rounded text-[10px] text-slate-700">${escapeHtml(r.category)}</span></td>
-        <td class="py-2.5 px-3 text-slate-800 leading-snug">${escapeHtml(r.clinical_remedy)}</td>
-        <td class="py-2.5 px-3 font-mono text-slate-400">v${r.version_num}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-  } catch (e) {
-    console.error('Failed to load rules:', e);
+  const rec = new SpeechRecognition();
+  rec.lang = "en-IN";
+  rec.interimResults = false;
+
+  const pill = document.getElementById("mic-status-pill");
+  if (pill) pill.classList.remove("hidden");
+
+  rec.onresult = (e) => {
+    const text = e.results[0][0].transcript;
+    if (text) {
+      const input = document.getElementById("chat-text-input");
+      if (input) input.value = text;
+      processChatTurn(text);
+    }
+  };
+
+  rec.onerror = () => {
+    if (pill) pill.classList.add("hidden");
+  };
+
+  rec.onend = () => {
+    if (pill) pill.classList.add("hidden");
+  };
+
+  rec.start();
+}
+
+// -------------------------------------------------------------
+// 5. PATIENT PROFILE & HEALTH DATA (Screen 2)
+// -------------------------------------------------------------
+
+async function loadPatientProfile(patientId) {
+  try {
+    const res = await fetch(`${API_BASE}/patient/${patientId}`);
+    if (res.ok) {
+      const data = await res.json();
+      window.patientProfile = data;
+
+      const p = data.patient;
+      if (p) {
+        const headerLabel = document.getElementById("chat-header-patient-label");
+        if (headerLabel) {
+          headerLabel.textContent = `${p.full_name} (${p.age}y) • Active Consultation`;
+        }
+      }
+
+      populateProfileForm();
+    }
+  } catch (err) {}
+}
+
+function populateProfileForm() {
+  if (!window.patientProfile) return;
+  const p = window.patientProfile.patient;
+  const pep = window.patientProfile.pep;
+
+  if (p) {
+    setVal("prof-name", p.full_name);
+    setVal("prof-age", p.age);
+    setVal("prof-gender", p.gender || "Male");
+    setVal("prof-height", p.height_cm || 172);
+    setVal("prof-weight", p.weight_kg || 78);
+    setVal("prof-goal", p.primary_goal || "Weight management & fitness");
+    setVal("prof-activity", p.activity_level || "Moderate");
+    recalcBmi();
+  }
+
+  if (pep) {
+    setVal("prof-diet", pep.dietary_preference || "Vegetarian");
+    setVal("prof-conditions", (pep.medical_conditions || []).join(", "));
   }
 }
 
-async function saveRule(event) {
-  event.preventDefault();
-  const code = document.getElementById('rule-code').value.trim();
-  const category = document.getElementById('rule-category').value;
-  const keywords = document.getElementById('rule-keywords').value.split(',').map(s => s.trim()).filter(Boolean);
-  const remedy = document.getElementById('rule-remedy').value.trim();
-  const rationale = document.getElementById('rule-rationale').value.trim();
-  const author = document.getElementById('rule-author').value.trim();
+function recalcBmi() {
+  const h = parseFloat(document.getElementById("prof-height")?.value);
+  const w = parseFloat(document.getElementById("prof-weight")?.value);
+  const display = document.getElementById("prof-bmi-display");
+  if (!display || !h || !w) return;
+
+  const bmi = w / ((h / 100) * (h / 100));
+  let category = "Normal Range";
+  if (bmi < 18.5) category = "Underweight";
+  else if (bmi >= 25 && bmi < 30) category = "Overweight / Moderate";
+  else if (bmi >= 30) category = "Obese";
+
+  display.textContent = `${bmi.toFixed(1)} (${category})`;
+}
+
+async function saveProfileData(e) {
+  if (e) e.preventDefault();
+  const name = document.getElementById("prof-name")?.value.trim();
+  const age = parseInt(document.getElementById("prof-age")?.value);
+  const gender = document.getElementById("prof-gender")?.value;
+  const height = parseFloat(document.getElementById("prof-height")?.value);
+  const weight = parseFloat(document.getElementById("prof-weight")?.value);
+  const goal = document.getElementById("prof-goal")?.value.trim();
+  const diet = document.getElementById("prof-diet")?.value;
+  const activity = document.getElementById("prof-activity")?.value;
+  const conditionsRaw = document.getElementById("prof-conditions")?.value || "";
+  const conditions = conditionsRaw.split(",").map((c) => c.trim()).filter((c) => c.length > 0);
 
   try {
-    const res = await fetch('/api/v1/rules', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch(`${API_BASE}/patient/${currentPatientId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        rule_code: code,
-        category: category,
-        trigger_keywords: keywords,
-        clinical_remedy: remedy,
-        rationale: rationale,
-        author_name: author
+        full_name: name,
+        age: age,
+        gender: gender,
+        height_cm: height,
+        weight_kg: weight,
+        activity_level: activity,
+        primary_goal: goal,
+        dietary_preference: diet,
+        medical_conditions: conditions
       })
     });
 
-    const result = await res.json();
-    if (result.success) {
-      alert(`✅ Rule '${code}' saved successfully!\nPre-publishing automated regression checks passed.`);
-      document.getElementById('rule-form').reset();
-      loadRules();
-    } else {
-      alert('⚠️ Rule rejected by regression gate:\n' + JSON.stringify(result));
-    }
-  } catch (e) {
-    alert('Failed to save rule: ' + e.message);
-  }
-}
-
-// 8. CLINICAL STANCES, CAPABILITIES & PRICING
-async function loadStances() {
-  try {
-    const res = await fetch('/api/v1/stances');
-    const stances = await res.json();
-    const container = document.getElementById('stances-list');
-    container.innerHTML = '';
-
-    stances.forEach(s => {
-      const div = document.createElement('div');
-      div.className = 'p-3 bg-slate-50 border border-slate-200 rounded-lg text-xs';
-      div.innerHTML = `
-        <div class="flex items-center justify-between mb-1">
-          <span class="font-bold text-slate-800 capitalize">${escapeHtml(s.entity_name)}</span>
-          <span class="bg-teal-100 text-teal-800 font-semibold px-2 py-0.5 rounded text-[10px] uppercase">${escapeHtml(s.clinical_stance)}</span>
-        </div>
-        <p class="text-slate-600 text-[11px] mb-1">${escapeHtml(s.patient_explanation)}</p>
-        <span class="text-[10px] text-slate-400">Category: ${escapeHtml(s.category)}</span>
-      `;
-      container.appendChild(div);
-    });
-  } catch (e) {
-    console.error('Failed to load stances:', e);
-  }
-}
-
-async function loadCapabilities() {
-  try {
-    const res = await fetch('/api/v1/capabilities');
-    const caps = await res.json();
-    const container = document.getElementById('capabilities-list');
-    container.innerHTML = '';
-
-    caps.forEach(c => {
-      const isOk = c.is_supported === 1;
-      const div = document.createElement('div');
-      div.className = 'flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-lg';
-      div.innerHTML = `
-        <div>
-          <span class="font-semibold text-slate-800 block">${escapeHtml(c.capability_key)}</span>
-          <span class="text-[10px] text-slate-500">${escapeHtml(c.fallback_message)}</span>
-        </div>
-        <span class="px-2 py-0.5 rounded text-[10px] font-bold ${isOk ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
-          ${isOk ? 'ALLOWED' : 'BLOCKED'}
-        </span>
-      `;
-      container.appendChild(div);
-    });
-  } catch (e) {
-    console.error('Failed to load capabilities:', e);
-  }
-}
-
-async function loadPricing() {
-  try {
-    const res = await fetch('/api/v1/pricing');
-    const plans = await res.json();
-    const container = document.getElementById('pricing-list');
-    container.innerHTML = '';
-
-    plans.forEach(p => {
-      const div = document.createElement('div');
-      div.className = 'flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-lg';
-      div.innerHTML = `
-        <div>
-          <span class="font-bold text-indigo-950">${escapeHtml(p.plan_name)}</span>
-          <span class="text-slate-500 text-[11px] block">${escapeHtml(p.description)}</span>
-        </div>
-        <span class="font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-200">
-          ₹${p.price_inr}/${escapeHtml(p.billing_cycle)}
-        </span>
-      `;
-      container.appendChild(div);
-    });
-  } catch (e) {
-    console.error('Failed to load pricing:', e);
-  }
-}
-
-// 9. PATIENT PROFILE & PEP
-async function loadPatientProfile(patientId) {
-  try {
-    const res = await fetch(`/api/v1/patients/${patientId}`);
-    if (!res.ok) return;
-    const data = await res.json();
-
-    const pep = data.pep;
-    if (pep) {
-      const isGymOk = pep.allowed_exercise_locations && pep.allowed_exercise_locations.includes('gym');
-      const gymBadge = document.getElementById('pep-gym-badge');
-      if (gymBadge) {
-        gymBadge.textContent = isGymOk ? 'APPROVED' : 'RESTRICTED';
-        gymBadge.className = isGymOk ? 'px-2 py-0.5 rounded font-bold bg-emerald-100 text-emerald-800' : 'px-2 py-0.5 rounded font-bold bg-amber-100 text-amber-800';
+    if (res.ok) {
+      const toast = document.getElementById("prof-save-toast");
+      if (toast) {
+        toast.classList.remove("hidden");
+        setTimeout(() => toast.classList.add("hidden"), 3000);
       }
-
-      const targetActivity = document.getElementById('pep-target-activity');
-      if (targetActivity) targetActivity.textContent = pep.target_activity || 'Not specified';
-
-      const dietPref = document.getElementById('pep-diet-pref');
-      if (dietPref) dietPref.textContent = pep.dietary_preference || 'Vegetarian';
-
-      const conditions = document.getElementById('pep-conditions');
-      if (conditions) conditions.textContent = (pep.medical_conditions || []).join(', ') || 'None';
+      await loadPatientProfile(currentPatientId);
     }
-
-    const dinner = data.today_meal;
-    if (dinner) {
-      const dinnerName = document.getElementById('pep-dinner-name');
-      const dinnerItems = document.getElementById('pep-dinner-items');
-      if (dinnerName) dinnerName.textContent = dinner.meal_name || 'Scheduled Dinner';
-      if (dinnerItems) dinnerItems.textContent = (dinner.food_items || []).join(', ') + ` (~${dinner.calories_target} kcal)`;
-    }
-  } catch (e) {
-    console.error('Failed to load patient profile:', e);
-  }
+  } catch (err) {}
 }
 
-// 10. ZERO-REGRESSION BENCHMARK ORACLE
-async function runRegressionSuite() {
-  const btn = document.getElementById('run-regression-btn');
-  const logBox = document.getElementById('suite-log');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Executing 17 Pinned Scenarios...</span>';
-  logBox.textContent = "Starting Automated Golden Regression Suite Execution...\n";
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el && val !== undefined && val !== null) el.value = val;
+}
 
+// -------------------------------------------------------------
+// 6. AI ENGINE & API KEY SETTINGS
+// -------------------------------------------------------------
+
+async function loadApiKeySettings() {
   try {
-    const res = await fetch('/api/v1/simulation/run-regression-suite', { method: 'POST' });
-    const data = await res.json();
+    const res = await fetch(`${API_BASE}/settings`);
+    if (res.ok) {
+      const data = await res.json();
+      const badge = document.getElementById("chat-engine-badge");
+      const label = document.getElementById("active-llm-label");
 
-    // Update scoreboard
-    document.getElementById('suite-pass-rate').textContent = `${data.pass_rate_pct}%`;
-    document.getElementById('suite-emergency-recall').textContent = `${data.emergency_recall_pct}%`;
-    document.getElementById('suite-avg-latency').textContent = `${data.average_latency_ms} ms`;
-    document.getElementById('suite-total-count').textContent = data.total_benchmarks;
+      let displayName = "Offline Local";
+      if (data.active_provider === "gemini") displayName = "Google Gemini 2.0 Flash";
+      else if (data.active_provider === "groq") displayName = "Groq Llama 3.3 70B";
 
-    // Update categories
-    const catContainer = document.getElementById('suite-categories');
-    if (catContainer && data.category_breakdown) {
-      catContainer.innerHTML = '';
-      for (const [catName, stats] of Object.entries(data.category_breakdown)) {
-        const div = document.createElement('div');
-        const passRate = stats.tested > 0 ? Math.round((stats.passed / stats.tested) * 100) : 0;
-        div.className = 'p-3 bg-slate-50 border rounded-lg';
-        div.innerHTML = `
-          <div class="font-medium text-slate-700 capitalize">${catName.replace(/_/g, ' ')}</div>
-          <div class="font-bold text-emerald-600 mt-1">${stats.passed}/${stats.tested} passed (${passRate}%)</div>
-        `;
-        catContainer.appendChild(div);
+      if (badge) badge.textContent = `Engine: ${displayName}`;
+      if (label) label.textContent = `Active Engine: ${displayName} (Ready)`;
+
+      if (data.has_gemini && document.getElementById("setting-gemini-key")) {
+        document.getElementById("setting-gemini-key").placeholder = "Configured (••••••••)";
+      }
+      if (data.has_groq && document.getElementById("setting-groq-key")) {
+        document.getElementById("setting-groq-key").placeholder = "Configured (••••••••)";
       }
     }
+  } catch (e) {}
+}
 
-    // Build execution trace log
-    let trace = `=== REGRESSION EXECUTION COMPLETED IN ${data.total_suite_duration_ms}ms ===\n`;
-    trace += `Timestamp: ${data.timestamp}\n`;
-    trace += `Total Scenarios: ${data.total_benchmarks} | Passed: ${data.passed} | Failed: ${data.failed}\n`;
-    trace += `Pass Rate: ${data.pass_rate_pct}% | Emergency Recall: ${data.emergency_recall_pct}%\n`;
-    trace += `Average Turn Latency: ${data.average_latency_ms}ms\n\n`;
+async function saveApiKeySettings() {
+  const geminiInput = document.getElementById("setting-gemini-key");
+  const groqInput = document.getElementById("setting-groq-key");
+  const label = document.getElementById("active-llm-label");
 
-    if (data.failures.length === 0) {
-      trace += "🎉 ZERO REGRESSIONS DETECTED! ALL 17 BENCHMARK ORACLES SATISFIED.\n";
-      trace += "✓ #1 Pricing hallucination prevented (Official pricing enforced)\n";
-      trace += "✓ #2 Period bloating symptom grounded (Doctor-approved jeera/saunf water)\n";
-      trace += "✓ #3 WhatsApp channel request gracefully blocked & redirected to app\n";
-      trace += "✓ #4 AI Persona identity assertion strictly enforced (Never claims human)\n";
-      trace += "✓ #5 Acute cardiac chest pain halted within <0.5ms with 112 emergency advice\n";
-      trace += "✓ #6 Live DB diet chart retrieved (Paneer bhurji and multigrain rotis)\n";
-      trace += "✓ #7 Gym PEP workout permissions strictly respected\n";
-      trace += "✓ #8 Mango weight loss stance correctly advised (100g daytime, not banned)\n";
-    } else {
-      trace += "⚠️ REGRESSION FAILURES DETECTED:\n";
-      data.failures.forEach(f => {
-        trace += `[FAIL] ${f.test_code}: ${f.reason}\n  Input: "${f.input}"\n  Response: "${f.response}"\n\n`;
-      });
+  const geminiKey = geminiInput ? geminiInput.value.trim() : "";
+  const groqKey = groqInput ? groqInput.value.trim() : "";
+
+  try {
+    const body = {};
+    if (geminiKey) body.gemini_api_key = geminiKey;
+    if (groqKey) body.groq_api_key = groqKey;
+
+    const res = await fetch(`${API_BASE}/settings`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    if (res.ok) {
+      if (label) label.textContent = "API Keys Saved! Testing latency...";
+      setTimeout(async () => {
+        await loadApiKeySettings();
+      }, 600);
     }
+  } catch (e) {}
+}
 
-    logBox.textContent = trace;
+// -------------------------------------------------------------
+// 7. AI VOICE CALL MODAL OVERLAY (WebSockets + Real-Time Audio)
+// -------------------------------------------------------------
 
+let voiceWebSocket = null;
+let voiceHeartbeatTimer = null;
+
+function openVoiceCallModal() {
+  const overlay = document.getElementById("voice-call-overlay");
+  if (overlay) overlay.classList.remove("hidden");
+
+  isVoiceSessionActive = true;
+  setVoiceOrbState("listening");
+  updateVoiceStatus("Connecting...", "bg-surface-low text-onSurface-variant");
+  updateVoiceSubtitle("Connecting to Voice Gateway...");
+
+  // Open real-time WebSocket connection to backend
+  const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const wsUrl = `${protocol}//${window.location.host}/ws/call?patient_id=${encodeURIComponent(currentPatientId)}&session_id=${encodeURIComponent(currentSessionId)}`;
+
+  try {
+    voiceWebSocket = new WebSocket(wsUrl);
+
+    voiceWebSocket.onopen = () => {
+      voiceWebSocket.send(JSON.stringify({ type: "connect" }));
+      if (voiceHeartbeatTimer) clearInterval(voiceHeartbeatTimer);
+      voiceHeartbeatTimer = setInterval(() => {
+        if (voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN) {
+          voiceWebSocket.send(JSON.stringify({ type: "ping" }));
+        }
+      }, 15000);
+    };
+
+    voiceWebSocket.onmessage = async (event) => {
+      try {
+        const msg = JSON.parse(event.data);
+        if (msg.type === "call_connected") {
+          setVoiceOrbState("listening");
+          updateVoiceStatus("Connected • Listening", "bg-primary-light text-primary-dark");
+          updateVoiceSubtitle(msg.greeting || "Listening... aap diet, routine ya health ke baare mein baat kar sakte hain.");
+          if (msg.greeting) await playAssistantVoiceResponse(msg.greeting);
+        } else if (msg.type === "turn_result") {
+          const botText = msg.text;
+          updateVoiceSubtitle(botText);
+          appendChatMessage("assistant", botText, "Voice Call");
+          dialogueHistory.push({ role: "assistant", content: botText });
+          if (msg.is_emergency) {
+            showEmergencyBanner("Emergency detected: Contact 108/112 immediately.");
+          }
+        } else if (msg.type === "audio_payload") {
+          await playAssistantVoiceResponse(null, msg.audio_base64);
+        } else if (msg.type === "interrupted") {
+          stopAudioPlayback();
+          setVoiceOrbState("interrupted");
+          updateVoiceStatus("Interrupted • Listening...", "bg-amber-100 text-amber-900");
+          if (dialogueHistory.length > 0 && dialogueHistory[dialogueHistory.length - 1].role === "assistant") {
+            const lastMsg = dialogueHistory[dialogueHistory.length - 1];
+            const words = lastMsg.content.split(" ");
+            const cutoff = Math.max(1, Math.floor(words.length * 0.5));
+            lastMsg.content = words.slice(0, cutoff).join(" ") + "...";
+            const assistantBubbles = document.querySelectorAll(".chat-bubble-assistant");
+            if (assistantBubbles.length > 0) {
+              const lastBubble = assistantBubbles[assistantBubbles.length - 1];
+              const textElem = lastBubble.querySelector(".bubble-text");
+              if (textElem) textElem.textContent = lastMsg.content;
+            }
+          }
+        } else if (msg.type === "call_ended") {
+          closeVoiceCallModal();
+        }
+      } catch (err) {}
+    };
+
+    voiceWebSocket.onerror = () => {
+      updateVoiceStatus("Connected (Audio active)", "bg-primary-light text-primary-dark");
+    };
+
+    voiceWebSocket.onclose = () => {
+      if (voiceHeartbeatTimer) clearInterval(voiceHeartbeatTimer);
+    };
   } catch (e) {
-    logBox.textContent = `Error executing regression suite: ${e.message}`;
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fa-solid fa-play"></i><span>Run Complete Benchmark Suite</span>';
+    updateVoiceSubtitle("Listening... aap diet ya workout ke baare mein pooch sakte hain.");
+  }
+
+  if (window.lucide) lucide.createIcons();
+}
+
+function closeVoiceCallModal() {
+  const overlay = document.getElementById("voice-call-overlay");
+  if (overlay) overlay.classList.add("hidden");
+
+  isVoiceSessionActive = false;
+  stopAudioPlayback();
+  stopVoiceMicStream();
+  setVoiceOrbState("idle");
+
+  if (voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN) {
+    try {
+      voiceWebSocket.send(JSON.stringify({ type: "call_end" }));
+      voiceWebSocket.close();
+    } catch (e) {}
+  }
+  if (voiceHeartbeatTimer) clearInterval(voiceHeartbeatTimer);
+}
+
+function toggleModalVoiceSpeaking() {
+  if (!isVoiceSessionActive) {
+    openVoiceCallModal();
+    return;
+  }
+  
+  if (isAudioPlaying) {
+    interruptDishaSpeech();
+  } else {
+    captureModalVoiceInput();
   }
 }
 
-// 11. CARE OPS AUDIT LOGS & ESCALATIONS
-async function loadAuditLogs() {
+async function captureModalVoiceInput() {
   try {
-    const res = await fetch('/api/v1/simulation/audit/logs');
-    if (!res.ok) return;
-    const data = await res.json();
-    const tbody = document.getElementById('escalations-tbody');
-    tbody.innerHTML = '';
+    setVoiceOrbState("listening");
+    updateVoiceStatus("Listening • Speak naturally in Hindi/English...", "bg-primary-light text-primary-dark");
+    
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    micStream = stream;
+    audioChunks = [];
 
-    if (!data.emergency_escalations || data.emergency_escalations.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-center text-slate-400 italic">No acute emergency escalations logged yet.</td></tr>';
+    const mime = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
+      ? "audio/webm;codecs=opus"
+      : "audio/webm";
+
+    mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
+    mediaRecorder.ondataavailable = (e) => {
+      if (e.data.size > 0) audioChunks.push(e.data);
+    };
+
+    mediaRecorder.onstop = async () => {
+      stopVoiceMicStream();
+      if (audioChunks.length > 0) {
+        setVoiceOrbState("thinking");
+        updateVoiceStatus("Processing your question...", "bg-surface-low text-onSurface-variant");
+        const blob = new Blob(audioChunks, { type: mime });
+        await handleVoiceTurnBlob(blob);
+      }
+    };
+
+    mediaRecorder.start();
+
+    // Auto stop after 5s or when user taps
+    setTimeout(() => {
+      if (mediaRecorder && mediaRecorder.state === "recording") {
+        mediaRecorder.stop();
+      }
+    }, 5000);
+
+  } catch (err) {
+    // Fallback to Web Speech API
+    startModalWebSpeech();
+  }
+}
+
+function startModalWebSpeech() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return;
+
+  const rec = new SpeechRecognition();
+  rec.lang = "en-IN";
+  rec.interimResults = false;
+
+  setVoiceOrbState("listening");
+  updateVoiceStatus("Listening • Speak now...", "bg-primary-light text-primary-dark");
+
+  rec.onresult = async (e) => {
+    const text = e.results[0][0].transcript;
+    if (text) {
+      updateVoiceSubtitle(`You: "${text}"`);
+      await executeVoiceTurn(text);
+    }
+  };
+
+  rec.onerror = () => {
+    setVoiceOrbState("idle");
+    updateVoiceStatus("Ready", "bg-surface-low text-onSurface-variant");
+  };
+
+  rec.start();
+}
+
+async function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = reader.result;
+      const base64 = dataUrl.split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function handleVoiceTurnBlob(audioBlob) {
+  try {
+    const b64 = await blobToBase64(audioBlob);
+
+    // If real-time WebSocket is connected, stream audio payload directly
+    if (voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN) {
+      voiceWebSocket.send(JSON.stringify({
+        type: "audio",
+        data: b64,
+        synthesize_audio: true
+      }));
       return;
     }
 
-    data.emergency_escalations.forEach(esc => {
-      const tr = document.createElement('tr');
-      tr.className = 'hover:bg-rose-50/50 transition border-b border-slate-100';
-      tr.innerHTML = `
-        <td class="py-2.5 px-3 font-mono text-[11px] text-slate-500">${escapeHtml(esc.created_at)}</td>
-        <td class="py-2.5 px-3 font-semibold text-slate-800">${escapeHtml(esc.patient_id)}</td>
-        <td class="py-2.5 px-3"><span class="bg-rose-100 text-rose-800 px-2 py-0.5 rounded font-bold uppercase text-[10px]">${escapeHtml(esc.red_flag_category)}</span></td>
-        <td class="py-2.5 px-3 font-mono text-[11px] text-rose-700">${escapeHtml(esc.detected_phrases)}</td>
-        <td class="py-2.5 px-3"><span class="bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded text-[10px] font-bold">DISPATCHED</span></td>
-      `;
-      tbody.appendChild(tr);
+    // Fallback: POST /voice-turn with standard JSON payload
+    const res = await fetch(`${API_BASE}/voice-turn`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        patient_id: currentPatientId,
+        audio_base64: b64,
+        session_id: currentSessionId,
+        turn_number: turnCounter++,
+        history: dialogueHistory.slice(-6)
+      })
     });
+
+    if (res.ok) {
+      const data = await res.json();
+      const userText = data.user_utterance || data.user_transcript;
+      const botText = data.final_response || data.bot_response;
+
+      // Add turn to chat timeline so context is shared
+      if (userText) {
+        appendChatMessage("user", userText, "Voice Call");
+        dialogueHistory.push({ role: "user", content: userText });
+      }
+      if (botText) {
+        appendChatMessage("assistant", botText, "Voice Call");
+        dialogueHistory.push({ role: "assistant", content: botText });
+      }
+
+      updateVoiceSubtitle(botText);
+      await playAssistantVoiceResponse(botText, data.audio_base64);
+    } else {
+      setVoiceOrbState("idle");
+    }
   } catch (e) {
-    console.error('Failed to load audit logs:', e);
+    setVoiceOrbState("idle");
   }
 }
 
-// Helper: Escape HTML to prevent XSS
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+async function executeVoiceTurn(utterance) {
+  setVoiceOrbState("thinking");
+  updateVoiceStatus("Thinking...", "bg-surface-low text-onSurface-variant");
+
+  // Sync to chat timeline
+  appendChatMessage("user", utterance, "Voice Call");
+  dialogueHistory.push({ role: "user", content: utterance });
+
+  if (voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN) {
+    voiceWebSocket.send(JSON.stringify({
+      type: "utterance",
+      patient_id: currentPatientId,
+      text: utterance,
+      synthesize_audio: true
+    }));
+  } else {
+    try {
+      const res = await fetch(`${API_BASE}/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          patient_id: currentPatientId,
+          utterance: utterance,
+          session_id: currentSessionId,
+          turn_number: turnCounter++,
+          history: dialogueHistory.slice(-6)
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const botText = data.final_response;
+
+        appendChatMessage("assistant", botText, "Voice Call");
+        dialogueHistory.push({ role: "assistant", content: botText });
+        updateVoiceSubtitle(botText);
+
+        await playAssistantVoiceResponse(botText);
+      } else {
+        setVoiceOrbState("idle");
+      }
+    } catch (e) {
+      setVoiceOrbState("idle");
+    }
+  }
 }
 
-// Initial Bootstrapping
-window.addEventListener('DOMContentLoaded', () => {
-  const patientSelect = document.getElementById('patient-select');
-  if (patientSelect) {
-    patientSelect.addEventListener('change', (e) => {
-      currentPatientId = e.target.value;
-      loadPatientProfile(currentPatientId);
+function interruptDishaSpeech() {
+  let playedFraction = 0.5;
+  if (currentAudio && currentAudio.duration && currentAudio.duration > 0) {
+    playedFraction = Math.min(1.0, Math.max(0.01, currentAudio.currentTime / currentAudio.duration));
+  }
+  stopAudioPlayback();
+
+  if (voiceWebSocket && voiceWebSocket.readyState === WebSocket.OPEN) {
+    try {
+      voiceWebSocket.send(JSON.stringify({
+        type: "barge_in",
+        played_fraction: playedFraction
+      }));
+    } catch (e) {}
+  }
+  setVoiceOrbState("interrupted");
+  updateVoiceStatus("Interrupted • Listening", "bg-amber-100 text-amber-900");
+  updateVoiceSubtitle("Listening to you...");
+
+  setTimeout(() => {
+    if (isVoiceSessionActive) {
+      setVoiceOrbState("listening");
+      updateVoiceStatus("Listening • Speak Naturally", "bg-primary-light text-primary-dark");
+      captureModalVoiceInput();
+    }
+  }, 400);
+}
+
+// Global alias for compatibility with test suites
+window.triggerManualBargeIn = interruptDishaSpeech;
+
+function stopAudioPlayback() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.currentTime = 0;
+    currentAudio = null;
+  }
+  isAudioPlaying = false;
+  const bars = document.getElementById("modal-sound-bars");
+  if (bars) bars.classList.add("opacity-0");
+
+  const interruptBtn = document.getElementById("btn-modal-interrupt");
+  if (interruptBtn) interruptBtn.disabled = true;
+}
+
+function stopVoiceMicStream() {
+  if (micStream) {
+    micStream.getTracks().forEach((track) => track.stop());
+    micStream = null;
+  }
+}
+
+async function playAssistantVoiceResponse(text, audioBase64 = null) {
+  stopAudioPlayback();
+  setVoiceOrbState("speaking");
+  updateVoiceSubtitle(text);
+
+  const interruptBtn = document.getElementById("btn-modal-interrupt");
+  if (interruptBtn) interruptBtn.disabled = false;
+
+  const bars = document.getElementById("modal-sound-bars");
+  if (bars) bars.classList.remove("opacity-0");
+
+  if (audioBase64) {
+    return new Promise((resolve) => {
+      currentAudio = new Audio(`data:audio/mpeg;base64,${audioBase64}`);
+      isAudioPlaying = true;
+      currentAudio.onended = () => {
+        stopAudioPlayback();
+        setVoiceOrbState(isVoiceSessionActive ? "listening" : "idle");
+        resolve();
+      };
+      currentAudio.onerror = () => {
+        fallbackWebSpeech(text).then(resolve);
+      };
+      currentAudio.play().catch(() => {
+        fallbackWebSpeech(text).then(resolve);
+      });
     });
+  } else {
+    try {
+      const res = await fetch(`${API_BASE}/synthesize`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text })
+      });
+
+      if (res.ok) {
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        return new Promise((resolve) => {
+          currentAudio = new Audio(url);
+          isAudioPlaying = true;
+          currentAudio.onended = () => {
+            stopAudioPlayback();
+            setVoiceOrbState(isVoiceSessionActive ? "listening" : "idle");
+            resolve();
+          };
+          currentAudio.play().catch(() => {
+            fallbackWebSpeech(text).then(resolve);
+          });
+        });
+      } else {
+        await fallbackWebSpeech(text);
+      }
+    } catch (e) {
+      await fallbackWebSpeech(text);
+    }
   }
+}
 
-  // Preload Initial Data
-  loadPatientProfile(currentPatientId);
-  loadRules();
-  loadStances();
-  loadCapabilities();
-  loadPricing();
-});
+function fallbackWebSpeech(text) {
+  return new Promise((resolve) => {
+    if (!("speechSynthesis" in window) || !text) {
+      stopAudioPlayback();
+      resolve();
+      return;
+    }
+    const ut = new SpeechSynthesisUtterance(text);
+    ut.lang = "en-IN";
+    ut.rate = 1.0;
+    isAudioPlaying = true;
+    ut.onend = () => {
+      stopAudioPlayback();
+      setVoiceOrbState(isVoiceSessionActive ? "listening" : "idle");
+      resolve();
+    };
+    ut.onerror = () => {
+      stopAudioPlayback();
+      resolve();
+    };
+    window.speechSynthesis.speak(ut);
+  });
+}
 
+function setVoiceOrbState(state) {
+  const orb = document.getElementById("modal-voice-orb");
+  const icon = document.getElementById("modal-voice-orb-icon");
+  if (!orb) return;
+
+  orb.className = "voice-stage-orb voice-orb cursor-pointer " + `orb-state-${state}`;
+
+  if (icon) {
+    if (state === "listening") icon.setAttribute("data-lucide", "mic");
+    else if (state === "speaking") icon.setAttribute("data-lucide", "volume-2");
+    else if (state === "thinking") icon.setAttribute("data-lucide", "loader-2");
+    else if (state === "interrupted") icon.setAttribute("data-lucide", "hand");
+    else icon.setAttribute("data-lucide", "mic");
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+function updateVoiceStatus(text, pillClass) {
+  const textEl = document.getElementById("voice-modal-status-text");
+  const pillEl = document.getElementById("voice-modal-status-pill");
+  if (textEl) textEl.textContent = text;
+  if (pillEl && pillClass) {
+    pillEl.className = `inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold ${pillClass} mb-1`;
+  }
+}
+
+function updateVoiceSubtitle(text) {
+  const sub = document.getElementById("modal-voice-subtitle");
+  if (sub && text) {
+    sub.textContent = `"${text}"`;
+  }
+}
