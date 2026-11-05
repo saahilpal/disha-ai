@@ -43,3 +43,4 @@ This document provides a rigorous, cost-audited evaluation of all technology sel
 ### 2.4 Cloudflare Tunnel vs. Localhost / Ngrok
 - **Decision:** Cloudflare Tunnel (`cloudflared`).
 - **Reason:** The founder requires testing a public application from their own smartphone or laptop without developer assistance. Cloudflare Tunnel provides an authenticated, SSL-encrypted public domain (`https://*.trycloudflare.com`) with full WebSocket streaming support at **$0.00** without session time limits or bandwidth caps.
+

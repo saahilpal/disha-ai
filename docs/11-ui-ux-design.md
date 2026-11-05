@@ -91,3 +91,4 @@ Configured via Google Fonts:
 - **Desktop (1024px – 1440px+):** Max-width 7xl container with generous padding, fixed navigation, and non-overlapping modal states.
 - **Contrast Ratios:** All text elements exceed the 4.5:1 minimum contrast requirement against their respective backgrounds (main body text achieves 12.8:1).
 - **Reduced Motion Support:** Respects `@media (prefers-reduced-motion: reduce)` by disabling pulsing effects and transitions.
+

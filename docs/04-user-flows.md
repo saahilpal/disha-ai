@@ -170,3 +170,4 @@ Ensures human-in-the-loop clinical governance when acute emergencies or out-of-s
 • One-click direct dial to patient and emergency contact (+919811002200)
 • Status updated: PENDING -> DOCTOR_CALLED -> RESOLVED in SQLite audit ledger
 ```
+
