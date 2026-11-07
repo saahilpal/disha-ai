@@ -96,11 +96,20 @@ async def register_patient(pool: Any, payload: OnboardingRequest) -> dict[str, A
             )
 
         # 1. Insert patient profile
+        language_val = (payload.language or "hinglish").lower().strip()
+        focuses = list(payload.health_focuses or [])
+        other_focus = (payload.health_focus_other or "").strip()
+        primary_focus = focuses[0] if focuses else ""
+        secondary_focuses = focuses[1:] if len(focuses) > 1 else []
+        diagnosed_conds = list(payload.conditions or [])
+
         await conn.execute(
             """INSERT INTO patient_profiles (
                    patient_id, email, password_hash, name, age, gender, 
-                   height_cm, weight_kg, dietary_preference, health_goals, created_at
-               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())""",
+                   height_cm, weight_kg, dietary_preference, health_goals,
+                   language, health_focuses, health_focus_other, health_conditions,
+                   created_at
+               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())""",
             patient_id,
             payload.email.lower().strip(),
             pwd_hash,
@@ -111,6 +120,10 @@ async def register_patient(pool: Any, payload: OnboardingRequest) -> dict[str, A
             payload.weight_kg,
             diet_pref,
             payload.health_goals,
+            language_val,
+            focuses,
+            other_focus,
+            diagnosed_conds,
         )
 
         # 2. Insert access token
@@ -125,19 +138,31 @@ async def register_patient(pool: Any, payload: OnboardingRequest) -> dict[str, A
         await conn.execute(
             """INSERT INTO patient_pep (
                    patient_id, hypertension_stage, gym_clearance, 
-                   allowed_modalities, restricted_modalities, updated_at
-               ) VALUES ($1, $2, $3, $4, $5, NOW())
+                   allowed_modalities, restricted_modalities,
+                   primary_focus, secondary_focuses, user_reported_concerns, diagnosed_conditions,
+                   language, updated_at
+               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
                ON CONFLICT (patient_id) DO UPDATE SET
                    hypertension_stage = EXCLUDED.hypertension_stage,
                    gym_clearance = EXCLUDED.gym_clearance,
                    allowed_modalities = EXCLUDED.allowed_modalities,
                    restricted_modalities = EXCLUDED.restricted_modalities,
+                   primary_focus = EXCLUDED.primary_focus,
+                   secondary_focuses = EXCLUDED.secondary_focuses,
+                   user_reported_concerns = EXCLUDED.user_reported_concerns,
+                   diagnosed_conditions = EXCLUDED.diagnosed_conditions,
+                   language = EXCLUDED.language,
                    updated_at = NOW()""",
             patient_id,
             htn_stage,
             gym_cleared,
             allowed,
             restricted,
+            primary_focus,
+            secondary_focuses,
+            other_focus,
+            diagnosed_conds,
+            language_val,
         )
 
         # 4. Generate 7-day personalized diet schedules
@@ -179,6 +204,10 @@ async def register_patient(pool: Any, payload: OnboardingRequest) -> dict[str, A
             "gym_clearance": gym_cleared,
             "allowed_modalities": allowed,
             "restricted_modalities": restricted,
+            "primary_focus": primary_focus,
+            "secondary_focuses": secondary_focuses,
+            "user_reported_concerns": other_focus,
+            "diagnosed_conditions": diagnosed_conds,
         },
     }
 

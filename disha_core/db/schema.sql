@@ -35,6 +35,10 @@ CREATE TABLE IF NOT EXISTS patient_profiles (
     weight_kg NUMERIC,
     dietary_preference VARCHAR(64),
     health_goals TEXT[],
+    language VARCHAR(32) DEFAULT 'hinglish',
+    health_focuses TEXT[] DEFAULT '{}',
+    health_focus_other TEXT DEFAULT '',
+    health_conditions TEXT[] DEFAULT '{}',
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -44,6 +48,11 @@ CREATE TABLE IF NOT EXISTS patient_pep (
     gym_clearance BOOLEAN NOT NULL DEFAULT FALSE,
     allowed_modalities TEXT[] NOT NULL DEFAULT '{}',
     restricted_modalities TEXT[] NOT NULL DEFAULT '{}',
+    primary_focus VARCHAR(128) DEFAULT '',
+    secondary_focuses TEXT[] DEFAULT '{}',
+    user_reported_concerns TEXT DEFAULT '',
+    diagnosed_conditions TEXT[] DEFAULT '{}',
+    language VARCHAR(32) DEFAULT 'hinglish',
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

@@ -649,6 +649,47 @@
       });
     }
 
+    // Language Quick Chips
+    const langChips = document.querySelectorAll('.lang-chip');
+    const langInput = document.getElementById('onboard-language');
+    const focusBubble = document.getElementById('focus-question-bubble');
+    const focusLabel = document.getElementById('focus-section-label');
+    langChips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        const val = chip.getAttribute('data-lang') || 'hinglish';
+        if (langInput) langInput.value = val;
+        langChips.forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+
+        // Dynamic Language Updates
+        if (focusBubble && focusLabel) {
+          if (val === 'english') {
+            focusBubble.textContent = '"What is your main health focus? Select the areas you want to work on together — choose all that apply."';
+            focusLabel.innerHTML = 'What is your main health focus? <span class="label-badge">Choose 1 or more</span>';
+          } else if (val === 'hindi') {
+            focusBubble.textContent = '"आपका मुख्य स्वास्थ्य फोकस क्या है? आज आप किन क्षेत्रों पर ध्यान देना चाहते हैं — एक या अधिक चुनें।"';
+            focusLabel.innerHTML = 'आपका मुख्य स्वास्थ्य फोकस क्या है? <span class="label-badge">एक या अधिक चुनें</span>';
+          } else {
+            focusBubble.textContent = '"Aapka main health focus kya hai? Select the areas you want to work on together — choose all that apply."';
+            focusLabel.innerHTML = 'Aapka main health focus kya hai? <span class="label-badge">Choose 1 or more</span>';
+          }
+        }
+      });
+    });
+
+    // Health Focus Other Checkbox Toggle
+    const otherCheck = document.getElementById('health-focus-other-check');
+    const otherContainer = document.getElementById('health-focus-other-container');
+    const otherInput = document.getElementById('health-focus-other-input');
+    if (otherCheck && otherContainer) {
+      otherCheck.addEventListener('change', () => {
+        otherContainer.style.display = otherCheck.checked ? 'block' : 'none';
+        if (otherCheck.checked && otherInput) {
+          otherInput.focus();
+        }
+      });
+    }
+
     // Blood Pressure Selection Cards
     const bpCards = document.querySelectorAll('.bp-card');
     const htnSelect = document.getElementById('onboard-htn');
@@ -782,7 +823,7 @@
       return false;
     }
     if (targetError) {
-      targetError.textContent = '✓ Valid RFC 5322 email syntax';
+      targetError.textContent = 'Valid RFC 5322 email syntax';
       targetError.className = 'field-feedback success';
     }
     if (targetInput) {
@@ -1048,6 +1089,22 @@
       const goalEls = typeof document !== 'undefined' ? document.querySelectorAll('input[name="health_goal"]:checked') : [];
       const goals = Array.from(goalEls).map(el => el.value);
 
+      // Preferred conversation language
+      const langInput = typeof document !== 'undefined' ? document.getElementById('onboard-language') : null;
+      const language = (langInput && langInput.value) ? langInput.value.trim() : 'hinglish';
+
+      // Health Focus areas
+      const focusEls = typeof document !== 'undefined' ? document.querySelectorAll('input[name="health_focus"]:checked') : [];
+      const healthFocuses = Array.from(focusEls).map(el => el.value).filter(val => val !== 'Other');
+
+      // Health Focus other custom text
+      const otherInput = typeof document !== 'undefined' ? document.getElementById('health-focus-other-input') : null;
+      const otherChecked = typeof document !== 'undefined' ? document.getElementById('health-focus-other-check')?.checked : false;
+      const healthFocusOther = (otherChecked && otherInput) ? otherInput.value.trim() : '';
+      if (healthFocusOther && !healthFocuses.includes(healthFocusOther)) {
+        healthFocuses.push(healthFocusOther);
+      }
+
       let htnStage = 'normal';
       if (conditions.includes('Hypertension Stage 2')) htnStage = 'stage 2';
       else if (conditions.includes('Hypertension Stage 1')) htnStage = 'stage 1';
@@ -1074,6 +1131,9 @@
             movement_restrictions: restrictions,
             dietary_preference: dietPref,
             health_goals: goals,
+            language,
+            health_focuses: healthFocuses,
+            health_focus_other: healthFocusOther,
           }),
         });
 
@@ -1157,14 +1217,14 @@
     msgEl.innerHTML = `
       <div class="msg-avatar">D</div>
       <div class="msg-body">
-        <div class="proactive-badge-pill">✨ Calibrated for ${escapeHtml(firstName)}</div>
+        <div class="proactive-badge-pill">Calibrated for ${escapeHtml(firstName)}</div>
         <p class="msg-text">${escapeHtml(welcomeMsg).replace(/\\n\\n/g, '<br><br>')}</p>
         <div class="proactive-quick-actions">
-          <button type="button" class="proactive-chip-btn" data-query="Explain my exercise safety limits">🏃‍♂️ Review exercise safety</button>
-          <button type="button" class="proactive-chip-btn" data-query="What should I eat today?">🥗 Today's nutrition plan</button>
-          <button type="button" class="proactive-chip-btn" data-query="Explain my BMI and hydration target">💧 Hydration &amp; BMI target</button>
+          <button type="button" class="proactive-chip-btn" data-query="Explain my exercise safety limits">Review exercise safety</button>
+          <button type="button" class="proactive-chip-btn" data-query="What should I eat today?">Today's meal plan</button>
+          <button type="button" class="proactive-chip-btn" data-query="Explain my BMI and hydration target">Hydration &amp; BMI target</button>
         </div>
-        <span class="msg-meta">Disha AI &bull; Proactive Clinical Guidance</span>
+        <span class="msg-meta">Disha AI &bull; Grounded Guidance</span>
       </div>
     `;
 
@@ -1238,6 +1298,20 @@
     if (!data) return;
     state.patientProfile = data;
     if (dom.dispPatientId) dom.dispPatientId.textContent = data.patient_id || state.patientId || '--';
+
+    const dispFocus = dom.dispHealthFocus || (typeof document !== 'undefined' ? document.getElementById('disp-health-focus') : null);
+    if (dispFocus) {
+      const prim = data.pep?.primary_focus || (data.profile?.health_focuses && data.profile.health_focuses[0]) || '';
+      const concerns = data.pep?.user_reported_concerns || data.profile?.health_focus_other || '';
+      const display = concerns ? `${prim} (${concerns})` : (prim || 'Fitness & general wellness');
+      dispFocus.textContent = display;
+    }
+
+    const dispLang = dom.dispLanguage || (typeof document !== 'undefined' ? document.getElementById('disp-language') : null);
+    if (dispLang) {
+      const lang = data.profile?.language || 'Hinglish';
+      dispLang.textContent = capitalize(lang);
+    }
 
     if (data.profile) {
       const p = data.profile;
@@ -1707,15 +1781,20 @@
     stopCallTimer();
     stopAudioPlayback();
 
-    // Drop-in Consultation Summary Card into #chat-stream when call concludes
-    if (wasInCall || turnCount > 0 || durationSec > 2) {
-      const merkleHash = (dom.latestMerkleHash && dom.latestMerkleHash.textContent) ? dom.latestMerkleHash.textContent.trim() : 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-      insertConsultationSummaryCard({
-        duration: formattedDuration,
-        turnCount: turnCount,
-        intent: state.lastDetectedIntent || 'General Wellness & Lifestyle Support',
-        merkleRoot: merkleHash,
-      });
+    // Natural voice call end indicator without clinical EHR paperwork
+    if ((wasInCall || turnCount > 0 || durationSec > 2) && dom.chatStream) {
+      const endPill = document.createElement('div');
+      endPill.className = 'chat-call-end-pill';
+      endPill.innerHTML = `
+        <span class="call-end-pill-inner">
+          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span>Voice call ended &bull; ${escapeHtml(formattedDuration)}</span>
+        </span>
+      `;
+      dom.chatStream.appendChild(endPill);
+      dom.chatStream.scrollTop = dom.chatStream.scrollHeight;
     }
 
     const callOverlayEl = typeof document !== 'undefined' ? document.getElementById('call-overlay-modal') : null;
@@ -2805,14 +2884,14 @@
       try {
         const resp = await fetch(`${cfg.httpBase}/health`, { signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined });
         if (resp.ok) {
-          dom.backendConnStatus.textContent = '✅ Connected (HTTP 200 OK)';
+          dom.backendConnStatus.textContent = 'Connected (HTTP 200 OK)';
           dom.backendConnStatus.style.color = 'var(--color-success)';
         } else {
-          dom.backendConnStatus.textContent = `❌ Error: HTTP ${resp.status}`;
+          dom.backendConnStatus.textContent = `Error: HTTP ${resp.status}`;
           dom.backendConnStatus.style.color = 'var(--color-emergency)';
         }
       } catch (err) {
-        dom.backendConnStatus.textContent = `❌ Unreachable: ${err.message}`;
+        dom.backendConnStatus.textContent = `Unreachable: ${err.message}`;
         dom.backendConnStatus.style.color = 'var(--color-emergency)';
       }
     });
@@ -2948,10 +3027,26 @@
   if (dom.step3NextBtn) dom.step3NextBtn.addEventListener('click', () => goToOnboardingStep(4));
   if (dom.step4BackBtn) dom.step4BackBtn.addEventListener('click', () => goToOnboardingStep(3));
 
+  const step3SkipBtn = typeof document !== 'undefined' ? document.getElementById('step-3-skip-btn') : null;
+  if (step3SkipBtn) step3SkipBtn.addEventListener('click', () => goToOnboardingStep(4));
+
+  const switchToChatBtn = typeof document !== 'undefined' ? document.getElementById('switch-to-chat-btn') : null;
+  if (switchToChatBtn) {
+    switchToChatBtn.addEventListener('click', () => {
+      const callModal = typeof document !== 'undefined' ? document.getElementById('call-overlay-modal') : null;
+      if (callModal) callModal.style.display = 'none';
+    });
+  }
+
   // Header Call Button & Clinical Drawer Actions
   if (dom.headerCallBtn) {
     dom.headerCallBtn.addEventListener('click', () => {
-      if (dom.callBtn) dom.callBtn.click();
+      const callModal = typeof document !== 'undefined' ? document.getElementById('call-overlay-modal') : null;
+      if (state.isInCall && callModal && callModal.style.display === 'none') {
+        callModal.style.display = 'flex';
+      } else if (dom.callBtn) {
+        dom.callBtn.click();
+      }
     });
   }
 
@@ -3048,7 +3143,7 @@
         }
 
         if (dom.profileEditStatus) {
-          dom.profileEditStatus.textContent = '✓ Profile updated successfully!';
+          dom.profileEditStatus.textContent = 'Profile updated successfully!';
           dom.profileEditStatus.style.color = 'var(--color-success)';
         }
         setTimeout(() => {
@@ -3057,7 +3152,7 @@
         }, 600);
       } catch (err) {
         if (dom.profileEditStatus) {
-          dom.profileEditStatus.textContent = `❌ ${err.message}`;
+          dom.profileEditStatus.textContent = err.message;
           dom.profileEditStatus.style.color = 'var(--color-emergency)';
         }
         if (dom.profileSaveBtn) dom.profileSaveBtn.disabled = false;

@@ -1,0 +1,98 @@
+{
+  "persona": "Realistic User (Aarav Sharma)",
+  "patient_id": "pt_86b4123b07",
+  "turns_completed": 7,
+  "transcript": [
+    {
+      "user_input": "Hi Disha, I've been feeling a bit weird since this morning.",
+      "disha_response": "Hi! I'm here for you. Since you mentioned feeling a bit off, could you tell me a little more about what you're experiencing so I can better understand how to help?",
+      "sentences": [
+        "Hi!",
+        "I'm here for you.",
+        "Since you mentioned feeling a bit off, could you tell me a little more about what you're experiencing so I can better understand how to help?"
+      ],
+      "status": "normal",
+      "ttft_ms": 335.4,
+      "total_latency_ms": 5105.01,
+      "extra": []
+    },
+    {
+      "user_input": "Matlab thakan si lag rahi hai aur office ke kaam mein bilkul focus nahi ho raha.",
+      "disha_response": "I understand how draining that can be, especially when you're trying to stay focused at work. Since you mentioned feeling tired and unfocused, have you been getting enough sleep or feeling particularly stressed lately?",
+      "sentences": [
+        "I understand how draining that can be, especially when you're trying to stay focused at work.",
+        "Since you mentioned feeling tired and unfocused, have you been getting enough sleep or feeling particularly stressed lately?"
+      ],
+      "status": "normal",
+      "ttft_ms": 267.46,
+      "total_latency_ms": 3952.27,
+      "extra": []
+    },
+    {
+      "user_input": "Maine subah se lagbhag 5 cup chai pi li hai, kya isse acidity ya thakan badh sakti hai?",
+      "disha_response": "Haan, subah se itni chai piye toh thakan aur focus ki kami bilkul normal hai. Caffeine ki wajah se body dehydrate ho sakti hai, jo acidity aur fatigue dono badha sakti hai. Aaj ke liye bas paani zyada piyein aur agle 2-3 ghante tak koi aur chai ya coffee avoid karein.",
+      "sentences": [
+        "Haan, subah se itni chai piye toh thakan aur focus ki kami bilkul normal hai.",
+        "Caffeine ki wajah se body dehydrate ho sakti hai, jo acidity aur fatigue dono badha sakti hai.",
+        "Aaj ke liye bas paani zyada piyein aur agle 2-3 ghante tak koi aur chai ya coffee avoid karein."
+      ],
+      "status": "normal",
+      "ttft_ms": 320.69,
+      "total_latency_ms": 7488.2,
+      "extra": []
+    },
+    {
+      "user_input": "Hmm, toh abhi ke liye main kya karun jisse thoda fresh feel ho?",
+      "disha_response": "Abhi ke liye bas 10 minute ki brisk walk karein, jo aapke profile mein allowed hai. Isse blood flow improve hoga aur aapko fresh feel hoga. Saath hi thoda paani piyein aur deep breaths lein.",
+      "sentences": [
+        "Abhi ke liye bas 10 minute ki brisk walk karein, jo aapke profile mein allowed hai.",
+        "Isse blood flow improve hoga aur aapko fresh feel hoga.",
+        "Saath hi thoda paani piyein aur deep breaths lein."
+      ],
+      "status": "normal",
+      "ttft_ms": 223.54,
+      "total_latency_ms": 6139.17,
+      "extra": []
+    },
+    {
+      "user_input": "Waise weekend pe main doston ke saath cricket khelne ka soch raha tha, kya khel sakta hoon?",
+      "disha_response": "Haan, aap bilkul khel sakte hain kyunki cricket aapki allowed activities mein aata hai. Bas khelne se pehle thoda warm-up karein aur paani piyein taaki aapko thakan na ho. Weekend ka maza lein!",
+      "sentences": [
+        "Haan, aap bilkul khel sakte hain kyunki cricket aapki allowed activities mein aata hai.",
+        "Bas khelne se pehle thoda warm-up karein aur paani piyein taaki aapko thakan na ho.",
+        "Weekend ka maza lein!"
+      ],
+      "status": "normal",
+      "ttft_ms": 324.03,
+      "total_latency_ms": 5770.6,
+      "extra": []
+    },
+    {
+      "user_input": "Jo acidity ki baat humne abhi ki thi, uske liye koi gharelu upay ya paani peena helpful hoga?",
+      "disha_response": "Haan, paani peena acidity ke liye bahut helpful hai kyunki ye acid ko dilute karta hai. Aap thanda paani le sakte hain, gunguna bhi theek hai. Agar ghar mein aloe vera juice ya doodh hai, toh wo bhi acidity ko shant karne mein madad karta hai.",
+      "sentences": [
+        "Haan, paani peena acidity ke liye bahut helpful hai kyunki ye acid ko dilute karta hai.",
+        "Aap thanda paani le sakte hain, gunguna bhi theek hai.",
+        "Agar ghar mein aloe vera juice ya doodh hai, toh wo bhi acidity ko shant karne mein madad karta hai."
+      ],
+      "status": "normal",
+      "ttft_ms": 315.39,
+      "total_latency_ms": 5305.75,
+      "extra": []
+    },
+    {
+      "user_input": "Theek hai, thank you Disha. Aaj raat ko jaldi so jaunga.",
+      "disha_response": "Yeh sun kar accha laga ki aap aaj jaldi soye. Aapki mild fatigue aur work stress ke liye achi neend sabse zaroori hai. Kal subah fresh uthne ki koshish karein.",
+      "sentences": [
+        "Yeh sun kar accha laga ki aap aaj jaldi soye.",
+        "Aapki mild fatigue aur work stress ke liye achi neend sabse zaroori hai.",
+        "Kal subah fresh uthne ki koshish karein."
+      ],
+      "status": "normal",
+      "ttft_ms": 460.93,
+      "total_latency_ms": 6688.47,
+      "extra": []
+    }
+  ],
+  "failures": []
+}

@@ -9,7 +9,9 @@ class ContextConnection(Protocol):
 
 
 PEP_SQL = """
-SELECT hypertension_stage, gym_clearance, allowed_modalities, restricted_modalities
+SELECT hypertension_stage, gym_clearance, allowed_modalities, restricted_modalities,
+       primary_focus, secondary_focuses, user_reported_concerns, diagnosed_conditions,
+       language
 FROM patient_pep WHERE patient_id = $1
 """
 DIET_SQL = """
@@ -74,6 +76,7 @@ async def build_patient_context(
 
 def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
     pep = context.get("pep")
+    focus_xml = ""
     if pep:
         allowed = html.escape(", ".join(map(str, pep.get("allowed_modalities") or ())), quote=True)
         restricted = html.escape(", ".join(map(str, pep.get("restricted_modalities") or ())), quote=True)
@@ -82,8 +85,18 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
             f'<PEP_PERMISSIONS allowed="{allowed}" gym_clearance="{gym}" '
             f'restricted="{restricted}"/>'
         )
+        prim = html.escape(str(pep.get("primary_focus") or ""), quote=True)
+        sec = html.escape(", ".join(map(str, pep.get("secondary_focuses") or ())), quote=True)
+        concerns = html.escape(str(pep.get("user_reported_concerns") or ""), quote=True)
+        diag = html.escape(", ".join(map(str, pep.get("diagnosed_conditions") or ())), quote=True)
+        if prim or sec or concerns or diag:
+            focus_xml = f'<PEP_FOCUS primary="{prim}" secondary="{sec}" concerns="{concerns}" diagnosed="{diag}"/>'
+        raw_lang = str(pep.get("language") or "hinglish").strip().lower()
+        valid_lang = raw_lang if raw_lang in {"english", "hindi", "hinglish"} else "hinglish"
+        lang_xml = f'<USER_LANGUAGE preferred="{html.escape(valid_lang, quote=True)}"/>'
     else:
         pep_xml = '<PEP_PERMISSIONS status="NOT_FOUND"/>'
+        lang_xml = '<USER_LANGUAGE preferred="hinglish"/>'
     clinical_parts = []
     for chunk in chunks:
         getter = chunk.get if hasattr(chunk, "get") else lambda key, default=None: getattr(chunk, key, default)
@@ -98,7 +111,7 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
     diet_xml = context.get("diet_slot_xml", "")
     if not isinstance(diet_xml, str):
         diet_xml = ""
-    return f'<PATIENT_PROFILE>{pep_xml}{diet_xml}</PATIENT_PROFILE>{clinical_xml}'
+    return f'<PATIENT_PROFILE>{pep_xml}{focus_xml}{lang_xml}{diet_xml}</PATIENT_PROFILE>{clinical_xml}'
 
 
 def add_approved_remedy_constraints(context: dict[str, Any], chunks: Any) -> None:

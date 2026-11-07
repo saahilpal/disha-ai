@@ -37,7 +37,7 @@ class TurnRequest(BaseModel):
                     data["meal_type"] = "breakfast"
                 elif any(w in text for w in ("lunch", "dopahar", "dopehar")):
                     data["meal_type"] = "lunch"
-                elif any(w in text for w in ("dinner", "raat", "shaam")):
+                elif any(w in text for w in ("dinner", "raat", "shaam", "khana", "khaane", "raat ka khana")):
                     data["meal_type"] = "dinner"
                 else:
                     data["meal_type"] = None
@@ -76,6 +76,9 @@ class OnboardingRequest(BaseModel):
     movement_restrictions: list[str] = Field(default_factory=list, description="Physical movement limitations")
     dietary_preference: str = Field(default="Vegetarian", description="Dietary pattern")
     health_goals: list[str] = Field(default_factory=list, description="Primary health coaching objectives")
+    language: str = Field(default="hinglish", description="Preferred language (english, hindi, hinglish)")
+    health_focuses: list[str] = Field(default_factory=list, description="Selected health focus areas")
+    health_focus_other: str = Field(default="", description="Custom self-described health concern")
 
 
 class HealthResponse(BaseModel):
@@ -97,13 +100,17 @@ class ReadyResponse(BaseModel):
 
 
 class PEPDetails(BaseModel):
-    """Personalized Exercise Prescription details."""
+    """Personal Experience Profile details."""
     model_config = ConfigDict(extra="ignore")
 
     hypertension_stage: str = "normal"
     gym_clearance: bool = False
     allowed_modalities: list[str] = Field(default_factory=list)
     restricted_modalities: list[str] = Field(default_factory=list)
+    primary_focus: str = ""
+    secondary_focuses: list[str] = Field(default_factory=list)
+    user_reported_concerns: str = ""
+    diagnosed_conditions: list[str] = Field(default_factory=list)
 
 
 class AuthResponse(BaseModel):
@@ -164,3 +171,9 @@ class ProfileUpdateRequest(BaseModel):
     dietary_preference: str | None = None
     health_goals: list[str] | None = None
     health_conditions: list[str] | None = None
+    language: str | None = None
+    health_focuses: list[str] | None = None
+    health_focus_other: str | None = None
+    primary_focus: str | None = None
+    secondary_focuses: list[str] | None = None
+    user_reported_concerns: str | None = None

@@ -5115,3 +5115,143 @@ input:checked + .slider:before {
     grid-template-columns: 1fr 1fr;
   }
 }
+
+/* Language Selection Chips */
+.lang-chip {
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--border-subtle);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.lang-chip.active {
+  border-color: var(--accent-primary);
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  box-shadow: 0 1px 3px rgba(27, 94, 67, 0.1);
+}
+
+/* Health Focus Section & Chips */
+.health-focus-section {
+  margin-top: 8px;
+}
+
+.section-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.label-badge {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: var(--accent-subtle);
+  color: var(--accent-primary);
+  margin-left: 6px;
+}
+
+.confidential-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--bg-card-subtle);
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+}
+
+.focus-chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 8px;
+}
+
+.chip-privacy-tag {
+  font-size: 0.625rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--border-subtle);
+  color: var(--text-muted);
+  margin-left: 6px;
+}
+
+.check-chip.sensitive-chip input:checked ~ .chip-content .chip-privacy-tag {
+  background: rgba(27, 94, 67, 0.2);
+  color: var(--accent-primary);
+}
+
+/* BP Dot Indicators */
+.bp-dot-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.bp-dot-indicator.bp-normal {
+  background: var(--color-success);
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.18);
+}
+
+.bp-dot-indicator.bp-stage1 {
+  background: var(--color-warning);
+  box-shadow: 0 0 0 3px rgba(230, 81, 0, 0.18);
+}
+
+.bp-dot-indicator.bp-stage2 {
+  background: var(--color-emergency);
+  box-shadow: 0 0 0 3px rgba(194, 65, 55, 0.18);
+}
+
+/* Skip Step Button */
+.skip-step-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color var(--transition-fast);
+}
+
+.skip-step-btn:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+/* Chat Voice Call End Pill */
+.chat-call-end-pill {
+  display: flex;
+  justify-content: center;
+  margin: 14px 0;
+}
+
+.call-end-pill-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: var(--radius-full);
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
