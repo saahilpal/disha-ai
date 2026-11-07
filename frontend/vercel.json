@@ -41,7 +41,23 @@
   ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/auth/(.*)",
+      "destination": "/api/auth/$1"
+    },
+    {
+      "source": "/patient/(.*)",
+      "destination": "/api/patient/$1"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/health"
+    },
+    {
+      "source": "/ready",
+      "destination": "/api/ready"
+    },
+    {
+      "source": "/((?!.*\\..*).*)",
       "destination": "/index.html"
     }
   ]

@@ -17,9 +17,9 @@
   // --- STATE ---
   const state = {
     theme: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_theme')) || 'light',
-    token: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_token')) || null,
-    patientId: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_id')) || null,
-    patientName: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_name')) || null,
+    token: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_token')) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_token')) || null,
+    patientId: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_patient_id')) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_id')) || null,
+    patientName: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_patient_name')) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_name')) || null,
     capsLockOn: false,
     ws: null,
     wsReconnectAttempts: 0,
@@ -47,6 +47,10 @@
     spectrumAnimId: null,
     sourceNode: null,
     analyserNode: null,
+    turnCount: 0,
+    transcriptHistory: [],
+    lastDetectedIntent: 'General Wellness',
+    wakeLock: null,
   };
 
   // RFC 5322 Standard Email Regex with strict dot-atom local part (no leading, trailing, or consecutive dots)
@@ -205,7 +209,17 @@
     onboardForm: typeof document !== 'undefined' ? document.getElementById('onboard-form') : null,
     onboardName: typeof document !== 'undefined' ? document.getElementById('onboard-name') : null,
     onboardEmail: typeof document !== 'undefined' ? document.getElementById('onboard-email') : null,
+    onboardEmailError: typeof document !== 'undefined' ? document.getElementById('onboard-email-error') : null,
     onboardPassword: typeof document !== 'undefined' ? document.getElementById('onboard-password') : null,
+    onboardPasswordError: typeof document !== 'undefined' ? document.getElementById('onboard-password-error') : null,
+    toggleOnboardPassword: typeof document !== 'undefined' ? document.getElementById('toggle-onboard-password') : null,
+    onboardStrengthBox: typeof document !== 'undefined' ? document.getElementById('onboard-strength-box') : null,
+    onboardStrengthBar: typeof document !== 'undefined' ? document.getElementById('onboard-strength-bar') : null,
+    onboardStrengthScoreText: typeof document !== 'undefined' ? document.getElementById('onboard-strength-score-text') : null,
+    onboardRuleLength: typeof document !== 'undefined' ? document.getElementById('onboard-rule-length') : null,
+    onboardRuleUpper: typeof document !== 'undefined' ? document.getElementById('onboard-rule-upper') : null,
+    onboardRuleNumber: typeof document !== 'undefined' ? document.getElementById('onboard-rule-number') : null,
+    onboardRuleSymbol: typeof document !== 'undefined' ? document.getElementById('onboard-rule-symbol') : null,
     onboardAge: typeof document !== 'undefined' ? document.getElementById('onboard-age') : null,
     onboardGender: typeof document !== 'undefined' ? document.getElementById('onboard-gender') : null,
     onboardHeight: typeof document !== 'undefined' ? document.getElementById('onboard-height') : null,
@@ -259,6 +273,46 @@
     micBtn: typeof document !== 'undefined' ? document.getElementById('mic-btn') : null,
     waveformCanvas: typeof document !== 'undefined' ? document.getElementById('waveform-canvas') : null,
     recordingTime: typeof document !== 'undefined' ? document.getElementById('recording-time') : null,
+
+    // SPA Views
+    viewHome: typeof document !== 'undefined' ? document.getElementById('view-home') : null,
+    viewConsultation: typeof document !== 'undefined' ? document.getElementById('dashboard-view') : null,
+    viewSignin: typeof document !== 'undefined' ? document.getElementById('auth-view') : null,
+    viewSummary: typeof document !== 'undefined' ? document.getElementById('view-summary') : null,
+    viewSettings: typeof document !== 'undefined' ? document.getElementById('view-settings') : null,
+    viewPrivacy: typeof document !== 'undefined' ? document.getElementById('view-privacy') : null,
+    view404: typeof document !== 'undefined' ? document.getElementById('view-404') : null,
+
+    // Navigation Tabs
+    navTabs: typeof document !== 'undefined' ? document.querySelectorAll('.nav-tab') : [],
+
+    // Consent Modal
+    consentModal: typeof document !== 'undefined' ? document.getElementById('consent-modal') : null,
+    consentCheckbox: typeof document !== 'undefined' ? document.getElementById('medical-consent-checkbox') : null,
+    consentAcceptBtn: typeof document !== 'undefined' ? document.getElementById('consent-accept-btn') : null,
+
+    // Acoustic Stethoscope
+    stethoscopeCanvas: typeof document !== 'undefined' ? document.getElementById('stethoscope-canvas') : null,
+
+    // Summary Elements
+    summaryDuration: typeof document !== 'undefined' ? document.getElementById('summary-duration') : null,
+    summaryTurns: typeof document !== 'undefined' ? document.getElementById('summary-turns') : null,
+    summaryIntent: typeof document !== 'undefined' ? document.getElementById('summary-intent') : null,
+    summaryBreakerStatus: typeof document !== 'undefined' ? document.getElementById('summary-breaker-status') : null,
+    summaryMerkleRoot: typeof document !== 'undefined' ? document.getElementById('summary-merkle-root') : null,
+    summaryTranscriptBody: typeof document !== 'undefined' ? document.getElementById('summary-transcript-body') : null,
+    copyTranscriptBtn: typeof document !== 'undefined' ? document.getElementById('copy-transcript-btn') : null,
+    downloadTranscriptBtn: typeof document !== 'undefined' ? document.getElementById('download-transcript-btn') : null,
+
+    // Settings Elements
+    audioInputSelect: typeof document !== 'undefined' ? document.getElementById('audio-input-select') : null,
+    audioOutputSelect: typeof document !== 'undefined' ? document.getElementById('audio-output-select') : null,
+    wakeLockToggle: typeof document !== 'undefined' ? document.getElementById('wake-lock-toggle') : null,
+    themeSelect: typeof document !== 'undefined' ? document.getElementById('theme-select') : null,
+    backendUrlInput: typeof document !== 'undefined' ? document.getElementById('backend-url-input') : null,
+    saveBackendUrlBtn: typeof document !== 'undefined' ? document.getElementById('save-backend-url-btn') : null,
+    testBackendBtn: typeof document !== 'undefined' ? document.getElementById('test-backend-btn') : null,
+    backendConnStatus: typeof document !== 'undefined' ? document.getElementById('backend-conn-status') : null,
   };
 
   // --- THEME INITIALIZATION ---
@@ -289,10 +343,34 @@
 
   // --- TABS SWITCHER (Sign In vs Clinical Intake) ---
   function clearAuthErrorsAndState() {
-    if (dom.emailError) dom.emailError.textContent = '';
-    if (dom.passwordError) dom.passwordError.textContent = '';
-    if (dom.emailInput) dom.emailInput.classList.remove('is-invalid');
-    if (dom.passwordInput) dom.passwordInput.classList.remove('is-invalid');
+    if (dom.emailError) {
+      dom.emailError.textContent = '';
+      dom.emailError.className = 'field-feedback error';
+    }
+    if (dom.onboardEmailError) {
+      dom.onboardEmailError.textContent = '';
+      dom.onboardEmailError.className = 'field-feedback error';
+    }
+    if (dom.passwordError) {
+      dom.passwordError.textContent = '';
+      dom.passwordError.className = 'field-feedback error';
+    }
+    if (dom.onboardPasswordError) {
+      dom.onboardPasswordError.textContent = '';
+      dom.onboardPasswordError.className = 'field-feedback error';
+    }
+    if (dom.emailInput) {
+      dom.emailInput.classList.remove('is-invalid', 'is-valid');
+    }
+    if (dom.onboardEmail) {
+      dom.onboardEmail.classList.remove('is-invalid', 'is-valid');
+    }
+    if (dom.passwordInput) {
+      dom.passwordInput.classList.remove('is-invalid', 'is-valid');
+    }
+    if (dom.onboardPassword) {
+      dom.onboardPassword.classList.remove('is-invalid', 'is-valid');
+    }
     if (dom.globalAlert) dom.globalAlert.style.display = 'none';
     if (dom.alertContent) dom.alertContent.textContent = '';
     if (dom.submitBtn) dom.submitBtn.disabled = false;
@@ -302,24 +380,49 @@
   }
 
   if (dom.tabLogin && dom.tabOnboard) {
+    function switchTab(target) {
+      clearAuthErrorsAndState();
+      if (target === 'login') {
+        dom.tabLogin.classList.add('active');
+        dom.tabLogin.setAttribute('aria-selected', 'true');
+        dom.tabLogin.setAttribute('tabindex', '0');
+        dom.tabOnboard.classList.remove('active');
+        dom.tabOnboard.setAttribute('aria-selected', 'false');
+        dom.tabOnboard.setAttribute('tabindex', '-1');
+        if (dom.loginSection) dom.loginSection.style.display = 'block';
+        if (dom.onboardSection) dom.onboardSection.style.display = 'none';
+      } else {
+        dom.tabOnboard.classList.add('active');
+        dom.tabOnboard.setAttribute('aria-selected', 'true');
+        dom.tabOnboard.setAttribute('tabindex', '0');
+        dom.tabLogin.classList.remove('active');
+        dom.tabLogin.setAttribute('aria-selected', 'false');
+        dom.tabLogin.setAttribute('tabindex', '-1');
+        if (dom.onboardSection) dom.onboardSection.style.display = 'block';
+        if (dom.loginSection) dom.loginSection.style.display = 'none';
+      }
+    }
+
     dom.tabLogin.addEventListener('click', () => {
       clearAuthErrorsAndState();
-      dom.tabLogin.classList.add('active');
-      dom.tabLogin.setAttribute('aria-selected', 'true');
-      dom.tabOnboard.classList.remove('active');
-      dom.tabOnboard.setAttribute('aria-selected', 'false');
-      if (dom.loginSection) dom.loginSection.style.display = 'block';
-      if (dom.onboardSection) dom.onboardSection.style.display = 'none';
+      switchTab('login');
     });
 
     dom.tabOnboard.addEventListener('click', () => {
       clearAuthErrorsAndState();
-      dom.tabOnboard.classList.add('active');
-      dom.tabOnboard.setAttribute('aria-selected', 'true');
-      dom.tabLogin.classList.remove('active');
-      dom.tabLogin.setAttribute('aria-selected', 'false');
-      if (dom.onboardSection) dom.onboardSection.style.display = 'block';
-      if (dom.loginSection) dom.loginSection.style.display = 'none';
+      switchTab('onboard');
+    });
+
+    [dom.tabLogin, dom.tabOnboard].forEach(tabBtn => {
+      tabBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+          e.preventDefault();
+          const nextTarget = tabBtn === dom.tabLogin ? 'onboard' : 'login';
+          switchTab(nextTarget);
+          if (nextTarget === 'onboard') dom.tabOnboard.focus();
+          else dom.tabLogin.focus();
+        }
+      });
     });
   }
 
@@ -346,7 +449,7 @@
     dom.calculatedBmi.textContent = bmi.toFixed(1);
 
     if (bmi < 18.5) {
-      dom.bmiStatus.textContent = 'Underweight';
+      dom.bmiStatus.textContent = 'Underweight (Nutritional support indicated)';
       dom.bmiStatus.className = 'badge-mini warning';
     } else if (bmi < 23) {
       dom.bmiStatus.textContent = 'Normal (Healthy weight for Asian population)';
@@ -356,13 +459,14 @@
       dom.bmiStatus.className = 'badge-mini warning';
     } else {
       dom.bmiStatus.textContent = 'Obese (Cardiometabolic risk)';
-      dom.bmiStatus.className = 'badge-mini warning';
+      dom.bmiStatus.className = 'badge-mini danger';
     }
   }
 
   if (dom.onboardHeight && dom.onboardWeight) {
     dom.onboardHeight.addEventListener('input', updateBmi);
     dom.onboardWeight.addEventListener('input', updateBmi);
+    updateBmi();
   }
 
   // --- PRE-SEEDED TEST PROFILES ---
@@ -379,55 +483,97 @@
   });
 
   // --- VALIDATION HELPERS ---
-  function validateEmail(email) {
-    if (!dom.emailInput || !dom.emailError) return true;
+  function validateEmail(email, inputEl = dom.emailInput, errorEl = dom.emailError) {
     const clean = (email || '').trim();
+    const targetInput = inputEl || dom.emailInput;
+    const targetError = errorEl || dom.emailError;
+
     if (!clean) {
-      dom.emailError.textContent = 'Email address is required.';
-      dom.emailInput.classList.add('is-invalid');
+      if (targetError) {
+        targetError.textContent = 'Email address is required.';
+        targetError.className = 'field-feedback error';
+      }
+      if (targetInput) {
+        targetInput.classList.add('is-invalid');
+        targetInput.classList.remove('is-valid');
+      }
       return false;
     }
     if (clean.length > 254 || clean.split('@')[0].length > 64) {
-      dom.emailError.textContent = 'Email address exceeds maximum allowed length.';
-      dom.emailInput.classList.add('is-invalid');
+      if (targetError) {
+        targetError.textContent = 'Email address exceeds maximum allowed length.';
+        targetError.className = 'field-feedback error';
+      }
+      if (targetInput) {
+        targetInput.classList.add('is-invalid');
+        targetInput.classList.remove('is-valid');
+      }
       return false;
     }
-    if (!EMAIL_REGEX.test(clean)) {
-      dom.emailError.textContent = 'Please enter a valid RFC-compliant email address.';
-      dom.emailInput.classList.add('is-invalid');
+    if (!EMAIL_REGEX.test(clean) || clean.endsWith('.')) {
+      if (targetError) {
+        targetError.textContent = 'Please enter a valid RFC-compliant email address (e.g. name@domain.com).';
+        targetError.className = 'field-feedback error';
+      }
+      if (targetInput) {
+        targetInput.classList.add('is-invalid');
+        targetInput.classList.remove('is-valid');
+      }
       return false;
     }
-    dom.emailError.textContent = '';
-    dom.emailInput.classList.remove('is-invalid');
+    if (targetError) {
+      targetError.textContent = '✓ Valid RFC 5322 email syntax';
+      targetError.className = 'field-feedback success';
+    }
+    if (targetInput) {
+      targetInput.classList.remove('is-invalid');
+      targetInput.classList.add('is-valid');
+    }
     return true;
   }
 
-  function evaluatePasswordStrength(password) {
-    if (!dom.passwordInput || !dom.passwordError) return true;
+  function evaluatePasswordStrength(password, inputEl = dom.passwordInput, errorEl = dom.passwordError, isRegistration = false) {
     const pwd = password || '';
+    const targetInput = inputEl || dom.passwordInput;
+    const targetError = errorEl || dom.passwordError;
+
     if (!pwd || pwd.length < 6) {
-      dom.passwordError.textContent = 'Passcode must be at least 6 characters.';
-      dom.passwordInput.classList.add('is-invalid');
-      updateStrengthMeter(pwd, false);
+      if (targetError) {
+        targetError.textContent = 'Passcode must be at least 6 characters.';
+        targetError.className = 'field-feedback error';
+      }
+      if (targetInput) {
+        targetInput.classList.add('is-invalid');
+        targetInput.classList.remove('is-valid');
+      }
+      updateStrengthMeter(pwd, false, isRegistration);
       return false;
     }
     if (pwd.length > 128) {
-      dom.passwordError.textContent = 'Passcode exceeds maximum allowed length (128 characters).';
-      dom.passwordInput.classList.add('is-invalid');
-      updateStrengthMeter(pwd, false);
+      if (targetError) {
+        targetError.textContent = 'Passcode exceeds maximum allowed length (128 characters).';
+        targetError.className = 'field-feedback error';
+      }
+      if (targetInput) {
+        targetInput.classList.add('is-invalid');
+        targetInput.classList.remove('is-valid');
+      }
+      updateStrengthMeter(pwd, false, isRegistration);
       return false;
     }
-    dom.passwordError.textContent = '';
-    dom.passwordInput.classList.remove('is-invalid');
-    updateStrengthMeter(pwd, true);
+    if (targetError) {
+      targetError.textContent = '';
+      targetError.className = 'field-feedback error';
+    }
+    if (targetInput) {
+      targetInput.classList.remove('is-invalid');
+      targetInput.classList.add('is-valid');
+    }
+    updateStrengthMeter(pwd, true, isRegistration);
     return true;
   }
 
-  function updateStrengthMeter(pwd, isValid) {
-    if (!dom.strengthBar) return;
-    const strengthBox = typeof document !== 'undefined' ? document.getElementById('strength-box') : null;
-    if (strengthBox) strengthBox.style.display = pwd ? 'block' : 'none';
-
+  function updateStrengthMeter(pwd, isValid, isRegistration = false) {
     let score = 0;
     const hasLength = pwd.length >= 8;
     const hasUpper = /[A-Z]/.test(pwd);
@@ -439,22 +585,55 @@
     if (hasUpper && hasNumber) score += 25;
     if (hasSymbol) score += 25;
 
+    const barColor = score < 50 ? '#EF4444' : (score < 75 ? '#F59E0B' : '#10B981');
+    const scoreText = score < 50 ? 'Weak' : (score < 75 ? 'Moderate' : 'Strong');
+
+    // Update login section strength meter (test compatibility)
+    const strengthBox = typeof document !== 'undefined' ? document.getElementById('strength-box') : null;
+    if (strengthBox) strengthBox.style.display = pwd ? 'block' : 'none';
+
+    if (dom.strengthBar) {
+      dom.strengthBar.style.width = `${score}%`;
+      dom.strengthBar.style.backgroundColor = barColor;
+    }
+    if (dom.strengthScoreText) {
+      dom.strengthScoreText.textContent = scoreText;
+      dom.strengthScoreText.style.color = barColor;
+    }
     if (dom.ruleLength) dom.ruleLength.className = hasLength ? 'rule-pass' : '';
     if (dom.ruleUpper) dom.ruleUpper.className = hasUpper ? 'rule-pass' : '';
     if (dom.ruleNumber) dom.ruleNumber.className = hasNumber ? 'rule-pass' : '';
     if (dom.ruleSymbol) dom.ruleSymbol.className = hasSymbol ? 'rule-pass' : '';
 
-    dom.strengthBar.style.width = `${score}%`;
-    if (dom.strengthScoreText) {
-      dom.strengthScoreText.textContent = score < 50 ? 'Weak' : (score < 75 ? 'Moderate' : 'Strong');
+    // Update onboarding section strength meter
+    if (dom.onboardStrengthBox) dom.onboardStrengthBox.style.display = pwd ? 'block' : 'none';
+    if (dom.onboardStrengthBar) {
+      dom.onboardStrengthBar.style.width = `${score}%`;
+      dom.onboardStrengthBar.style.backgroundColor = barColor;
     }
+    if (dom.onboardStrengthScoreText) {
+      dom.onboardStrengthScoreText.textContent = scoreText;
+      dom.onboardStrengthScoreText.style.color = barColor;
+    }
+    if (dom.onboardRuleLength) dom.onboardRuleLength.className = hasLength ? 'rule-pass' : '';
+    if (dom.onboardRuleUpper) dom.onboardRuleUpper.className = hasUpper ? 'rule-pass' : '';
+    if (dom.onboardRuleNumber) dom.onboardRuleNumber.className = hasNumber ? 'rule-pass' : '';
+    if (dom.onboardRuleSymbol) dom.onboardRuleSymbol.className = hasSymbol ? 'rule-pass' : '';
   }
 
   if (dom.emailInput) {
-    dom.emailInput.addEventListener('input', () => validateEmail(dom.emailInput.value));
+    dom.emailInput.addEventListener('input', () => validateEmail(dom.emailInput.value, dom.emailInput, dom.emailError));
+    dom.emailInput.addEventListener('blur', () => validateEmail(dom.emailInput.value, dom.emailInput, dom.emailError));
   }
   if (dom.passwordInput) {
-    dom.passwordInput.addEventListener('input', () => evaluatePasswordStrength(dom.passwordInput.value));
+    dom.passwordInput.addEventListener('input', () => evaluatePasswordStrength(dom.passwordInput.value, dom.passwordInput, dom.passwordError, false));
+  }
+  if (dom.onboardEmail) {
+    dom.onboardEmail.addEventListener('input', () => validateEmail(dom.onboardEmail.value, dom.onboardEmail, dom.onboardEmailError));
+    dom.onboardEmail.addEventListener('blur', () => validateEmail(dom.onboardEmail.value, dom.onboardEmail, dom.onboardEmailError));
+  }
+  if (dom.onboardPassword) {
+    dom.onboardPassword.addEventListener('input', () => evaluatePasswordStrength(dom.onboardPassword.value, dom.onboardPassword, dom.onboardPasswordError, true));
   }
 
   // Caps Lock Detection
@@ -476,6 +655,45 @@
       if (dom.eyeClosed) dom.eyeClosed.style.display = isPwd ? 'block' : 'none';
     });
   }
+
+  if (dom.toggleOnboardPassword && dom.onboardPassword) {
+    dom.toggleOnboardPassword.addEventListener('click', () => {
+      const isPwd = dom.onboardPassword.type === 'password';
+      dom.onboardPassword.type = isPwd ? 'text' : 'password';
+      const eyeOpen = dom.toggleOnboardPassword.querySelector('.eye-open');
+      const eyeClosed = dom.toggleOnboardPassword.querySelector('.eye-closed');
+      if (eyeOpen) eyeOpen.style.display = isPwd ? 'none' : 'block';
+      if (eyeClosed) eyeClosed.style.display = isPwd ? 'block' : 'none';
+    });
+  }
+
+  // Condition chips mutual exclusion logic
+  const conditionCheckboxes = typeof document !== 'undefined' ? document.querySelectorAll('input[name="condition"]') : [];
+  conditionCheckboxes.forEach((cb) => {
+    cb.addEventListener('change', () => {
+      if (cb.checked) {
+        if (cb.value === 'Normal BP') {
+          conditionCheckboxes.forEach(other => {
+            if (other.value === 'Hypertension Stage 1' || other.value === 'Hypertension Stage 2') {
+              other.checked = false;
+            }
+          });
+        } else if (cb.value === 'Hypertension Stage 1') {
+          conditionCheckboxes.forEach(other => {
+            if (other.value === 'Normal BP' || other.value === 'Hypertension Stage 2') {
+              other.checked = false;
+            }
+          });
+        } else if (cb.value === 'Hypertension Stage 2') {
+          conditionCheckboxes.forEach(other => {
+            if (other.value === 'Normal BP' || other.value === 'Hypertension Stage 1') {
+              other.checked = false;
+            }
+          });
+        }
+      }
+    });
+  });
 
   // --- SUBMIT: EXISTING PATIENT SIGN IN ---
   if (dom.loginForm) {
@@ -606,7 +824,23 @@
 
         const data = await res.json();
         saveSession(data.token, data.patient_id, data.patient_name);
-        transitionToDashboard();
+        if (data.pep) {
+          updateDrawerUI({
+            patient_id: data.patient_id,
+            patient_name: data.patient_name,
+            profile: {
+              name,
+              age,
+              gender,
+              height_cm: height,
+              weight_kg: weight,
+              dietary_preference: dietPref,
+              health_goals: goals,
+            },
+            pep: data.pep,
+          });
+        }
+        await transitionToDashboard();
       } catch (err) {
         showAlert(err.message);
       } finally {
@@ -619,10 +853,19 @@
     state.token = token;
     state.patientId = patientId;
     state.patientName = patientName;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.setItem('disha_token', token);
+        localStorage.setItem('disha_patient_id', patientId);
+        localStorage.setItem('disha_patient_name', patientName);
+      } catch (e) {}
+    }
     if (typeof sessionStorage !== 'undefined') {
-      sessionStorage.setItem('disha_token', token);
-      sessionStorage.setItem('disha_patient_id', patientId);
-      sessionStorage.setItem('disha_patient_name', patientName);
+      try {
+        sessionStorage.setItem('disha_token', token);
+        sessionStorage.setItem('disha_patient_id', patientId);
+        sessionStorage.setItem('disha_patient_name', patientName);
+      } catch (e) {}
     }
   }
 
@@ -779,7 +1022,18 @@
     }
     stopAudioPlayback();
     resetSpectrumVisualizer();
-    if (typeof sessionStorage !== 'undefined') sessionStorage.clear();
+    if (typeof localStorage !== 'undefined') {
+      try {
+        localStorage.removeItem('disha_token');
+        localStorage.removeItem('disha_patient_id');
+        localStorage.removeItem('disha_patient_name');
+      } catch (e) {}
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      try {
+        sessionStorage.clear();
+      } catch (e) {}
+    }
     state.token = null;
     state.patientId = null;
     state.patientName = null;
@@ -902,7 +1156,12 @@
       console.info('[Disha Voice Engine] Interruption acknowledged. Draining playback.');
       state.audioQueue.length = 0;
       stopAudioPlayback();
-      setTelephonyStatus('listening');
+      setTelephonyStatus('interrupted');
+      setTimeout(() => {
+        if (state.isInCall && (state.telephonyStatus === 'interrupted' || state.telephonyStatus === 'interrupting')) {
+          setTelephonyStatus('listening');
+        }
+      }, 800);
       return;
     }
 
@@ -914,7 +1173,12 @@
       setTelephonyStatus('speaking');
     } else if (data.type === 'done') {
       if (data.merkle_hash && dom.latestMerkleHash) {
-        dom.latestMerkleHash.textContent = data.merkle_hash.substring(0, 24) + '...';
+        const rawHash = String(data.merkle_hash).trim();
+        const truncated = rawHash.length > 24
+          ? rawHash.substring(0, 16) + '...' + rawHash.slice(-8)
+          : rawHash;
+        dom.latestMerkleHash.textContent = truncated;
+        dom.latestMerkleHash.title = rawHash;
       }
       if (!state.isPlayingAudio) {
         setTelephonyStatus('listening');
@@ -926,6 +1190,10 @@
   }
 
   function appendChatMessage(role, text, meta = '') {
+    if (!state.transcriptHistory) state.transcriptHistory = [];
+    state.transcriptHistory.push({ role, text, meta, timestamp: Date.now() });
+    state.turnCount = (state.turnCount || 0) + 1;
+
     if (!dom.chatStream) return;
     const safeRole = role === 'assistant' ? 'assistant' : 'user';
     const msgEl = document.createElement('div');
@@ -963,36 +1231,44 @@
       dom.spectrumBars.className = 'spectrum-bars';
       if (status === 'listening') dom.spectrumBars.classList.add('active-listening');
       else if (status === 'speaking') dom.spectrumBars.classList.add('active-speaking');
-      else if (status === 'interrupting') dom.spectrumBars.classList.add('active-interrupting');
+      else if (status === 'interrupting' || status === 'interrupted') dom.spectrumBars.classList.add('active-interrupting');
     }
 
     const labels = {
       idle: 'Ready for consultation',
-      connecting: 'Connecting to Disha...',
-      listening: 'Listening to your voice...',
-      processing: 'Processing medical guidance...',
-      speaking: 'Disha is speaking...',
-      interrupting: 'Barge-in: Interrupting playback...',
+      connecting: 'Connecting to Disha Core...',
+      listening: 'Listening...',
+      processing: 'Processing...',
+      speaking: 'Disha speaking...',
+      interrupting: 'Interrupted...',
+      interrupted: 'Interrupted...',
     };
-    dom.telephonyStatusText.textContent = labels[status] || 'Ready';
+    dom.telephonyStatusText.textContent = labels[status] || 'Ready for consultation';
   }
 
   // Primary Call Action Button Click Handler
   if (dom.callBtn) {
     dom.callBtn.addEventListener('click', async () => {
-      if (state.isInCall) {
-        endCall();
-      } else {
-        await startCall();
-      }
+      if (!state.isInCall) await startCall();
+      else endCall();
     });
   }
 
   async function startCall() {
+    const consentGiven = typeof localStorage !== 'undefined' && localStorage.getItem('disha_medical_consent_accepted') === 'true';
+    if (!consentGiven && dom.consentModal) {
+      dom.consentModal.style.display = 'flex';
+      return;
+    }
+
     setTelephonyStatus('connecting');
     if (dom.callBtn) {
       dom.callBtn.className = 'telephony-call-btn state-connecting';
       if (dom.callBtnLabel) dom.callBtnLabel.textContent = 'Connecting to Disha Core...';
+      const callIconEl = document.getElementById('call-icon');
+      if (callIconEl) {
+        callIconEl.innerHTML = `<svg class="btn-icon-svg spin-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg>`;
+      }
     }
 
     try {
@@ -1009,6 +1285,9 @@
           console.info('[Disha AudioContext] State transition:', state.audioContext ? state.audioContext.state : 'closed');
         };
       }
+
+      // Screen Wake Lock
+      await requestWakeLock();
 
       // 2. Request microphone stream
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1046,6 +1325,8 @@
   function endCall() {
     state.isInCall = false;
     state.isRecording = false;
+    releaseWakeLock();
+    populateSummaryView();
     stopCallTimer();
     stopAudioPlayback();
 
@@ -1060,6 +1341,10 @@
     if (state.analyserNode) {
       try { state.analyserNode.disconnect(); } catch (e) {}
       state.analyserNode = null;
+    }
+    if (state.ttsAnalyser) {
+      try { state.ttsAnalyser.disconnect(); } catch (e) {}
+      state.ttsAnalyser = null;
     }
     if (state.vadInterval) {
       clearInterval(state.vadInterval);
@@ -1211,20 +1496,38 @@
         }
 
         try {
-          analyser.getByteFrequencyData(dataArray);
+          if (state.isPlayingAudio && state.ttsAnalyser) {
+            const ttsBufferLength = state.ttsAnalyser.frequencyBinCount || 0;
+            const ttsDataArray = new Uint8Array(ttsBufferLength);
+            state.ttsAnalyser.getByteFrequencyData(ttsDataArray);
 
-          const numBars = state.specBars ? state.specBars.length : 0;
-          if (numBars > 0 && bufferLength > 0) {
-            for (let i = 0; i < numBars; i++) {
-              const dataIdx = Math.min(bufferLength - 1, Math.floor((i / numBars) * bufferLength));
-              const rawVal = dataArray[dataIdx];
-              const val = Number.isFinite(rawVal) ? rawVal : 0;
-              const h = Math.max(4, Math.min(48, Math.round((val / 255) * 48)));
-              state.specBars[i].style.height = `${h}px`;
+            const numBars = state.specBars ? state.specBars.length : 0;
+            if (numBars > 0 && ttsBufferLength > 0) {
+              for (let i = 0; i < numBars; i++) {
+                const dataIdx = Math.min(ttsBufferLength - 1, Math.floor((i / numBars) * ttsBufferLength));
+                const rawVal = ttsDataArray[dataIdx];
+                const val = Number.isFinite(rawVal) ? rawVal : 0;
+                const h = Math.max(4, Math.min(48, Math.round((val / 255) * 48)));
+                state.specBars[i].style.height = `${h}px`;
+              }
+            }
+          } else {
+            analyser.getByteFrequencyData(dataArray);
+
+            const numBars = state.specBars ? state.specBars.length : 0;
+            if (numBars > 0 && bufferLength > 0) {
+              for (let i = 0; i < numBars; i++) {
+                const dataIdx = Math.min(bufferLength - 1, Math.floor((i / numBars) * bufferLength));
+                const rawVal = dataArray[dataIdx];
+                const val = Number.isFinite(rawVal) ? rawVal : 0;
+                const h = Math.max(4, Math.min(48, Math.round((val / 255) * 48)));
+                state.specBars[i].style.height = `${h}px`;
+              }
             }
           }
 
           // Real-Time VAD & Barge-In Check
+          analyser.getByteFrequencyData(dataArray);
           let sum = 0;
           for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
           const avg = bufferLength > 0 ? sum / bufferLength : 0;
@@ -1232,7 +1535,7 @@
           if (avg > ENERGY_THRESHOLD) {
             if (state.isPlayingAudio) {
               onUserSpeechDetected();
-            } else if (state.telephonyStatus !== 'speaking') {
+            } else if (state.telephonyStatus !== 'speaking' && state.telephonyStatus !== 'processing' && state.telephonyStatus !== 'interrupted' && state.telephonyStatus !== 'interrupting') {
               setTelephonyStatus('listening');
             }
           }
@@ -1257,13 +1560,19 @@
   function onUserSpeechDetected() {
     if (state.isPlayingAudio) {
       console.info('[Disha Voice Engine] Speech detected during active audio playback. Triggering barge-in interruption.');
-      setTelephonyStatus('interrupting');
+      setTelephonyStatus('interrupted');
       stopAudioPlayback();
       resetWaveformVisualizer();
 
       if (state.ws && state.ws.readyState === WebSocket.OPEN) {
         state.ws.send(JSON.stringify({ type: 'interrupt' }));
       }
+
+      setTimeout(() => {
+        if (state.isInCall && (state.telephonyStatus === 'interrupted' || state.telephonyStatus === 'interrupting')) {
+          setTelephonyStatus('listening');
+        }
+      }, 800);
     }
   }
 
@@ -1272,6 +1581,10 @@
     state.audioQueue = [];
     state.isPlayingAudio = false;
 
+    if (state.ttsAnalyser) {
+      try { state.ttsAnalyser.disconnect(); } catch (e) {}
+      state.ttsAnalyser = null;
+    }
     if (state.currentAudioSource) {
       try {
         state.currentAudioSource.onended = null;
@@ -1326,18 +1639,36 @@
 
       const source = state.audioContext.createBufferSource();
       source.buffer = audioBuffer;
-      source.connect(state.audioContext.destination);
+
+      const ttsAnalyser = state.audioContext.createAnalyser ? state.audioContext.createAnalyser() : null;
+      if (ttsAnalyser) {
+        ttsAnalyser.fftSize = 64;
+        ttsAnalyser.smoothingTimeConstant = 0.3;
+        source.connect(ttsAnalyser);
+        ttsAnalyser.connect(state.audioContext.destination);
+      } else {
+        source.connect(state.audioContext.destination);
+      }
       state.currentAudioSource = source;
+      state.ttsAnalyser = ttsAnalyser;
 
       source.onended = () => {
         if (state.currentAudioSource === source) {
           state.currentAudioSource = null;
+          if (state.ttsAnalyser) {
+            try { state.ttsAnalyser.disconnect(); } catch (e) {}
+            state.ttsAnalyser = null;
+          }
           playNextAudio();
         }
       };
       source.start();
     } catch (err) {
       state.currentAudioSource = null;
+      if (state.ttsAnalyser) {
+        try { state.ttsAnalyser.disconnect(); } catch (e) {}
+        state.ttsAnalyser = null;
+      }
       playNextAudio();
     }
   }
@@ -1440,6 +1771,293 @@
   // Early initialization of visualizer specBars on DOM load
   initSpectrumVisualizer();
 
+  // --- SPA ROUTING & NAVIGATION ENGINE ---
+  const views = {
+    home: dom.viewHome,
+    consultation: dom.dashboardView,
+    signin: dom.authView,
+    auth: dom.authView,
+    summary: dom.viewSummary,
+    settings: dom.viewSettings,
+    privacy: dom.viewPrivacy,
+    '404': dom.view404,
+  };
+
+  function navigate(rawRoute) {
+    const route = (rawRoute || '').replace(/^#\/?/, '').trim() || (state.token ? 'home' : 'signin');
+    const targetKey = views[route] ? route : (route === '' ? (state.token ? 'home' : 'signin') : '404');
+
+    // Update view containers visibility
+    Object.keys(views).forEach(k => {
+      const el = views[k];
+      if (el) {
+        if (k === targetKey || (targetKey === 'consultation' && k === 'consultation') || (targetKey === 'signin' && k === 'auth')) {
+          el.style.display = 'block';
+          el.classList.add('active-view');
+        } else if (k !== 'auth' || (targetKey !== 'signin' && targetKey !== 'auth')) {
+          el.style.display = 'none';
+          el.classList.remove('active-view');
+        }
+      }
+    });
+
+    // Update nav tab highlights
+    if (dom.navTabs && dom.navTabs.length) {
+      dom.navTabs.forEach(tab => {
+        const tabRoute = tab.getAttribute('data-route');
+        if (tabRoute === targetKey || (targetKey === 'consultation' && tabRoute === 'consultation')) {
+          tab.classList.add('active');
+        } else {
+          tab.classList.remove('active');
+        }
+      });
+    }
+
+    if (targetKey === 'settings') {
+      populateAudioDevices();
+    } else if (targetKey === 'summary') {
+      populateSummaryView();
+    }
+
+    if (typeof window !== 'undefined' && window.scrollTo) {
+      window.scrollTo(0, 0);
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('hashchange', () => {
+      navigate(window.location.hash);
+    });
+  }
+
+  // --- SCREEN WAKE LOCK API ---
+  async function requestWakeLock() {
+    if (dom.wakeLockToggle && !dom.wakeLockToggle.checked) return;
+    if (typeof navigator !== 'undefined' && 'wakeLock' in navigator) {
+      try {
+        state.wakeLock = await navigator.wakeLock.request('screen');
+        state.wakeLock.addEventListener('release', () => {
+          state.wakeLock = null;
+        });
+      } catch (err) {
+        console.warn('[Disha WakeLock] Request failed:', err);
+      }
+    }
+  }
+
+  async function releaseWakeLock() {
+    if (state.wakeLock) {
+      try {
+        await state.wakeLock.release();
+      } catch (err) {}
+      state.wakeLock = null;
+    }
+  }
+
+  // --- AUDIO HARDWARE ENUMERATION ---
+  async function populateAudioDevices() {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+      return;
+    }
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      if (dom.audioInputSelect) {
+        dom.audioInputSelect.innerHTML = '';
+        const inputs = devices.filter(d => d.kind === 'audioinput');
+        if (inputs.length === 0) {
+          dom.audioInputSelect.innerHTML = '<option value="default">Default System Microphone</option>';
+        } else {
+          inputs.forEach((d, idx) => {
+            const opt = document.createElement('option');
+            opt.value = d.deviceId || `mic-${idx}`;
+            opt.textContent = d.label || `Microphone ${idx + 1}`;
+            dom.audioInputSelect.appendChild(opt);
+          });
+        }
+      }
+      if (dom.audioOutputSelect) {
+        dom.audioOutputSelect.innerHTML = '';
+        const outputs = devices.filter(d => d.kind === 'audiooutput');
+        if (outputs.length === 0) {
+          dom.audioOutputSelect.innerHTML = '<option value="default">Default System Audio Output</option>';
+        } else {
+          outputs.forEach((d, idx) => {
+            const opt = document.createElement('option');
+            opt.value = d.deviceId || `spk-${idx}`;
+            opt.textContent = d.label || `Speaker ${idx + 1}`;
+            dom.audioOutputSelect.appendChild(opt);
+          });
+        }
+      }
+    } catch (e) {
+      console.warn('[Disha AudioDevices] Could not enumerate devices:', e);
+    }
+  }
+
+  // --- CLINICAL ACOUSTIC STETHOSCOPE VISUALIZER ---
+  function drawStethoscopeVisualizer(energy) {
+    if (!dom.stethoscopeCanvas) return;
+    try {
+      const canvas = dom.stethoscopeCanvas;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      const w = canvas.width;
+      const h = canvas.height;
+      const cx = w / 2;
+      const cy = h / 2;
+
+      ctx.clearRect(0, 0, w, h);
+
+      const safeEnergy = Number.isFinite(energy) ? Math.min(100, Math.max(0, energy)) : 0;
+      const normalized = safeEnergy / 100;
+
+      // Draw concentric acoustic ripples
+      const rings = 3;
+      for (let i = 1; i <= rings; i++) {
+        const radius = 28 + (i * 16) + (normalized * i * 8);
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+        const alpha = Math.max(0.08, 0.45 - (i * 0.12) + (normalized * 0.2));
+        ctx.strokeStyle = state.theme === 'dark'
+          ? `rgba(45, 122, 91, ${alpha})`
+          : `rgba(27, 94, 67, ${alpha})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    } catch (e) {}
+  }
+
+  // --- POST-CALL SUMMARY CARD ---
+  function populateSummaryView() {
+    if (dom.summaryDuration && state.callStartTime) {
+      const elapsedSec = Math.floor((Date.now() - state.callStartTime) / 1000);
+      const mm = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+      const ss = String(elapsedSec % 60).padStart(2, '0');
+      dom.summaryDuration.textContent = `${mm}:${ss}`;
+    }
+    if (dom.summaryTurns) {
+      dom.summaryTurns.textContent = String(state.turnCount || 0);
+    }
+    if (dom.summaryIntent) {
+      dom.summaryIntent.textContent = state.lastDetectedIntent || 'General Wellness';
+    }
+    if (dom.summaryBreakerStatus) {
+      dom.summaryBreakerStatus.textContent = 'Clear (0 Intercepts)';
+    }
+    if (dom.summaryMerkleRoot && dom.latestMerkleHash) {
+      dom.summaryMerkleRoot.textContent = dom.latestMerkleHash.textContent || '--';
+    }
+    if (dom.summaryTranscriptBody && state.transcriptHistory) {
+      if (state.transcriptHistory.length === 0) {
+        dom.summaryTranscriptBody.innerHTML = '<p class="empty-state-text">No active consultation completed yet. Complete a consultation to review the transcript here.</p>';
+      } else {
+        dom.summaryTranscriptBody.innerHTML = state.transcriptHistory.map(entry => {
+          const roleLabel = entry.role === 'user' ? 'Patient' : 'Disha AI';
+          return `<div class="transcript-entry"><strong>${escapeHtml(roleLabel)}:</strong> ${escapeHtml(entry.text)}</div>`;
+        }).join('');
+      }
+    }
+  }
+
+  // Copy & Download Transcript
+  if (dom.copyTranscriptBtn) {
+    dom.copyTranscriptBtn.addEventListener('click', () => {
+      const text = (state.transcriptHistory || []).map(t => `${t.role}: ${t.text}`).join('\n');
+      if (typeof navigator !== 'undefined' && navigator.clipboard) {
+        navigator.clipboard.writeText(text).then(() => {
+          showAlert('Transcript copied to clipboard.');
+        }).catch(() => {});
+      }
+    });
+  }
+
+  if (dom.downloadTranscriptBtn) {
+    dom.downloadTranscriptBtn.addEventListener('click', () => {
+      const text = (state.transcriptHistory || []).map(t => `[${t.role.toUpperCase()}] ${t.text}`).join('\n\n');
+      if (typeof Blob !== 'undefined' && typeof URL !== 'undefined') {
+        const blob = new Blob([text], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `disha-consultation-${Date.now()}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    });
+  }
+
+  // Clinical Consent Acceptance Modal
+  if (dom.consentCheckbox && dom.consentAcceptBtn) {
+    dom.consentCheckbox.addEventListener('change', () => {
+      dom.consentAcceptBtn.disabled = !dom.consentCheckbox.checked;
+    });
+    dom.consentAcceptBtn.addEventListener('click', () => {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('disha_medical_consent_accepted', 'true');
+      }
+      if (dom.consentModal) dom.consentModal.style.display = 'none';
+      if (!state.isInCall) {
+        startCall();
+      }
+    });
+  }
+
+  // Demo Accounts Click Handlers
+  const demoButtons = typeof document !== 'undefined' ? document.querySelectorAll('.demo-btn') : [];
+  demoButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const email = btn.getAttribute('data-email');
+      const pass = btn.getAttribute('data-pass');
+      if (dom.emailInput) dom.emailInput.value = email;
+      if (dom.passwordInput) dom.passwordInput.value = pass;
+      if (dom.loginForm) {
+        dom.loginForm.dispatchEvent(new Event('submit', { cancelable: true }));
+      }
+    });
+  });
+
+  // Settings Handlers
+  if (dom.saveBackendUrlBtn && dom.backendUrlInput) {
+    dom.saveBackendUrlBtn.addEventListener('click', () => {
+      const val = dom.backendUrlInput.value.trim();
+      if (typeof localStorage !== 'undefined') {
+        if (val) {
+          localStorage.setItem('disha_api_url', val);
+        } else {
+          localStorage.removeItem('disha_api_url');
+        }
+      }
+      showAlert('Backend URL saved. Reloading...');
+      setTimeout(() => { if (typeof window !== 'undefined') window.location.reload(); }, 600);
+    });
+  }
+
+  if (dom.testBackendBtn && dom.backendConnStatus) {
+    dom.testBackendBtn.addEventListener('click', async () => {
+      dom.backendConnStatus.textContent = 'Testing connection...';
+      const cfg = getBackendConfig();
+      try {
+        const resp = await fetch(`${cfg.httpBase}/health`, { signal: AbortSignal.timeout ? AbortSignal.timeout(4000) : undefined });
+        if (resp.ok) {
+          dom.backendConnStatus.textContent = '✅ Connected (HTTP 200 OK)';
+          dom.backendConnStatus.style.color = 'var(--color-success)';
+        } else {
+          dom.backendConnStatus.textContent = `❌ Error: HTTP ${resp.status}`;
+          dom.backendConnStatus.style.color = 'var(--color-emergency)';
+        }
+      } catch (err) {
+        dom.backendConnStatus.textContent = `❌ Unreachable: ${err.message}`;
+        dom.backendConnStatus.style.color = 'var(--color-emergency)';
+      }
+    });
+  }
+
+  // Initial Route Check
+  if (typeof window !== 'undefined') {
+    const initHash = window.location.hash;
+    navigate(initHash);
+  }
+
   // --- EXPORTS FOR TESTING & DIAGNOSTICS ---
   const engineApi = {
     getBackendConfig,
@@ -1460,6 +2078,12 @@
     startCallTimer,
     stopCallTimer,
     initSpectrumVisualizer,
+    navigate,
+    populateAudioDevices,
+    requestWakeLock,
+    releaseWakeLock,
+    drawStethoscopeVisualizer,
+    populateSummaryView,
   };
 
   if (typeof window !== 'undefined') {

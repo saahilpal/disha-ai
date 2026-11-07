@@ -7,6 +7,8 @@ const fs = require('fs');
 const path = require('path');
 
 const appSource = fs.readFileSync(path.join(__dirname, '../frontend/app.js'), 'utf8');
+const cssSource = fs.readFileSync(path.join(__dirname, '../frontend/style.css'), 'utf8');
+const htmlSource = fs.readFileSync(path.join(__dirname, '../frontend/index.html'), 'utf8');
 
 // Synthetic DOM setup for Node.js runtime validation
 global.document = {
@@ -272,6 +274,72 @@ function recordTest(domain, name, passed, details) {
   const clearResetsButton = /submitBtn\.disabled\s*=\s*false/.test(appSource);
   recordTest(domain, 'Tab switching resets submit button disabled / loading state', clearResetsButton,
     'If sign-in or intake fails or hangs, switching tabs does not reset submit button disabled or loading states.');
+}
+
+// ============================================================================
+// 6. Telephony & Web Audio Verification
+// ============================================================================
+{
+  const domain = '6. Telephony & Web Audio Experience';
+
+  // Check 6.1: Idle State Solid herbal green button (#1B5E43)
+  const idleBtnCss = /\.telephony-call-btn\.state-idle\s*\{[^}]*background-color:\s*#1B5E43/i.test(cssSource);
+  recordTest(domain, 'Call button idle state: Solid herbal green button (#1B5E43)', idleBtnCss,
+    'Idle state button does not have solid herbal green #1B5E43.');
+
+  // Check 6.2: Connecting State Subdued sage pill (#EEF5F1) & label "Connecting to Disha Core..."
+  const connBtnCss = /\.telephony-call-btn\.state-connecting\s*\{[^}]*background-color:\s*#EEF5F1/i.test(cssSource);
+  const connLabel = /Connecting to Disha Core\.\.\./.test(appSource);
+  recordTest(domain, 'Call button connecting state: Subdued sage pill (#EEF5F1) with label "Connecting to Disha Core..."', connBtnCss && connLabel,
+    'Connecting state button does not use #EEF5F1 or label "Connecting to Disha Core...".');
+
+  // Check 6.3: Active Call State Solid muted red button (#C24137) & label "End Call"
+  const activeBtnCss = /\.telephony-call-btn\.state-active\s*\{[^}]*background-color:\s*#C24137/i.test(cssSource);
+  const activeLabel = /dom\.callBtnLabel\.textContent\s*=\s*['"]End Call['"]/.test(appSource);
+  recordTest(domain, 'Call button active state: Solid muted red button (#C24137) with label "End Call"', activeBtnCss && activeLabel,
+    'Active state button does not use #C24137 or label "End Call".');
+
+  // Check 6.4: Grounded 24-Bar Audio Spectrum Visualizer
+  const visualizerGrounded = /\.spectrum-bars\s*\{[^}]*align-items:\s*flex-end/i.test(cssSource);
+  const countBars = (htmlSource.match(/class=["']spec-bar["']/g) || []).length;
+  recordTest(domain, 'Grounded 24-bar audio frequency analyzer connected to AnalyserNode', visualizerGrounded && countBars === 24,
+    `Visualizer not grounded (align-items: flex-end) or bars count is ${countBars} instead of 24.`);
+
+  // Check 6.5: Real-time Indicator States
+  const hasListeningState = /listening:\s*['"]Listening\.\.\.['"]/.test(appSource);
+  const hasProcessingState = /processing:\s*['"]Processing\.\.\.['"]/.test(appSource);
+  const hasSpeakingState = /speaking:\s*['"]Disha speaking\.\.\.['"]/.test(appSource);
+  const hasInterruptedState = /interrupted:\s*['"]Interrupted\.\.\.['"]/.test(appSource);
+  recordTest(domain, 'Real-time indicator states (Listening..., Processing..., Disha speaking..., Interrupted...)',
+    hasListeningState && hasProcessingState && hasSpeakingState && hasInterruptedState,
+    'Indicator labels do not match required real-time speech states.');
+
+  // Check 6.6: AudioContext user gesture resume / initialization
+  const userGestureAudio = /dom\.callBtn\.addEventListener\(\s*['"]click['"][\s\S]*?startCall/i.test(appSource) &&
+    /state\.audioContext\.resume\(\)/.test(appSource);
+  recordTest(domain, 'AudioContext initialized / resumed strictly upon user gesture', userGestureAudio,
+    'AudioContext is not properly guarded by user click gesture.');
+
+  // Check 6.7: Dynamic Protocol Discovery (https -> wss, http -> ws)
+  const dynConfig = engine.getBackendConfig();
+  const protocolHandled = dynConfig.wsBase.startsWith('wss://') && dynConfig.httpBase.startsWith('https://');
+  recordTest(domain, 'Dynamic mixed-content protocol discovery (https -> wss, http -> ws)', protocolHandled,
+    `Protocol discovery failed: wsBase=${dynConfig.wsBase}, httpBase=${dynConfig.httpBase}`);
+
+  // Check 6.8: Jittered exponential backoff
+  const hasExpBackoff = /Math\.pow\(\s*2\s*,\s*state\.wsReconnectAttempts\s*\)/.test(appSource);
+  const hasJitter = /Math\.random\(\)/.test(appSource);
+  recordTest(domain, 'WebSocket auto-reconnect with jittered exponential backoff', hasExpBackoff && hasJitter,
+    'WebSocket reconnect lacks exponential backoff or jitter.');
+
+  // Check 6.9: Patient Telemetry Drawer (HTN stage, Gym Clearance, current meal slot, Merkle hash)
+  const hasHtnBadge = htmlSource.includes('id="disp-htn-badge"');
+  const hasGymClearance = htmlSource.includes('id="disp-gym-clearance"');
+  const hasCurrentMealSlot = htmlSource.includes('id="disp-current-meal-slot"');
+  const hasMerkleChip = htmlSource.includes('id="latest-merkle-hash"');
+  recordTest(domain, 'Patient Telemetry Drawer: Live HTN, Gym clearance, current meal slot, Merkle SHA-256 chip',
+    hasHtnBadge && hasGymClearance && hasCurrentMealSlot && hasMerkleChip,
+    'Patient telemetry drawer elements missing in DOM.');
 }
 
 console.log('\n===============================================================');

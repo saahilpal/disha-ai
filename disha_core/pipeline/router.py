@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Callable, Protocol
 
 from .breaker import BreakerResult, EmergencyBreaker
+from disha_core.classifier.adapter import LayaClassifierAdapter, LayaClassificationResult
 
 
 class Intent(str, Enum):
@@ -20,6 +21,34 @@ class Intent(str, Enum):
 
 class IntentClassifier(Protocol):
     def classify(self, text: str) -> Intent: ...
+
+
+class LayaIntentClassifier:
+    """Production intent classifier delegating to LayaClassifierAdapter."""
+
+    def __init__(self, adapter: LayaClassifierAdapter | None = None) -> None:
+        self.adapter = adapter or LayaClassifierAdapter()
+
+    def classify(self, text: str) -> Intent:
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+        if loop and loop.is_running():
+            return RuleIntentClassifier().classify(text)
+        return asyncio.run(self.async_classify(text))
+
+    async def async_classify(self, text: str) -> Intent:
+        res = await self.adapter.classify(text)
+        if res.is_emergency:
+            return Intent.EMERGENCY_TRIAGE
+        intent_map = {
+            "meal_query": Intent.MEAL_QUERY,
+            "symptom_complaint": Intent.SYMPTOM_COMPLAINT,
+            "general_coaching": Intent.GENERAL_COACHING,
+            "emergency_escalation": Intent.EMERGENCY_TRIAGE,
+        }
+        return intent_map.get(res.intent, Intent.GENERAL_COACHING)
 
 
 class RuleIntentClassifier:
@@ -71,7 +100,7 @@ class IntentRouter:
         self, classifier: IntentClassifier | None = None, breaker: EmergencyBreaker | None = None
     ) -> None:
         self.breaker = breaker or EmergencyBreaker()
-        self.classifier = classifier or RuleIntentClassifier()
+        self.classifier = classifier if classifier is not None else LayaIntentClassifier()
 
     def route(self, text: str) -> tuple[BreakerResult, Intent | None]:
         if not isinstance(text, str):

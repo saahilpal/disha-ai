@@ -16,13 +16,14 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, model_validator
 
+from disha_core.classifier.adapter import LayaClassifierAdapter
 from disha_core.compliance.ledger import AuditLedger, AuditRecord
 from disha_core.engine.context_builder import add_approved_remedy_constraints, build_patient_context, render_user_payload
 from disha_core.engine.normalizer import normalize
 from disha_core.engine.retriever import retrieve_chunks
 from disha_core.llm.client import DualProviderClient
 from disha_core.llm.sentence_buffer import validated_sentences
-from disha_core.pipeline.router import Intent, IntentRouter
+from disha_core.pipeline.router import Intent, IntentRouter, LayaIntentClassifier
 from disha_core.pipeline.validator import (
     CHANNEL_RE,
     CHANNEL_REPLACEMENT,
@@ -114,7 +115,11 @@ async def _authenticated_patient(request: Request, authorization: str | None) ->
 async def _turn_sentences(
     request: Request, patient_id: str, payload: TurnRequest, state: TurnState
 ) -> AsyncIterator[str]:
-    emergency, intent = request.app.state.router.route(payload.text)
+    router = request.app.state.router
+    if hasattr(router, "async_route"):
+        emergency, intent = await router.async_route(payload.text)
+    else:
+        emergency, intent = router.route(payload.text)
     if emergency.triggered:
         state.breaker_status = f"triggered:{emergency.category}"
         yield emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein."
@@ -162,7 +167,9 @@ def create_app() -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         database_url = os.getenv("DATABASE_URL")
-        app.state.router = IntentRouter()
+        classifier_adapter = LayaClassifierAdapter()
+        app.state.classifier_adapter = classifier_adapter
+        app.state.router = IntentRouter(LayaIntentClassifier(classifier_adapter))
         app.state.validator = SentenceValidator()
         app.state.llm = DualProviderClient()
         pool = None
@@ -232,6 +239,48 @@ def create_app() -> FastAPI:
         except Exception as exc:
             raise HTTPException(status_code=503, detail="Database unavailable") from exc
         return {"ok": True, "database": True}
+
+    @app.get("/ready")
+    async def ready(request: Request) -> dict[str, Any]:
+        pool = getattr(request.app.state, "pool", None)
+        if pool is None:
+            raise HTTPException(status_code=503, detail="Database pool not initialized")
+        try:
+            async with pool.acquire() as conn:
+                await conn.fetchval("SELECT 1")
+        except Exception as exc:
+            raise HTTPException(status_code=503, detail="Database connectivity failure") from exc
+
+        classifier = getattr(request.app.state, "classifier_adapter", None)
+        is_classifier_ready = await classifier.is_ready() if classifier is not None else False
+        if not is_classifier_ready:
+            raise HTTPException(status_code=503, detail="Laya classifier not ready")
+
+        return {
+            "ok": True,
+            "database": True,
+            "classifier": True,
+            "schema_version": "2026-11-07.v1",
+        }
+
+    @app.get("/internal/classifier")
+    async def classifier_status(request: Request, authorization: str | None = Header(default=None)) -> dict[str, Any]:
+        admin_key = os.getenv("ADMIN_API_KEY", "")
+        if admin_key:
+            token = (authorization or "").removeprefix("Bearer ").strip()
+            if token != admin_key:
+                raise HTTPException(status_code=403, detail="Admin authorization required")
+        classifier = getattr(request.app.state, "classifier_adapter", None)
+        if classifier is None:
+            raise HTTPException(status_code=503, detail="Classifier adapter not initialized")
+        return classifier.get_status()
+
+    @app.post("/client-errors")
+    async def log_client_error(payload: dict[str, Any], request: Request) -> dict[str, bool]:
+        err_msg = str(payload.get("message", "unknown"))[:200]
+        err_source = str(payload.get("source", "browser"))[:100]
+        logging.getLogger("disha.client").warning("[Client Error] source=%s msg=%s", err_source, err_msg)
+        return {"logged": True}
 
     @app.post("/auth/register")
     @app.post("/auth/onboarding")
