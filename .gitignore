@@ -1,10 +1,56 @@
-.venv/
+# Python bytecode & cache
 __pycache__/
-*.pyc
-.pytest_cache/
-.DS_Store
-data/*.db
-data/*.db-wal
-data/*.db-shm
-.env
+*.py[cod]
+*$py.class
+*.so
 
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Sensitive Environment & Secrets (Preserve .env)
+.env
+.env.*
+!.env.example
+
+# SQLite Databases & WAL Sidecars (Audit WAL Protection)
+*.db
+*.db-wal
+*.db-shm
+*audit_wal.db*
+audit_wal.db*
+**/audit_wal.db*
+
+# OS Artifacts
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# IDE & Editor Configurations
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary & Scratch Files
+*.tmp
+*.log
+*.out
+
+# Node & Vercel
+node_modules/
+.vercel/
+.vercel

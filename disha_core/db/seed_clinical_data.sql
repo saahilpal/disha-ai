@@ -1,0 +1,2 @@
+-- No clinical recommendations are seeded without an authoritative source and
+-- named clinician approval. Insert reviewed micro-chunks only after approval.
