@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="dark">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -78,11 +78,11 @@
     <main id="auth-view" class="view-container active-view">
       <div class="intake-container">
         <!-- Auth Mode Tabs -->
-        <div class="auth-tabs" role="tablist">
-          <button type="button" class="tab-btn active" id="tab-login" role="tab" aria-selected="true" aria-controls="login-section">
+        <div class="auth-tabs" role="tablist" aria-label="Patient Portal Access Modes">
+          <button type="button" class="tab-btn active" id="tab-login" role="tab" aria-selected="true" aria-controls="login-section" tabindex="0">
             Sign In (Existing Patient)
           </button>
-          <button type="button" class="tab-btn" id="tab-onboard" role="tab" aria-selected="false" aria-controls="onboard-section">
+          <button type="button" class="tab-btn" id="tab-onboard" role="tab" aria-selected="false" aria-controls="onboard-section" tabindex="-1">
             New Patient Clinical Intake
           </button>
         </div>
@@ -149,14 +149,21 @@
               <div id="caps-lock-warning" class="caps-alert" role="alert" style="display: none;">
                 Caps Lock is ON
               </div>
-              <!-- Strength Elements for test compatibility -->
+              <!-- Strength Elements for test compatibility & interactive meter -->
               <div class="strength-meter-box" id="strength-box" style="display:none;">
-                <div id="strength-bar"></div>
-                <span id="strength-score-text"></span>
-                <span id="rule-length"></span>
-                <span id="rule-upper"></span>
-                <span id="rule-number"></span>
-                <span id="rule-symbol"></span>
+                <div class="strength-header">
+                  <span class="strength-title">Passcode Security Strength:</span>
+                  <strong id="strength-score-text" class="strength-score">Weak</strong>
+                </div>
+                <div class="strength-track">
+                  <div id="strength-bar"></div>
+                </div>
+                <ul class="strength-rules" aria-label="Passcode criteria">
+                  <li id="rule-length" class="strength-rule">At least 8 characters</li>
+                  <li id="rule-upper" class="strength-rule">At least 1 uppercase letter (A-Z)</li>
+                  <li id="rule-number" class="strength-rule">At least 1 number (0-9)</li>
+                  <li id="rule-symbol" class="strength-rule">At least 1 special character (!@#$)</li>
+                </ul>
               </div>
               <div id="password-error" class="field-feedback error" role="alert"></div>
             </div>
@@ -197,18 +204,52 @@
             <fieldset class="form-section">
               <legend class="section-title">1. Account & Identity</legend>
               <div class="form-grid-2">
-                <div class="form-group">
+                <div class="form-group" id="onboard-name-group">
                   <label for="onboard-name" class="form-label">Full Name <span class="required-mark">*</span></label>
-                  <input type="text" id="onboard-name" class="form-input" placeholder="e.g. Meera Patel" required />
+                  <input type="text" id="onboard-name" class="form-input" placeholder="e.g. Meera Patel" required autocomplete="name" />
                 </div>
-                <div class="form-group">
+                <div class="form-group" id="onboard-email-group">
                   <label for="onboard-email" class="form-label">Email Address <span class="required-mark">*</span></label>
-                  <input type="email" id="onboard-email" class="form-input" placeholder="meera.patel@example.com" required />
+                  <div class="input-wrapper">
+                    <input type="email" id="onboard-email" class="form-input" placeholder="meera.patel@example.com" required autocomplete="email" spellcheck="false" />
+                  </div>
+                  <div id="onboard-email-error" class="field-feedback error" role="alert"></div>
                 </div>
               </div>
-              <div class="form-group">
-                <label for="onboard-password" class="form-label">Passcode (min. 6 characters) <span class="required-mark">*</span></label>
-                <input type="password" id="onboard-password" class="form-input" placeholder="Create secure passcode" required minlength="6" />
+              <div class="form-group" id="onboard-password-group">
+                <div class="label-row">
+                  <label for="onboard-password" class="form-label">Passcode (min. 6 characters) <span class="required-mark">*</span></label>
+                </div>
+                <div class="input-wrapper">
+                  <input type="password" id="onboard-password" class="form-input" placeholder="Create secure passcode" required minlength="6" autocomplete="new-password" />
+                  <button type="button" id="toggle-onboard-password" class="icon-action-btn" aria-label="Toggle passcode visibility">
+                    <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                    <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                      <line x1="1" y1="1" x2="23" y2="23"></line>
+                    </svg>
+                  </button>
+                </div>
+                <div id="onboard-password-error" class="field-feedback error" role="alert"></div>
+                <!-- Interactive Password Strength Meter for New Patient Intake -->
+                <div class="strength-meter-box" id="onboard-strength-box" style="display:none;">
+                  <div class="strength-header">
+                    <span class="strength-title">Passcode Security Strength:</span>
+                    <strong id="onboard-strength-score-text" class="strength-score">Weak</strong>
+                  </div>
+                  <div class="strength-track">
+                    <div id="onboard-strength-bar"></div>
+                  </div>
+                  <ul class="strength-rules" aria-label="Passcode criteria">
+                    <li id="onboard-rule-length" class="strength-rule">At least 8 characters</li>
+                    <li id="onboard-rule-upper" class="strength-rule">At least 1 uppercase letter (A-Z)</li>
+                    <li id="onboard-rule-number" class="strength-rule">At least 1 number (0-9)</li>
+                    <li id="onboard-rule-symbol" class="strength-rule">At least 1 special character (!@#$)</li>
+                  </ul>
+                </div>
               </div>
             </fieldset>
 
@@ -217,7 +258,7 @@
               <legend class="section-title">2. Primary Vitals & Biometrics</legend>
               <div class="form-grid-4">
                 <div class="form-group">
-                  <label for="onboard-age" class="form-label">Age (years)</label>
+                  <label for="onboard-age" class="form-label">Age (years) <span class="required-mark">*</span></label>
                   <input type="number" id="onboard-age" class="form-input" value="38" min="1" max="120" required />
                 </div>
                 <div class="form-group">
@@ -229,16 +270,16 @@
                   </select>
                 </div>
                 <div class="form-group">
-                  <label for="onboard-height" class="form-label">Height (cm)</label>
+                  <label for="onboard-height" class="form-label">Height (cm) <span class="required-mark">*</span></label>
                   <input type="number" id="onboard-height" class="form-input" value="165" min="50" max="250" required />
                 </div>
                 <div class="form-group">
-                  <label for="onboard-weight" class="form-label">Weight (kg)</label>
+                  <label for="onboard-weight" class="form-label">Weight (kg) <span class="required-mark">*</span></label>
                   <input type="number" id="onboard-weight" class="form-input" value="72" min="20" max="300" step="0.5" required />
                 </div>
               </div>
               <!-- Real-Time Calculated BMI Pill -->
-              <div class="bmi-callout">
+              <div class="bmi-callout" role="status" aria-live="polite">
                 <span>Calculated BMI: <strong id="calculated-bmi" class="tabular-nums">26.4</strong> kg/m²</span>
                 <span id="bmi-status" class="badge-mini warning">Overweight (Pre-hypertensive risk)</span>
               </div>
@@ -247,7 +288,11 @@
             <!-- Step 3: Metabolic & Cardiovascular Conditions -->
             <fieldset class="form-section">
               <legend class="section-title">3. Cardiovascular & Metabolic History</legend>
-              <div class="checkbox-chips-grid">
+              <div class="checkbox-chips-grid" role="group" aria-label="Cardiovascular and metabolic conditions">
+                <label class="check-chip">
+                  <input type="checkbox" name="condition" value="Normal BP" />
+                  <span>Normal Blood Pressure</span>
+                </label>
                 <label class="check-chip">
                   <input type="checkbox" name="condition" value="Hypertension Stage 1" checked />
                   <span>Hypertension (Stage 1)</span>
@@ -416,18 +461,18 @@
           <div class="drawer-card">
             <div class="drawer-header">
               <h2 class="drawer-title">Today's Prescribed Diet</h2>
-              <span class="badge-mini pass">Closed Domain</span>
+              <span class="badge-mini pass" id="disp-current-meal-slot">Current Slot: Dinner</span>
             </div>
             <div class="diet-slots" id="diet-slots-container">
-              <div class="diet-slot-item">
+              <div class="diet-slot-item" id="slot-breakfast">
                 <span class="slot-badge">Breakfast</span>
                 <p class="slot-text" id="disp-diet-breakfast">Loading schedule...</p>
               </div>
-              <div class="diet-slot-item">
+              <div class="diet-slot-item" id="slot-lunch">
                 <span class="slot-badge">Lunch</span>
                 <p class="slot-text" id="disp-diet-lunch">Loading schedule...</p>
               </div>
-              <div class="diet-slot-item">
+              <div class="diet-slot-item" id="slot-dinner">
                 <span class="slot-badge">Dinner</span>
                 <p class="slot-text" id="disp-diet-dinner">Loading schedule...</p>
               </div>

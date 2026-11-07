@@ -16,8 +16,7 @@
 
   // --- STATE ---
   const state = {
-    theme: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_theme')) ||
-      (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'),
+    theme: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_theme')) || 'light',
     token: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_token')) || null,
     patientId: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_id')) || null,
     patientName: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_name')) || null,
@@ -229,6 +228,10 @@
     dispDietBreakfast: typeof document !== 'undefined' ? document.getElementById('disp-diet-breakfast') : null,
     dispDietLunch: typeof document !== 'undefined' ? document.getElementById('disp-diet-lunch') : null,
     dispDietDinner: typeof document !== 'undefined' ? document.getElementById('disp-diet-dinner') : null,
+    dispCurrentMealSlot: typeof document !== 'undefined' ? document.getElementById('disp-current-meal-slot') : null,
+    slotBreakfast: typeof document !== 'undefined' ? document.getElementById('slot-breakfast') : null,
+    slotLunch: typeof document !== 'undefined' ? document.getElementById('slot-lunch') : null,
+    slotDinner: typeof document !== 'undefined' ? document.getElementById('slot-dinner') : null,
     latestMerkleHash: typeof document !== 'undefined' ? document.getElementById('latest-merkle-hash') : null,
 
     // Telephony Controls & Stage
@@ -683,12 +686,21 @@
     if (data.pep) {
       const pep = data.pep;
       if (dom.dispHtnBadge) {
-        dom.dispHtnBadge.textContent = pep.hypertension_stage ? `HTN ${capitalize(pep.hypertension_stage)}` : 'Normal BP';
-        dom.dispHtnBadge.className = pep.hypertension_stage === 'normal' ? 'badge-mini pass' : 'badge-mini warning';
+        const stage = pep.hypertension_stage ? String(pep.hypertension_stage).toLowerCase() : 'normal';
+        if (stage.includes('stage 2') || stage.includes('2')) {
+          dom.dispHtnBadge.textContent = 'HTN Stage 2';
+          dom.dispHtnBadge.className = 'badge-mini danger';
+        } else if (stage.includes('stage 1') || stage.includes('1')) {
+          dom.dispHtnBadge.textContent = 'HTN Stage 1';
+          dom.dispHtnBadge.className = 'badge-mini warning';
+        } else {
+          dom.dispHtnBadge.textContent = 'Normal BP';
+          dom.dispHtnBadge.className = 'badge-mini pass';
+        }
       }
       if (dom.dispGymClearance) {
         dom.dispGymClearance.textContent = pep.gym_clearance ? 'CLEARED' : 'BLOCKED (Restricted)';
-        dom.dispGymClearance.className = pep.gym_clearance ? 'pep-status-tag cleared' : 'pep-status-tag';
+        dom.dispGymClearance.className = pep.gym_clearance ? 'pep-status-tag cleared' : 'pep-status-tag restricted';
       }
       if (dom.dispAllowedModalities) {
         dom.dispAllowedModalities.textContent = (pep.allowed_modalities || []).join(', ') || 'Brisk walking, gentle yoga';
@@ -698,11 +710,58 @@
       }
     }
 
+    // Determine current prescribed meal slot from time of day
+    const hour = new Date().getHours();
+    let currentSlot = 'dinner';
+    if (hour >= 5 && hour < 11) {
+      currentSlot = 'breakfast';
+    } else if (hour >= 11 && hour < 17) {
+      currentSlot = 'lunch';
+    } else {
+      currentSlot = 'dinner';
+    }
+
+    if (dom.dispCurrentMealSlot) {
+      dom.dispCurrentMealSlot.textContent = `Current Slot: ${capitalize(currentSlot)}`;
+      dom.dispCurrentMealSlot.className = 'badge-mini pass';
+    }
+
+    const slotEls = {
+      breakfast: dom.slotBreakfast || (typeof document !== 'undefined' ? document.getElementById('slot-breakfast') : null),
+      lunch: dom.slotLunch || (typeof document !== 'undefined' ? document.getElementById('slot-lunch') : null),
+      dinner: dom.slotDinner || (typeof document !== 'undefined' ? document.getElementById('slot-dinner') : null),
+    };
+    Object.keys(slotEls).forEach(k => {
+      const el = slotEls[k];
+      if (el) {
+        if (k === currentSlot) el.classList.add('current-slot');
+        else el.classList.remove('current-slot');
+      }
+    });
+
     if (data.today_diet) {
       const d = data.today_diet;
-      if (dom.dispDietBreakfast && d.breakfast) dom.dispDietBreakfast.textContent = d.breakfast;
-      if (dom.dispDietLunch && d.lunch) dom.dispDietLunch.textContent = d.lunch;
-      if (dom.dispDietDinner && d.dinner) dom.dispDietDinner.textContent = d.dinner;
+      const getMeal = (type) => {
+        const val = d[type] || d[type.toLowerCase()] || d[capitalize(type)];
+        if (!val) return 'None prescribed for today';
+        if (Array.isArray(val)) return val.join(', ');
+        return String(val);
+      };
+      if (dom.dispDietBreakfast) dom.dispDietBreakfast.textContent = getMeal('breakfast');
+      if (dom.dispDietLunch) dom.dispDietLunch.textContent = getMeal('lunch');
+      if (dom.dispDietDinner) dom.dispDietDinner.textContent = getMeal('dinner');
+    }
+
+    // Merkle audit chip displaying verified truncated SHA-256 hash
+    if ((data.audit_hash || data.merkle_hash) && dom.latestMerkleHash) {
+      const rawHash = String(data.audit_hash || data.merkle_hash).trim();
+      if (rawHash && rawHash !== '--') {
+        const truncated = rawHash.length > 24
+          ? rawHash.substring(0, 16) + '...' + rawHash.slice(-8)
+          : rawHash;
+        dom.latestMerkleHash.textContent = truncated;
+        dom.latestMerkleHash.title = rawHash;
+      }
     }
   }
 
@@ -933,7 +992,7 @@
     setTelephonyStatus('connecting');
     if (dom.callBtn) {
       dom.callBtn.className = 'telephony-call-btn state-connecting';
-      if (dom.callBtnLabel) dom.callBtnLabel.textContent = 'Connecting...';
+      if (dom.callBtnLabel) dom.callBtnLabel.textContent = 'Connecting to Disha Core...';
     }
 
     try {

@@ -16,8 +16,7 @@
 
   // --- STATE ---
   const state = {
-    theme: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_theme')) ||
-      (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark'),
+    theme: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_theme')) || 'light',
     token: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_token')) || null,
     patientId: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_id')) || null,
     patientName: (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_name')) || null,
@@ -229,6 +228,10 @@
     dispDietBreakfast: typeof document !== 'undefined' ? document.getElementById('disp-diet-breakfast') : null,
     dispDietLunch: typeof document !== 'undefined' ? document.getElementById('disp-diet-lunch') : null,
     dispDietDinner: typeof document !== 'undefined' ? document.getElementById('disp-diet-dinner') : null,
+    dispCurrentMealSlot: typeof document !== 'undefined' ? document.getElementById('disp-current-meal-slot') : null,
+    slotBreakfast: typeof document !== 'undefined' ? document.getElementById('slot-breakfast') : null,
+    slotLunch: typeof document !== 'undefined' ? document.getElementById('slot-lunch') : null,
+    slotDinner: typeof document !== 'undefined' ? document.getElementById('slot-dinner') : null,
     latestMerkleHash: typeof document !== 'undefined' ? document.getElementById('latest-merkle-hash') : null,
 
     // Telephony Controls & Stage
@@ -933,7 +936,7 @@
     setTelephonyStatus('connecting');
     if (dom.callBtn) {
       dom.callBtn.className = 'telephony-call-btn state-connecting';
-      if (dom.callBtnLabel) dom.callBtnLabel.textContent = 'Connecting...';
+      if (dom.callBtnLabel) dom.callBtnLabel.textContent = 'Connecting to Disha Core...';
     }
 
     try {
