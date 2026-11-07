@@ -24,6 +24,20 @@ CREATE INDEX IF NOT EXISTS idx_clinical_trgm ON clinical_knowledge_base USING GI
 CREATE INDEX IF NOT EXISTS idx_clinical_tsv_approved ON clinical_knowledge_base USING GIN(tsv_content) WHERE approval_status = 'approved';
 CREATE INDEX IF NOT EXISTS idx_clinical_trgm_approved ON clinical_knowledge_base USING GIN(trigger_terms gin_trgm_ops) WHERE approval_status = 'approved';
 
+CREATE TABLE IF NOT EXISTS patient_profiles (
+    patient_id VARCHAR(64) PRIMARY KEY,
+    email VARCHAR(255) UNIQUE NOT NULL,
+    password_hash VARCHAR(128) NOT NULL,
+    name VARCHAR(128) NOT NULL,
+    age INT,
+    gender VARCHAR(32),
+    height_cm NUMERIC,
+    weight_kg NUMERIC,
+    dietary_preference VARCHAR(64),
+    health_goals TEXT[],
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS patient_pep (
     patient_id VARCHAR(64) PRIMARY KEY,
     hypertension_stage VARCHAR(16),

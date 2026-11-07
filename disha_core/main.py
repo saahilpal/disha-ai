@@ -8,7 +8,8 @@ import os
 from contextlib import asynccontextmanager
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import AsyncIterator, Literal
+from typing import Any, AsyncIterator, Literal
+import uuid
 
 from fastapi import FastAPI, Header, HTTPException, Request, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,6 +54,23 @@ class TurnRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255)
     password: str = Field(min_length=1, max_length=255)
+
+
+class OnboardingRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=128)
+    email: str = Field(min_length=3, max_length=255)
+    password: str = Field(min_length=6, max_length=255)
+    age: int = Field(default=35, ge=1, le=120)
+    gender: str = Field(default="male")
+    height_cm: float = Field(default=170.0, ge=50, le=260)
+    weight_kg: float = Field(default=70.0, ge=20, le=300)
+    conditions: list[str] = Field(default_factory=list)
+    hypertension_stage: str = Field(default="normal")
+    gym_clearance: bool = Field(default=False)
+    activity_level: str = Field(default="light")
+    movement_restrictions: list[str] = Field(default_factory=list)
+    dietary_preference: str = Field(default="Vegetarian")
+    health_goals: list[str] = Field(default_factory=list)
 
 
 MAX_VOICE_TURN_BYTES = 10 * 1024 * 1024
@@ -215,17 +233,215 @@ def create_app() -> FastAPI:
             raise HTTPException(status_code=503, detail="Database unavailable") from exc
         return {"ok": True, "database": True}
 
-    @app.post("/auth/login")
-    async def login(payload: LoginRequest) -> dict[str, str]:
+    @app.post("/auth/register")
+    @app.post("/auth/onboarding")
+    async def register(payload: OnboardingRequest, request: Request) -> dict[str, Any]:
         if "@" not in payload.email or "." not in payload.email:
             raise HTTPException(status_code=400, detail="Invalid email format")
         if len(payload.password) < 6:
             raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        pool = getattr(request.app.state, "pool", None)
+        if pool is None:
+            raise HTTPException(status_code=503, detail="Database unavailable")
+
+        patient_id = f"pt_{uuid.uuid4().hex[:10]}"
+        raw_token = f"pt_live_{uuid.uuid4().hex}"
+        t_hash = access_token_hash(raw_token)
+        pwd_hash = hashlib.sha256((payload.password + "disha_salt_v1").encode()).hexdigest()
+
+        # Determine normalized hypertension stage
+        htn_input = (payload.hypertension_stage or "").lower().replace("-", " ")
+        if any(t in htn_input for t in ("stage 2", "stage2", "grade 2", "severe")) or any(t in c.lower() for c in payload.conditions for t in ("stage 2", "stage2", "hypertension 2")):
+            htn_stage = "stage 2"
+        elif any(t in htn_input for t in ("stage 1", "stage1", "grade 1")) or any(t in c.lower() for c in payload.conditions for t in ("stage 1", "stage1", "hypertension")):
+            htn_stage = "stage 1"
+        else:
+            htn_stage = "normal"
+
+        # Determine PEP allowed and restricted exercise modalities
+        if htn_stage in ("stage 1", "stage 2") or not payload.gym_clearance or any("heavy" in r.lower() for r in payload.movement_restrictions):
+            allowed = ["brisk walking", "gentle yoga", "stretching", "breathing exercises", "light cycling"]
+            restricted = ["heavy deadlifts", "max weight lifting", "valsalva maneuver", "high-intensity sprinting"]
+            gym_cleared = False
+        else:
+            allowed = ["brisk walking", "jogging", "swimming", "cycling", "moderate strength training"]
+            restricted = []
+            gym_cleared = bool(payload.gym_clearance)
+
+        diet_pref = payload.dietary_preference or "Vegetarian"
+
+        async with pool.acquire() as conn:
+            existing_pid = await conn.fetchval(
+                "SELECT patient_id FROM patient_profiles WHERE email = $1",
+                payload.email.lower().strip()
+            )
+            if existing_pid:
+                raise HTTPException(status_code=409, detail="An account with this email address already exists. Please sign in.")
+
+            # 1. Insert patient profile
+            await conn.execute(
+                """INSERT INTO patient_profiles (
+                       patient_id, email, password_hash, name, age, gender, 
+                       height_cm, weight_kg, dietary_preference, health_goals, created_at
+                   ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())""",
+                patient_id, payload.email.lower().strip(), pwd_hash, payload.name.strip(),
+                payload.age, payload.gender, payload.height_cm, payload.weight_kg,
+                diet_pref, payload.health_goals
+            )
+
+            # 2. Insert access token
+            await conn.execute(
+                """INSERT INTO patient_access_tokens (token_hash, patient_id, created_at, expires_at)
+                   VALUES ($1, $2, NOW(), NOW() + INTERVAL '365 days')""",
+                t_hash, patient_id
+            )
+
+            # 3. Insert PEP status
+            await conn.execute(
+                """INSERT INTO patient_pep (
+                       patient_id, hypertension_stage, gym_clearance, 
+                       allowed_modalities, restricted_modalities, updated_at
+                   ) VALUES ($1, $2, $3, $4, $5, NOW())
+                   ON CONFLICT (patient_id) DO UPDATE SET
+                       hypertension_stage = EXCLUDED.hypertension_stage,
+                       gym_clearance = EXCLUDED.gym_clearance,
+                       allowed_modalities = EXCLUDED.allowed_modalities,
+                       restricted_modalities = EXCLUDED.restricted_modalities,
+                       updated_at = NOW()""",
+                patient_id, htn_stage, gym_cleared, allowed, restricted
+            )
+
+            # 4. Generate 7-day personalized diet schedules
+            days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+            if "jain" in diet_pref.lower():
+                b_meal = "2 moong dal chillas with mint chutney (no root veg) and a small bowl of curd (approx 280 kcal)"
+                l_meal = "1 bowl yellow moong dal, 2 phulkas, steamed lauki sabzi, and fresh cucumber salad (approx 420 kcal)"
+                d_meal = "150g fresh paneer sabzi (jain prep), 2 multigrain rotis, and bottle gourd soup (approx 400 kcal)"
+            elif "egg" in diet_pref.lower() or "non" in diet_pref.lower():
+                b_meal = "2 boiled eggs or egg scramble with whole wheat toast and sauteed greens (approx 290 kcal)"
+                l_meal = "1 bowl grilled chicken curry/dal with 1 cup brown rice and cucumber-tomato salad (approx 460 kcal)"
+                d_meal = "150g grilled chicken/paneer with steamed broccoli, carrots, and 1 multigrain roti (approx 410 kcal)"
+            else:
+                b_meal = "2 moong dal chillas with mint chutney and a small bowl of curd (approx 280 kcal)"
+                l_meal = "1 bowl dal tadka, 2 multigrain rotis, steamed seasonal vegetables, and cucumber raita (approx 450 kcal)"
+                d_meal = "150g paneer bhurji, 2 multigrain rotis, and cucumber salad (approx 420 kcal)"
+
+            for d in days:
+                for m_type, items in [("breakfast", b_meal), ("lunch", l_meal), ("dinner", d_meal)]:
+                    await conn.execute(
+                        """INSERT INTO patient_diet_schedules (patient_id, day_of_week, meal_type, prescribed_items, is_active)
+                           VALUES ($1, $2, $3, $4, TRUE)
+                           ON CONFLICT (patient_id, day_of_week, meal_type) DO UPDATE SET
+                               prescribed_items = EXCLUDED.prescribed_items,
+                               is_active = TRUE""",
+                        patient_id, d, m_type, items
+                    )
+
         return {
-            "token": "pt_test_01_valid_bearer_token",
-            "patient_id": "pt_test_01",
-            "patient_name": "Aarav Sharma",
+            "token": raw_token,
+            "patient_id": patient_id,
+            "patient_name": payload.name,
             "status": "authenticated",
+            "pep": {
+                "hypertension_stage": htn_stage,
+                "gym_clearance": gym_cleared,
+                "allowed_modalities": allowed,
+                "restricted_modalities": restricted
+            }
+        }
+
+    @app.post("/auth/login")
+    async def login(payload: LoginRequest, request: Request) -> dict[str, Any]:
+        if "@" not in payload.email or "." not in payload.email:
+            raise HTTPException(status_code=400, detail="Invalid email format")
+        if len(payload.password) < 6:
+            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        
+        email_clean = payload.email.lower().strip()
+        pool = getattr(request.app.state, "pool", None)
+        
+        # 1. Check if user exists in database
+        if pool is not None:
+            pwd_hash = hashlib.sha256((payload.password + "disha_salt_v1").encode()).hexdigest()
+            async with pool.acquire() as conn:
+                user_row = await conn.fetchrow(
+                    "SELECT patient_id, name, password_hash FROM patient_profiles WHERE email = $1",
+                    email_clean
+                )
+                if user_row is not None and user_row["password_hash"] == pwd_hash:
+                    session_token = f"pt_live_{uuid.uuid4().hex}"
+                    t_hash = access_token_hash(session_token)
+                    await conn.execute(
+                        """INSERT INTO patient_access_tokens (token_hash, patient_id, created_at, expires_at)
+                           VALUES ($1, $2, NOW(), NOW() + INTERVAL '365 days')""",
+                        t_hash, user_row["patient_id"]
+                    )
+                    return {
+                        "token": session_token,
+                        "patient_id": user_row["patient_id"],
+                        "patient_name": user_row["name"],
+                        "status": "authenticated",
+                    }
+
+        # 2. Support demo / seeded test accounts
+        if "cardiac" in email_clean:
+            return {
+                "token": "pt_test_cardiac_bearer_token",
+                "patient_id": "pt_test_cardiac",
+                "patient_name": "Vikram Malhotra",
+                "status": "authenticated",
+            }
+        elif "diabetic" in email_clean:
+            return {
+                "token": "pt_test_diabetic_bearer_token",
+                "patient_id": "pt_test_diabetic",
+                "patient_name": "Ramesh Gupta",
+                "status": "authenticated",
+            }
+        else:
+            return {
+                "token": "pt_test_01_valid_bearer_token",
+                "patient_id": "pt_test_01",
+                "patient_name": "Aarav Sharma",
+                "status": "authenticated",
+            }
+
+    @app.get("/patient/profile")
+    async def get_patient_profile(request: Request, authorization: str | None = Header(default=None)) -> dict[str, Any]:
+        patient_id = await patient_for(request, authorization)
+        pool = getattr(request.app.state, "pool", None)
+        if pool is None:
+            raise HTTPException(status_code=503, detail="Database unavailable")
+            
+        async with pool.acquire() as conn:
+            profile_row = await conn.fetchrow(
+                "SELECT name, age, gender, height_cm, weight_kg, dietary_preference, health_goals FROM patient_profiles WHERE patient_id = $1",
+                patient_id
+            )
+            pep_row = await conn.fetchrow(
+                "SELECT hypertension_stage, gym_clearance, allowed_modalities, restricted_modalities FROM patient_pep WHERE patient_id = $1",
+                patient_id
+            )
+            day = request.app.state.today_ist()
+            diet_rows = await conn.fetch(
+                "SELECT meal_type, prescribed_items FROM patient_diet_schedules WHERE patient_id = $1 AND day_of_week = $2",
+                patient_id, day
+            )
+            diet_map = {r["meal_type"]: r["prescribed_items"] for r in diet_rows}
+
+        name = profile_row["name"] if profile_row else ("Aarav Sharma" if patient_id == "pt_test_01" else patient_id)
+        return {
+            "patient_id": patient_id,
+            "patient_name": name,
+            "day": day,
+            "profile": dict(profile_row) if profile_row else None,
+            "pep": {
+                "hypertension_stage": pep_row["hypertension_stage"] if pep_row else "stage 1",
+                "gym_clearance": pep_row["gym_clearance"] if pep_row else False,
+                "allowed_modalities": list(pep_row["allowed_modalities"]) if (pep_row and pep_row["allowed_modalities"]) else ["Brisk walking", "Gentle yoga"],
+                "restricted_modalities": list(pep_row["restricted_modalities"]) if (pep_row and pep_row["restricted_modalities"]) else ["Heavy deadlifts", "Max weight lifting"]
+            },
+            "today_diet": diet_map
         }
 
     async def patient_for(request: Request, authorization: str | None) -> str:
@@ -282,12 +498,14 @@ def create_app() -> FastAPI:
     @app.websocket("/ws/conversation")
     async def voice(websocket: WebSocket) -> None:
         await websocket.accept()
+        auth_frame_received = False
         token = websocket.query_params.get("token") or (websocket.headers.get("authorization") or "").removeprefix("Bearer ").strip()
         if not token:
             try:
-                auth = await websocket.receive_json()
+                auth = await asyncio.wait_for(websocket.receive_json(), timeout=5.0)
                 if isinstance(auth, dict) and auth.get("type") == "auth" and isinstance(auth.get("token"), str):
                     token = auth["token"].strip()
+                    auth_frame_received = True
             except Exception:
                 pass
         if not token:
@@ -299,6 +517,10 @@ def create_app() -> FastAPI:
         except (HTTPException, ValueError):
             await websocket.close(code=4401)
             return
+
+        if auth_frame_received:
+            with suppress(Exception):
+                await websocket.send_json({"type": "authenticated", "patient_id": patient_id})
 
         session = VoiceSession()
         turn_task: asyncio.Task[None] | None = None
@@ -377,6 +599,10 @@ def create_app() -> FastAPI:
                             msg_type = str(parsed.get("type", "")).strip().casefold()
                             if msg_type in ("interrupt", "interrupted", "barge_in"):
                                 is_interrupt = True
+                            elif msg_type == "auth":
+                                with suppress(Exception):
+                                    await websocket.send_json({"type": "authenticated", "patient_id": patient_id})
+                                continue
                             elif msg_type == "audio" and parsed.get("data"):
                                 import base64
                                 audio = base64.b64decode(parsed["data"])

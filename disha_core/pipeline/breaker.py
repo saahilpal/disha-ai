@@ -21,29 +21,40 @@ EMERGENCY_PATTERNS: dict[str, tuple[str, ...]] = {
         "seene mein dard", "seene me dard", "seene mein dabaav", "seene mein dabav",
         "seene mein bhaari dabav", "seene mein bhari dabav",
         "cardiac arrest", "crushing chest pain", "acute chest pain",
+        "dil ka daura", "dil ka daura pada", "dil me dard", "dil mein dard",
+        "left hand pain", "left arm pain", "chest tightness", "chest discomfort",
+        "chaati mein dard", "chaati me dard", "chaati me dabav", "chaati mein dabav",
+        "छाती में दर्द", "सीने में दर्द", "दिल का दौरा", "दिल में दर्द", "छाती में दबाव", "सीने में दबाव",
     ),
     "RESPIRATORY": (
         "cannot breathe", "can't breathe", "difficulty breathing", "not breathing",
         "saans nahi aa rahi", "saans ruk rahi", "saans lene mein dikkat",
-        "saas lene mein takleef", "gasping for air", "choking", "suffocating", "asthma attack",
+        "saas lene mein takleef", "saas lene me taklif", "saas lene mein taklif",
+        "saans phool rahi", "saas phool rahi", "dum ghut raha",
+        "gasping for air", "choking", "suffocating", "asthma attack",
         "oxygen level",
+        "सांस नहीं आ रही", "सांस रुक रही", "सांस लेने में दिक्कत", "सांस लेने में तकलीफ",
+        "सांस फूल रही", "दम घुट रहा", "सांस बंद",
     ),
     "NEUROLOGICAL": (
         "face drooping", "one sided weakness", "slurred speech", "stroke symptoms",
         "achanak chehra tedha", "bol nahi pa raha", "ek taraf kamzori",
         "chehra ek taraf latak", "facial droop", "suddenly paralyzed", "achanak behosh",
-        "loss of balance", "blackout",
+        "loss of balance", "blackout", "lakwa mar", "mirgi ka daura",
+        "चेहरा टेढ़ा", "बोल नहीं पा रहा", "एक तरफ कमजोरी", "लकवा", "अचानक बेहोश", "बेहोश", "स्ट्रोक", "मिर्गी का दौरा",
     ),
     "CRISIS": (
         "suicide", "kill myself", "end my life", "self harm", "want to die",
         "khudkushi", "jaan dena chahta", "apne aap ko maar", "zeher kha liya",
-        "zeher", "poison",
+        "zeher", "poison", "apni jaan", "nasein kaat", "faansi", "faasi",
+        "आत्महत्या", "खुदकुशी", "जान देना चाहता", "अपने आप को मार", "ज़हर", "जहर", "फांसी",
     ),
     "TRAUMA": (
         "uncontrolled bleeding", "heavy bleeding", "major accident", "severe burn",
         "bahut khoon beh", "tez khoon beh", "bada accident", "gehri chot",
         "khoon ki ulti", "blood vomiting", "head injury unconscious", "arterial bleeding",
-        "extensive burn",
+        "extensive burn", "khoon nikal", "goli lag", "chaku lag",
+        "खून की उल्टी", "खून बह रहा", "बहुत खून", "बड़ा एक्सीडेंट", "गहरी चोट", "गंभीर रूप से जल",
     ),
 }
 
@@ -152,11 +163,11 @@ def _compile_regex(
         compiled.extend((
             ("spaced chest pain", re.compile(r"(?<!\w)c\s*h\s*h\s*a\s*t\s*i.{0,12}(?:d\s*a\s*r\s*d|d\s*a\s*b\s*a\s*v)(?!\w)", re.I), "CARDIOVASCULAR"),
             ("spaced breathing distress", re.compile(r"(?<!\w)s\s*a\s*a\s*n\s*s.{0,16}(?:n\s*a\s*h\s*i|r\s*u\s*k)(?!\w)", re.I), "RESPIRATORY"),
-            ("cardio regex", re.compile(r"\b(?:chhati|seene|chest)\b.{0,35}?\b(?:dard|daba+v|pressure|pain|attack|crushing)\b", re.I), "CARDIOVASCULAR"),
-            ("respiratory regex", re.compile(r"\b(?:saans|saas|breath(?:e|ing)?)\b.{0,35}?\b(?:nahi|takleef|dikkat|ruk|choking|gasping|cannot|can't)\b|\basthma\s+attack\b|\bsuffocating\b", re.I), "RESPIRATORY"),
-            ("neuro regex", re.compile(r"\b(?:chehra|face)\b.{0,30}?\b(?:tedha|droop|latak)\b|\bslurred\s+speech\b|\bparalyz(?:ed|is)\b|\bbol\s+nahi\s+pa\b|\bbehosh\b|\bunconscious\b|\bstroke\b", re.I), "NEUROLOGICAL"),
-            ("crisis regex", re.compile(r"\bsuicide\b|\bkill\s+myself\b|\bend\s+my\s+life\b|\bself\s+harm\b|\bwant\s+to\s+die\b|\bkhudkushi\b|\bjaan\s+dena\b|\bzeher\b|\bpoison\b", re.I), "CRISIS"),
-            ("trauma regex", re.compile(r"\b(?:khoon|blood)\b.{0,30}?\b(?:ulti|vomit|beh|heavy|arterial)\b|\bextensive\s+burn\b|\bsevere\s+burn\b|\bhead\s+injury\b", re.I), "TRAUMA"),
+            ("cardio regex", re.compile(r"\b(?:chhati|chaati|seene|chest|dil)\b.{0,35}?\b(?:dard|daba+v|pressure|pain|attack|crushing|tightness|daura)\b|\bleft\s+(?:hand|arm)\s+pain\b|छाती\s+में\s+दर्द|सीने\s+में\s+दर्द|दिल\s+का\s+दौरा", re.I), "CARDIOVASCULAR"),
+            ("respiratory regex", re.compile(r"\b(?:saans|saas|breath(?:e|ing)?|dum)\b.{0,35}?\b(?:nahi|takleef|taklif|dikkat|ruk|choking|gasping|cannot|can't|phool|ghut)\b|\basthma\s+attack\b|\bsuffocating\b|सांस\s+(?:नहीं|रुक|फूल)", re.I), "RESPIRATORY"),
+            ("neuro regex", re.compile(r"\b(?:chehra|face)\b.{0,30}?\b(?:tedha|droop|latak)\b|\bslurred\s+speech\b|\bparalyz(?:ed|is)\b|\bbol\s+nahi\s+pa\b|\bbehosh\b|\bunconscious\b|\bstroke\b|\blakwa\b|\bmirgi\b|चेहरा\s+टेढ़ा|लकवा|बेहोश", re.I), "NEUROLOGICAL"),
+            ("crisis regex", re.compile(r"\bsuicide\b|\bkill\s+myself\b|\bend\s+my\s+life\b|\bself\s+harm\b|\bwant\s+to\s+die\b|\bkhudkushi\b|\bjaan\s+(?:dena|lena)\b|\bzeher\b|\bpoison\b|\bfaansi\b|\bfaasi\b|आत्महत्या|खुदकुशी|ज़हर", re.I), "CRISIS"),
+            ("trauma regex", re.compile(r"\b(?:khoon|blood)\b.{0,30}?\b(?:ulti|vomit|beh|nikal|heavy|arterial)\b|\bextensive\s+burn\b|\bsevere\s+burn\b|\bhead\s+injury\b|\bgoli\s+lag\b|\bchaku\s+lag\b|खून\s+(?:की\s+उल्टी|बह)", re.I), "TRAUMA"),
         ))
     return tuple(compiled)
 
@@ -202,7 +213,9 @@ class EmergencyBreaker:
         if not isinstance(text, str):
             raise TypeError("text must be a string")
         started = time.perf_counter_ns()
-        raw = " ".join(unicodedata.normalize("NFKC", text).casefold().split())
+        cleaned = re.sub(r"[\u200b-\u200d\ufeff\u00ad]", " ", text)
+        spaced = re.sub(r"[-_/.,;:!?।]+", " ", cleaned)
+        raw = " ".join(unicodedata.normalize("NFKC", spaced).casefold().split())
         found = self._automaton.find(raw)
         if found:
             category, phrase = found

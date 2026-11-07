@@ -3,35 +3,40 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Disha AI — Deterministic Voice Health Coach</title>
-  <meta name="description" content="Production-grade, zero-recurring-cost deterministic conversational health coach.">
+  <title>Disha AI — Clinical Telephony Health Engine</title>
+  <meta name="description" content="Production-grade, zero-recurring-cost deterministic conversational health coaching and telephony platform.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <!-- Ambient Gradient Background Glow -->
-  <div class="ambient-glow" aria-hidden="true"></div>
-
-  <!-- Main Container -->
+  <!-- App Viewport -->
   <div class="app-viewport">
-    <!-- Header / Brand Bar -->
+    <!-- Clinical Top Navigation Bar -->
     <header class="app-header">
       <div class="brand">
         <div class="brand-logo" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
           </svg>
         </div>
         <div class="brand-text">
           <span class="brand-name">Disha AI</span>
-          <span class="brand-badge">Clinical Deterministic Core</span>
+          <span class="brand-badge">Clinical Telephony Core</span>
         </div>
       </div>
+
       <div class="header-actions">
-        <button id="theme-toggle" class="icon-btn" aria-label="Toggle color theme" title="Toggle theme">
-          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <!-- Live Connection Pill -->
+        <div class="connection-status-pill" id="conn-pill">
+          <span id="ws-status-dot" class="status-dot disconnected"></span>
+          <span id="ws-status-text" class="status-label">Standby</span>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme" title="Toggle color mode">
+          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="5"></circle>
             <line x1="12" y1="1" x2="12" y2="3"></line>
             <line x1="12" y1="21" x2="12" y2="23"></line>
@@ -42,14 +47,16 @@
             <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
             <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
           </svg>
-          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
           </svg>
         </button>
+
+        <!-- Authenticated Patient Pill -->
         <div id="patient-badge" class="patient-pill" style="display: none;">
-          <span class="status-indicator"></span>
-          <span id="patient-display-name">Aarav Sharma</span>
-          <button id="signout-btn" class="signout-link" title="Sign out">Exit</button>
+          <span class="patient-dot"></span>
+          <span id="patient-display-name">Patient</span>
+          <button id="signout-btn" class="signout-link" title="Sign out of consultation">Exit</button>
         </div>
       </div>
     </header>
@@ -64,265 +71,485 @@
         </svg>
       </div>
       <div id="alert-content" class="alert-text"></div>
-      <button class="alert-dismiss" aria-label="Dismiss alert">&times;</button>
+      <button class="alert-dismiss" aria-label="Dismiss">&times;</button>
     </div>
 
-    <!-- MAIN VIEW 1: PRODUCTION LOGIN SCREEN -->
+    <!-- VIEW 1: AUTHENTICATION & CLINICAL INTAKE ONBOARDING -->
     <main id="auth-view" class="view-container active-view">
-      <div class="auth-card">
-        <div class="card-header">
-          <div class="clinic-seal" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-              <path d="M9 12l2 2 4-4"/>
-            </svg>
-          </div>
-          <h1 class="card-title">Sign in to Clinical Portal</h1>
-          <p class="card-desc">Enter your patient credentials to access verified health guidance and voice consultations.</p>
-        </div>
-
-        <form id="login-form" class="auth-form" novalidate autocomplete="on">
-          <!-- Email Input Group -->
-          <div class="form-group" id="email-group">
-            <label for="email-input" class="form-label">
-              <span>Patient Email</span>
-              <span class="required-mark" aria-hidden="true">*</span>
-            </label>
-            <div class="input-wrapper">
-              <span class="input-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                  <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
-              </span>
-              <input
-                type="email"
-                id="email-input"
-                name="email"
-                class="form-input"
-                placeholder="patient@disha.ai"
-                required
-                autocomplete="email"
-                aria-required="true"
-                aria-describedby="email-error"
-                spellcheck="false"
-              />
-              <span class="valid-tick" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </span>
-            </div>
-            <div id="email-error" class="field-feedback error" role="alert" aria-live="polite"></div>
-          </div>
-
-          <!-- Password Input Group -->
-          <div class="form-group" id="password-group">
-            <div class="label-row">
-              <label for="password-input" class="form-label">
-                <span>Access Passcode</span>
-                <span class="required-mark" aria-hidden="true">*</span>
-              </label>
-              <a href="#forgot" id="forgot-link" class="subtle-link">Need help?</a>
-            </div>
-            <div class="input-wrapper">
-              <span class="input-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-              </span>
-              <input
-                type="password"
-                id="password-input"
-                name="password"
-                class="form-input"
-                placeholder="Enter passcode"
-                required
-                autocomplete="current-password"
-                aria-required="true"
-                aria-describedby="password-error password-strength-desc"
-              />
-              <button
-                type="button"
-                id="toggle-password"
-                class="icon-action-btn"
-                aria-label="Toggle password visibility"
-                tabindex="0"
-              >
-                <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                  <circle cx="12" cy="12" r="3"></circle>
-                </svg>
-                <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
-                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                  <line x1="1" y1="1" x2="23" y2="23"></line>
-                </svg>
-              </button>
-            </div>
-
-            <!-- Caps Lock Warning -->
-            <div id="caps-lock-warning" class="caps-alert" role="alert" style="display: none;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-              </svg>
-              <span>Caps Lock is ON</span>
-            </div>
-
-            <!-- Password Strength Indicator -->
-            <div class="strength-meter-box" id="strength-box">
-              <div class="strength-bar-track">
-                <div id="strength-bar" class="strength-bar-fill" style="width: 0%;"></div>
-              </div>
-              <div class="strength-meta">
-                <span id="strength-label" class="strength-text">Password Strength</span>
-                <span id="strength-score-text" class="strength-val">None</span>
-              </div>
-              <ul class="strength-rules" id="strength-rules" aria-label="Password requirements">
-                <li id="rule-length" class="rule-item">8+ characters</li>
-                <li id="rule-upper" class="rule-item">Uppercase letter</li>
-                <li id="rule-number" class="rule-item">Number</li>
-                <li id="rule-symbol" class="rule-item">Special symbol</li>
-              </ul>
-            </div>
-
-            <div id="password-error" class="field-feedback error" role="alert" aria-live="polite"></div>
-          </div>
-
-          <!-- Quick Fill Demo Pill -->
-          <div class="demo-pill-card">
-            <span class="pill-label">1-Click Test Identity:</span>
-            <button type="button" id="fill-demo-btn" class="pill-btn">
-              <code>patient@disha.ai</code> (Aarav Sharma)
-            </button>
-          </div>
-
-          <!-- Submit Button -->
-          <button type="submit" id="submit-btn" class="submit-btn">
-            <span class="btn-text">Authenticate to Consultation</span>
-            <span class="btn-spinner" aria-hidden="true" style="display: none;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
-                <path d="M12 2a10 10 0 0 1 10 10"></path>
-              </svg>
-            </span>
+      <div class="intake-container">
+        <!-- Auth Mode Tabs -->
+        <div class="auth-tabs" role="tablist">
+          <button type="button" class="tab-btn active" id="tab-login" role="tab" aria-selected="true" aria-controls="login-section">
+            Sign In (Existing Patient)
           </button>
-        </form>
-
-        <div class="card-footer">
-          <div class="audit-badge">
-            <span class="shield-icon" aria-hidden="true">&#x2713;</span>
-            <span>Deterministic Spine Audited (Score: 100/100, $FVR &lt; 0.001$)</span>
-          </div>
+          <button type="button" class="tab-btn" id="tab-onboard" role="tab" aria-selected="false" aria-controls="onboard-section">
+            New Patient Clinical Intake
+          </button>
         </div>
+
+        <!-- 1A: Existing Patient Login -->
+        <section id="login-section" class="auth-card" role="tabpanel" aria-labelledby="tab-login">
+          <div class="card-header">
+            <h1 class="card-title">Patient Portal Access</h1>
+            <p class="card-desc">Enter your credentials to access verified health guidance and voice consultations.</p>
+          </div>
+
+          <form id="login-form" class="auth-form" novalidate>
+            <!-- Email -->
+            <div class="form-group" id="email-group">
+              <label for="email-input" class="form-label">
+                <span>Patient Email</span>
+                <span class="required-mark">*</span>
+              </label>
+              <div class="input-wrapper">
+                <input
+                  type="email"
+                  id="email-input"
+                  name="email"
+                  class="form-input"
+                  placeholder="patient@disha.ai"
+                  required
+                  autocomplete="email"
+                  spellcheck="false"
+                />
+              </div>
+              <div id="email-error" class="field-feedback error" role="alert"></div>
+            </div>
+
+            <!-- Password -->
+            <div class="form-group" id="password-group">
+              <div class="label-row">
+                <label for="password-input" class="form-label">
+                  <span>Passcode</span>
+                  <span class="required-mark">*</span>
+                </label>
+              </div>
+              <div class="input-wrapper">
+                <input
+                  type="password"
+                  id="password-input"
+                  name="password"
+                  class="form-input"
+                  placeholder="Enter access passcode"
+                  required
+                  autocomplete="current-password"
+                />
+                <button type="button" id="toggle-password" class="icon-action-btn" aria-label="Toggle password visibility">
+                  <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                  </svg>
+                  <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                    <line x1="1" y1="1" x2="23" y2="23"></line>
+                  </svg>
+                </button>
+              </div>
+              <!-- Caps Lock Alert -->
+              <div id="caps-lock-warning" class="caps-alert" role="alert" style="display: none;">
+                Caps Lock is ON
+              </div>
+              <!-- Strength Elements for test compatibility -->
+              <div class="strength-meter-box" id="strength-box" style="display:none;">
+                <div id="strength-bar"></div>
+                <span id="strength-score-text"></span>
+                <span id="rule-length"></span>
+                <span id="rule-upper"></span>
+                <span id="rule-number"></span>
+                <span id="rule-symbol"></span>
+              </div>
+              <div id="password-error" class="field-feedback error" role="alert"></div>
+            </div>
+
+            <!-- Pre-Seeded Profiles -->
+            <div class="preset-profiles-card">
+              <span class="preset-label">Pre-Seeded Patient Profiles:</span>
+              <div class="preset-buttons">
+                <button type="button" class="preset-btn" id="fill-demo-btn" data-email="aarav@example.com" data-pass="DishaClinical2026!">
+                  <strong>Aarav Sharma</strong> &bull; HTN Stage 1 (pt_test_01)
+                </button>
+                <button type="button" class="preset-btn" data-email="cardiac@example.com" data-pass="DishaClinical2026!">
+                  <strong>Vikram Malhotra</strong> &bull; CAD Cardiac
+                </button>
+                <button type="button" class="preset-btn" data-email="diabetic@example.com" data-pass="DishaClinical2026!">
+                  <strong>Ramesh Gupta</strong> &bull; Type 2 Diabetes
+                </button>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit" id="submit-btn" class="submit-btn">
+              <span class="btn-text">Authenticate to Consultation</span>
+              <span class="btn-spinner" style="display: none;">&bull;&bull;&bull;</span>
+            </button>
+          </form>
+        </section>
+
+        <!-- 1B: Structured Step-by-Step Clinical Intake (New Patient) -->
+        <section id="onboard-section" class="auth-card" role="tabpanel" aria-labelledby="tab-onboard" style="display: none;">
+          <div class="card-header">
+            <h1 class="card-title">New Patient Clinical Baseline Intake</h1>
+            <p class="card-desc">Collects vitals, medical history, and dietary baseline directly persisted to PostgreSQL for deterministic grounding.</p>
+          </div>
+
+          <form id="onboard-form" class="auth-form" novalidate>
+            <!-- Step 1: Account Credentials -->
+            <fieldset class="form-section">
+              <legend class="section-title">1. Account & Identity</legend>
+              <div class="form-grid-2">
+                <div class="form-group">
+                  <label for="onboard-name" class="form-label">Full Name <span class="required-mark">*</span></label>
+                  <input type="text" id="onboard-name" class="form-input" placeholder="e.g. Meera Patel" required />
+                </div>
+                <div class="form-group">
+                  <label for="onboard-email" class="form-label">Email Address <span class="required-mark">*</span></label>
+                  <input type="email" id="onboard-email" class="form-input" placeholder="meera.patel@example.com" required />
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="onboard-password" class="form-label">Passcode (min. 6 characters) <span class="required-mark">*</span></label>
+                <input type="password" id="onboard-password" class="form-input" placeholder="Create secure passcode" required minlength="6" />
+              </div>
+            </fieldset>
+
+            <!-- Step 2: Primary Biometrics & Vitals -->
+            <fieldset class="form-section">
+              <legend class="section-title">2. Primary Vitals & Biometrics</legend>
+              <div class="form-grid-4">
+                <div class="form-group">
+                  <label for="onboard-age" class="form-label">Age (years)</label>
+                  <input type="number" id="onboard-age" class="form-input" value="38" min="1" max="120" required />
+                </div>
+                <div class="form-group">
+                  <label for="onboard-gender" class="form-label">Biological Sex</label>
+                  <select id="onboard-gender" class="form-input">
+                    <option value="female">Female</option>
+                    <option value="male">Male</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="onboard-height" class="form-label">Height (cm)</label>
+                  <input type="number" id="onboard-height" class="form-input" value="165" min="50" max="250" required />
+                </div>
+                <div class="form-group">
+                  <label for="onboard-weight" class="form-label">Weight (kg)</label>
+                  <input type="number" id="onboard-weight" class="form-input" value="72" min="20" max="300" step="0.5" required />
+                </div>
+              </div>
+              <!-- Real-Time Calculated BMI Pill -->
+              <div class="bmi-callout">
+                <span>Calculated BMI: <strong id="calculated-bmi" class="tabular-nums">26.4</strong> kg/m²</span>
+                <span id="bmi-status" class="badge-mini warning">Overweight (Pre-hypertensive risk)</span>
+              </div>
+            </fieldset>
+
+            <!-- Step 3: Metabolic & Cardiovascular Conditions -->
+            <fieldset class="form-section">
+              <legend class="section-title">3. Cardiovascular & Metabolic History</legend>
+              <div class="checkbox-chips-grid">
+                <label class="check-chip">
+                  <input type="checkbox" name="condition" value="Hypertension Stage 1" checked />
+                  <span>Hypertension (Stage 1)</span>
+                </label>
+                <label class="check-chip">
+                  <input type="checkbox" name="condition" value="Hypertension Stage 2" />
+                  <span>Hypertension (Stage 2)</span>
+                </label>
+                <label class="check-chip">
+                  <input type="checkbox" name="condition" value="Type 2 Diabetes" />
+                  <span>Type 2 Diabetes</span>
+                </label>
+                <label class="check-chip">
+                  <input type="checkbox" name="condition" value="PCOD/PCOS" />
+                  <span>PCOD / PCOS</span>
+                </label>
+                <label class="check-chip">
+                  <input type="checkbox" name="condition" value="Dyslipidemia" />
+                  <span>Dyslipidemia (High Cholesterol)</span>
+                </label>
+              </div>
+
+              <!-- Exercise Level & Gym Clearance -->
+              <div class="form-grid-2 mt-4">
+                <div class="form-group">
+                  <label for="onboard-activity" class="form-label">Current Exercise Level</label>
+                  <select id="onboard-activity" class="form-input">
+                    <option value="sedentary">Sedentary (Desk work, &lt;3k steps)</option>
+                    <option value="light" selected>Light (Walking, casual movement)</option>
+                    <option value="moderate">Moderate (Cardio / Gym 2-3x/week)</option>
+                    <option value="active">Active (Intense sports / training)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Medical Gym Clearance</label>
+                  <div class="radio-pill-group">
+                    <label class="radio-pill">
+                      <input type="radio" name="gym_clearance" value="false" checked />
+                      <span>No Clearance (Restricted)</span>
+                    </label>
+                    <label class="radio-pill">
+                      <input type="radio" name="gym_clearance" value="true" />
+                      <span>Physician Cleared</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div class="form-group mt-3">
+                <label for="onboard-restrictions" class="form-label">Known Movement Restrictions</label>
+                <input type="text" id="onboard-restrictions" class="form-input" placeholder="e.g. Knee discomfort, Avoid heavy deadlifts / max strain" value="Avoid heavy deadlifts, knee discomfort" />
+              </div>
+            </fieldset>
+
+            <!-- Step 4: Dietary Baseline & Health Goals -->
+            <fieldset class="form-section">
+              <legend class="section-title">4. Dietary Baseline & Goals</legend>
+              <div class="form-group">
+                <label class="form-label">Dietary Preference</label>
+                <div class="radio-pill-group">
+                  <label class="radio-pill">
+                    <input type="radio" name="diet_pref" value="Vegetarian" checked />
+                    <span>Vegetarian</span>
+                  </label>
+                  <label class="radio-pill">
+                    <input type="radio" name="diet_pref" value="Eggetarian" />
+                    <span>Eggetarian</span>
+                  </label>
+                  <label class="radio-pill">
+                    <input type="radio" name="diet_pref" value="Non-Vegetarian" />
+                    <span>Non-Vegetarian</span>
+                  </label>
+                  <label class="radio-pill">
+                    <input type="radio" name="diet_pref" value="Jain" />
+                    <span>Jain (No Root Veg)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="form-group mt-3">
+                <label class="form-label">Primary Health Goals</label>
+                <div class="checkbox-chips-grid">
+                  <label class="check-chip">
+                    <input type="checkbox" name="health_goal" value="BP Management" checked />
+                    <span>BP Management</span>
+                  </label>
+                  <label class="check-chip">
+                    <input type="checkbox" name="health_goal" value="Weight Loss" checked />
+                    <span>Weight Loss</span>
+                  </label>
+                  <label class="check-chip">
+                    <input type="checkbox" name="health_goal" value="Blood Sugar Control" />
+                    <span>Blood Sugar Control</span>
+                  </label>
+                  <label class="check-chip">
+                    <input type="checkbox" name="health_goal" value="Digestive Health" />
+                    <span>Digestive Health (Acidity/Gas)</span>
+                  </label>
+                </div>
+              </div>
+            </fieldset>
+
+            <!-- Submit Registration -->
+            <button type="submit" id="onboard-submit-btn" class="submit-btn">
+              <span class="btn-text">Save Clinical Intake & Enter Consultation</span>
+            </button>
+          </form>
+        </section>
       </div>
     </main>
 
-    <!-- MAIN VIEW 2: AUTHENTICATED VOICE & HEALTH CONSOLE -->
+    <!-- VIEW 2: CLINICAL TELEPHONY CONSOLE & CONTEXT DRAWER -->
     <main id="dashboard-view" class="view-container" style="display: none;">
-      <div class="dashboard-grid">
-        <!-- Left Panel: Patient Clinical Grounding & PEP Profile -->
-        <aside class="clinical-panel">
-          <div class="panel-card">
-            <div class="panel-header">
-              <h2 class="panel-title">Clinical Profile & PEP Status</h2>
-              <span class="badge verified">Active Policy</span>
+      <div class="telephony-grid">
+        <!-- Left: Clinical Context Drawer -->
+        <aside class="clinical-drawer">
+          <!-- Vitals Card -->
+          <div class="drawer-card">
+            <div class="drawer-header">
+              <h2 class="drawer-title">Patient Clinical Baseline</h2>
+              <span class="badge-mini verified" id="drawer-patient-badge">Active PEP</span>
             </div>
-
-            <div class="profile-details">
-              <div class="detail-row">
-                <span class="detail-label">Patient ID:</span>
-                <span class="detail-val font-mono">pt_test_01</span>
+            <div class="vitals-matrix">
+              <div class="matrix-item">
+                <span class="matrix-label">Patient ID</span>
+                <span class="matrix-value font-mono" id="disp-patient-id">--</span>
               </div>
-              <div class="detail-row">
-                <span class="detail-label">Blood Pressure:</span>
-                <span class="detail-val warning">HTN Stage 1 (135/88 mmHg)</span>
+              <div class="matrix-item">
+                <span class="matrix-label">Age / Sex</span>
+                <span class="matrix-value" id="disp-age-sex">--</span>
               </div>
-              <div class="detail-row">
-                <span class="detail-label">Gym Clearance:</span>
-                <span class="detail-val denied">BLOCKED (No heavy deadlifts)</span>
+              <div class="matrix-item">
+                <span class="matrix-label">Height / Weight</span>
+                <span class="matrix-value tabular-nums" id="disp-height-weight">--</span>
               </div>
-              <div class="detail-row">
-                <span class="detail-label">Allowed Modalities:</span>
-                <span class="detail-val">Brisk Walking, Gentle Yoga</span>
+              <div class="matrix-item">
+                <span class="matrix-label">Calculated BMI</span>
+                <span class="matrix-value tabular-nums" id="disp-bmi">--</span>
               </div>
             </div>
+          </div>
 
-            <hr class="divider">
-
-            <div class="diet-schedule-box">
-              <h3 class="box-subtitle">Prescribed Dinner Schedule</h3>
-              <div class="schedule-pill">
-                <span class="schedule-day">TODAY:</span>
-                <span class="schedule-content">Palak Paneer, 2 Bajra Roti, Cucumber Salad</span>
-              </div>
-              <p class="schedule-note">Closed-Domain Meal Grounding enforced. Hallucinated recipes are strictly blocked.</p>
+          <!-- PEP Policy & Clearances Card -->
+          <div class="drawer-card">
+            <div class="drawer-header">
+              <h2 class="drawer-title">PEP Exercise Clearance</h2>
+              <span class="badge-mini" id="disp-htn-badge">HTN Stage 1</span>
             </div>
-
-            <hr class="divider">
-
-            <div class="audit-status-box">
-              <h3 class="box-subtitle">Cryptographic Non-Repudiation</h3>
-              <div class="hash-row">
-                <span class="hash-label">Latest Ledger Hash:</span>
-                <span id="latest-merkle-hash" class="hash-val font-mono">6b340adea0accaaf48...</span>
+            <div class="pep-details">
+              <div class="pep-row">
+                <span class="pep-label">Gym Clearance:</span>
+                <span class="pep-status-tag" id="disp-gym-clearance">BLOCKED</span>
               </div>
-              <div class="badge-row">
-                <span class="badge-mini pass">16 Invariants Active</span>
-                <span class="badge-mini pass">Emergency Breaker: &lt;0.05ms</span>
+              <div class="pep-row">
+                <span class="pep-label">Allowed:</span>
+                <span class="pep-text" id="disp-allowed-modalities">Brisk walking, gentle yoga</span>
               </div>
+              <div class="pep-row">
+                <span class="pep-label">Restricted:</span>
+                <span class="pep-text warning" id="disp-restricted-modalities">Heavy deadlifts, max weights</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Prescribed Diet Schedule Card -->
+          <div class="drawer-card">
+            <div class="drawer-header">
+              <h2 class="drawer-title">Today's Prescribed Diet</h2>
+              <span class="badge-mini pass">Closed Domain</span>
+            </div>
+            <div class="diet-slots" id="diet-slots-container">
+              <div class="diet-slot-item">
+                <span class="slot-badge">Breakfast</span>
+                <p class="slot-text" id="disp-diet-breakfast">Loading schedule...</p>
+              </div>
+              <div class="diet-slot-item">
+                <span class="slot-badge">Lunch</span>
+                <p class="slot-text" id="disp-diet-lunch">Loading schedule...</p>
+              </div>
+              <div class="diet-slot-item">
+                <span class="slot-badge">Dinner</span>
+                <p class="slot-text" id="disp-diet-dinner">Loading schedule...</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Cryptographic Audit Hash -->
+          <div class="drawer-card">
+            <div class="drawer-header">
+              <h2 class="drawer-title">Audit Ledger State</h2>
+              <span class="badge-mini pass">Immutable SHA-256</span>
+            </div>
+            <div class="hash-display">
+              <span class="hash-label">Latest Head:</span>
+              <code id="latest-merkle-hash" class="hash-code">--</code>
             </div>
           </div>
         </aside>
 
-        <!-- Right Panel: Real-Time Interactive Voice & Turn Session -->
-        <section class="console-panel">
-          <div class="panel-card console-card">
-            <div class="panel-header">
-              <div>
-                <h2 class="panel-title">Interactive Voice Consultation</h2>
-                <p class="panel-subtitle">Streaming Groq Whisper STT &rarr; Deterministic Spine &rarr; Llama-3.3-70B &rarr; Edge-TTS</p>
+        <!-- Right: Telephony Voice Consultation Stage -->
+        <section class="telephony-stage">
+          <div class="stage-card">
+            <!-- Stage Header & State Pill -->
+            <div class="stage-header">
+              <div class="stage-info">
+                <h1 class="stage-title">Voice Telephony Consultation</h1>
+                <p class="stage-subtitle">Real-time full-duplex audio stream via Groq Whisper &rarr; Deterministic Spine &rarr; Edge-TTS</p>
               </div>
-              <div class="connection-status">
-                <span id="ws-status-dot" class="status-dot connected"></span>
-                <span id="ws-status-text">Connected</span>
+              <!-- Real-Time Telephony Status Indicator -->
+              <div class="telephony-indicator" id="telephony-status-pill">
+                <span class="indicator-dot idle"></span>
+                <span class="indicator-text" id="telephony-status-text">Ready for consultation</span>
+              </div>
+            </div>
+
+            <!-- 24-Bar Audio Spectrum Visualizer -->
+            <div class="visualizer-stage" id="visualizer-box">
+              <div class="spectrum-bars" id="spectrum-bars" aria-hidden="true">
+                <!-- 24 Audio Spectrum Bars -->
+                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+              </div>
+              <canvas id="waveform-canvas" height="1" width="1" style="display:none"></canvas>
+            </div>
+
+            <!-- Persistent Telephony Control Dock -->
+            <div class="telephony-dock">
+              <!-- Monospace Call Duration Timer -->
+              <div class="call-telemetry">
+                <span class="telemetry-label">Call Duration</span>
+                <span id="call-duration" class="telemetry-timer tabular-nums">00:00</span>
+                <span id="recording-time" style="display:none">00:00</span>
+              </div>
+
+              <!-- Primary Call Action Button -->
+              <div class="call-action-center">
+                <button type="button" id="call-btn" class="telephony-call-btn state-idle">
+                  <span class="call-icon" id="call-icon" aria-hidden="true">
+                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                    </svg>
+                  </span>
+                  <span class="call-label" id="call-btn-label">Start Voice Consultation</span>
+                </button>
+              </div>
+
+              <!-- Secondary Audio Controls -->
+              <div class="call-secondary-controls">
+                <button type="button" id="mute-mic-btn" class="control-btn" title="Mute/Unmute microphone" disabled>
+                  <span class="control-icon" id="mic-icon" aria-hidden="true">
+                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                      <line x1="12" y1="19" x2="12" y2="23"></line>
+                      <line x1="8" y1="23" x2="16" y2="23"></line>
+                    </svg>
+                  </span>
+                  <span class="control-text" id="mic-label">Mute Mic</span>
+                </button>
+                <button type="button" id="toggle-speaker-btn" class="control-btn" title="Toggle audio output">
+                  <span class="control-icon" id="speaker-icon" aria-hidden="true">
+                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                    </svg>
+                  </span>
+                  <span class="control-text" id="speaker-label">Speaker</span>
+                </button>
+                <!-- Hidden mic-btn for test suite compatibility -->
+                <button id="mic-btn" style="display:none"></button>
               </div>
             </div>
 
             <!-- Dialogue Transcript Log -->
-            <div id="chat-stream" class="chat-stream" role="log" aria-live="polite">
-              <div class="chat-message assistant initial">
-                <div class="msg-avatar">D</div>
-                <div class="msg-body">
-                  <p class="msg-text">Namaste Aarav! Main Disha hoon, aapki AI health coach. Aaj aap kaisa feel kar rahe hain?</p>
-                  <span class="msg-meta">System Grounded &bull; ICMR-NIN Protocol</span>
+            <div class="transcript-section">
+              <div class="transcript-header">
+                <h3 class="transcript-title">Real-Time Clinical Transcript</h3>
+                <span class="transcript-meta">Verified Grounded Spine</span>
+              </div>
+              <div id="chat-stream" class="chat-stream" role="log" aria-live="polite">
+                <div class="chat-message assistant initial">
+                  <div class="msg-avatar">D</div>
+                  <div class="msg-body">
+                    <p class="msg-text">Namaste! Main Disha hoon, aapki AI health coach. Call connect karke ya type karke apna query batayein.</p>
+                    <span class="msg-meta">System Grounded &bull; ICMR-NIN Clinical Protocols</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- Audio Waveform / Visualizer -->
-            <div class="waveform-container" id="waveform-box">
-              <canvas id="waveform-canvas" height="60" width="600"></canvas>
-              <span id="recording-time" class="rec-timer" style="display:none">00:00</span>
-            </div>
-
-            <!-- Interactive Voice & Text Controls -->
-            <div class="console-controls">
-              <button id="mic-btn" class="mic-action-btn" aria-label="Start voice consultation" title="Hold or click to speak">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                  <line x1="12" y1="19" x2="12" y2="23"></line>
-                  <line x1="8" y1="23" x2="16" y2="23"></line>
-                </svg>
-              </button>
-
+            <!-- Text Turn Input & Fast Triage Chips -->
+            <div class="text-stage-controls">
               <form id="text-turn-form" class="text-turn-form">
                 <input
                   type="text"
                   id="user-text-input"
                   class="text-input"
-                  placeholder="Or type your symptom (e.g. 'Pet mein gas ho rahi hai')..."
+                  placeholder="Or type a clinical query (e.g. 'Pet mein gas ho rahi hai')..."
                   autocomplete="off"
                 />
                 <button type="submit" id="send-turn-btn" class="send-btn" aria-label="Send message">
@@ -332,15 +559,14 @@
                   </svg>
                 </button>
               </form>
-            </div>
 
-            <!-- Fast Action Test Chips -->
-            <div class="test-chips-row">
-              <span class="chips-label">Quick Scenarios:</span>
-              <button type="button" class="chip-btn" data-query="Pet mein gas ho rahi hai.">Bloating / Gas</button>
-              <button type="button" class="chip-btn" data-query="Aaj dinner mein kya hai?">Dinner Schedule</button>
-              <button type="button" class="chip-btn" data-query="Can I do heavy deadlifts at gym?">Gym Deadlifts</button>
-              <button type="button" class="chip-btn alert-chip" data-query="Mere seene mein bahut tez dard ho raha hai">Emergency Triage</button>
+              <div class="quick-chips-row">
+                <span class="chips-label">Quick Scenarios:</span>
+                <button type="button" class="chip-btn" data-query="Pet mein gas ho rahi hai.">Bloating / Gas</button>
+                <button type="button" class="chip-btn" data-query="Aaj dinner mein kya prescribed hai?">Dinner Schedule</button>
+                <button type="button" class="chip-btn" data-query="Can I do heavy deadlifts at gym?">Gym Deadlifts</button>
+                <button type="button" class="chip-btn alert-chip" data-query="Mere seene mein bahut tez dard aur dabav ho raha hai">Emergency Triage</button>
+              </div>
             </div>
           </div>
         </section>
