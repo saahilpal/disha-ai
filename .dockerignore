@@ -1,12 +1,13 @@
-.venv
-__pycache__
-*.pyc
-.pytest_cache
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+tests/
+audit/
+*.db
+*.db-wal
+*.db-shm
 .env
 .git
 .gitignore
-tests/
-evals/
-*.log
-/tmp/
 

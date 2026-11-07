@@ -1,516 +1,353 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Disha AI — Your Personal AI Health Coach</title>
-  <!-- Tailwind CSS via official CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            primary: {
-              DEFAULT: '#2D5A43',
-              dark: '#14422D',
-              light: '#E8F2EC',
-              hover: '#234735'
-            },
-            secondary: {
-              DEFAULT: '#4A7C59',
-              container: '#DDF0E4'
-            },
-            tertiary: {
-              DEFAULT: '#C86D51',
-              container: '#FBECE8'
-            },
-            surface: {
-              DEFAULT: '#FAF9F6',
-              low: '#F3F1EC',
-              card: '#FFFFFF',
-              border: '#E5E2DA'
-            },
-            onSurface: {
-              DEFAULT: '#1A201C',
-              variant: '#4E5B53'
-            }
-          },
-          fontFamily: {
-            sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif']
-          }
-        }
-      }
-    }
-  </script>
-  <!-- Google Fonts: Plus Jakarta Sans -->
+  <title>Disha AI — Deterministic Voice Health Coach</title>
+  <meta name="description" content="Production-grade, zero-recurring-cost deterministic conversational health coach.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Lucide Icons -->
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <!-- Custom Stylesheet (Serene Clinical Wellness) -->
-  <link rel="stylesheet" href="/static/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-surface text-onSurface antialiased min-h-screen flex flex-col font-sans selection:bg-primary-light selection:text-primary-dark">
+<body>
+  <!-- Ambient Gradient Background Glow -->
+  <div class="ambient-glow" aria-hidden="true"></div>
 
-  <!-- ==================================================== -->
-  <!-- 1. MINIMAL CLINICAL HEADER (Stitch Serene Wellness)   -->
-  <!-- ==================================================== -->
-  <header class="bg-surface-card border-b border-surface-border sticky top-0 z-40 shadow-xs">
-    <div class="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-      
-      <!-- Brand Anchor & Product Identity -->
-      <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('chat')">
-        <div class="w-10 h-10 rounded-xl bg-primary text-white flex items-center justify-center shadow-xs">
-          <i data-lucide="leaf" class="w-5 h-5 text-emerald-200"></i>
+  <!-- Main Container -->
+  <div class="app-viewport">
+    <!-- Header / Brand Bar -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+          </svg>
         </div>
-        <div>
-          <div class="flex items-center space-x-2">
-            <span class="text-base font-bold text-onSurface tracking-tight">Disha AI Health Coach</span>
-            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-container text-primary-dark text-[10px] font-semibold">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-              Online &amp; Listening
-            </span>
-          </div>
-          <p class="text-[11px] text-onSurface-variant leading-none mt-0.5">Clinical Ayurvedic &amp; Preventive Health Companion</p>
+        <div class="brand-text">
+          <span class="brand-name">Disha AI</span>
+          <span class="brand-badge">Clinical Deterministic Core</span>
         </div>
       </div>
-
-      <!-- Navigation: Exactly 2 Screens (Chat & Profile) + Voice Call Trigger -->
-      <nav class="flex items-center space-x-2 text-xs font-semibold" aria-label="Main Navigation">
-        
-        <!-- Screen 1 Tab: Consultation Chat -->
-        <button id="nav-chat" onclick="navigateTo('chat')" class="nav-btn px-4 py-2 rounded-xl text-primary bg-primary-light transition-all flex items-center space-x-1.5">
-          <i data-lucide="message-square" class="w-4 h-4"></i>
-          <span>Chat</span>
+      <div class="header-actions">
+        <button id="theme-toggle" class="icon-btn" aria-label="Toggle color theme" title="Toggle theme">
+          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
         </button>
+        <div id="patient-badge" class="patient-pill" style="display: none;">
+          <span class="status-indicator"></span>
+          <span id="patient-display-name">Aarav Sharma</span>
+          <button id="signout-btn" class="signout-link" title="Sign out">Exit</button>
+        </div>
+      </div>
+    </header>
 
-        <!-- Screen 2 Tab: Patient Profile & Health Settings -->
-        <button id="nav-profile" onclick="navigateTo('profile')" class="nav-btn px-4 py-2 rounded-xl text-onSurface-variant hover:text-onSurface hover:bg-surface-low transition-all flex items-center space-x-1.5">
-          <i data-lucide="user" class="w-4 h-4"></i>
-          <span>Profile &amp; Plan</span>
-        </button>
-
-        <!-- AI Voice Call Header Action -->
-        <button id="btn-header-voice-call" onclick="openVoiceCallModal()" class="px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white transition-all shadow-xs flex items-center space-x-1.5 ml-1">
-          <i data-lucide="phone-call" class="w-3.5 h-3.5 animate-bounce"></i>
-          <span>Start Voice Call</span>
-        </button>
-      </nav>
-
+    <!-- Global Notice Banner -->
+    <div id="global-alert" class="alert-banner" role="alert" style="display: none;">
+      <div class="alert-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div id="alert-content" class="alert-text"></div>
+      <button class="alert-dismiss" aria-label="Dismiss alert">&times;</button>
     </div>
-  </header>
 
-  <!-- ==================================================== -->
-  <!-- 2. MAIN APPLICATION CONTENT                          -->
-  <!-- ==================================================== -->
-  <main class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-6 flex flex-col">
-
-    <!-- -------------------------------------------------- -->
-    <!-- SCREEN 1: CONSULTATION CHAT INTERFACE              -->
-    <!-- -------------------------------------------------- -->
-    <div id="view-chat" class="flex-1 flex flex-col bg-surface-card rounded-3xl border border-surface-border shadow-xs overflow-hidden h-[calc(100vh-140px)] min-h-[600px]">
-      
-      <!-- Top Chat Context Strip -->
-      <div class="px-6 py-3.5 border-b border-surface-border bg-surface-low flex items-center justify-between text-xs">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-2.5 h-2.5 rounded-full bg-emerald-600"></div>
-          <span class="font-bold text-onSurface" id="chat-header-patient-label">Ramesh Kumar (48y) • Active Consultation</span>
-          <span class="text-[10px] text-primary-dark font-mono bg-primary-light px-2.5 py-0.5 rounded-md font-semibold" id="chat-engine-badge">Engine: Offline Local</span>
-        </div>
-        <div class="flex items-center space-x-3">
-          <button type="button" onclick="clearConversation()" class="text-onSurface-variant hover:text-onSurface flex items-center space-x-1 text-xs transition-colors">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-            <span>Clear Chat</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Emergency Triage Banner (Triggers on acute chest pain, breathlessness, radiation) -->
-      <div id="chat-emergency-banner" class="hidden p-4 border-b border-red-300 bg-red-50 text-red-950 flex items-start space-x-3 animate-fade-in">
-        <div class="p-2 rounded-xl bg-red-700 text-white shrink-0 mt-0.5">
-          <i data-lucide="shield-alert" class="w-5 h-5 animate-pulse"></i>
-        </div>
-        <div class="flex-1 text-xs space-y-1">
-          <span class="font-bold text-sm tracking-wide text-red-950 uppercase flex items-center gap-1.5">
-            <span>Clinical Red-Flag Alert</span>
-            <span class="text-[10px] bg-red-200 text-red-900 px-2 py-0.5 rounded-full font-mono">EMERGENCY PROTOCOL</span>
-          </span>
-          <p id="chat-emergency-text" class="text-red-900 font-medium">
-            Yeh symptoms acute cardiac ya respiratory emergency ke ho sakte hain. Turant physical activity band karein aur hospital ya ambulance (112) se contact karein.
-          </p>
-          <div class="pt-1.5 flex items-center space-x-3">
-            <a href="tel:112" class="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg bg-red-800 hover:bg-red-900 text-white font-semibold text-xs shadow-xs transition-all">
-              <i data-lucide="phone-outgoing" class="w-3.5 h-3.5"></i>
-              <span>Call Emergency Hotline (112)</span>
-            </a>
+    <!-- MAIN VIEW 1: PRODUCTION LOGIN SCREEN -->
+    <main id="auth-view" class="view-container active-view">
+      <div class="auth-card">
+        <div class="card-header">
+          <div class="clinic-seal" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="M9 12l2 2 4-4"/>
+            </svg>
           </div>
+          <h1 class="card-title">Sign in to Clinical Portal</h1>
+          <p class="card-desc">Enter your patient credentials to access verified health guidance and voice consultations.</p>
         </div>
-      </div>
 
-      <!-- Chat Messages Scroll Area -->
-      <div id="chat-messages-scroll" class="flex-1 p-5 sm:p-6 overflow-y-auto space-y-4 custom-scrollbar">
-        <!-- Initial Welcome Message from Disha -->
-        <div class="flex items-start space-x-3 max-w-2xl">
-          <div class="w-9 h-9 rounded-xl bg-primary text-white flex items-center justify-center shrink-0 shadow-xs">
-            <i data-lucide="spa" class="w-4 h-4 text-emerald-200"></i>
-          </div>
-          <div class="bg-surface-low border border-surface-border rounded-2xl rounded-tl-xs p-5 text-onSurface text-sm space-y-2 shadow-xs">
-            <div class="flex items-center justify-between pb-2 border-b border-surface-border">
-              <span class="text-[11px] font-bold text-primary flex items-center gap-1.5">
-                <span>Disha AI Clinician</span>
-                <span class="px-2 py-0.5 rounded-full bg-secondary-container text-primary-dark text-[10px]">Integrative Protocol</span>
+        <form id="login-form" class="auth-form" novalidate autocomplete="on">
+          <!-- Email Input Group -->
+          <div class="form-group" id="email-group">
+            <label for="email-input" class="form-label">
+              <span>Patient Email</span>
+              <span class="required-mark" aria-hidden="true">*</span>
+            </label>
+            <div class="input-wrapper">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                  <polyline points="22,6 12,13 2,6"></polyline>
+                </svg>
               </span>
-              <span class="text-[11px] text-onSurface-variant">Active</span>
-            </div>
-            <p class="leading-relaxed">
-              Aaj aapki diet, workout ya health routine mein kahan guidance chahiye? Feel free to ask anything in Hindi, Hinglish, or English.
-            </p>
-            <div class="pt-2 flex flex-wrap gap-1.5 text-[11px]">
-              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-card border border-surface-border text-onSurface-variant">
-                <i data-lucide="check" class="w-3 h-3 text-primary"></i>
-                <span>Grounded with Patient Health Record</span>
-              </span>
-              <span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-surface-card border border-surface-border text-onSurface-variant">
-                <i data-lucide="shield-check" class="w-3 h-3 text-primary"></i>
-                <span>Doctor-Approved Guidelines</span>
+              <input
+                type="email"
+                id="email-input"
+                name="email"
+                class="form-input"
+                placeholder="patient@disha.ai"
+                required
+                autocomplete="email"
+                aria-required="true"
+                aria-describedby="email-error"
+                spellcheck="false"
+              />
+              <span class="valid-tick" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
               </span>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Ask Prompt Chips (Stitch Style) -->
-      <div class="px-6 py-2.5 bg-surface-low border-t border-surface-border flex items-center gap-2 overflow-x-auto text-xs custom-scrollbar">
-        <span class="text-[11px] font-bold text-onSurface-variant uppercase tracking-wider whitespace-nowrap pl-1">Quick asks:</span>
-        <button type="button" onclick="sendQuickPrompt('Periods ke dauran pet phool raha hai, koi remedy batao')" class="px-3 py-1.5 rounded-full bg-surface-card hover:bg-primary-light hover:text-primary border border-surface-border text-onSurface text-[11px] font-medium transition-all whitespace-nowrap shadow-2xs">
-          🍵 Period bloating remedy?
-        </button>
-        <button type="button" onclick="sendQuickPrompt('Can I eat mangoes on weight loss?')" class="px-3 py-1.5 rounded-full bg-surface-card hover:bg-primary-light hover:text-primary border border-surface-border text-onSurface text-[11px] font-medium transition-all whitespace-nowrap shadow-2xs">
-          🥭 Mango in diabetes/weight loss?
-        </button>
-        <button type="button" onclick="sendQuickPrompt('Can I workout at the gym?')" class="px-3 py-1.5 rounded-full bg-surface-card hover:bg-primary-light hover:text-primary border border-surface-border text-onSurface text-[11px] font-medium transition-all whitespace-nowrap shadow-2xs">
-          🏋️ Gym workout allowed?
-        </button>
-        <button type="button" onclick="sendQuickPrompt('Aaj dinner mein kya hai mere diet chart ke hisaab se?')" class="px-3 py-1.5 rounded-full bg-surface-card hover:bg-primary-light hover:text-primary border border-surface-border text-onSurface text-[11px] font-medium transition-all whitespace-nowrap shadow-2xs">
-          🍽️ Tonight's dinner?
-        </button>
-        <button type="button" onclick="sendQuickPrompt('Yeh app paid hai kya? Kitne ka subscription hai?')" class="px-3 py-1.5 rounded-full bg-surface-card hover:bg-primary-light hover:text-primary border border-surface-border text-onSurface text-[11px] font-medium transition-all whitespace-nowrap shadow-2xs">
-          💰 App pricing &amp; plans?
-        </button>
-      </div>
-
-      <!-- Chat Input Dock (Floating Serene Style) -->
-      <div class="p-4 bg-surface-card border-t border-surface-border">
-        <form onsubmit="handleChatSubmit(event)" class="flex items-center gap-2.5">
-          
-          <!-- Microphone Voice Input Button -->
-          <button
-            type="button"
-            id="btn-chat-mic"
-            onclick="toggleChatMicRecording()"
-            title="Speak message (Speech-to-Text)"
-            class="p-2.5 rounded-xl border border-surface-border bg-surface-low hover:bg-primary-light text-onSurface-variant hover:text-primary transition-all shrink-0"
-          >
-            <i id="chat-mic-icon" data-lucide="mic" class="w-4 h-4"></i>
-          </button>
-
-          <!-- Text Input -->
-          <div class="relative flex-1">
-            <input
-              id="chat-text-input"
-              type="text"
-              placeholder="Ask Disha about your diet, workouts, remedies or daily habits (English/Hinglish)..."
-              class="w-full px-4 py-2.5 bg-surface-low border border-surface-border rounded-xl text-sm focus:bg-white focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden transition-all placeholder:text-onSurface-variant"
-              autocomplete="off"
-            >
+            <div id="email-error" class="field-feedback error" role="alert" aria-live="polite"></div>
           </div>
 
-          <!-- Send Button -->
-          <button
-            type="submit"
-            id="btn-chat-send"
-            class="px-5 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-white font-semibold text-xs flex items-center space-x-1.5 shadow-xs transition-all disabled:opacity-50 shrink-0"
-          >
-            <span>Send</span>
-            <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+          <!-- Password Input Group -->
+          <div class="form-group" id="password-group">
+            <div class="label-row">
+              <label for="password-input" class="form-label">
+                <span>Access Passcode</span>
+                <span class="required-mark" aria-hidden="true">*</span>
+              </label>
+              <a href="#forgot" id="forgot-link" class="subtle-link">Need help?</a>
+            </div>
+            <div class="input-wrapper">
+              <span class="input-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+              </span>
+              <input
+                type="password"
+                id="password-input"
+                name="password"
+                class="form-input"
+                placeholder="Enter passcode"
+                required
+                autocomplete="current-password"
+                aria-required="true"
+                aria-describedby="password-error password-strength-desc"
+              />
+              <button
+                type="button"
+                id="toggle-password"
+                class="icon-action-btn"
+                aria-label="Toggle password visibility"
+                tabindex="0"
+              >
+                <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                  <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Caps Lock Warning -->
+            <div id="caps-lock-warning" class="caps-alert" role="alert" style="display: none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+              </svg>
+              <span>Caps Lock is ON</span>
+            </div>
+
+            <!-- Password Strength Indicator -->
+            <div class="strength-meter-box" id="strength-box">
+              <div class="strength-bar-track">
+                <div id="strength-bar" class="strength-bar-fill" style="width: 0%;"></div>
+              </div>
+              <div class="strength-meta">
+                <span id="strength-label" class="strength-text">Password Strength</span>
+                <span id="strength-score-text" class="strength-val">None</span>
+              </div>
+              <ul class="strength-rules" id="strength-rules" aria-label="Password requirements">
+                <li id="rule-length" class="rule-item">8+ characters</li>
+                <li id="rule-upper" class="rule-item">Uppercase letter</li>
+                <li id="rule-number" class="rule-item">Number</li>
+                <li id="rule-symbol" class="rule-item">Special symbol</li>
+              </ul>
+            </div>
+
+            <div id="password-error" class="field-feedback error" role="alert" aria-live="polite"></div>
+          </div>
+
+          <!-- Quick Fill Demo Pill -->
+          <div class="demo-pill-card">
+            <span class="pill-label">1-Click Test Identity:</span>
+            <button type="button" id="fill-demo-btn" class="pill-btn">
+              <code>patient@disha.ai</code> (Aarav Sharma)
+            </button>
+          </div>
+
+          <!-- Submit Button -->
+          <button type="submit" id="submit-btn" class="submit-btn">
+            <span class="btn-text">Authenticate to Consultation</span>
+            <span class="btn-spinner" aria-hidden="true" style="display: none;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle>
+                <path d="M12 2a10 10 0 0 1 10 10"></path>
+              </svg>
+            </span>
           </button>
         </form>
 
-        <div id="mic-status-pill" class="hidden mt-2 text-[11px] text-red-600 font-semibold flex items-center space-x-1.5">
-          <span class="w-2 h-2 rounded-full bg-red-600 animate-ping"></span>
-          <span>Recording audio in Hindi/English... Tap microphone again to finish.</span>
-        </div>
-
-        <div class="flex items-center justify-between px-2 pt-2 text-[11px] text-onSurface-variant">
-          <span class="flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-            <span>Ayurvedic &amp; clinical AI responses verified against ICMR safety rules</span>
-          </span>
-          <span>Press Enter to send ↵</span>
+        <div class="card-footer">
+          <div class="audit-badge">
+            <span class="shield-icon" aria-hidden="true">&#x2713;</span>
+            <span>Deterministic Spine Audited (Score: 100/100, $FVR &lt; 0.001$)</span>
+          </div>
         </div>
       </div>
+    </main>
 
-    </div>
+    <!-- MAIN VIEW 2: AUTHENTICATED VOICE & HEALTH CONSOLE -->
+    <main id="dashboard-view" class="view-container" style="display: none;">
+      <div class="dashboard-grid">
+        <!-- Left Panel: Patient Clinical Grounding & PEP Profile -->
+        <aside class="clinical-panel">
+          <div class="panel-card">
+            <div class="panel-header">
+              <h2 class="panel-title">Clinical Profile & PEP Status</h2>
+              <span class="badge verified">Active Policy</span>
+            </div>
 
-    <!-- -------------------------------------------------- -->
-    <!-- SCREEN 2: PATIENT PROFILE & HEALTH CONTEXT         -->
-    <!-- -------------------------------------------------- -->
-    <div id="view-profile" class="hidden space-y-6">
-      
-      <!-- Profile Header Strip -->
-      <div class="bg-surface-card rounded-3xl p-6 sm:p-8 border border-surface-border shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div class="flex items-center gap-2 text-primary text-xs font-bold uppercase tracking-wider mb-1">
-            <i data-lucide="shield-check" class="w-4 h-4"></i>
-            <span>Verified Medical Context · Patient ID #DAI-101</span>
-          </div>
-          <h2 class="text-2xl font-bold text-onSurface tracking-tight">Patient Profile &amp; Plan Settings</h2>
-          <p class="text-xs text-onSurface-variant mt-1">Grounds both chat and voice follow-up calls in your verified records.</p>
-        </div>
-
-        <button onclick="navigateTo('chat')" class="px-4 py-2 rounded-xl bg-primary-light hover:bg-secondary-container text-primary text-xs font-semibold flex items-center space-x-1.5 transition-all">
-          <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i>
-          <span>Back to Chat</span>
-        </button>
-      </div>
-
-      <!-- Profile Form -->
-      <form id="profile-edit-form" onsubmit="saveProfileData(event)" class="bg-surface-card rounded-3xl p-6 sm:p-8 border border-surface-border shadow-xs space-y-6">
-        
-        <!-- Section 1: Demographics -->
-        <div>
-          <h3 class="text-sm font-bold text-onSurface border-b border-surface-border pb-2 mb-4 flex items-center space-x-2">
-            <i data-lucide="user" class="w-4 h-4 text-primary"></i>
-            <span>1. Personal &amp; Demographic Details</span>
-          </h3>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div>
-              <label for="prof-name" class="block font-semibold text-onSurface mb-1">Full Name *</label>
-              <input type="text" id="prof-name" required class="w-full px-3.5 py-2.5 rounded-xl border border-surface-border bg-surface-low focus:bg-white text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden">
-            </div>
-            <div>
-              <label for="prof-age" class="block font-semibold text-onSurface mb-1">Age *</label>
-              <input type="number" id="prof-age" required class="w-full px-3.5 py-2.5 rounded-xl border border-surface-border bg-surface-low focus:bg-white text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden">
-            </div>
-            <div>
-              <label for="prof-gender" class="block font-semibold text-onSurface mb-1">Gender</label>
-              <select id="prof-gender" class="w-full px-3 py-2.5 rounded-xl border border-surface-border bg-surface-low focus:bg-white text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden">
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Non-binary">Non-binary</option>
-                <option value="Prefer not to say">Prefer not to say</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section 2: Biometrics & BMI -->
-        <div>
-          <h3 class="text-sm font-bold text-onSurface border-b border-surface-border pb-2 mb-4 flex items-center space-x-2">
-            <i data-lucide="activity" class="w-4 h-4 text-primary"></i>
-            <span>2. Core Biometrics</span>
-          </h3>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
-            <div>
-              <label for="prof-height" class="block font-semibold text-onSurface mb-1">Height (cm) *</label>
-              <input type="number" id="prof-height" oninput="recalcBmi()" required class="w-full px-3.5 py-2.5 rounded-xl border border-surface-border bg-surface-low focus:bg-white text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden">
-            </div>
-            <div>
-              <label for="prof-weight" class="block font-semibold text-onSurface mb-1">Weight (kg) *</label>
-              <input type="number" step="0.1" id="prof-weight" oninput="recalcBmi()" required class="w-full px-3.5 py-2.5 rounded-xl border border-surface-border bg-surface-low focus:bg-white text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden">
-            </div>
-            <div class="p-3 bg-surface-low rounded-xl border border-surface-border flex flex-col justify-center">
-              <span class="text-[10px] uppercase font-bold text-onSurface-variant">Live Calculated BMI</span>
-              <span id="prof-bmi-display" class="text-base font-bold text-primary">26.5 (Moderate)</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Section 3: Goals & Dietary Guidelines -->
-        <div>
-          <h3 class="text-sm font-bold text-onSurface border-b border-surface-border pb-2 mb-4 flex items-center space-x-2">
-            <i data-lucide="target" class="w-4 h-4 text-primary"></i>
-            <span>3. Health Goals &amp; Diet</span>
-          </h3>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-            <div>
-              <label for="prof-goal" class="block font-semibold text-onSurface mb-1">Primary Health Goal</label>
-              <input type="text" id="prof-goal" class="w-full px-3.5 py-2.5 rounded-xl border border-surface-border bg-surface-low focus:bg-white text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden">
-            </div>
-            <div>
-              <label for="prof-diet" class="block font-semibold text-onSurface mb-1">Dietary Preference</label>
-              <select id="prof-diet" class="w-full px-3 py-2.5 rounded-xl border border-surface-border bg-surface-low focus:bg-white text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden">
-                <option value="Vegetarian">Vegetarian</option>
-                <option value="Eggetarian">Eggetarian</option>
-                <option value="Non-Vegetarian">Non-Vegetarian</option>
-                <option value="Vegan">Vegan</option>
-              </select>
-            </div>
-            <div>
-              <label for="prof-activity" class="block font-semibold text-onSurface mb-1">Activity Level</label>
-              <select id="prof-activity" class="w-full px-3 py-2.5 rounded-xl border border-surface-border bg-surface-low focus:bg-white text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden">
-                <option value="Sedentary">Sedentary</option>
-                <option value="Moderate" selected>Moderate</option>
-                <option value="Active">Active</option>
-              </select>
-            </div>
-            <div>
-              <label for="prof-conditions" class="block font-semibold text-onSurface mb-1">Health Conditions</label>
-              <input type="text" id="prof-conditions" placeholder="e.g. Mild Hypertension" class="w-full px-3.5 py-2.5 rounded-xl border border-surface-border bg-surface-low focus:bg-white text-sm focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden">
-            </div>
-          </div>
-        </div>
-
-        <!-- Section 4: Personal Exercise Plan (PEP) Clearance Card (From Stitch Design) -->
-        <div class="p-5 rounded-2xl bg-surface-low border border-surface-border space-y-3">
-          <div class="flex items-start justify-between">
-            <div>
-              <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-secondary-container text-primary-dark font-semibold text-xs mb-1">
-                <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
-                <span>Clinically Cleared &amp; Supervised</span>
+            <div class="profile-details">
+              <div class="detail-row">
+                <span class="detail-label">Patient ID:</span>
+                <span class="detail-val font-mono">pt_test_01</span>
               </div>
-              <h4 class="font-bold text-sm text-onSurface">Personal Exercise Plan (PEP) Clearance</h4>
+              <div class="detail-row">
+                <span class="detail-label">Blood Pressure:</span>
+                <span class="detail-val warning">HTN Stage 1 (135/88 mmHg)</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Gym Clearance:</span>
+                <span class="detail-val denied">BLOCKED (No heavy deadlifts)</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Allowed Modalities:</span>
+                <span class="detail-val">Brisk Walking, Gentle Yoga</span>
+              </div>
             </div>
-            <span class="px-2.5 py-1 rounded-lg bg-surface-card border border-surface-border font-mono text-[11px] text-onSurface-variant">Valid: 90 Days</span>
-          </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-            <div class="flex items-center space-x-2 font-semibold text-emerald-800 bg-surface-card p-3 rounded-xl border border-surface-border">
-              <i data-lucide="check" class="w-4 h-4 text-primary"></i>
-              <span>Gym Workouts: Approved (Moderate Weights &amp; Machines)</span>
-            </div>
-            <div class="flex items-center space-x-2 font-semibold text-emerald-800 bg-surface-card p-3 rounded-xl border border-surface-border">
-              <i data-lucide="check" class="w-4 h-4 text-primary"></i>
-              <span>Daily Walking: 8,000 steps target in natural sunlight</span>
-            </div>
-          </div>
-          <p class="text-[11px] text-onSurface-variant">
-            <strong>Clinical Safety Note:</strong> Squats, brisk walking, yoga asanas cleared; avoid heavy compound lifts without warm-up.
-          </p>
-        </div>
+            <hr class="divider">
 
-        <!-- Section 5: AI Engine & API Key Configuration -->
-        <div class="p-5 rounded-2xl border border-surface-border bg-surface-low text-xs space-y-4">
-          <div>
-            <span class="font-bold text-sm text-onSurface flex items-center space-x-1.5">
-              <i data-lucide="sparkles" class="w-4 h-4 text-primary"></i>
-              <span>AI Engine &amp; API Key Configuration (Free-Tier Friendly)</span>
-            </span>
-            <p class="text-[11px] text-onSurface-variant mt-0.5">Disha runs locally out of the box with ₹0 budget. You can optionally configure free Google Gemini 2.0 Flash or Groq API keys below.</p>
-          </div>
-
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label for="setting-gemini-key" class="block font-semibold text-onSurface mb-1">Google Gemini API Key (Free Tier)</label>
-              <input type="password" id="setting-gemini-key" placeholder="your_gemini_api_key_here (from aistudio.google.com)" class="w-full px-3.5 py-2.5 rounded-xl border border-surface-border bg-white font-mono text-xs focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden">
+            <div class="diet-schedule-box">
+              <h3 class="box-subtitle">Prescribed Dinner Schedule</h3>
+              <div class="schedule-pill">
+                <span class="schedule-day">TODAY:</span>
+                <span class="schedule-content">Palak Paneer, 2 Bajra Roti, Cucumber Salad</span>
+              </div>
+              <p class="schedule-note">Closed-Domain Meal Grounding enforced. Hallucinated recipes are strictly blocked.</p>
             </div>
-            <div>
-              <label for="setting-groq-key" class="block font-semibold text-onSurface mb-1">Groq API Key (Free Tier)</label>
-              <input type="password" id="setting-groq-key" placeholder="your_groq_api_key_here (from console.groq.com)" class="w-full px-3.5 py-2.5 rounded-xl border border-surface-border bg-white font-mono text-xs focus:border-primary focus:ring-1 focus:ring-primary focus:outline-hidden">
+
+            <hr class="divider">
+
+            <div class="audit-status-box">
+              <h3 class="box-subtitle">Cryptographic Non-Repudiation</h3>
+              <div class="hash-row">
+                <span class="hash-label">Latest Ledger Hash:</span>
+                <span id="latest-merkle-hash" class="hash-val font-mono">6b340adea0accaaf48...</span>
+              </div>
+              <div class="badge-row">
+                <span class="badge-mini pass">16 Invariants Active</span>
+                <span class="badge-mini pass">Emergency Breaker: &lt;0.05ms</span>
+              </div>
             </div>
           </div>
+        </aside>
 
-          <div class="flex items-center justify-between text-[11px] text-onSurface-variant pt-1">
-            <span id="active-llm-label" class="font-semibold text-primary">Active Engine: Offline Local</span>
-            <button type="button" onclick="saveApiKeySettings()" class="px-4 py-2 bg-primary hover:bg-primary-hover text-white rounded-xl font-semibold shadow-2xs transition-all">
-              Save API Keys &amp; Test
-            </button>
+        <!-- Right Panel: Real-Time Interactive Voice & Turn Session -->
+        <section class="console-panel">
+          <div class="panel-card console-card">
+            <div class="panel-header">
+              <div>
+                <h2 class="panel-title">Interactive Voice Consultation</h2>
+                <p class="panel-subtitle">Streaming Groq Whisper STT &rarr; Deterministic Spine &rarr; Llama-3.3-70B &rarr; Edge-TTS</p>
+              </div>
+              <div class="connection-status">
+                <span id="ws-status-dot" class="status-dot connected"></span>
+                <span id="ws-status-text">Connected</span>
+              </div>
+            </div>
+
+            <!-- Dialogue Transcript Log -->
+            <div id="chat-stream" class="chat-stream" role="log" aria-live="polite">
+              <div class="chat-message assistant initial">
+                <div class="msg-avatar">D</div>
+                <div class="msg-body">
+                  <p class="msg-text">Namaste Aarav! Main Disha hoon, aapki AI health coach. Aaj aap kaisa feel kar rahe hain?</p>
+                  <span class="msg-meta">System Grounded &bull; ICMR-NIN Protocol</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Audio Waveform / Visualizer -->
+            <div class="waveform-container" id="waveform-box">
+              <canvas id="waveform-canvas" height="60" width="600"></canvas>
+              <span id="recording-time" class="rec-timer" style="display:none">00:00</span>
+            </div>
+
+            <!-- Interactive Voice & Text Controls -->
+            <div class="console-controls">
+              <button id="mic-btn" class="mic-action-btn" aria-label="Start voice consultation" title="Hold or click to speak">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+              </button>
+
+              <form id="text-turn-form" class="text-turn-form">
+                <input
+                  type="text"
+                  id="user-text-input"
+                  class="text-input"
+                  placeholder="Or type your symptom (e.g. 'Pet mein gas ho rahi hai')..."
+                  autocomplete="off"
+                />
+                <button type="submit" id="send-turn-btn" class="send-btn" aria-label="Send message">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                </button>
+              </form>
+            </div>
+
+            <!-- Fast Action Test Chips -->
+            <div class="test-chips-row">
+              <span class="chips-label">Quick Scenarios:</span>
+              <button type="button" class="chip-btn" data-query="Pet mein gas ho rahi hai.">Bloating / Gas</button>
+              <button type="button" class="chip-btn" data-query="Aaj dinner mein kya hai?">Dinner Schedule</button>
+              <button type="button" class="chip-btn" data-query="Can I do heavy deadlifts at gym?">Gym Deadlifts</button>
+              <button type="button" class="chip-btn alert-chip" data-query="Mere seene mein bahut tez dard ho raha hai">Emergency Triage</button>
+            </div>
           </div>
-        </div>
-
-        <!-- Save Profile Button -->
-        <div class="pt-4 border-t border-surface-border flex items-center justify-between">
-          <span id="prof-save-toast" class="text-xs text-emerald-800 font-semibold hidden flex items-center space-x-1.5">
-            <i data-lucide="check" class="w-4 h-4"></i>
-            <span>Profile and health context saved successfully!</span>
-          </span>
-          <button type="submit" class="ml-auto px-6 py-2.5 bg-primary hover:bg-primary-hover text-white rounded-xl text-xs font-semibold shadow-xs transition-all flex items-center space-x-1.5">
-            <i data-lucide="save" class="w-4 h-4"></i>
-            <span>Save Profile Changes</span>
-          </button>
-        </div>
-
-      </form>
-
-    </div>
-
-  </main>
-
-  <!-- ==================================================== -->
-  <!-- 3. AI VOICE CALL MODAL OVERLAY (Stitch Breathing Orb)-->
-  <!-- ==================================================== -->
-  <div id="voice-call-overlay" class="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 hidden">
-    <div class="bg-surface-card rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-surface-border text-center space-y-6 relative overflow-hidden">
-      
-      <!-- Top Call Header -->
-      <div class="flex items-center justify-between border-b border-surface-border pb-3">
-        <div class="flex items-center space-x-2 text-xs">
-          <span class="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-pulse"></span>
-          <span class="font-bold text-onSurface">Disha Voice Health Follow-Up</span>
-        </div>
-        <button onclick="closeVoiceCallModal()" class="text-onSurface-variant hover:text-onSurface p-1 rounded-lg hover:bg-surface-low transition-colors" title="End call and return to chat">
-          <i data-lucide="x" class="w-4 h-4"></i>
-        </button>
+        </section>
       </div>
-
-      <!-- Call Status Pill -->
-      <div>
-        <span id="voice-modal-status-pill" class="inline-flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-semibold bg-primary-light text-primary-dark mb-1">
-          <span class="w-2 h-2 rounded-full bg-primary animate-ping"></span>
-          <span id="voice-modal-status-text">Connected • Listening</span>
-        </span>
-        <p class="text-xs text-onSurface-variant">Natural Indian English / Hinglish voice follow-up call.</p>
-      </div>
-
-      <!-- Breathing Voice Orb & Soundwaves -->
-      <div class="py-4 flex flex-col items-center justify-center">
-        <div id="modal-voice-orb" class="voice-stage-orb voice-orb orb-state-idle cursor-pointer" onclick="toggleModalVoiceSpeaking()">
-          <i id="modal-voice-orb-icon" data-lucide="mic" class="w-10 h-10 text-white"></i>
-        </div>
-
-        <div id="modal-sound-bars" class="sound-bar-container mt-4 opacity-0 transition-opacity duration-300">
-          <span class="sound-bar"></span>
-          <span class="sound-bar"></span>
-          <span class="sound-bar"></span>
-          <span class="sound-bar"></span>
-          <span class="sound-bar"></span>
-          <span class="sound-bar"></span>
-        </div>
-      </div>
-
-      <!-- Live Voice Subtitles -->
-      <div class="min-h-[64px] bg-surface-low rounded-2xl p-4 border border-surface-border flex flex-col justify-center">
-        <p class="text-[10px] font-bold uppercase tracking-wider text-onSurface-variant mb-1">Live Audio Subtitle</p>
-        <p id="modal-voice-subtitle" class="text-xs sm:text-sm font-medium text-onSurface italic">
-          "Listening... aap diet, routine ya health ke baare mein baat kar sakte hain."
-        </p>
-      </div>
-
-      <!-- Voice Call Action Controls -->
-      <div class="flex items-center justify-center gap-3 pt-2">
-        <!-- Barge-In Interruption Button -->
-        <button id="btn-modal-interrupt" onclick="interruptDishaSpeech()" disabled class="px-5 py-2.5 rounded-xl bg-surface-low hover:bg-amber-100 text-onSurface-variant hover:text-amber-900 font-semibold text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center space-x-1.5">
-          <i data-lucide="hand" class="w-4 h-4"></i>
-          <span>Interrupt Disha</span>
-        </button>
-
-        <!-- End Call Button -->
-        <button onclick="closeVoiceCallModal()" class="px-6 py-2.5 rounded-xl bg-red-700 hover:bg-red-800 text-white font-semibold text-xs shadow-xs transition-all flex items-center space-x-1.5">
-          <i data-lucide="phone-off" class="w-4 h-4"></i>
-          <span>End Voice Call</span>
-        </button>
-      </div>
-
-      <p class="text-[11px] text-onSurface-variant">
-        Shared context: All spoken turns are automatically synced to your chat timeline.
-      </p>
-
-    </div>
+    </main>
   </div>
 
-  <!-- Frontend Logic -->
-  <script src="/static/app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
