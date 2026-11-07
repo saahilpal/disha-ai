@@ -37,7 +37,8 @@ DIAGNOSIS_RE = re.compile(
 )
 PRESCRIPTION_RE = re.compile(
     r"\b(?:(?:dose|dosing|khurak)\s*(?:double|badha|kam|increase|decrease|change|badal)|"
-    r"(?:metformin|amlodipine|atorvastatin|aspirin|insulin|atenolol|losartan|telmisartan).{0,35}?\b(?:dose|double|mg|lijiye|badal|start|stop|increase|decrease)|"
+    r"(?:\d+\s*mg\s+(?:of\s+)?(?:metformin|amlodipine|atorvastatin|aspirin|insulin|atenolol|losartan|telmisartan)|"
+    r"(?:metformin|amlodipine|atorvastatin|aspirin|insulin|atenolol|losartan|telmisartan).{0,35}?\b(?:dose|double|\d+\s*mg|mg|lijiye|badal|start|stop|increase|decrease))|"
     r"(?:dawai?|goli|medicine|dawa)\s*(?:badal|change|band|stop|double|badha)|"
     r"(?:stop|change|alter|increase|decrease)\s+(?:your\s+)?(?:medication|dose|prescription|tablets?))\b|"
     r"दवा\s*(?:बंद|बदल|डबल)", re.I,

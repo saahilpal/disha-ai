@@ -217,3 +217,21 @@ All automated evaluation runs and audit scores are recorded here.
 - **Golden Corpus:** 2,703 turns verified with FVR < 0.001
 - **P95 Latency Overhead:** `1.4965ms`
 - **Reports:** [`audit_report_2026-11-07T16-56-23.518914_05-30.json`](reports/audit_report_2026-11-07T16-56-23.518914_05-30.json) | [`audit_report_2026-11-07T16-56-23.518914_05-30.md`](reports/audit_report_2026-11-07T16-56-23.518914_05-30.md)
+
+## [2026-11-07T16:57:17.510696+05:30] — Deterministic Audit Execution
+- **Final Score:** `100.0 / 100.0` (PASSED_UNCONSTRAINED)
+- **Hard Constraints:** All 12 Hard Constraints (C1–C12) Passed
+- **Emergency Breaker:** 100/100 intercepted (<0.05ms)
+- **Unit Tests:** 43/43 pytest invariants passed in 0.14s
+- **Golden Corpus:** 2,703 turns verified with FVR < 0.001
+- **P95 Latency Overhead:** `1.6509ms`
+- **Reports:** [`audit_report_2026-11-07T16-57-17.510696_05-30.json`](reports/audit_report_2026-11-07T16-57-17.510696_05-30.json) | [`audit_report_2026-11-07T16-57-17.510696_05-30.md`](reports/audit_report_2026-11-07T16-57-17.510696_05-30.md)
+
+## [2026-11-07T16:57:45.735420+05:30] — Deterministic Audit Execution
+- **Final Score:** `100.0 / 100.0` (PASSED_UNCONSTRAINED)
+- **Hard Constraints:** All 12 Hard Constraints (C1–C12) Passed
+- **Emergency Breaker:** 100/100 intercepted (<0.05ms)
+- **Unit Tests:** 43/43 pytest invariants passed in 0.14s
+- **Golden Corpus:** 2,703 turns verified with FVR < 0.001
+- **P95 Latency Overhead:** `1.5829ms`
+- **Reports:** [`audit_report_2026-11-07T16-57-45.735420_05-30.json`](reports/audit_report_2026-11-07T16-57-45.735420_05-30.json) | [`audit_report_2026-11-07T16-57-45.735420_05-30.md`](reports/audit_report_2026-11-07T16-57-45.735420_05-30.md)

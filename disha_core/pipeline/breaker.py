@@ -163,9 +163,9 @@ def _compile_regex(
         compiled.extend((
             ("spaced chest pain", re.compile(r"(?<!\w)c\s*h\s*h\s*a\s*t\s*i.{0,12}(?:d\s*a\s*r\s*d|d\s*a\s*b\s*a\s*v)(?!\w)", re.I), "CARDIOVASCULAR"),
             ("spaced breathing distress", re.compile(r"(?<!\w)s\s*a\s*a\s*n\s*s.{0,16}(?:n\s*a\s*h\s*i|r\s*u\s*k)(?!\w)", re.I), "RESPIRATORY"),
-            ("cardio regex", re.compile(r"\b(?:chhati|chaati|seene|chest|dil)\b.{0,35}?\b(?:dard|daba+v|pressure|pain|attack|crushing|tightness|daura)\b|\bleft\s+(?:hand|arm)\s+pain\b|छाती\s+में\s+दर्द|सीने\s+में\s+दर्द|दिल\s+का\s+दौरा", re.I), "CARDIOVASCULAR"),
-            ("respiratory regex", re.compile(r"\b(?:saans|saas|breath(?:e|ing)?|dum)\b.{0,35}?\b(?:nahi|takleef|taklif|dikkat|ruk|choking|gasping|cannot|can't|phool|ghut)\b|\basthma\s+attack\b|\bsuffocating\b|सांस\s+(?:नहीं|रुक|फूल)", re.I), "RESPIRATORY"),
-            ("neuro regex", re.compile(r"\b(?:chehra|face)\b.{0,30}?\b(?:tedha|droop|latak)\b|\bslurred\s+speech\b|\bparalyz(?:ed|is)\b|\bbol\s+nahi\s+pa\b|\bbehosh\b|\bunconscious\b|\bstroke\b|\blakwa\b|\bmirgi\b|चेहरा\s+टेढ़ा|लकवा|बेहोश", re.I), "NEUROLOGICAL"),
+            ("cardio regex", re.compile(r"\b(?:chhati|chaati|seene|chest|dil)\b.{0,35}?\b(?:dard|daba+v|pressure|pain|attack|crushing|tightness|daura)\b|\bleft\s+(?:hand|arm)\s+pain\b|(?:छाती|सीने|दिल).{0,35}?(?:दर्द|दबाव|दौरा)", re.I), "CARDIOVASCULAR"),
+            ("respiratory regex", re.compile(r"\b(?:saans|saas|breath(?:e|ing)?|dum)\b.{0,35}?\b(?:nahi|takleef|taklif|dikkat|ruk|choking|gasping|cannot|can't|phool|ghut)\b|\basthma\s+attack\b|\bsuffocating\b|सांस.{0,25}?(?:नहीं|रुक|फूल|दिक्कत|तकलीफ)", re.I), "RESPIRATORY"),
+            ("neuro regex", re.compile(r"\b(?:chehra|face)\b.{0,30}?\b(?:tedha|droop|latak)\b|\bslurred\s+speech\b|\bparalyz(?:ed|is)\b|\bbol\s+nahi\s+pa\b|\bbehosh\b|\bunconscious\b|\bstroke\b|\blakwa\b|\bmirgi\b|चेहरा.{0,20}?टेढ़ा|लकवा|बेहोश", re.I), "NEUROLOGICAL"),
             ("crisis regex", re.compile(r"\bsuicide\b|\bkill\s+myself\b|\bend\s+my\s+life\b|\bself\s+harm\b|\bwant\s+to\s+die\b|\bkhudkushi\b|\bjaan\s+(?:dena|lena)\b|\bzeher\b|\bpoison\b|\bfaansi\b|\bfaasi\b|आत्महत्या|खुदकुशी|ज़हर", re.I), "CRISIS"),
             ("trauma regex", re.compile(r"\b(?:khoon|blood)\b.{0,30}?\b(?:ulti|vomit|beh|nikal|heavy|arterial)\b|\bextensive\s+burn\b|\bsevere\s+burn\b|\bhead\s+injury\b|\bgoli\s+lag\b|\bchaku\s+lag\b|खून\s+(?:की\s+उल्टी|बह)", re.I), "TRAUMA"),
         ))
