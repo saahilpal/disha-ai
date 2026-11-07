@@ -74,7 +74,7 @@ class LLMSettings:
             gemini_api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"),
             gemini_model=_RETIRED_MODELS.get(gemini_model, gemini_model),
             base_url=os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/"),
-            first_token_timeout=float(os.getenv("LLM_FIRST_TOKEN_TIMEOUT", "8.0")),
+            first_token_timeout=float(os.getenv("LLM_FIRST_TOKEN_TIMEOUT", "12.0")),
             groq_health_data_authorized=_enabled("GROQ_HEALTH_DATA_AUTHORIZED"),
             groq_usage_charges_authorized=_enabled("GROQ_USAGE_CHARGES_AUTHORIZED"),
             gemini_health_data_authorized=_enabled("GEMINI_HEALTH_DATA_AUTHORIZED"),
