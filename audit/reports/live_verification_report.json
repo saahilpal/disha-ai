@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-11-07T14:58:51.842957",
+  "timestamp": "2026-11-07T20:24:11.192188",
   "overall_status": "PASSED",
   "tests": {
     "authentication_handshake": {
@@ -11,31 +11,31 @@
     "streaming_audio_turn": {
       "passed": true,
       "transcript": "पेट में गास हो रही है",
-      "first_sentence": "Arey, paneer bhurji ke saath thoda sa saunf ya ajwain ka paani piyein, isse gas jaldi theek ho jayegi.",
+      "first_sentence": "अरे, पेट में गैस होना थोड़ा असहज जरूर लगता है।",
       "all_sentences": [
-        "Arey, paneer bhurji ke saath thoda sa saunf ya ajwain ka paani piyein, isse gas jaldi theek ho jayegi.",
-        "Main aapke exercise permissions ke andar safe activity chunne mein madad kar sakti hoon."
+        "अरे, पेट में गैस होना थोड़ा असहज जरूर लगता है।",
+        "आज की डिनर में पनीर और रोटी है, तो खाने के बाद 10-15 मिनट हल्की वॉक करके देखो, इससे गैस निकलने में मदद मिलेगी।"
       ],
-      "audio_chunk_count": 130,
-      "total_audio_bytes": 92592,
+      "audio_chunk_count": 128,
+      "total_audio_bytes": 91440,
       "latency_trace_ms": {
-        "stt_whisper_ms": 233.6,
-        "llm_and_validator_ms": 204.37,
-        "text_ready_turnaround_ms": 437.97,
-        "tts_first_chunk_ms": 697.05,
-        "total_mouth_to_ear_ms": 1135.02,
-        "total_turn_completed_ms": 2479.61
+        "stt_whisper_ms": 220.96,
+        "llm_and_validator_ms": 175.64,
+        "text_ready_turnaround_ms": 396.6,
+        "tts_first_chunk_ms": 1228.23,
+        "total_mouth_to_ear_ms": 1624.83,
+        "total_turn_completed_ms": 3810.48
       }
     },
     "streaming_text_turn": {
       "passed": true,
       "query": "Aaj lunch mein kya khana theek rahega?",
-      "response": "Arre, aapne toh abhi dinner ka plan share kiya hai, lunch ki details app mein abhi nahi dikh rahi. Please apna lunch slot check karein ya mujhe bataiye ki aapne kya khaya, taaki main aapki diet ko balance kar sakun.",
-      "audio_chunks": 141,
+      "response": "Is meal ka prescribed plan abhi available nahi hai; app ke My Plan tab mein check karein.",
+      "audio_chunks": 59,
       "latency_ms": {
-        "text_ttft_ms": 408.28,
-        "tts_first_audio_ms": 1818.21,
-        "total_completed_ms": 4955.57
+        "text_ttft_ms": 3.26,
+        "tts_first_audio_ms": 565.15,
+        "total_completed_ms": 957.73
       }
     },
     "interruption_barge_in": {
@@ -47,21 +47,21 @@
     },
     "merkle_ledger_verification": {
       "passed": true,
-      "total_records": 304,
-      "patient_records": 304,
-      "head_hash": "5055ac02f051f57c2c9caba535eaa7348e2ad2a25ed7bc4b073576db2ee6994b",
+      "total_records": 12,
+      "patient_records": 12,
+      "head_hash": "ad7fd7dcb37468b416744265e1c8e422733c78d093b9dd84e6dff649e0e498af",
       "verified_recent_records": 10,
       "hash_mismatches": [],
       "latest_record": {
-        "event_id": "370713e2-1e5c-413d-8e8a-3f81c76592f1",
+        "event_id": "e56b7f4b-dbc6-4361-8530-b085fd4137f8",
         "patient_id": "pt_test_01",
         "user_input": "Theek hai, dhanyawad.",
-        "llm_output": "Arre, koi baat nahi! Aapka dinner plan set hai aur gym clearance bhi clear hai. Koi aur sawal ho toh main yahin hoon.",
+        "llm_output": "Arre, koi baat nahi! Main aapke exercise permissions ke andar safe activity chunne mein madad kar sakti hoon. Main yahan hoon, jab bhi zaroorat ho.",
         "breaker_status": "clear",
         "validator_status": "validated",
-        "prev_hash": "cd11fee022730441eebf4a1928f8ad07eca73b849cb145866d68833eda7a9aa9",
-        "current_hash": "5055ac02f051f57c2c9caba535eaa7348e2ad2a25ed7bc4b073576db2ee6994b",
-        "timestamp": "2026-11-07 09:28:50.764996+00:00"
+        "prev_hash": "d55414ea527c1031f4fb4e5b6a7b976c2af13173b97f1caa6f19a56baab69bbd",
+        "current_hash": "ad7fd7dcb37468b416744265e1c8e422733c78d093b9dd84e6dff649e0e498af",
+        "timestamp": "2026-11-07 14:54:10.169147+00:00"
       }
     }
   }

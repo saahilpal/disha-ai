@@ -1,7 +1,7 @@
 {
-  "timestamp": "2026-11-07T13:51:31Z",
-  "tunnel_url": "https://cached-developed-collectors-kerry.trycloudflare.com",
-  "domain": "cached-developed-collectors-kerry.trycloudflare.com",
+  "timestamp": "2026-11-07T14:50:21Z",
+  "tunnel_url": "https://destinations-provision-hip-performing.trycloudflare.com",
+  "domain": "destinations-provision-hip-performing.trycloudflare.com",
   "checks_passed": 5,
   "total_checks": 5,
   "tls_verification": {
@@ -25,13 +25,13 @@
     },
     "/auth/login": {
       "schema_validation_code": 422,
-      "auth_code": 200,
+      "auth_code": 401,
       "passed": true
     },
     "/internal/classifier": {
       "status_code": 200,
       "passed": true,
-      "response": {"service":"laya_decision_engine","schema_version":"2026-11-07.v1","server_url":"in-process","checkpoint":"multilingual","device":"cpu","threads":10,"min_confidence_gate":0.4,"inference_count":0,"fallback_count":0,"last_latency_ms":0.0,"circuit_breaker_open":false,"uptime_seconds":1367.2}
+      "response": {"service":"laya_decision_engine","schema_version":"2026-11-07.v1","server_url":"in-process","checkpoint":"multilingual","device":"cpu","threads":10,"min_confidence_gate":0.4,"inference_count":0,"fallback_count":0,"last_latency_ms":0.0,"circuit_breaker_open":false,"uptime_seconds":17.7}
     }
   }
 }
