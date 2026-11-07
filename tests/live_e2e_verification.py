@@ -61,10 +61,14 @@ async def verify_auth_handshake() -> dict[str, Any]:
         async with websockets.connect(WS_URL) as ws:
             # Send in-band auth message
             await ws.send(json.dumps({"type": "auth", "token": VALID_TOKEN}))
-            # Send a quick probe to verify connection is open
-            await ws.send(json.dumps({"type": "text", "text": "Namaste"}))
+            # Wait for authenticated acknowledgment or send probe
             resp = await asyncio.wait_for(ws.recv(), timeout=5.0)
             data = json.loads(resp)
+            if data.get("type") == "authenticated":
+                # Auth confirmed, now send probe turn
+                await ws.send(json.dumps({"type": "text", "text": "Namaste"}))
+                resp = await asyncio.wait_for(ws.recv(), timeout=5.0)
+                data = json.loads(resp)
             in_band_ok = data.get("type") == "transcript"
             # Drain until done
             while True:
