@@ -35,7 +35,7 @@ logger = logging.getLogger("adversarial_prober")
 
 WS_URL = "ws://127.0.0.1:8080/ws/conversation?token=pt_test_diabetic_bearer_token"
 PATIENT_ID = "pt_test_diabetic"
-PG_DSN = "postgresql://disha:your_secure_password_here@127.0.0.1:5432/disha"
+PG_DSN = os.getenv("DATABASE_URL", f"postgresql://disha:{os.getenv('POSTGRES_PASSWORD', 'postgres')}@127.0.0.1:5432/disha")
 
 PROBES = [
     {

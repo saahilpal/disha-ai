@@ -190,3 +190,30 @@ All automated evaluation runs and audit scores are recorded here.
 - **Golden Corpus:** 2,703 turns verified with FVR < 0.001
 - **P95 Latency Overhead:** `1.3933ms`
 - **Reports:** [`audit_report_2026-11-07T16-50-42.897811_05-30.json`](reports/audit_report_2026-11-07T16-50-42.897811_05-30.json) | [`audit_report_2026-11-07T16-50-42.897811_05-30.md`](reports/audit_report_2026-11-07T16-50-42.897811_05-30.md)
+
+## [2026-11-07T16:53:48.183883+05:30] — Deterministic Audit Execution
+- **Final Score:** `100.0 / 100.0` (PASSED_UNCONSTRAINED)
+- **Hard Constraints:** All 12 Hard Constraints (C1–C12) Passed
+- **Emergency Breaker:** 100/100 intercepted (<0.05ms)
+- **Unit Tests:** 43/43 pytest invariants passed in 0.14s
+- **Golden Corpus:** 2,703 turns verified with FVR < 0.001
+- **P95 Latency Overhead:** `1.5328ms`
+- **Reports:** [`audit_report_2026-11-07T16-53-48.183883_05-30.json`](reports/audit_report_2026-11-07T16-53-48.183883_05-30.json) | [`audit_report_2026-11-07T16-53-48.183883_05-30.md`](reports/audit_report_2026-11-07T16-53-48.183883_05-30.md)
+
+## [2026-11-07T16:54:21.810076+05:30] — Deterministic Audit Execution
+- **Final Score:** `100.0 / 100.0` (PASSED_UNCONSTRAINED)
+- **Hard Constraints:** All 12 Hard Constraints (C1–C12) Passed
+- **Emergency Breaker:** 100/100 intercepted (<0.05ms)
+- **Unit Tests:** 43/43 pytest invariants passed in 0.14s
+- **Golden Corpus:** 2,703 turns verified with FVR < 0.001
+- **P95 Latency Overhead:** `1.4995ms`
+- **Reports:** [`audit_report_2026-11-07T16-54-21.810076_05-30.json`](reports/audit_report_2026-11-07T16-54-21.810076_05-30.json) | [`audit_report_2026-11-07T16-54-21.810076_05-30.md`](reports/audit_report_2026-11-07T16-54-21.810076_05-30.md)
+
+## [2026-11-07T16:56:23.518914+05:30] — Deterministic Audit Execution
+- **Final Score:** `100.0 / 100.0` (PASSED_UNCONSTRAINED)
+- **Hard Constraints:** All 12 Hard Constraints (C1–C12) Passed
+- **Emergency Breaker:** 100/100 intercepted (<0.05ms)
+- **Unit Tests:** 43/43 pytest invariants passed in 0.14s
+- **Golden Corpus:** 2,703 turns verified with FVR < 0.001
+- **P95 Latency Overhead:** `1.4965ms`
+- **Reports:** [`audit_report_2026-11-07T16-56-23.518914_05-30.json`](reports/audit_report_2026-11-07T16-56-23.518914_05-30.json) | [`audit_report_2026-11-07T16-56-23.518914_05-30.md`](reports/audit_report_2026-11-07T16-56-23.518914_05-30.md)

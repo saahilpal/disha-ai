@@ -22,7 +22,7 @@ import websockets
 WS_URL = "ws://127.0.0.1:8080/ws/conversation"
 PATIENT_ID = "pt_test_cardiac"
 BEARER_TOKEN = "pt_test_cardiac_bearer_token"
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://disha:your_secure_password_here@127.0.0.1:5432/disha")
+DATABASE_URL = os.getenv("DATABASE_URL", f"postgresql://disha:{os.getenv('POSTGRES_PASSWORD', 'postgres')}@127.0.0.1:5432/disha")
 
 IST = ZoneInfo("Asia/Kolkata")
 UTC = datetime.timezone.utc

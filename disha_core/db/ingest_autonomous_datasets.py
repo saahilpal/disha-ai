@@ -358,7 +358,7 @@ TEST_PATIENT_PROFILES = [
 
 
 async def run_autonomous_ingestion() -> dict[str, Any]:
-    password = os.getenv("POSTGRES_PASSWORD", "your_secure_password_here")
+    password = os.getenv("POSTGRES_PASSWORD", "postgres")
     db_url = f"postgresql://disha:{password}@127.0.0.1:5432/disha"
     conn = await asyncpg.connect(db_url)
 

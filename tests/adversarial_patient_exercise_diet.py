@@ -39,7 +39,7 @@ import websockets
 WS_URL = os.getenv("WS_URL", "ws://127.0.0.1:8080/ws/conversation")
 BEARER_TOKEN = os.getenv("PATIENT_TOKEN", "pt_test_01_valid_bearer_token")
 PATIENT_ID = "pt_test_01"
-PG_URL = os.getenv("DATABASE_URL", "postgresql://disha:your_secure_password_here@127.0.0.1:5432/disha")
+PG_URL = os.getenv("DATABASE_URL", f"postgresql://disha:{os.getenv('POSTGRES_PASSWORD', 'postgres')}@127.0.0.1:5432/disha")
 INTER_TURN_DELAY_SECONDS = 4.0
 
 IST = ZoneInfo("Asia/Kolkata")

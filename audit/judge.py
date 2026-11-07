@@ -21,6 +21,10 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from audit.suites.design_conformance import run_design_conformance
 from audit.suites.latency_profiler import run_latency_profiler
 from audit.suites.reliability_eval import run_reliability_eval

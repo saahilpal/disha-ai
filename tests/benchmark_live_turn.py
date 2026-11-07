@@ -141,7 +141,7 @@ async def run_live_turn_benchmark(iterations: int = 3) -> dict[str, Any]:
     avg_total = sum(r["total_turnaround_ms"] for r in results) / len(results)
 
     # Verify audit ledger commit in PostgreSQL
-    pw = os.getenv("POSTGRES_PASSWORD", "your_secure_password_here")
+    pw = os.getenv("POSTGRES_PASSWORD", "postgres")
     conn = await asyncpg.connect(f"postgresql://disha:{pw}@127.0.0.1:5432/disha")
     ledger_count = await conn.fetchval("SELECT COUNT(*) FROM audit_claim_ledger WHERE patient_id = 'pt_test_01'")
     latest_ledger = await conn.fetchrow(

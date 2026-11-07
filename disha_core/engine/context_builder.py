@@ -90,9 +90,11 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
 
 def add_approved_remedy_constraints(context: dict[str, Any], chunks: Any) -> None:
     context.update(protocol_approved=False, required_remedy_tokens=(), approved_remedy_text="")
+    clinical_tags = {str(t).upper() for t in (context.get("clinical_tags") or ("GI_BLOATING",))}
     for chunk in chunks:
         getter = chunk.get if hasattr(chunk, "get") else lambda key, default=None: getattr(chunk, key, default)
-        if str(getter("condition_tag", "")).upper() != "GI_BLOATING":
+        tag = str(getter("condition_tag", "")).upper()
+        if tag not in clinical_tags and tag != "GI_BLOATING":
             continue
         tokens = tuple(str(token).strip() for token in getter("required_remedy_tokens", ()) or () if str(token).strip())
         content = str(getter("guideline_content", "")).strip()

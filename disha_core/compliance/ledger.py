@@ -87,6 +87,11 @@ class AuditLedger:
         self._worker: asyncio.Task[None] | None = None
         self.dropped_count = 0
         self.wal_path = _resolve_wal_path(wal_path)
+        self._loop: asyncio.AbstractEventLoop | None = None
+        try:
+            self._loop = asyncio.get_running_loop()
+        except RuntimeError:
+            pass
         if self.wal_path:
             self._init_wal()
         self._register_shutdown_hooks()
@@ -215,19 +220,83 @@ class AuditLedger:
             logger.warning("WAL remove error: %s", exc)
 
     def start(self) -> None:
+        try:
+            self._loop = asyncio.get_running_loop()
+        except RuntimeError:
+            pass
         if self._worker is None or self._worker.done():
             self._worker = asyncio.create_task(self._run(), name="disha-audit-ledger")
 
     def enqueue(self, record: AuditRecord) -> bool:
-        """Queue an event without waiting; False means it was not recorded."""
+        """Queue an event without waiting; False means it was not recorded in-memory."""
         self.start()
+        # Persist to WAL immediately so record is never lost
+        self._write_wal(record)
+        try:
+            current_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            current_loop = None
+
+        if current_loop is not None and current_loop == self._loop:
+            try:
+                self.queue.put_nowait(record)
+            except asyncio.QueueFull:
+                self.dropped_count += 1
+                return False
+        else:
+            if self._loop and self._loop.is_running():
+                self._loop.call_soon_threadsafe(self._threadsafe_put, record)
+            else:
+                try:
+                    self.queue.put_nowait(record)
+                except asyncio.QueueFull:
+                    self.dropped_count += 1
+                    return False
+        return True
+
+    def _threadsafe_put(self, record: AuditRecord) -> None:
         try:
             self.queue.put_nowait(record)
-            self._write_wal(record)
         except asyncio.QueueFull:
             self.dropped_count += 1
-            return False
-        return True
+
+    def _refill_from_wal(self) -> int:
+        if not self.wal_path:
+            return 0
+        loaded = 0
+        try:
+            with sqlite3.connect(str(self.wal_path), timeout=5.0) as conn:
+                space = self.queue.maxsize - self.queue.qsize()
+                if space <= 0:
+                    return 0
+                cursor = conn.execute(
+                    """SELECT event_id, patient_id, user_input, llm_output, breaker_status, validator_status
+                       FROM wal_audit_records
+                       ORDER BY created_at ASC
+                       LIMIT ?""",
+                    (space,),
+                )
+                existing_in_queue = {rec.event_id for rec in list(self.queue._queue)}
+                for row in cursor.fetchall():
+                    ev_id = uuid.UUID(row[0]) if row[0] else uuid.uuid4()
+                    if ev_id in existing_in_queue:
+                        continue
+                    rec = AuditRecord(
+                        patient_id=row[1],
+                        user_input=row[2],
+                        llm_output=row[3],
+                        breaker_status=row[4],
+                        validator_status=row[5],
+                        event_id=ev_id,
+                    )
+                    try:
+                        self.queue.put_nowait(rec)
+                        loaded += 1
+                    except asyncio.QueueFull:
+                        break
+        except Exception:
+            pass
+        return loaded
 
     async def close(self, *, drain_timeout: float = 10.0) -> None:
         if drain_timeout <= 0:
@@ -260,7 +329,17 @@ class AuditLedger:
 
     async def _run(self) -> None:
         while True:
-            record = await self.queue.get()
+            if self.queue.qsize() < (self.queue.maxsize // 2):
+                self._refill_from_wal()
+
+            try:
+                record = await asyncio.wait_for(self.queue.get(), timeout=0.5)
+            except (asyncio.TimeoutError, TimeoutError):
+                self._refill_from_wal()
+                if self.queue.empty():
+                    await asyncio.sleep(0.05)
+                continue
+
             delay = 0.1
             try:
                 while True:

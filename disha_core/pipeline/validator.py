@@ -122,6 +122,20 @@ class SentenceValidator:
         if IDENTITY_RE.search(text):
             text = IDENTITY_REPLACEMENT
             reasons.append("identity")
+        if DIAGNOSIS_RE.search(text):
+            text = DIAGNOSIS_REPLACEMENT
+            reasons.append("diagnosis_boundary")
+        if PRESCRIPTION_RE.search(text):
+            text = PRESCRIPTION_REPLACEMENT
+            reasons.append("prescription_boundary")
+
+        ctx = context or {}
+        pep_ctx = ctx.get("pep") or ctx
+        htn_stage = str(pep_ctx.get("hypertension_stage", "")).casefold()
+        has_htn = htn_stage in {"stage 1", "stage 2"} or any("hypertension" in str(c).casefold() for c in ctx.get("conditions", ()))
+        if has_htn and SODIUM_RE.search(text):
+            text = HYPERTENSION_SODIUM_REPLACEMENT
+            reasons.append("hypertension_sodium")
 
         if any(not _allowed_price(match, text) for match in PRICE_RE.finditer(text)):
             text = PRICING_REPLACEMENT
@@ -176,7 +190,8 @@ class SentenceValidator:
         context = context or {}
         result = self.validate_sentence(text, context)
         value, reasons = result.text, list(result.reasons)
-        if "GI_BLOATING" not in (context.get("clinical_tags") or ()):
+        clinical_tags = context.get("clinical_tags") or ()
+        if not clinical_tags:
             return result
 
         tokens = tuple(str(token).casefold().strip() for token in context.get("required_remedy_tokens", ()) if str(token).strip())

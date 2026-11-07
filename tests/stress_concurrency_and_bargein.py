@@ -25,7 +25,7 @@ logger = logging.getLogger("StressConcurrency")
 
 WS_URL = "ws://127.0.0.1:8080/ws/conversation?token=pt_test_01_valid_bearer_token"
 CONCURRENT_SESSIONS = 30
-PG_DSN = "postgresql://disha:your_secure_password_here@127.0.0.1:5432/disha"
+PG_DSN = os.getenv("DATABASE_URL", f"postgresql://disha:{os.getenv('POSTGRES_PASSWORD', 'postgres')}@127.0.0.1:5432/disha")
 
 
 def get_docker_memory_stats() -> dict[str, str]:

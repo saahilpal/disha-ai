@@ -25,9 +25,9 @@ class IntentClassifier(Protocol):
 class RuleIntentClassifier:
     def classify(self, text: str) -> Intent:
         value = text.casefold()
-        if re.search(r"\b(dinner|breakfast|lunch|meal|khaana|khana|recipe|diet chart)\b", value):
+        if re.search(r"\b(dinner|breakfast|lunch|meal|khaana|khana|recipe|diet chart)\b|नाश्ता|खाना|भोजन|डाइट", value):
             return Intent.MEAL_QUERY
-        if re.search(r"\b(pain|dard|bloating|gas|fever|dizziness|symptom|pet phool)\b", value):
+        if re.search(r"\b(pain|dard|bloating|gas|fever|dizziness|symptom|pet phool)\b|दर्द|गैस|बुखार|चक्कर|उल्टी|सूजन", value):
             return Intent.SYMPTOM_COMPLAINT
         return Intent.GENERAL_COACHING
 
