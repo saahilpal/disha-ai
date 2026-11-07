@@ -29,6 +29,23 @@ IDENTITY_RE = re.compile(
     r"i\s+am\s+(?:a\s+)?(?:human|person)|i['’]m\s+(?:a\s+)?(?:human|person))\b|"
     r"मैं\s+(?:एक\s+)?(?:डॉक्टर|चिकित्सक|इंसान|मनुष्य)\s+हूँ", re.I,
 )
+DIAGNOSIS_RE = re.compile(
+    r"\b(?:aapko\s+(?:(?:type\s*[12]\s+)?diabetes|hypertension|sugar|bp|heart\s+disease|cancer)\s+(?:hai|ho\s+gaya|lag\s+raha\s+hai)|"
+    r"you\s+have\s+(?:(?:type\s*[12]\s+)?diabetes|hypertension|heart\s+disease|cancer)|"
+    r"(?:i|we)\s+diagnose\s+you|diagnosed\s+with|mera\s+diagnosis)\b|"
+    r"आपको\s+(?:डायबिटीज|मधुमेह|उच्च\s*रक्तचाप|बीमारी)\s+है", re.I,
+)
+PRESCRIPTION_RE = re.compile(
+    r"\b(?:(?:dose|dosing|khurak)\s*(?:double|badha|kam|increase|decrease|change|badal)|"
+    r"(?:metformin|amlodipine|atorvastatin|aspirin|insulin|atenolol|losartan|telmisartan).{0,35}?\b(?:dose|double|mg|lijiye|badal|start|stop|increase|decrease)|"
+    r"(?:dawai?|goli|medicine|dawa)\s*(?:badal|change|band|stop|double|badha)|"
+    r"(?:stop|change|alter|increase|decrease)\s+(?:your\s+)?(?:medication|dose|prescription|tablets?))\b|"
+    r"दवा\s*(?:बंद|बदल|डबल)", re.I,
+)
+SODIUM_RE = re.compile(
+    r"\b(?:papad|achaa?r|pickles?|namkeen|extra\s+salt|zyada\s+namak|chips|sev|high\s+sodium)\b|"
+    r"पापड़|अचार|नमकीन", re.I,
+)
 RECIPE_RE = re.compile(
     r"\b(?:recipe|ingredients|cook|prepare|make|banao|banaye|khaane\s+mein|meal\s+suggestion)\b|"
     r"\b(?:breakfast|lunch|dinner)\s+(?:mein|for)\b|\b(?:breakfast|lunch|dinner)\s*[:=-]", re.I,
@@ -53,6 +70,9 @@ MEAL_NOT_FOUND_REPLACEMENT = "Is meal ka prescribed plan abhi available nahi hai
 PRICING_REPLACEMENT = "Follow-up consultations ₹0 hain; dedicated nutritionist plan ₹1,499 per month hai."
 PEP_REPLACEMENT = "Main aapke exercise permissions ke andar safe activity chunne mein madad kar sakti hoon."
 REMEDY_UNAVAILABLE = "Is symptom ke liye verified advice mere paas available nahi hai; apne clinician se poochhein."
+DIAGNOSIS_REPLACEMENT = "Main ek AI coach hoon aur koi medical diagnosis nahi de sakti; kripya diagnosis ke liye clinician se consult karein."
+PRESCRIPTION_REPLACEMENT = "Main dawaiyon ki dose ya prescription badalne ke liye authorized nahi hoon; kripya apne prescribing clinician se salah lein."
+HYPERTENSION_SODIUM_REPLACEMENT = "Hypertension mein high-sodium khana jaise papad, achaar, aur namkeen avoid karein; low-salt diet lein."
 
 
 @dataclass(frozen=True)
