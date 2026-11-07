@@ -340,6 +340,47 @@ function recordTest(domain, name, passed, details) {
   recordTest(domain, 'Patient Telemetry Drawer: Live HTN, Gym clearance, current meal slot, Merkle SHA-256 chip',
     hasHtnBadge && hasGymClearance && hasCurrentMealSlot && hasMerkleChip,
     'Patient telemetry drawer elements missing in DOM.');
+
+  // DOMAIN 7: Progressive Onboarding, Drawer Toggle & Profile Customization
+  const domain7 = '7. Progressive Onboarding & Profile Customization';
+
+  // Check 7.1: Onboarding Panels and Step Tracker
+  const hasTracker = htmlSource.includes('id="tracker-step-1"') && htmlSource.includes('id="tracker-step-4"');
+  const hasPanels = htmlSource.includes('id="onboard-step-panel-1"') && htmlSource.includes('id="onboard-step-panel-4"');
+  const hasNavButtons = htmlSource.includes('id="step-1-next-btn"') && htmlSource.includes('id="step-4-back-btn"');
+  recordTest(domain7, 'Progressive 4-step onboarding panels, navigation buttons, and step tracker in DOM',
+    hasTracker && hasPanels && hasNavButtons,
+    'Onboarding panels or tracker missing in index.html.');
+
+  // Check 7.2: goToOnboardingStep function exported
+  const hasGoToStep = typeof engine.goToOnboardingStep === 'function';
+  recordTest(domain7, 'goToOnboardingStep lifecycle handler defined and exported',
+    hasGoToStep,
+    'goToOnboardingStep missing in engine exports.');
+
+  // Check 7.3: Clinical Drawer toggle & collapsible styling
+  const hasDrawerClose = htmlSource.includes('id="drawer-close-btn"');
+  const hasToggleDrawer = htmlSource.includes('id="toggle-drawer-btn"');
+  const hasDrawerCollapsedCss = cssSource.includes('.clinical-drawer.collapsed');
+  recordTest(domain7, 'Clinical Drawer toggle, close button, and collapsed state CSS',
+    hasDrawerClose && hasToggleDrawer && hasDrawerCollapsedCss,
+    'Drawer toggle or collapsed styling missing.');
+
+  // Check 7.4: Patient Profile Edit Modal & form fields in DOM
+  const hasProfileModal = htmlSource.includes('id="profile-edit-modal"');
+  const hasProfileForm = htmlSource.includes('id="edit-profile-form"');
+  const hasEditFields = htmlSource.includes('id="edit-name"') && htmlSource.includes('id="edit-age"') &&
+                        htmlSource.includes('id="edit-height"') && htmlSource.includes('id="edit-weight"');
+  recordTest(domain7, 'Patient Profile Edit modal, form, and vital inputs in DOM',
+    hasProfileModal && hasProfileForm && hasEditFields,
+    'Profile edit modal or fields missing in index.html.');
+
+  // Check 7.5: Profile Edit update API integration
+  const hasProfileApiCall = appSource.includes('/patient/profile');
+  const hasPutMethod = appSource.includes("method: 'PUT'");
+  recordTest(domain7, 'Patient Profile Edit PUT /patient/profile API integration with auth token',
+    hasProfileApiCall && hasPutMethod,
+    'Profile update API call missing in app.js.');
 }
 
 console.log('\n===============================================================');

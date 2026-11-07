@@ -38,8 +38,10 @@
 | **Laya Contract & Invariants** | **13 / 13 Passed** | 100% | `tests/test_laya_contract.py` |
 | **Core Invariants Suite** | **48 / 48 Passed** | 100% | `disha_core/tests/test_invariants.py` (0.22s) |
 | **Clinical Dialogue Scenarios**| **55 / 55 Passed** | 100% | `tests/test_clinical_scenarios.py` (13.86s) |
-| **Frontend Diagnostics** | **32 / 32 Passed** | 100% | `node tests/test_frontend_diagnostics.js` |
+| **Frontend Diagnostics** | **37 / 37 Passed** (Domains 1 through 7) | 100% | `node tests/test_frontend_diagnostics.js` |
 | **Frontend Byte Parity** | **100% Byte-for-Byte SHA-256 Parity** | Zero drift | `scripts/sync-frontend.sh` |
+| **Conversational Scenarios** | **7 / 7 Core Scenarios Passed** | Zero regressions | `tests/test_conversational_scenarios.py` |
+| **Live E2E Verification** | **5 / 5 Checks Passed** (Auth, Audio Turn, Text Turn, Barge-in, Merkle) | 100% | `tests/live_e2e_verification.py` |
 | **Vercel Packaging** | **3 / 3 Passed** | 100% | `tests/test_vercel_packaging.py` |
 | **Cloudflare Edge Ingress** | **5 / 5 Checks Passed** (TLS 1.3, getUserMedia allowed) | 100% | `agent/TELEPHONY_VERIFICATION_REPORT.json` |
 | **Tunnel Watchdog Suite** | **6 / 6 Passed** | 100% | `tests/test_tunnel_watchdog.py` |
@@ -88,3 +90,4 @@
 3. **Step 5: Public URL Live Verification**
    - Run live end-to-end smoke test on public Cloudflare URL.
    - Monitor memory, latency, and thermal stability.
+

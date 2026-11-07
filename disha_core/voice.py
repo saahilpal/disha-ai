@@ -60,7 +60,8 @@ async def transcribe_groq(
     except ImportError as exc:
         raise RuntimeError("Install httpx to use Groq Whisper") from exc
     factory = client_factory or httpx.AsyncClient
-    async with factory(timeout=1.0) as client:
+    timeout = float(os.getenv("VOICE_TRANSCRIBE_TIMEOUT", "8.0"))
+    async with factory(timeout=timeout) as client:
         response = await client.post(
             "https://api.groq.com/openai/v1/audio/transcriptions",
             headers={"Authorization": f"Bearer {key}"},

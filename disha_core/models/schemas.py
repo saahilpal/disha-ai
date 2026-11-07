@@ -22,9 +22,9 @@ class TurnRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     text: str = Field(min_length=1, max_length=5000, description="Patient utterance or query")
-    meal_type: Literal["breakfast", "lunch", "dinner"] = Field(
-        default="dinner",
-        description="Prescribed meal window"
+    meal_type: Literal["breakfast", "lunch", "dinner"] | None = Field(
+        default=None,
+        description="Optional meal window (only set if relevant to meals/nutrition)"
     )
 
     @model_validator(mode="before")
@@ -39,6 +39,8 @@ class TurnRequest(BaseModel):
                     data["meal_type"] = "lunch"
                 elif any(w in text for w in ("dinner", "raat", "shaam")):
                     data["meal_type"] = "dinner"
+                else:
+                    data["meal_type"] = None
         return data
 
     @model_validator(mode="after")
@@ -148,3 +150,17 @@ class ClientErrorResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     logged: bool = True
+
+
+class ProfileUpdateRequest(BaseModel):
+    """Payload for updating patient personal and health details."""
+    model_config = ConfigDict(extra="ignore")
+
+    name: str | None = None
+    age: int | None = Field(default=None, ge=1, le=120)
+    gender: str | None = None
+    height_cm: float | None = Field(default=None, ge=40.0, le=280.0)
+    weight_kg: float | None = Field(default=None, ge=10.0, le=400.0)
+    dietary_preference: str | None = None
+    health_goals: list[str] | None = None
+    health_conditions: list[str] | None = None

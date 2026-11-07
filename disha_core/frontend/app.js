@@ -318,6 +318,35 @@
     saveBackendUrlBtn: typeof document !== 'undefined' ? document.getElementById('save-backend-url-btn') : null,
     testBackendBtn: typeof document !== 'undefined' ? document.getElementById('test-backend-btn') : null,
     backendConnStatus: typeof document !== 'undefined' ? document.getElementById('backend-conn-status') : null,
+
+    // Header & Drawer Action Controls
+    headerCallBtn: typeof document !== 'undefined' ? document.getElementById('header-call-btn') : null,
+    toggleDrawerBtn: typeof document !== 'undefined' ? document.getElementById('toggle-drawer-btn') : null,
+    drawerCloseBtn: typeof document !== 'undefined' ? document.getElementById('drawer-close-btn') : null,
+    clinicalDrawer: typeof document !== 'undefined' ? document.getElementById('clinical-drawer') : null,
+
+    // Step Navigation
+    step1NextBtn: typeof document !== 'undefined' ? document.getElementById('step-1-next-btn') : null,
+    step2BackBtn: typeof document !== 'undefined' ? document.getElementById('step-2-back-btn') : null,
+    step2NextBtn: typeof document !== 'undefined' ? document.getElementById('step-2-next-btn') : null,
+    step3BackBtn: typeof document !== 'undefined' ? document.getElementById('step-3-back-btn') : null,
+    step3NextBtn: typeof document !== 'undefined' ? document.getElementById('step-3-next-btn') : null,
+    step4BackBtn: typeof document !== 'undefined' ? document.getElementById('step-4-back-btn') : null,
+
+    // Profile Edit Modal Controls
+    openProfileEditBtn: typeof document !== 'undefined' ? document.getElementById('open-profile-edit-btn') : null,
+    profileEditModal: typeof document !== 'undefined' ? document.getElementById('profile-edit-modal') : null,
+    profileEditCloseBtn: typeof document !== 'undefined' ? document.getElementById('profile-edit-close-btn') : null,
+    profileCancelBtn: typeof document !== 'undefined' ? document.getElementById('profile-cancel-btn') : null,
+    profileSaveBtn: typeof document !== 'undefined' ? document.getElementById('profile-save-btn') : null,
+    editProfileForm: typeof document !== 'undefined' ? document.getElementById('edit-profile-form') : null,
+    editName: typeof document !== 'undefined' ? document.getElementById('edit-name') : null,
+    editAge: typeof document !== 'undefined' ? document.getElementById('edit-age') : null,
+    editHeight: typeof document !== 'undefined' ? document.getElementById('edit-height') : null,
+    editWeight: typeof document !== 'undefined' ? document.getElementById('edit-weight') : null,
+    editDiet: typeof document !== 'undefined' ? document.getElementById('edit-diet') : null,
+    editGoals: typeof document !== 'undefined' ? document.getElementById('edit-goals') : null,
+    profileEditStatus: typeof document !== 'undefined' ? document.getElementById('profile-edit-status') : null,
   };
 
   // --- THEME INITIALIZATION & SYNCHRONIZATION ---
@@ -919,6 +948,7 @@
 
   function updateDrawerUI(data) {
     if (!data) return;
+    state.patientProfile = data;
     if (dom.dispPatientId) dom.dispPatientId.textContent = data.patient_id || state.patientId || '--';
 
     if (data.profile) {
@@ -1357,6 +1387,9 @@
       }
       if (dom.muteMicBtn) dom.muteMicBtn.disabled = false;
 
+      const callOverlayEl = typeof document !== 'undefined' ? document.getElementById('call-overlay-modal') : null;
+      if (callOverlayEl) callOverlayEl.style.display = 'flex';
+
       setTelephonyStatus('listening');
     } catch (err) {
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
@@ -1377,6 +1410,9 @@
     populateSummaryView();
     stopCallTimer();
     stopAudioPlayback();
+
+    const callOverlayEl = typeof document !== 'undefined' ? document.getElementById('call-overlay-modal') : null;
+    if (callOverlayEl) callOverlayEl.style.display = 'none';
 
     if (state.spectrumAnimId) {
       cancelAnimationFrame(state.spectrumAnimId);
@@ -1404,6 +1440,10 @@
       } catch (e) {}
       state.micStream = null;
     }
+    if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+      try { state.mediaRecorder.stop(); } catch (e) {}
+    }
+    state.mediaRecorder = null;
 
     if (dom.callBtn) {
       dom.callBtn.className = 'telephony-call-btn state-idle';
@@ -1537,6 +1577,48 @@
       const bufferLength = analyser.frequencyBinCount || 0;
       const dataArray = new Uint8Array(bufferLength);
       const ENERGY_THRESHOLD = 20;
+      const BARGE_IN_THRESHOLD = 95;
+      let silenceTimer = null;
+
+      // Real-time MediaRecorder for speech capture
+      if (typeof MediaRecorder !== 'undefined' && stream) {
+        try {
+          if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+            try { state.mediaRecorder.stop(); } catch (e) {}
+          }
+          let chunks = [];
+          let mimeType = 'audio/webm;codecs=opus';
+          if (!MediaRecorder.isTypeSupported(mimeType)) {
+            mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
+          }
+          const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : {});
+          state.mediaRecorder = recorder;
+
+          recorder.ondataavailable = (e) => {
+            if (e.data && e.data.size > 0) chunks.push(e.data);
+          };
+
+          recorder.onstop = async () => {
+            if (chunks.length === 0 || !state.isInCall) {
+              chunks = [];
+              return;
+            }
+            const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+            chunks = [];
+            if (blob.size >= 1200 && state.ws && state.ws.readyState === WebSocket.OPEN) {
+              setTelephonyStatus('processing');
+              try {
+                const buffer = await blob.arrayBuffer();
+                state.ws.send(buffer);
+              } catch (sendErr) {
+                console.warn('[Disha Voice] Error sending audio chunk:', sendErr);
+              }
+            }
+          };
+        } catch (mErr) {
+          console.warn('[Disha Voice] MediaRecorder setup error:', mErr);
+        }
+      }
 
       // Animate 24 Spectrum Bars
       function updateVisualizer() {
@@ -1591,9 +1673,29 @@
 
           if (avg > ENERGY_THRESHOLD) {
             if (state.isPlayingAudio) {
-              onUserSpeechDetected();
-            } else if (state.telephonyStatus !== 'speaking' && state.telephonyStatus !== 'processing' && state.telephonyStatus !== 'interrupted' && state.telephonyStatus !== 'interrupting') {
-              setTelephonyStatus('listening');
+              if (avg > BARGE_IN_THRESHOLD) {
+                onUserSpeechDetected();
+              }
+            } else {
+              if (silenceTimer) {
+                clearTimeout(silenceTimer);
+                silenceTimer = null;
+              }
+              if (state.mediaRecorder && state.mediaRecorder.state === 'inactive') {
+                try { state.mediaRecorder.start(); } catch (e) {}
+              }
+              if (state.telephonyStatus !== 'speaking' && state.telephonyStatus !== 'processing' && state.telephonyStatus !== 'interrupted' && state.telephonyStatus !== 'interrupting') {
+                setTelephonyStatus('listening');
+              }
+            }
+          } else {
+            if (state.mediaRecorder && state.mediaRecorder.state === 'recording' && !silenceTimer && !state.isPlayingAudio) {
+              silenceTimer = setTimeout(() => {
+                if (state.mediaRecorder && state.mediaRecorder.state === 'recording') {
+                  try { state.mediaRecorder.stop(); } catch (e) {}
+                }
+                silenceTimer = null;
+              }, 850);
             }
           }
         } catch (err) {
@@ -2248,6 +2350,190 @@
     });
   }
 
+  // Progressive Onboarding Step Navigation
+  function goToOnboardingStep(targetStep) {
+    if (targetStep < 1 || targetStep > 4) return;
+
+    if (targetStep > 1) {
+      const name = (dom.onboardName ? dom.onboardName.value : '').trim();
+      const ageVal = dom.onboardAge ? parseInt(dom.onboardAge.value, 10) : NaN;
+      if (!name) {
+        showAlert('Please enter your full name to proceed.');
+        if (dom.onboardName) dom.onboardName.focus();
+        return;
+      }
+      if (!Number.isFinite(ageVal) || ageVal < 1 || ageVal > 120) {
+        showAlert('Please enter a valid age between 1 and 120.');
+        if (dom.onboardAge) dom.onboardAge.focus();
+        return;
+      }
+    }
+    if (targetStep > 2) {
+      const h = dom.onboardHeight ? parseFloat(dom.onboardHeight.value) : NaN;
+      const w = dom.onboardWeight ? parseFloat(dom.onboardWeight.value) : NaN;
+      if (!Number.isFinite(h) || h < 50 || h > 250) {
+        showAlert('Please enter a valid height between 50 and 250 cm.');
+        if (dom.onboardHeight) dom.onboardHeight.focus();
+        return;
+      }
+      if (!Number.isFinite(w) || w < 20 || w > 300) {
+        showAlert('Please enter a valid weight between 20 and 300 kg.');
+        if (dom.onboardWeight) dom.onboardWeight.focus();
+        return;
+      }
+    }
+
+    for (let i = 1; i <= 4; i++) {
+      const panel = typeof document !== 'undefined' ? document.getElementById(`onboard-step-panel-${i}`) : null;
+      const tracker = typeof document !== 'undefined' ? document.getElementById(`tracker-step-${i}`) : null;
+      if (panel) {
+        if (i === targetStep) {
+          panel.style.display = 'block';
+          panel.classList.add('active');
+        } else {
+          panel.style.display = 'none';
+          panel.classList.remove('active');
+        }
+      }
+      if (tracker) {
+        if (i < targetStep) {
+          tracker.classList.add('completed');
+          tracker.classList.remove('active');
+        } else if (i === targetStep) {
+          tracker.classList.add('active');
+          tracker.classList.remove('completed');
+        } else {
+          tracker.classList.remove('active');
+          tracker.classList.remove('completed');
+        }
+      }
+    }
+  }
+
+  if (dom.step1NextBtn) dom.step1NextBtn.addEventListener('click', () => goToOnboardingStep(2));
+  if (dom.step2BackBtn) dom.step2BackBtn.addEventListener('click', () => goToOnboardingStep(1));
+  if (dom.step2NextBtn) dom.step2NextBtn.addEventListener('click', () => goToOnboardingStep(3));
+  if (dom.step3BackBtn) dom.step3BackBtn.addEventListener('click', () => goToOnboardingStep(2));
+  if (dom.step3NextBtn) dom.step3NextBtn.addEventListener('click', () => goToOnboardingStep(4));
+  if (dom.step4BackBtn) dom.step4BackBtn.addEventListener('click', () => goToOnboardingStep(3));
+
+  // Header Call Button & Clinical Drawer Actions
+  if (dom.headerCallBtn) {
+    dom.headerCallBtn.addEventListener('click', () => {
+      if (dom.callBtn) dom.callBtn.click();
+    });
+  }
+
+  function toggleClinicalDrawer() {
+    if (!dom.clinicalDrawer) return;
+    const isCollapsed = dom.clinicalDrawer.classList.toggle('collapsed');
+    if (dom.toggleDrawerBtn) {
+      dom.toggleDrawerBtn.setAttribute('aria-expanded', String(!isCollapsed));
+    }
+  }
+
+  if (dom.toggleDrawerBtn) {
+    dom.toggleDrawerBtn.addEventListener('click', toggleClinicalDrawer);
+  }
+
+  if (dom.drawerCloseBtn) {
+    dom.drawerCloseBtn.addEventListener('click', toggleClinicalDrawer);
+  }
+
+  // Profile Edit Modal Handlers
+  function openProfileEditModal() {
+    if (!dom.profileEditModal) return;
+    const p = (state.patientProfile && state.patientProfile.profile) || {};
+    if (dom.editName) dom.editName.value = p.name || state.patientName || '';
+    if (dom.editAge) dom.editAge.value = p.age || '';
+    if (dom.editHeight) dom.editHeight.value = p.height_cm || '';
+    if (dom.editWeight) dom.editWeight.value = p.weight_kg || '';
+    if (dom.editDiet) dom.editDiet.value = p.dietary_preference || 'Vegetarian';
+    if (dom.editGoals) dom.editGoals.value = (p.health_goals || []).join(', ');
+    if (dom.profileEditStatus) {
+      dom.profileEditStatus.textContent = '';
+      dom.profileEditStatus.style.color = '';
+    }
+    dom.profileEditModal.style.display = 'flex';
+  }
+
+  function closeProfileEditModal() {
+    if (dom.profileEditModal) {
+      dom.profileEditModal.style.display = 'none';
+    }
+  }
+
+  if (dom.openProfileEditBtn) dom.openProfileEditBtn.addEventListener('click', openProfileEditModal);
+  if (dom.profileEditCloseBtn) dom.profileEditCloseBtn.addEventListener('click', closeProfileEditModal);
+  if (dom.profileCancelBtn) dom.profileCancelBtn.addEventListener('click', closeProfileEditModal);
+
+  if (dom.editProfileForm) {
+    dom.editProfileForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!state.token) {
+        if (dom.profileEditStatus) {
+          dom.profileEditStatus.textContent = 'Please log in to update profile.';
+          dom.profileEditStatus.style.color = 'var(--color-emergency)';
+        }
+        return;
+      }
+      if (dom.profileSaveBtn) dom.profileSaveBtn.disabled = true;
+      if (dom.profileEditStatus) {
+        dom.profileEditStatus.textContent = 'Saving profile changes...';
+        dom.profileEditStatus.style.color = 'var(--color-neutral)';
+      }
+
+      const updates = {};
+      if (dom.editName && dom.editName.value.trim()) updates.name = dom.editName.value.trim();
+      if (dom.editAge && dom.editAge.value) updates.age = parseInt(dom.editAge.value, 10);
+      if (dom.editHeight && dom.editHeight.value) updates.height_cm = parseFloat(dom.editHeight.value);
+      if (dom.editWeight && dom.editWeight.value) updates.weight_kg = parseFloat(dom.editWeight.value);
+      if (dom.editDiet && dom.editDiet.value) updates.dietary_preference = dom.editDiet.value;
+      if (dom.editGoals && dom.editGoals.value) {
+        updates.health_goals = dom.editGoals.value.split(',').map(s => s.trim()).filter(Boolean);
+      }
+
+      try {
+        const config = getBackendConfig();
+        const res = await fetch(`${config.httpBase}/patient/profile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.token}`
+          },
+          body: JSON.stringify(updates)
+        });
+
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.detail || 'Profile update failed.');
+        }
+
+        const data = await res.json();
+        updateDrawerUI(data);
+        if (data.patient_name || updates.name) {
+          state.patientName = data.patient_name || updates.name;
+          if (dom.patientDisplayName) dom.patientDisplayName.textContent = state.patientName;
+        }
+
+        if (dom.profileEditStatus) {
+          dom.profileEditStatus.textContent = '✓ Profile updated successfully!';
+          dom.profileEditStatus.style.color = 'var(--color-success)';
+        }
+        setTimeout(() => {
+          closeProfileEditModal();
+          if (dom.profileSaveBtn) dom.profileSaveBtn.disabled = false;
+        }, 600);
+      } catch (err) {
+        if (dom.profileEditStatus) {
+          dom.profileEditStatus.textContent = `❌ ${err.message}`;
+          dom.profileEditStatus.style.color = 'var(--color-emergency)';
+        }
+        if (dom.profileSaveBtn) dom.profileSaveBtn.disabled = false;
+      }
+    });
+  }
+
   // Initial Route Check
   if (typeof window !== 'undefined') {
     const initHash = window.location.hash;
@@ -2280,6 +2566,10 @@
     releaseWakeLock,
     drawStethoscopeVisualizer,
     populateSummaryView,
+    goToOnboardingStep,
+    toggleClinicalDrawer,
+    openProfileEditModal,
+    closeProfileEditModal,
   };
 
   if (typeof window !== 'undefined') {

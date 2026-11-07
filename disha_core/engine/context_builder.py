@@ -32,30 +32,43 @@ def diet_slot_xml(meal_type: str, items: str | None) -> str:
 
 
 async def build_patient_context(
-    connection: ContextConnection, patient_id: str, day_of_week: str, meal_type: str
+    connection: ContextConnection, patient_id: str, day_of_week: str, meal_type: str | None = None
 ) -> dict[str, Any]:
     if not isinstance(patient_id, str) or not patient_id.strip():
         raise ValueError("patient_id is required")
     patient_id = patient_id.strip()
-    if not isinstance(day_of_week, str) or not isinstance(meal_type, str):
-        raise ValueError("day_of_week and meal_type must be strings")
+    if not isinstance(day_of_week, str):
+        raise ValueError("day_of_week must be a string")
     day_of_week = day_of_week.strip().casefold()
-    meal_type = meal_type.strip().casefold()
     if day_of_week not in WEEKDAYS:
         raise ValueError("day_of_week must be a full weekday name")
-    if meal_type not in {"breakfast", "lunch", "dinner"}:
-        raise ValueError("meal_type must be breakfast, lunch, or dinner")
+
     pep = await connection.fetchrow(PEP_SQL, patient_id)
-    diet = await connection.fetchrow(DIET_SQL, patient_id, day_of_week.casefold(), meal_type)
-    items = diet["prescribed_items"] if diet else None
-    if isinstance(items, str):
-        items = items.strip() or None
+
+    if meal_type is not None:
+        if not isinstance(meal_type, str):
+            raise ValueError("meal_type must be a string or None")
+        meal_type = meal_type.strip().casefold()
+        if meal_type not in {"breakfast", "lunch", "dinner"}:
+            raise ValueError("meal_type must be breakfast, lunch, or dinner")
+        diet = await connection.fetchrow(DIET_SQL, patient_id, day_of_week, meal_type)
+        items = diet["prescribed_items"] if diet else None
+        if isinstance(items, str):
+            items = items.strip() or None
+        return {
+            "patient_id": patient_id,
+            "pep": dict(pep) if pep else None,
+            "diet_status": "FOUND" if items is not None else "NOT_FOUND",
+            "diet_items": items,
+            "diet_slot_xml": diet_slot_xml(meal_type, items),
+        }
+
     return {
         "patient_id": patient_id,
         "pep": dict(pep) if pep else None,
-        "diet_status": "FOUND" if items is not None else "NOT_FOUND",
-        "diet_items": items,
-        "diet_slot_xml": diet_slot_xml(meal_type, items),
+        "diet_status": "NOT_REQUESTED",
+        "diet_items": None,
+        "diet_slot_xml": "",
     }
 
 
@@ -82,9 +95,9 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
         f'<CLINICAL_GROUNDING>{"".join(clinical_parts)}</CLINICAL_GROUNDING>'
         if clinical_parts else '<CLINICAL_GROUNDING status="NOT_FOUND"/>'
     )
-    diet_xml = context.get("diet_slot_xml") or diet_slot_xml(
-        context.get("meal_type", "dinner"), context.get("diet_items")
-    )
+    diet_xml = context.get("diet_slot_xml", "")
+    if not isinstance(diet_xml, str):
+        diet_xml = ""
     return f'<PATIENT_PROFILE>{pep_xml}{diet_xml}</PATIENT_PROFILE>{clinical_xml}'
 
 

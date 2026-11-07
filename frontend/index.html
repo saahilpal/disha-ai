@@ -290,56 +290,149 @@
         <!-- 1B: New Patient Clinical Intake -->
         <section id="onboard-section" class="auth-card" role="tabpanel" aria-labelledby="tab-onboard" style="display: none;">
           <div class="card-header">
-            <h1 class="card-title">New Patient Clinical Baseline</h1>
-            <p class="card-desc">Enter your verified physiological profile to personalize safety checks, PEP, and diet schedules.</p>
+            <h1 class="card-title">New Patient Health Intake</h1>
+            <p class="card-desc">Personalize Disha's clinical boundaries, exercise clearance, and lifestyle coaching.</p>
+          </div>
+
+          <!-- Progressive Step Tracker -->
+          <div class="onboard-step-tracker" aria-label="Intake Steps">
+            <div class="tracker-step active" id="tracker-step-1"><span class="step-circle">1</span><span class="step-label">Personal</span></div>
+            <div class="tracker-line"></div>
+            <div class="tracker-step" id="tracker-step-2"><span class="step-circle">2</span><span class="step-label">Vitals</span></div>
+            <div class="tracker-line"></div>
+            <div class="tracker-step" id="tracker-step-3"><span class="step-circle">3</span><span class="step-label">Health</span></div>
+            <div class="tracker-line"></div>
+            <div class="tracker-step" id="tracker-step-4"><span class="step-circle">4</span><span class="step-label">Account</span></div>
           </div>
 
           <form id="onboard-form" class="auth-form" novalidate>
-            <div class="form-row-2">
-              <div class="form-group">
-                <label for="onboard-email" class="form-label">Email Address <span class="required-mark">*</span></label>
-                <input type="email" id="onboard-email" class="form-input" placeholder="patient@example.com" required />
+            <!-- Step 1: Personal Profile -->
+            <div class="onboard-step-panel active" id="onboard-step-panel-1">
+              <div class="step-heading">
+                <h3>Tell us about yourself</h3>
+                <p class="step-sub">What should Disha call you?</p>
               </div>
-              <div class="form-group">
-                <label for="onboard-password" class="form-label">Password <span class="required-mark">*</span></label>
-                <input type="password" id="onboard-password" class="form-input" placeholder="Min 6 characters" required />
-              </div>
-            </div>
-
-            <div class="form-row-2">
-              <div class="form-group">
-                <label for="onboard-name" class="form-label">Full Name <span class="required-mark">*</span></label>
-                <input type="text" id="onboard-name" class="form-input" placeholder="Patient Name" required />
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="onboard-name" class="form-label">Full Name <span class="required-mark">*</span></label>
+                  <input type="text" id="onboard-name" class="form-input" placeholder="e.g. Priya Sharma" required />
+                </div>
+                <div class="form-group">
+                  <label for="onboard-gender" class="form-label">Gender</label>
+                  <select id="onboard-gender" class="form-select">
+                    <option value="female">Female</option>
+                    <option value="male">Male</option>
+                    <option value="other">Non-binary / Other</option>
+                    <option value="prefer_not_to_say">Prefer not to say</option>
+                  </select>
+                </div>
               </div>
               <div class="form-group">
                 <label for="onboard-age" class="form-label">Age (years) <span class="required-mark">*</span></label>
-                <input type="number" id="onboard-age" class="form-input" min="1" max="120" placeholder="38" required />
+                <input type="number" id="onboard-age" class="form-input" min="1" max="120" placeholder="e.g. 34" required />
+              </div>
+              <div class="step-nav-actions">
+                <div></div>
+                <button type="button" class="primary-step-btn" id="step-1-next-btn">
+                  <span>Continue to Vitals &rarr;</span>
+                </button>
               </div>
             </div>
 
-            <div class="form-row-2">
+            <!-- Step 2: Vitals & Live BMI -->
+            <div class="onboard-step-panel" id="onboard-step-panel-2" style="display: none;">
+              <div class="step-heading">
+                <h3>Physical Baseline</h3>
+                <p class="step-sub">Height and weight allow Disha to calculate your BMI and physical boundaries.</p>
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="onboard-height" class="form-label">Height (cm) <span class="required-mark">*</span></label>
+                  <input type="number" id="onboard-height" class="form-input" min="50" max="250" placeholder="e.g. 165" required />
+                </div>
+                <div class="form-group">
+                  <label for="onboard-weight" class="form-label">Weight (kg) <span class="required-mark">*</span></label>
+                  <input type="number" id="onboard-weight" class="form-input" min="20" max="300" placeholder="e.g. 68" required />
+                </div>
+              </div>
+
+              <!-- Live Dynamic BMI Display Card -->
+              <div class="live-bmi-card">
+                <div class="bmi-metric-block">
+                  <span class="bmi-caption">Calculated Body Mass Index (BMI)</span>
+                  <span class="bmi-number font-mono" id="calculated-bmi">--</span>
+                </div>
+                <div class="bmi-status-block">
+                  <span class="status-chip" id="bmi-status">Awaiting vitals</span>
+                </div>
+              </div>
+
+              <div class="step-nav-actions">
+                <button type="button" class="back-step-btn" id="step-2-back-btn">&larr; Back</button>
+                <button type="button" class="primary-step-btn" id="step-2-next-btn">
+                  <span>Continue to Health &rarr;</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Step 3: Health Conditions & Preferences -->
+            <div class="onboard-step-panel" id="onboard-step-panel-3" style="display: none;">
+              <div class="step-heading">
+                <h3>Health Context & Clearances</h3>
+                <p class="step-sub">Used exclusively to enforce PEP exercise safety and nutritional safety.</p>
+              </div>
               <div class="form-group">
-                <label for="onboard-height" class="form-label">Height (cm) <span class="required-mark">*</span></label>
-                <input type="number" id="onboard-height" class="form-input" min="50" max="250" placeholder="172" required />
+                <label for="onboard-htn" class="form-label">Blood Pressure / Hypertension Baseline</label>
+                <select id="onboard-htn" class="form-select">
+                  <option value="NORMAL">Normal (&lt;120/80 mmHg)</option>
+                  <option value="STAGE_1" selected>HTN Stage 1 (130-139 / 80-89 mmHg)</option>
+                  <option value="STAGE_2">HTN Stage 2 (&ge;140 / &ge;90 mmHg)</option>
+                </select>
               </div>
+
               <div class="form-group">
-                <label for="onboard-weight" class="form-label">Weight (kg) <span class="required-mark">*</span></label>
-                <input type="number" id="onboard-weight" class="form-input" min="20" max="300" placeholder="74" required />
+                <label class="form-label">Common Conditions (Optional)</label>
+                <div class="conditions-chip-grid">
+                  <label class="check-chip"><input type="checkbox" name="condition" value="Hypertension Stage 1" checked> <span>High BP (Stage 1)</span></label>
+                  <label class="check-chip"><input type="checkbox" name="condition" value="Type 2 Diabetes"> <span>Diabetes / Pre-diabetes</span></label>
+                  <label class="check-chip"><input type="checkbox" name="condition" value="Thyroid"> <span>Thyroid Disorder</span></label>
+                  <label class="check-chip"><input type="checkbox" name="condition" value="PCOS"> <span>PCOS / PCOD</span></label>
+                  <label class="check-chip"><input type="checkbox" name="condition" value="GERD"> <span>Acid Reflux / Digestion</span></label>
+                </div>
+              </div>
+
+              <div class="step-nav-actions">
+                <button type="button" class="back-step-btn" id="step-3-back-btn">&larr; Back</button>
+                <button type="button" class="primary-step-btn" id="step-3-next-btn">
+                  <span>Account Setup &rarr;</span>
+                </button>
               </div>
             </div>
 
-            <div class="form-group">
-              <label for="onboard-htn" class="form-label">Hypertension Classification</label>
-              <select id="onboard-htn" class="form-select">
-                <option value="NORMAL">Normal (&lt;120/80 mmHg)</option>
-                <option value="STAGE_1" selected>HTN Stage 1 (130-139 / 80-89 mmHg)</option>
-                <option value="STAGE_2">HTN Stage 2 (&ge;140 / &ge;90 mmHg)</option>
-              </select>
-            </div>
+            <!-- Step 4: Account Credentials & Launch -->
+            <div class="onboard-step-panel" id="onboard-step-panel-4" style="display: none;">
+              <div class="step-heading">
+                <h3>Account & Security</h3>
+                <p class="step-sub">Create your login credentials to access your personalized health coach.</p>
+              </div>
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="onboard-email" class="form-label">Email Address <span class="required-mark">*</span></label>
+                  <input type="email" id="onboard-email" class="form-input" placeholder="patient@example.com" required autocomplete="email" />
+                </div>
+                <div class="form-group">
+                  <label for="onboard-password" class="form-label">Password <span class="required-mark">*</span></label>
+                  <input type="password" id="onboard-password" class="form-input" placeholder="Min 6 characters" required autocomplete="new-password" />
+                </div>
+              </div>
 
-            <button type="submit" id="onboard-submit-btn" class="submit-btn">
-              <span class="btn-text">Save Clinical Intake & Enter Consultation</span>
-            </button>
+              <div class="step-nav-actions">
+                <button type="button" class="back-step-btn" id="step-4-back-btn">&larr; Back</button>
+                <button type="submit" id="onboard-submit-btn" class="submit-btn primary-finish-btn">
+                  <span class="btn-text">Save Intake & Enter Consultation</span>
+                </button>
+              </div>
+            </div>
           </form>
         </section>
       </div>
@@ -349,7 +442,21 @@
     <main id="dashboard-view" class="view-container" style="display: none;">
       <div class="telephony-grid">
         <!-- Left: Clinical Context Drawer -->
-        <aside class="clinical-drawer">
+        <aside class="clinical-drawer" id="clinical-drawer">
+          <div class="drawer-top-action-bar">
+            <div class="drawer-brand-heading">
+              <span class="drawer-title-main">Clinical Records</span>
+            </div>
+            <div class="drawer-actions">
+              <button type="button" id="open-profile-edit-btn" class="drawer-action-btn edit-profile-btn" title="Edit Patient Baseline">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                <span>Edit Profile</span>
+              </button>
+              <button type="button" id="drawer-close-btn" class="drawer-action-btn drawer-close-icon-btn" title="Close Panel" aria-label="Close drawer">
+                &times;
+              </button>
+            </div>
+          </div>
           <!-- Vitals Card -->
           <div class="drawer-card">
             <div class="drawer-header">
@@ -433,123 +540,144 @@
           </div>
         </aside>
 
-        <!-- Right: Telephony Voice Consultation Stage -->
-        <section class="telephony-stage">
-          <div class="stage-card">
-            <!-- Stage Header & State Pill -->
-            <div class="stage-header">
-              <div class="stage-info">
-                <h1 class="stage-title">Voice Telephony Consultation</h1>
-                <p class="stage-subtitle">Real-time full-duplex audio stream &bull; Groq Whisper &rarr; Deterministic Spine &rarr; Edge-TTS</p>
-              </div>
-              <!-- Real-Time Telephony Status Indicator -->
-              <div class="telephony-indicator" id="telephony-status-pill">
-                <span class="indicator-dot idle"></span>
-                <span class="indicator-text" id="telephony-status-text">Ready for consultation</span>
-              </div>
-            </div>
-
-            <!-- Signature Acoustic Stethoscope Visualizer & Grounded 24-Bar Spectrum -->
-            <div class="visualizer-stage" id="visualizer-box">
-              <!-- Acoustic Stethoscope Concentric Radar -->
-              <div class="stethoscope-center-wrapper">
-                <canvas id="stethoscope-canvas" class="stethoscope-canvas" width="160" height="160" aria-label="Acoustic Stethoscope Soundwaves"></canvas>
-                <div class="stethoscope-ring ring-1"></div>
-                <div class="stethoscope-ring ring-2"></div>
-                <div class="stethoscope-icon-badge">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M4.5 9a7.5 7.5 0 0 0 15 0v-1"></path>
-                    <path d="M12 16.5V22"></path>
-                    <path d="M8 22h8"></path>
-                    <path d="M12 2a4 4 0 0 1 4 4v3a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"></path>
-                  </svg>
+        <!-- Right: Telephony Voice Consultation & WhatsApp-Style Chat Stage -->
+        <section class="telephony-stage" id="telephony-stage">
+          <div class="stage-card modern-chat-card">
+            <!-- Stage Header & Fast Call Actions -->
+            <div class="stage-header modern-chat-header">
+              <div class="chat-identity-group">
+                <div class="chat-avatar-ring">
+                  <span class="avatar-letter">D</span>
+                  <span class="online-indicator-dot"></span>
+                </div>
+                <div class="chat-title-group">
+                  <h1 class="stage-title">Disha AI</h1>
+                  <span class="stage-subtitle">AI Health Coach &bull; Grounded Guidance</span>
                 </div>
               </div>
 
-              <!-- Grounded 24-Bar Audio Spectrum Visualizer -->
-              <div class="spectrum-bars" id="spectrum-bars" aria-hidden="true">
-                <!-- 24 Audio Spectrum Bars -->
-                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
-                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
-                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
-                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
-                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
-                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
-              </div>
-              <canvas id="waveform-canvas" height="1" width="1" style="display:none"></canvas>
-            </div>
+              <!-- Header Action Pill: Start Voice Call & Vitals -->
+              <div class="chat-header-actions-dock">
+                <!-- Real-Time Telephony Status Indicator -->
+                <div class="telephony-indicator" id="telephony-status-pill">
+                  <span class="indicator-dot idle"></span>
+                  <span class="indicator-text" id="telephony-status-text">Ready for consultation</span>
+                </div>
 
-            <!-- Persistent Telephony Control Dock -->
-            <div class="telephony-dock">
-              <!-- Monospace Call Duration Timer -->
-              <div class="call-telemetry">
-                <span class="telemetry-label">Call Duration</span>
-                <span id="call-duration" class="telemetry-timer tabular-nums font-mono">00:00</span>
-                <span id="recording-time" style="display:none">00:00</span>
-              </div>
+                <button type="button" id="header-call-btn" class="header-call-trigger-btn" title="Start voice call">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                  </svg>
+                  <span>Voice Call</span>
+                </button>
 
-              <!-- Primary Call Action Button -->
-              <div class="call-action-center">
-                <button type="button" id="call-btn" class="telephony-call-btn state-idle">
-                  <span class="call-icon" id="call-icon" aria-hidden="true">
-                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                    </svg>
-                  </span>
-                  <span class="call-label" id="call-btn-label">Start Voice Consultation</span>
+                <button type="button" id="toggle-drawer-btn" class="header-vitals-btn" title="Toggle patient vitals & clearances">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"></path>
+                  </svg>
+                  <span>Vitals</span>
                 </button>
-              </div>
-
-              <!-- Secondary Audio Controls -->
-              <div class="call-secondary-controls">
-                <button type="button" id="mute-mic-btn" class="control-btn" title="Mute/Unmute microphone" disabled>
-                  <span class="control-icon" id="mic-icon" aria-hidden="true">
-                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
-                      <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
-                      <line x1="12" y1="19" x2="12" y2="23"></line>
-                      <line x1="8" y1="23" x2="16" y2="23"></line>
-                    </svg>
-                  </span>
-                  <span class="control-text" id="mic-label">Mute Mic</span>
-                </button>
-                <button type="button" id="toggle-speaker-btn" class="control-btn" title="Toggle audio output">
-                  <span class="control-icon" id="speaker-icon" aria-hidden="true">
-                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                      <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                    </svg>
-                  </span>
-                  <span class="control-text" id="speaker-label">Speaker</span>
-                </button>
-                <!-- Direct Stage Emergency 112 Button -->
-                <a href="tel:112" class="control-btn emergency-btn" id="stage-emergency-btn" title="Dial 112 Emergency">
-                  <span class="control-icon" aria-hidden="true">
-                    <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
-                      <line x1="12" y1="9" x2="12" y2="13"></line>
-                      <line x1="12" y1="17" x2="12.01" y2="17"></line>
-                    </svg>
-                  </span>
-                  <span class="control-text">112 SOS</span>
-                </a>
-                <!-- Hidden mic-btn for test suite compatibility -->
-                <button id="mic-btn" style="display:none"></button>
               </div>
             </div>
 
-            <!-- Dialogue Transcript Log -->
-            <div class="transcript-section">
-              <div class="transcript-header">
-                <h3 class="transcript-title">Real-Time Clinical Transcript</h3>
-                <span class="transcript-meta">Verified Grounded Spine &bull; Non-PHI</span>
+            <!-- Dedicated Voice Call Overlay Modal -->
+            <div class="call-overlay-modal" id="call-overlay-modal" style="display: none;">
+              <div class="call-overlay-card">
+                <div class="call-overlay-header">
+                  <span class="call-overlay-tag">Active Voice Telephony</span>
+                  <div class="call-telemetry">
+                    <span class="telemetry-label">Duration</span>
+                    <span id="call-duration" class="telemetry-timer tabular-nums font-mono">00:00</span>
+                    <span id="recording-time" style="display:none">00:00</span>
+                  </div>
+                </div>
+
+                <!-- Acoustic Stethoscope Concentric Radar -->
+                <div class="visualizer-stage" id="visualizer-box">
+                  <div class="stethoscope-center-wrapper">
+                    <canvas id="stethoscope-canvas" class="stethoscope-canvas" width="160" height="160" aria-label="Acoustic Stethoscope Soundwaves"></canvas>
+                    <div class="stethoscope-ring ring-1"></div>
+                    <div class="stethoscope-ring ring-2"></div>
+                    <div class="stethoscope-icon-badge">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4.5 9a7.5 7.5 0 0 0 15 0v-1"></path>
+                        <path d="M12 16.5V22"></path>
+                        <path d="M8 22h8"></path>
+                        <path d="M12 2a4 4 0 0 1 4 4v3a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"></path>
+                      </svg>
+                    </div>
+                  </div>
+
+                  <!-- Grounded 24-Bar Audio Spectrum Visualizer -->
+                  <div class="spectrum-bars" id="spectrum-bars" aria-hidden="true">
+                    <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                    <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                    <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                    <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                    <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                    <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                  </div>
+                  <canvas id="waveform-canvas" height="1" width="1" style="display:none"></canvas>
+                </div>
+
+                <!-- Persistent Telephony Control Dock -->
+                <div class="telephony-dock">
+                  <div class="call-action-center">
+                    <button type="button" id="call-btn" class="telephony-call-btn state-idle">
+                      <span class="call-icon" id="call-icon" aria-hidden="true">
+                        <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                        </svg>
+                      </span>
+                      <span class="call-label" id="call-btn-label">Start Voice Consultation</span>
+                    </button>
+                  </div>
+
+                  <div class="call-secondary-controls">
+                    <button type="button" id="mute-mic-btn" class="control-btn" title="Mute/Unmute microphone" disabled>
+                      <span class="control-icon" id="mic-icon" aria-hidden="true">
+                        <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                          <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                          <line x1="12" y1="19" x2="12" y2="23"></line>
+                          <line x1="8" y1="23" x2="16" y2="23"></line>
+                        </svg>
+                      </span>
+                      <span class="control-text" id="mic-label">Mute Mic</span>
+                    </button>
+                    <button type="button" id="toggle-speaker-btn" class="control-btn" title="Toggle audio output">
+                      <span class="control-icon" id="speaker-icon" aria-hidden="true">
+                        <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        </svg>
+                      </span>
+                      <span class="control-text" id="speaker-label">Speaker</span>
+                    </button>
+                    <a href="tel:112" class="control-btn emergency-btn" id="stage-emergency-btn" title="Dial 112 Emergency">
+                      <span class="control-icon" aria-hidden="true">
+                        <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+                          <line x1="12" y1="9" x2="12" y2="13"></line>
+                          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                        </svg>
+                      </span>
+                      <span class="control-text">112 SOS</span>
+                    </a>
+                    <button id="mic-btn" style="display:none"></button>
+                  </div>
+                </div>
               </div>
-              <div id="chat-stream" class="chat-stream" role="log" aria-live="polite">
+            </div>
+
+            <!-- Primary Dialogue Transcript & Chat Stream -->
+            <div class="transcript-section modern-chat-body">
+              <div id="chat-stream" class="chat-stream modern-chat-stream" role="log" aria-live="polite">
                 <div class="chat-message assistant initial">
                   <div class="msg-avatar">D</div>
                   <div class="msg-body">
-                    <p class="msg-text">Namaste! Main Disha hoon, aapki AI health coach. Call connect karke ya type karke apna query batayein.</p>
-                    <span class="msg-meta">System Grounded &bull; ICMR-NIN Clinical Protocols</span>
+                    <p class="msg-text">Namaste! Main Disha hoon, aapki AI health coach. Kaise feel kar rahe hain aap aaj?</p>
+                    <span class="msg-meta">Disha AI &bull; Grounded Guidance</span>
                   </div>
                 </div>
               </div>
@@ -833,6 +961,62 @@
             <span>Accept & Proceed</span>
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- PATIENT PROFILE EDIT MODAL -->
+    <div id="profile-edit-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="profile-edit-title">
+      <div class="modal-card">
+        <div class="modal-head">
+          <div class="modal-icon-wrap" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+          </div>
+          <h2 id="profile-edit-title" class="modal-title">Edit Clinical Profile</h2>
+          <button type="button" id="profile-edit-close-btn" class="modal-close-btn" aria-label="Close">&times;</button>
+        </div>
+        <form id="edit-profile-form" class="modal-body auth-form">
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="edit-name" class="form-label">Full Name</label>
+              <input type="text" id="edit-name" class="form-input" placeholder="Patient name" />
+            </div>
+            <div class="form-group">
+              <label for="edit-age" class="form-label">Age (years)</label>
+              <input type="number" id="edit-age" class="form-input" min="1" max="120" />
+            </div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="edit-height" class="form-label">Height (cm)</label>
+              <input type="number" id="edit-height" class="form-input" min="50" max="250" />
+            </div>
+            <div class="form-group">
+              <label for="edit-weight" class="form-label">Weight (kg)</label>
+              <input type="number" id="edit-weight" class="form-input" min="20" max="300" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edit-diet" class="form-label">Dietary Preference</label>
+            <select id="edit-diet" class="form-select">
+              <option value="Vegetarian">Vegetarian</option>
+              <option value="Non-Vegetarian">Non-Vegetarian</option>
+              <option value="Eggetarian">Eggetarian</option>
+              <option value="Vegan">Vegan</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit-goals" class="form-label">Health Goals (comma separated)</label>
+            <input type="text" id="edit-goals" class="form-input" placeholder="e.g. Weight management, Blood pressure" />
+          </div>
+          <div id="profile-edit-status" class="form-hint" style="margin-top: 0.5rem;"></div>
+          <div class="modal-actions" style="margin-top: 1rem; display: flex; gap: 8px; justify-content: flex-end;">
+            <button type="button" id="profile-cancel-btn" class="btn-subtle">Cancel</button>
+            <button type="submit" id="profile-save-btn" class="primary-action-btn">Save Changes</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>

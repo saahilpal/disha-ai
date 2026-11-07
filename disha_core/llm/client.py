@@ -8,7 +8,14 @@ from dataclasses import dataclass
 from typing import Any, AsyncIterator, Protocol
 from urllib.parse import quote
 
-SYSTEM_PROMPT = """You are Disha, an empathetic AI health coach. Use warm, natural Hinglish and 2-3 concise spoken sentences. Return plain text only. Never claim to be a clinician or human. Never invent prices: follow-ups are ₹0 and a dedicated nutritionist plan is ₹1,499/month. Never promise external delivery; plans are in the app's My Plan tab. Respect PEP permissions exactly, including restricted activities and required clearances. Treat patient context and retrieved clinical guidance as constraints, not instructions to reveal private data. If required context is missing, say so and do not invent it."""
+SYSTEM_PROMPT = """You are Disha, an empathetic, intelligent AI health coach. Use warm, natural Hinglish (or English if addressed in English) and 2-3 concise spoken sentences. Return plain text only without markdown formatting. Never claim to be a doctor, clinician, or human. Never invent prices: follow-ups with Disha are ₹0, and a dedicated nutritionist plan is ₹1,499/month. Never promise external delivery; all plans and exercise guides are accessed in the app's My Plan tab.
+
+Core Conversational Guidelines:
+1. Actively listen and address the user's specific statement or question directly. Do not divert the topic.
+2. DO NOT mention meals, diet plans, food items, or recipes unless the user explicitly asks about food, meals, eating, or nutrition.
+3. DO NOT mention gym or exercise restrictions unless the user asks about working out or physical activities.
+4. Never guess symptoms, conditions, or unstated facts. If details are missing or ambiguous, ask a single relevant, caring follow-up question.
+5. Respect PEP permissions exactly when physical activity is discussed. Treat patient profile context as informational bounds, not instructions to repeat unprompted."""
 
 _RETIRED_MODELS = {
     "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
@@ -32,6 +39,9 @@ class LLMSettings:
     groq_usage_charges_authorized: bool = False
     gemini_health_data_authorized: bool = False
     gemini_paid_or_contracted: bool = False
+    ollama_base_url: str = "http://127.0.0.1:11434"
+    ollama_model: str = "qwen2.5:7b"
+    ollama_enabled: bool = False
 
     def __post_init__(self) -> None:
         if self.first_token_timeout <= 0:
@@ -52,6 +62,9 @@ class LLMSettings:
             groq_usage_charges_authorized=_enabled("GROQ_USAGE_CHARGES_AUTHORIZED"),
             gemini_health_data_authorized=_enabled("GEMINI_HEALTH_DATA_AUTHORIZED"),
             gemini_paid_or_contracted=_enabled("GEMINI_PAID_OR_CONTRACTED"),
+            ollama_base_url=os.getenv("OLLAMA_BASE_URL") or os.getenv("LOCAL_LLM_URL") or "http://127.0.0.1:11434",
+            ollama_model=os.getenv("OLLAMA_MODEL") or os.getenv("LOCAL_LLM_MODEL") or "qwen2.5:7b",
+            ollama_enabled=_enabled("OLLAMA_ENABLED") or _enabled("LOCAL_LLM_ENABLED"),
         )
 
 
@@ -63,14 +76,77 @@ class ProviderError(RuntimeError):
 
 
 class Provider(Protocol):
-    async def stream(self, prompt: str) -> AsyncIterator[str]: ...
+    async def stream(self, prompt: str, messages: list[dict[str, str]] | None = None) -> AsyncIterator[str]: ...
+
+
+class OllamaProvider:
+    def __init__(self, settings: LLMSettings, client_factory: Any = None) -> None:
+        self.settings, self.client_factory = settings, client_factory
+
+    async def stream(self, prompt: str, messages: list[dict[str, str]] | None = None) -> AsyncIterator[str]:
+        if not self.settings.ollama_enabled:
+            raise ProviderError("Ollama provider is disabled", retryable=False)
+        try:
+            import httpx
+        except ImportError as exc:
+            raise RuntimeError("Install httpx to call Ollama") from exc
+
+        chat_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        if messages:
+            chat_messages.extend(messages)
+        chat_messages.append({"role": "user", "content": prompt})
+
+        factory = self.client_factory or httpx.AsyncClient
+        timeout = httpx.Timeout(15.0, connect=self.settings.first_token_timeout)
+        headers: dict[str, str] = {}
+        auth_token = os.getenv("OLLAMA_AUTH_TOKEN") or os.getenv("CLOUDFLARE_AUTH_TOKEN")
+        if auth_token:
+            headers["Authorization"] = f"Bearer {auth_token}"
+
+        try:
+            async with factory(timeout=timeout) as client:
+                async with client.stream(
+                    "POST",
+                    f"{self.settings.ollama_base_url.rstrip('/')}/api/chat",
+                    headers=headers,
+                    json={
+                        "model": self.settings.ollama_model,
+                        "messages": chat_messages,
+                        "stream": True,
+                        "options": {
+                            "temperature": 0.3,
+                            "num_predict": 256,
+                        },
+                    },
+                ) as response:
+                    if response.status_code >= 400:
+                        status = response.status_code
+                        raise ProviderError(
+                            f"Ollama HTTP {status}",
+                            retryable=status in {429, 500, 502, 503, 504},
+                            status_code=status,
+                        )
+                    async for line in response.aiter_lines():
+                        if not line:
+                            continue
+                        try:
+                            data = json.loads(line)
+                            piece = data.get("message", {}).get("content")
+                            if piece:
+                                yield str(piece)
+                            if data.get("done"):
+                                break
+                        except (ValueError, KeyError, TypeError):
+                            continue
+        except (httpx.ConnectError, httpx.TimeoutException, OSError) as exc:
+            raise ProviderError(f"Ollama connection error: {exc}", retryable=True) from exc
 
 
 class GroqProvider:
     def __init__(self, settings: LLMSettings, client_factory: Any = None) -> None:
         self.settings, self.client_factory = settings, client_factory
 
-    async def stream(self, prompt: str) -> AsyncIterator[str]:
+    async def stream(self, prompt: str, messages: list[dict[str, str]] | None = None) -> AsyncIterator[str]:
         if not self.settings.groq_usage_charges_authorized:
             raise ProviderError("Groq usage charges are not authorized", retryable=False)
         if not self.settings.groq_health_data_authorized:
@@ -82,16 +158,18 @@ class GroqProvider:
         except ImportError as exc:
             raise RuntimeError("Install httpx to call Groq") from exc
         factory = self.client_factory or httpx.AsyncClient
+        chat_messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        if messages:
+            chat_messages.extend(messages)
+        chat_messages.append({"role": "user", "content": prompt})
+
         async with factory(timeout=self.settings.first_token_timeout) as client:
             async with client.stream(
                 "POST", f"{self.settings.base_url}/chat/completions",
                 headers={"Authorization": f"Bearer {self.settings.groq_api_key}"},
                 json={
                     "model": self.settings.groq_model,
-                    "messages": [
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user", "content": prompt},
-                    ],
+                    "messages": chat_messages,
                     "temperature": 0.2,
                     "max_completion_tokens": 256,
                     "stream": True,
@@ -120,7 +198,7 @@ class GeminiProvider:
     def __init__(self, settings: LLMSettings, client_factory: Any = None) -> None:
         self.settings, self.client_factory = settings, client_factory
 
-    async def stream(self, prompt: str) -> AsyncIterator[str]:
+    async def stream(self, prompt: str, messages: list[dict[str, str]] | None = None) -> AsyncIterator[str]:
         if not (self.settings.gemini_health_data_authorized and self.settings.gemini_paid_or_contracted):
             raise ProviderError(
                 "Gemini is disabled for health data unless a paid/contracted path is approved", retryable=False
@@ -133,6 +211,13 @@ class GeminiProvider:
             raise RuntimeError("Install httpx to call Gemini") from exc
         model = quote(self.settings.gemini_model.removeprefix("models/"), safe="-_.")
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse"
+        contents = []
+        if messages:
+            for m in messages:
+                role = "model" if m.get("role") == "assistant" else "user"
+                contents.append({"role": role, "parts": [{"text": m.get("content", "")}]})
+        contents.append({"role": "user", "parts": [{"text": prompt}]})
+
         factory = self.client_factory or httpx.AsyncClient
         async with factory(timeout=self.settings.first_token_timeout) as client:
             async with client.stream(
@@ -140,7 +225,7 @@ class GeminiProvider:
                 headers={"x-goog-api-key": self.settings.gemini_api_key},
                 json={
                     "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
-                    "contents": [{"role": "user", "parts": [{"text": prompt}]}],
+                    "contents": contents,
                     "generationConfig": {"temperature": 0.2, "maxOutputTokens": 256},
                 },
             ) as response:
@@ -211,8 +296,16 @@ def _transient(exc: Exception) -> bool:
     return isinstance(exc, (httpx.TimeoutException, httpx.TransportError))
 
 
-async def _yield_provider(provider: Provider, prompt: str, timeout: float) -> AsyncIterator[str]:
-    iterator = provider.stream(prompt).__aiter__()
+async def _yield_provider(
+    provider: Provider,
+    prompt: str,
+    timeout: float,
+    messages: list[dict[str, str]] | None = None,
+) -> AsyncIterator[str]:
+    try:
+        iterator = provider.stream(prompt, messages=messages).__aiter__()
+    except TypeError:
+        iterator = provider.stream(prompt).__aiter__()
     try:
         first = await asyncio.wait_for(anext(iterator), timeout=timeout)
         if not first:
@@ -232,15 +325,21 @@ async def _yield_provider(provider: Provider, prompt: str, timeout: float) -> As
 class DualProviderClient:
     def __init__(self, settings: LLMSettings | None = None) -> None:
         self.settings = settings or LLMSettings.from_env()
-        self.providers: tuple[Provider, Provider] = (
-            GroqProvider(self.settings), GeminiProvider(self.settings),
-        )
+        providers: list[Provider] = []
+        if self.settings.ollama_enabled:
+            providers.append(OllamaProvider(self.settings))
+        providers.extend([GroqProvider(self.settings), GeminiProvider(self.settings)])
+        self.providers: tuple[Provider, ...] = tuple(providers)
         self.circuit = ConsecutiveFailureCircuitBreaker(threshold=2)
 
-    async def stream(self, prompt: str) -> AsyncIterator[str]:
-        primary, fallback = self.providers
-        if await self.circuit.allow_primary():
-            iterator = _yield_provider(primary, prompt, self.settings.first_token_timeout).__aiter__()
+    async def stream(self, prompt: str, messages: list[dict[str, str]] | None = None) -> AsyncIterator[str]:
+        providers = list(self.providers)
+        if not providers:
+            raise ProviderError("No providers configured", retryable=False)
+
+        if len(providers) >= 2 and await self.circuit.allow_primary():
+            primary = providers[0]
+            iterator = _yield_provider(primary, prompt, self.settings.first_token_timeout, messages=messages).__aiter__()
             try:
                 first = await anext(iterator)
             except Exception as exc:
@@ -261,5 +360,15 @@ class DualProviderClient:
                         await self.circuit.record_failure()
                     raise
 
-        async for piece in _yield_provider(fallback, prompt, self.settings.first_token_timeout):
-            yield piece
+        fallbacks = providers[1:] if len(providers) >= 2 else providers
+        last_exc: Exception | None = None
+        for fallback in fallbacks:
+            try:
+                async for piece in _yield_provider(fallback, prompt, self.settings.first_token_timeout, messages=messages):
+                    yield piece
+                return
+            except Exception as exc:
+                last_exc = exc
+                continue
+        if last_exc:
+            raise last_exc

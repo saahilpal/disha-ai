@@ -43,6 +43,7 @@ from disha_core.models.schemas import (
     HealthResponse,
     LoginRequest,
     OnboardingRequest,
+    ProfileUpdateRequest,
     ReadyResponse,
     TurnRequest,
     TurnState,
@@ -59,7 +60,7 @@ from disha_core.services.auth_service import (
     login_patient,
     register_patient,
 )
-from disha_core.services.patient_service import fetch_patient_profile
+from disha_core.services.patient_service import fetch_patient_profile, update_patient_profile
 from disha_core.voice import VoiceSession, transcribe_groq
 
 MAX_VOICE_TURN_BYTES = 10 * 1024 * 1024  # 10 MB limit for voice turns
@@ -152,12 +153,23 @@ async def _turn_sentences(
     add_approved_remedy_constraints(context, chunks)
     prompt = render_user_payload(normalized.normalized, context, chunks)
     emitted = False
+    generated_sentences: list[str] = []
+
+    if not hasattr(app_state, "conversation_history"):
+        app_state.conversation_history = {}
+    history = app_state.conversation_history.get(patient_id, [])[-8:]
+
+    try:
+        llm_stream = app_state.llm.stream(prompt, messages=history)
+    except TypeError:
+        llm_stream = app_state.llm.stream(prompt)
 
     try:
         async for sentence in validated_sentences(
-            app_state.llm.stream(prompt), app_state.validator, context
+            llm_stream, app_state.validator, context
         ):
             emitted = True
+            generated_sentences.append(sentence)
             yield sentence
     except Exception:
         state.validator_status = "provider_unavailable"
@@ -166,6 +178,13 @@ async def _turn_sentences(
     finally:
         if state.validator_status == "accepted":
             state.validator_status = "validated"
+        if generated_sentences:
+            full_reply = " ".join(generated_sentences)
+            if patient_id not in app_state.conversation_history:
+                app_state.conversation_history[patient_id] = []
+            app_state.conversation_history[patient_id].append({"role": "user", "content": payload.text})
+            app_state.conversation_history[patient_id].append({"role": "assistant", "content": full_reply})
+            app_state.conversation_history[patient_id] = app_state.conversation_history[patient_id][-16:]
 
 
 def create_app() -> FastAPI:
@@ -307,6 +326,18 @@ def create_app() -> FastAPI:
         pool = getattr(request.app.state, "pool", None)
         day = request.app.state.today_ist()
         return await fetch_patient_profile(pool, patient_id, day)
+
+    @app.put("/patient/profile")
+    async def update_patient_profile_endpoint(
+        payload: ProfileUpdateRequest,
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        patient_id = await _authenticated_patient(request, authorization)
+        pool = getattr(request.app.state, "pool", None)
+        day = request.app.state.today_ist()
+        updates = payload.model_dump(exclude_unset=True)
+        return await update_patient_profile(pool, patient_id, updates, day)
 
     @app.post("/chat", response_model=ChatResponse)
     async def chat(

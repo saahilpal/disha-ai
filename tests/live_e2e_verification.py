@@ -25,7 +25,16 @@ import websockets
 WS_URL = "ws://127.0.0.1:8080/ws/conversation"
 VALID_TOKEN = "pt_test_01_valid_bearer_token"
 INVALID_TOKEN = "pt_invalid_dummy_token_99999"
-PG_URL = os.getenv("DATABASE_URL", f"postgresql://disha:{os.getenv('POSTGRES_PASSWORD', 'postgres')}@127.0.0.1:5432/disha")
+
+# Load .env if present
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+pg_pass = os.getenv("POSTGRES_PASSWORD", "disha_secure_pass_123")
+PG_URL = os.getenv("DATABASE_URL", f"postgresql://disha:{pg_pass}@127.0.0.1:5432/disha")
 
 
 async def generate_test_audio(text: str = "Pet mein gas ho rahi hai.") -> bytes:

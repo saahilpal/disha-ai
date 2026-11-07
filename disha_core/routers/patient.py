@@ -5,7 +5,8 @@ from typing import Any
 
 from fastapi import APIRouter, Header, Request
 
-from disha_core.services.patient_service import fetch_patient_profile
+from disha_core.models.schemas import ProfileUpdateRequest
+from disha_core.services.patient_service import fetch_patient_profile, update_patient_profile
 
 router = APIRouter(prefix="/patient", tags=["Patient"])
 
@@ -22,3 +23,19 @@ async def get_patient_profile(
     pool = getattr(request.app.state, "pool", None)
     day = request.app.state.today_ist()
     return await fetch_patient_profile(pool, patient_id, day)
+
+
+@router.put("/profile")
+async def update_profile(
+    payload: ProfileUpdateRequest,
+    request: Request,
+    authorization: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """Update patient demographic details, vitals, and dietary preferences."""
+    import disha_core.main as app_main
+
+    patient_id = await app_main._authenticated_patient(request, authorization)
+    pool = getattr(request.app.state, "pool", None)
+    day = request.app.state.today_ist()
+    updates = payload.model_dump(exclude_unset=True)
+    return await update_patient_profile(pool, patient_id, updates, day)
