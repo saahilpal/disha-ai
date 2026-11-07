@@ -287,83 +287,207 @@
           </div>
         </section>
 
-        <!-- 1B: New Patient Clinical Intake -->
-        <section id="onboard-section" class="auth-card" role="tabpanel" aria-labelledby="tab-onboard" style="display: none;">
-          <div class="card-header">
-            <h1 class="card-title">New Patient Health Intake</h1>
-            <p class="card-desc">Personalize Disha's clinical boundaries, exercise clearance, and lifestyle coaching.</p>
+        <!-- 1B: New Patient Clinical Intake (Conversational Companion Onboarding) -->
+        <section id="onboard-section" class="auth-card conversational-onboarding-card" role="tabpanel" aria-labelledby="tab-onboard" style="display: none;">
+          <!-- Empathetic Companion Welcome Header -->
+          <div class="onboard-companion-hero">
+            <div class="companion-avatar-badge">
+              <span class="companion-avatar-glyph">🌱</span>
+              <span class="companion-pulse-ring"></span>
+            </div>
+            <div class="companion-hero-text">
+              <span class="companion-kicker">Disha Clinical Intake</span>
+              <h1 class="card-title">Welcome to Disha AI</h1>
+              <p class="card-desc">Your proactive, physician-supervised health coach. Let's calibrate your care in 90 seconds.</p>
+            </div>
           </div>
 
-          <!-- Progressive Step Tracker -->
+          <!-- Progressive Step Tracker with Smooth Progress Line -->
           <div class="onboard-step-tracker" aria-label="Intake Steps">
-            <div class="tracker-step active" id="tracker-step-1"><span class="step-circle">1</span><span class="step-label">Personal</span></div>
-            <div class="tracker-line"></div>
-            <div class="tracker-step" id="tracker-step-2"><span class="step-circle">2</span><span class="step-label">Vitals</span></div>
-            <div class="tracker-line"></div>
-            <div class="tracker-step" id="tracker-step-3"><span class="step-circle">3</span><span class="step-label">Health</span></div>
-            <div class="tracker-line"></div>
-            <div class="tracker-step" id="tracker-step-4"><span class="step-circle">4</span><span class="step-label">Account</span></div>
+            <div class="tracker-step active" id="tracker-step-1" data-step="1">
+              <span class="step-circle"><span class="step-num">1</span><span class="step-check">✓</span></span>
+              <span class="step-label">Welcome</span>
+            </div>
+            <div class="tracker-line"><div class="tracker-fill" id="tracker-fill-1"></div></div>
+            <div class="tracker-step" id="tracker-step-2" data-step="2">
+              <span class="step-circle"><span class="step-num">2</span><span class="step-check">✓</span></span>
+              <span class="step-label">Vitals &amp; BMI</span>
+            </div>
+            <div class="tracker-line"><div class="tracker-fill" id="tracker-fill-2"></div></div>
+            <div class="tracker-step" id="tracker-step-3" data-step="3">
+              <span class="step-circle"><span class="step-num">3</span><span class="step-check">✓</span></span>
+              <span class="step-label">Health &amp; PEP</span>
+            </div>
+            <div class="tracker-line"><div class="tracker-fill" id="tracker-fill-3"></div></div>
+            <div class="tracker-step" id="tracker-step-4" data-step="4">
+              <span class="step-circle"><span class="step-num">4</span><span class="step-check">✓</span></span>
+              <span class="step-label">Passkey</span>
+            </div>
           </div>
 
-          <form id="onboard-form" class="auth-form" novalidate>
-            <!-- Step 1: Personal Profile -->
+          <form id="onboard-form" class="auth-form conversational-form" novalidate>
+            <!-- Card 1: Warm Introduction & Personal Identity -->
             <div class="onboard-step-panel active" id="onboard-step-panel-1">
               <div class="step-heading">
-                <h3>Tell us about yourself</h3>
-                <p class="step-sub">What should Disha call you?</p>
+                <div class="step-speech-bubble">
+                  <span class="bubble-icon">💬</span>
+                  <p class="bubble-text">"Welcome to Disha. What should I call you? I'll use this to tailor your daily check-ins."</p>
+                </div>
               </div>
+
+              <!-- Name input with floating micro-label -->
+              <div class="form-group floating-group">
+                <div class="input-wrapper floating-input-wrapper">
+                  <input type="text" id="onboard-name" class="form-input floating-input" placeholder=" " required autocomplete="name" />
+                  <label for="onboard-name" class="floating-label">Full Name <span class="required-mark">*</span></label>
+                </div>
+                <span class="field-hint">e.g. Priya Sharma or Dr. Vikram</span>
+              </div>
+
               <div class="form-row-2">
-                <div class="form-group">
-                  <label for="onboard-name" class="form-label">Full Name <span class="required-mark">*</span></label>
-                  <input type="text" id="onboard-name" class="form-input" placeholder="e.g. Priya Sharma" required />
+                <!-- Age input with floating micro-label -->
+                <div class="form-group floating-group">
+                  <div class="input-wrapper floating-input-wrapper">
+                    <input type="number" id="onboard-age" class="form-input floating-input" min="1" max="120" placeholder=" " value="34" required />
+                    <label for="onboard-age" class="floating-label">Age (years) <span class="required-mark">*</span></label>
+                  </div>
+                  <span class="field-hint">Calibrates metabolic pacing</span>
                 </div>
-                <div class="form-group">
-                  <label for="onboard-gender" class="form-label">Gender</label>
-                  <select id="onboard-gender" class="form-select">
-                    <option value="female">Female</option>
-                    <option value="male">Male</option>
-                    <option value="other">Non-binary / Other</option>
-                    <option value="prefer_not_to_say">Prefer not to say</option>
-                  </select>
+
+                <!-- Gender input with floating micro-label and tactile quick chips -->
+                <div class="form-group floating-group">
+                  <div class="input-wrapper floating-input-wrapper">
+                    <select id="onboard-gender" class="form-select floating-input">
+                      <option value="female" selected>Female</option>
+                      <option value="male">Male</option>
+                      <option value="other">Non-binary / Other</option>
+                      <option value="prefer_not_to_say">Prefer not to say</option>
+                    </select>
+                    <label for="onboard-gender" class="floating-label">Gender Identity</label>
+                  </div>
+                  <span class="field-hint">For hormonal &amp; cardiac baselines</span>
                 </div>
               </div>
-              <div class="form-group">
-                <label for="onboard-age" class="form-label">Age (years) <span class="required-mark">*</span></label>
-                <input type="number" id="onboard-age" class="form-input" min="1" max="120" placeholder="e.g. 34" required />
+
+              <!-- Tactile Gender Quick Selection Chips -->
+              <div class="gender-quick-chips" role="radiogroup" aria-label="Gender selection">
+                <button type="button" class="gender-chip active" data-gender="female"><span>👩 Female</span></button>
+                <button type="button" class="gender-chip" data-gender="male"><span>👨 Male</span></button>
+                <button type="button" class="gender-chip" data-gender="other"><span>⚧ Non-binary</span></button>
+                <button type="button" class="gender-chip" data-gender="prefer_not_to_say"><span>🔒 Private</span></button>
               </div>
+
               <div class="step-nav-actions">
-                <div></div>
+                <div class="step-reasoning-pill">
+                  <span class="shield-glyph">🛡️</span>
+                  <span>Zero hospital bureaucracy • Private &amp; secure</span>
+                </div>
                 <button type="button" class="primary-step-btn" id="step-1-next-btn">
                   <span>Continue to Vitals &rarr;</span>
                 </button>
               </div>
             </div>
 
-            <!-- Step 2: Vitals & Live BMI -->
+            <!-- Card 2: Interactive Physical Baseline — Height, Weight, and Dynamic BMI Gauge -->
             <div class="onboard-step-panel" id="onboard-step-panel-2" style="display: none;">
               <div class="step-heading">
-                <h3>Physical Baseline</h3>
-                <p class="step-sub">Height and weight allow Disha to calculate your BMI and physical boundaries.</p>
-              </div>
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label for="onboard-height" class="form-label">Height (cm) <span class="required-mark">*</span></label>
-                  <input type="number" id="onboard-height" class="form-input" min="50" max="250" placeholder="e.g. 165" required />
-                </div>
-                <div class="form-group">
-                  <label for="onboard-weight" class="form-label">Weight (kg) <span class="required-mark">*</span></label>
-                  <input type="number" id="onboard-weight" class="form-input" min="20" max="300" placeholder="e.g. 68" required />
+                <div class="step-speech-bubble">
+                  <span class="bubble-icon">🩺</span>
+                  <p class="bubble-text">"Let's calibrate your physical baseline. Used to calibrate metabolic guidance, caloric burn, and hydration targets."</p>
                 </div>
               </div>
 
-              <!-- Live Dynamic BMI Display Card -->
-              <div class="live-bmi-card">
-                <div class="bmi-metric-block">
-                  <span class="bmi-caption">Calculated Body Mass Index (BMI)</span>
-                  <span class="bmi-number font-mono" id="calculated-bmi">--</span>
+              <!-- Interactive Vital Slider / Stepper Cards Grid -->
+              <div class="vitals-dual-grid">
+                <!-- Height Control Card -->
+                <div class="vital-interactive-card">
+                  <div class="vital-card-header">
+                    <div class="vital-title-group">
+                      <span class="vital-label">Height</span>
+                      <span class="vital-conversion" id="height-conversion-text">5 ft 5 in</span>
+                    </div>
+                    <div class="vital-display-badge">
+                      <input type="number" id="onboard-height" class="vital-numeric-input font-mono" min="50" max="250" value="165" required />
+                      <span class="vital-unit">cm</span>
+                    </div>
+                  </div>
+                  <div class="slider-stepper-row">
+                    <button type="button" class="vital-step-btn" id="height-step-down" aria-label="Decrease height by 1 cm">−</button>
+                    <input type="range" id="onboard-height-slider" class="vital-range-slider" min="50" max="250" value="165" step="1" aria-label="Height in centimeters" />
+                    <button type="button" class="vital-step-btn" id="height-step-up" aria-label="Increase height by 1 cm">+</button>
+                  </div>
+                  <div class="slider-scale-legend">
+                    <span>50 cm</span>
+                    <span class="legend-mid">Avg ~165 cm</span>
+                    <span>250 cm</span>
+                  </div>
                 </div>
-                <div class="bmi-status-block">
-                  <span class="status-chip" id="bmi-status">Awaiting vitals</span>
+
+                <!-- Weight Control Card -->
+                <div class="vital-interactive-card">
+                  <div class="vital-card-header">
+                    <div class="vital-title-group">
+                      <span class="vital-label">Weight</span>
+                      <span class="vital-conversion" id="weight-conversion-text">149.9 lbs</span>
+                    </div>
+                    <div class="vital-display-badge">
+                      <input type="number" id="onboard-weight" class="vital-numeric-input font-mono" min="20" max="300" step="0.5" value="68" required />
+                      <span class="vital-unit">kg</span>
+                    </div>
+                  </div>
+                  <div class="slider-stepper-row">
+                    <button type="button" class="vital-step-btn" id="weight-step-down" aria-label="Decrease weight by 0.5 kg">−</button>
+                    <input type="range" id="onboard-weight-slider" class="vital-range-slider" min="20" max="300" value="68" step="0.5" aria-label="Weight in kilograms" />
+                    <button type="button" class="vital-step-btn" id="weight-step-up" aria-label="Increase weight by 0.5 kg">+</button>
+                  </div>
+                  <div class="slider-scale-legend">
+                    <span>20 kg</span>
+                    <span class="legend-mid">Avg ~68 kg</span>
+                    <span>300 kg</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Dynamic Visual BMI Gauge with Non-Shaming Context -->
+              <div class="live-bmi-card conversational-bmi-card">
+                <div class="bmi-header-row">
+                  <div class="bmi-metric-block">
+                    <span class="bmi-caption">Body Mass Index (BMI)</span>
+                    <div class="bmi-reading">
+                      <span class="bmi-number font-mono" id="calculated-bmi">25.0</span>
+                      <span class="bmi-unit-sub">kg/m²</span>
+                    </div>
+                  </div>
+                  <div class="bmi-status-block">
+                    <span class="status-chip" id="bmi-status">Overweight (Pre-hypertensive risk)</span>
+                  </div>
+                </div>
+
+                <!-- Visual Segmented Color Gauge -->
+                <div class="bmi-visual-meter-wrapper" aria-hidden="true">
+                  <div class="bmi-meter-track">
+                    <div class="bmi-zone zone-under" title="Underweight (&lt;18.5)"><span>Underweight</span></div>
+                    <div class="bmi-zone zone-healthy" title="Healthy (18.5-22.9)"><span>Healthy</span></div>
+                    <div class="bmi-zone zone-elevated" title="Elevated (23-27.4)"><span>Elevated</span></div>
+                    <div class="bmi-zone zone-attention" title="Care (≥27.5)"><span>Care</span></div>
+                  </div>
+                  <div class="bmi-gauge-pointer-track">
+                    <div class="bmi-gauge-pointer" id="bmi-gauge-pointer" style="left: 55%;">
+                      <span class="pointer-arrow">▲</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Non-Shaming Clinical Context Explainer -->
+                <div class="bmi-empathetic-context" id="bmi-empathetic-context">
+                  <span class="context-spark">🌿</span>
+                  <p class="context-text" id="bmi-encouragement-text">
+                    <strong>Metabolic Optimization:</strong> Gentle daily lifestyle shifts will yield rapid dividends for cardiovascular resilience.
+                  </p>
+                </div>
+
+                <div class="bmi-rationale-footnote">
+                  <span>💡 Calibrated against ICMR South Asian metabolic criteria (healthy: 18.5–22.9 kg/m²).</span>
                 </div>
               </div>
 
@@ -375,29 +499,162 @@
               </div>
             </div>
 
-            <!-- Step 3: Health Conditions & Preferences -->
+            <!-- Card 3: Health Context, Clinical Clearances & PEP Safety -->
             <div class="onboard-step-panel" id="onboard-step-panel-3" style="display: none;">
               <div class="step-heading">
-                <h3>Health Context & Clearances</h3>
-                <p class="step-sub">Used exclusively to enforce PEP exercise safety and nutritional safety.</p>
+                <div class="step-speech-bubble">
+                  <span class="bubble-icon">🌿</span>
+                  <p class="bubble-text">"Your clinical context guides PEP safety rules. Disha personalizes workouts and dietary schedules to protect your heart."</p>
+                </div>
               </div>
+
+              <!-- Blood Pressure Baseline with Interactive Cards -->
               <div class="form-group">
                 <label for="onboard-htn" class="form-label">Blood Pressure / Hypertension Baseline</label>
-                <select id="onboard-htn" class="form-select">
+                <!-- Native select for compatibility -->
+                <select id="onboard-htn" class="form-select" style="display: none;">
                   <option value="NORMAL">Normal (&lt;120/80 mmHg)</option>
                   <option value="STAGE_1" selected>HTN Stage 1 (130-139 / 80-89 mmHg)</option>
                   <option value="STAGE_2">HTN Stage 2 (&ge;140 / &ge;90 mmHg)</option>
                 </select>
+
+                <!-- Visual BP Cards -->
+                <div class="bp-selection-cards" role="radiogroup" aria-label="Blood pressure baseline">
+                  <div class="bp-card" data-htn="NORMAL" role="radio" aria-checked="false" tabindex="0">
+                    <span class="bp-icon">💚</span>
+                    <div class="bp-text">
+                      <span class="bp-title">Normal BP</span>
+                      <span class="bp-metric">&lt; 120 / 80 mmHg</span>
+                    </div>
+                  </div>
+                  <div class="bp-card active" data-htn="STAGE_1" role="radio" aria-checked="true" tabindex="0">
+                    <span class="bp-icon">🟡</span>
+                    <div class="bp-text">
+                      <span class="bp-title">HTN Stage 1</span>
+                      <span class="bp-metric">130–139 / 80–89</span>
+                    </div>
+                  </div>
+                  <div class="bp-card" data-htn="STAGE_2" role="radio" aria-checked="false" tabindex="0">
+                    <span class="bp-icon">🔴</span>
+                    <div class="bp-text">
+                      <span class="bp-title">HTN Stage 2</span>
+                      <span class="bp-metric">&ge; 140 / &ge; 90</span>
+                    </div>
+                  </div>
+                </div>
               </div>
 
+              <!-- Interactive Condition Chips -->
               <div class="form-group">
-                <label class="form-label">Common Conditions (Optional)</label>
+                <label class="form-label">Clinical Conditions &amp; History (Select all that apply)</label>
                 <div class="conditions-chip-grid">
-                  <label class="check-chip"><input type="checkbox" name="condition" value="Hypertension Stage 1" checked> <span>High BP (Stage 1)</span></label>
-                  <label class="check-chip"><input type="checkbox" name="condition" value="Type 2 Diabetes"> <span>Diabetes / Pre-diabetes</span></label>
-                  <label class="check-chip"><input type="checkbox" name="condition" value="Thyroid"> <span>Thyroid Disorder</span></label>
-                  <label class="check-chip"><input type="checkbox" name="condition" value="PCOS"> <span>PCOS / PCOD</span></label>
-                  <label class="check-chip"><input type="checkbox" name="condition" value="GERD"> <span>Acid Reflux / Digestion</span></label>
+                  <label class="check-chip">
+                    <input type="checkbox" name="condition" value="Hypertension Stage 1" checked>
+                    <span class="chip-content"><span class="chip-emoji">❤️</span> <span>High BP (Stage 1)</span></span>
+                  </label>
+                  <label class="check-chip">
+                    <input type="checkbox" name="condition" value="Type 2 Diabetes">
+                    <span class="chip-content"><span class="chip-emoji">🩸</span> <span>Diabetes / Pre-diabetes</span></span>
+                  </label>
+                  <label class="check-chip">
+                    <input type="checkbox" name="condition" value="Thyroid">
+                    <span class="chip-content"><span class="chip-emoji">🦋</span> <span>Thyroid Disorder</span></span>
+                  </label>
+                  <label class="check-chip">
+                    <input type="checkbox" name="condition" value="PCOS">
+                    <span class="chip-content"><span class="chip-emoji">🌸</span> <span>PCOS / PCOD</span></span>
+                  </label>
+                  <label class="check-chip">
+                    <input type="checkbox" name="condition" value="GERD">
+                    <span class="chip-content"><span class="chip-emoji">🔥</span> <span>Acid Reflux / GERD</span></span>
+                  </label>
+                  <label class="check-chip">
+                    <input type="checkbox" name="condition" value="High Cholesterol">
+                    <span class="chip-content"><span class="chip-emoji">🫀</span> <span>High Cholesterol</span></span>
+                  </label>
+                  <label class="check-chip">
+                    <input type="checkbox" name="condition" value="Joint / Back Pain">
+                    <span class="chip-content"><span class="chip-emoji">🦴</span> <span>Joint / Back Pain</span></span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Exercise Safety & Gym Clearance -->
+              <div class="form-group clearance-section">
+                <label class="form-label">Exercise &amp; Gym Clearance</label>
+                <div class="clearance-reassurance-box">
+                  <span class="reassurance-icon">🛡️</span>
+                  <div class="reassurance-body">
+                    <strong>Personalized Exercise Prescription (PEP) Safety:</strong>
+                    <p>Disha ensures you never strain beyond your cardiovascular threshold. High BP automatically restricts heavy valsalva lifts in favor of restorative cardio.</p>
+                  </div>
+                </div>
+                <div class="clearance-radio-cards">
+                  <label class="clearance-card">
+                    <input type="radio" name="gym_clearance" value="true">
+                    <span class="clearance-card-body">
+                      <span class="clearance-card-title">💪 Medically Cleared for Gym</span>
+                      <span class="clearance-card-desc">Approved for supervised resistance and aerobic machines.</span>
+                    </span>
+                  </label>
+                  <label class="clearance-card active">
+                    <input type="radio" name="gym_clearance" value="false" checked>
+                    <span class="clearance-card-body">
+                      <span class="clearance-card-title">🧘 Restorative &amp; Gentle (Recommended)</span>
+                      <span class="clearance-card-desc">Focus on brisk walking, mobility, gentle yoga &amp; breathing exercises.</span>
+                    </span>
+                  </label>
+                </div>
+              </div>
+
+              <!-- Dietary Preferences & Health Goals -->
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label class="form-label">Dietary Preference</label>
+                  <div class="compact-chip-row">
+                    <label class="radio-chip"><input type="radio" name="diet_pref" value="Vegetarian" checked> <span>🥗 Vegetarian</span></label>
+                    <label class="radio-chip"><input type="radio" name="diet_pref" value="Non-Vegetarian"> <span>🍗 Non-Veg</span></label>
+                    <label class="radio-chip"><input type="radio" name="diet_pref" value="Eggetarian"> <span>🥚 Eggetarian</span></label>
+                    <label class="radio-chip"><input type="radio" name="diet_pref" value="Vegan"> <span>🌱 Vegan</span></label>
+                    <label class="radio-chip"><input type="radio" name="diet_pref" value="Jain"> <span>✨ Jain</span></label>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="onboard-activity" class="form-label">Baseline Activity</label>
+                  <select id="onboard-activity" class="form-select">
+                    <option value="sedentary">Sedentary (Desk work, little movement)</option>
+                    <option value="light" selected>Light (Gentle daily walks / chores)</option>
+                    <option value="moderate">Moderate (Regular walking / cycling)</option>
+                    <option value="active">Active (Structured daily training)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Primary Health Goals -->
+              <div class="form-group">
+                <label class="form-label">Primary Health Goals (Optional)</label>
+                <div class="conditions-chip-grid">
+                  <label class="check-chip"><input type="checkbox" name="health_goal" value="BP &amp; Heart Health" checked> <span>❤️ BP &amp; Heart Health</span></label>
+                  <label class="check-chip"><input type="checkbox" name="health_goal" value="Blood Sugar Balance"> <span>📊 Sugar Balance</span></label>
+                  <label class="check-chip"><input type="checkbox" name="health_goal" value="Healthy Weight"> <span>⚖️ Healthy Weight</span></label>
+                  <label class="check-chip"><input type="checkbox" name="health_goal" value="Deep Sleep &amp; Stress Relief"> <span>🌙 Deep Sleep</span></label>
+                  <label class="check-chip"><input type="checkbox" name="health_goal" value="Daily Energy &amp; Stamina"> <span>⚡ High Energy</span></label>
+                  <label class="check-chip"><input type="checkbox" name="health_goal" value="Digestive Gut Health"> <span>🍵 Gut Wellness</span></label>
+                </div>
+              </div>
+
+              <!-- Movement Restrictions -->
+              <div class="form-group floating-group">
+                <div class="input-wrapper floating-input-wrapper">
+                  <input type="text" id="onboard-restrictions" class="form-input floating-input" placeholder=" " />
+                  <label for="onboard-restrictions" class="floating-label">Movement Restrictions (e.g. Knee pain, Lower back)</label>
+                </div>
+                <div class="restriction-quick-tags">
+                  <button type="button" class="quick-tag-btn" data-tag="Knee pain">+ Knee pain</button>
+                  <button type="button" class="quick-tag-btn" data-tag="Lower back tightness">+ Lower back</button>
+                  <button type="button" class="quick-tag-btn" data-tag="Frozen shoulder">+ Shoulder stiffness</button>
+                  <button type="button" class="quick-tag-btn" data-tag="None">✓ None</button>
                 </div>
               </div>
 
@@ -409,31 +666,99 @@
               </div>
             </div>
 
-            <!-- Step 4: Account Credentials & Launch -->
+            <!-- Card 4: Account Passkey with Instant Strength Meter -->
             <div class="onboard-step-panel" id="onboard-step-panel-4" style="display: none;">
               <div class="step-heading">
-                <h3>Account & Security</h3>
-                <p class="step-sub">Create your login credentials to access your personalized health coach.</p>
-              </div>
-              <div class="form-row-2">
-                <div class="form-group">
-                  <label for="onboard-email" class="form-label">Email Address <span class="required-mark">*</span></label>
-                  <input type="email" id="onboard-email" class="form-input" placeholder="patient@example.com" required autocomplete="email" />
+                <div class="step-speech-bubble">
+                  <span class="bubble-icon">🔐</span>
+                  <p class="bubble-text">"Final step! Create your secure passkey to protect your health records and coaching history."</p>
                 </div>
-                <div class="form-group">
-                  <label for="onboard-password" class="form-label">Password <span class="required-mark">*</span></label>
-                  <input type="password" id="onboard-password" class="form-input" placeholder="Min 6 characters" required autocomplete="new-password" />
+              </div>
+
+              <!-- Email Field with Floating Micro-Label -->
+              <div class="form-group floating-group">
+                <div class="input-wrapper floating-input-wrapper">
+                  <input type="email" id="onboard-email" class="form-input floating-input" placeholder=" " required autocomplete="email" />
+                  <label for="onboard-email" class="floating-label">Email Address <span class="required-mark">*</span></label>
+                </div>
+                <div id="onboard-email-error" class="field-feedback error" role="alert"></div>
+              </div>
+
+              <!-- Password Field with Floating Micro-Label & Visibility Toggle -->
+              <div class="form-group floating-group">
+                <div class="input-wrapper floating-input-wrapper with-toggle">
+                  <input type="password" id="onboard-password" class="form-input floating-input" placeholder=" " required autocomplete="new-password" />
+                  <label for="onboard-password" class="floating-label">Passkey / Password <span class="required-mark">*</span></label>
+                  <button type="button" id="toggle-onboard-password" class="toggle-password-btn" aria-label="Toggle password visibility">
+                    <span class="eye-open" style="display: none;">👁️</span>
+                    <span class="eye-closed">🙈</span>
+                  </button>
+                </div>
+                <div id="onboard-password-error" class="field-feedback error" role="alert"></div>
+              </div>
+
+              <!-- Instant Password Strength Meter (Fully mapped to DOM IDs) -->
+              <div id="onboard-strength-box" class="password-strength-box" style="display: none;">
+                <div class="strength-meter-header">
+                  <span class="strength-caption">Passkey Strength:</span>
+                  <span id="onboard-strength-score-text" class="strength-score font-mono">Weak</span>
+                </div>
+                <div class="strength-track">
+                  <div id="onboard-strength-bar" class="strength-bar-fill"></div>
+                </div>
+                <div class="strength-rules-grid">
+                  <span id="onboard-rule-length" class="strength-rule-pill"><span class="rule-icon">○</span> 8+ chars</span>
+                  <span id="onboard-rule-upper" class="strength-rule-pill"><span class="rule-icon">○</span> Uppercase</span>
+                  <span id="onboard-rule-number" class="strength-rule-pill"><span class="rule-icon">○</span> Number</span>
+                  <span id="onboard-rule-symbol" class="strength-rule-pill"><span class="rule-icon">○</span> Symbol</span>
+                </div>
+              </div>
+
+              <!-- Privacy Reassurance Callout -->
+              <div class="hipaa-compliance-card">
+                <span class="compliance-icon">🔒</span>
+                <div class="compliance-text">
+                  <strong>DISHA &amp; HIPAA-Aligned Clinical Ledger</strong>
+                  <p>Your vitals are stored on an encrypted, tamper-evident ledger. We never sell your personal health information.</p>
                 </div>
               </div>
 
               <div class="step-nav-actions">
                 <button type="button" class="back-step-btn" id="step-4-back-btn">&larr; Back</button>
                 <button type="submit" id="onboard-submit-btn" class="submit-btn primary-finish-btn">
-                  <span class="btn-text">Save Intake & Enter Consultation</span>
+                  <span class="btn-text">Save Intake &amp; Enter Consultation</span>
                 </button>
               </div>
             </div>
           </form>
+
+          <!-- Transition Sequence: Cinematic Companion Personalization Modal -->
+          <div id="onboard-transition-overlay" class="onboard-transition-overlay" style="display: none;" aria-live="assertive">
+            <div class="transition-modal-card">
+              <div class="transition-lotus-wrapper">
+                <div class="transition-mandala-ring"></div>
+                <div class="transition-mandala-ring ring-delayed"></div>
+                <div class="transition-lotus-core">🌱</div>
+              </div>
+              <h2 class="transition-title">Personalizing Your Health Companion...</h2>
+              <p class="transition-sub">Calibrating clinical protocols for <span id="transition-patient-name" class="patient-highlight">you</span></p>
+
+              <div class="transition-steps-list">
+                <div class="transition-step-row" id="trans-step-1">
+                  <span class="trans-check-icon">✓</span>
+                  <span class="trans-step-text">Calibrating metabolic baseline &amp; hydration targets...</span>
+                </div>
+                <div class="transition-step-row" id="trans-step-2">
+                  <span class="trans-check-icon">✓</span>
+                  <span class="trans-step-text">Tailoring PEP exercise safety boundaries...</span>
+                </div>
+                <div class="transition-step-row" id="trans-step-3">
+                  <span class="trans-check-icon">✓</span>
+                  <span class="trans-step-text">Connecting directly to Disha AI...</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </section>
       </div>
     </main>
@@ -527,16 +852,21 @@
             </div>
           </div>
 
-          <!-- Cryptographic Audit Hash -->
-          <div class="drawer-card">
-            <div class="drawer-header">
-              <h2 class="drawer-title">Audit Ledger State</h2>
-              <span class="badge-mini pass">Immutable SHA-256</span>
-            </div>
-            <div class="hash-display">
-              <span class="hash-label">Latest Head:</span>
-              <code id="latest-merkle-hash" class="hash-code">--</code>
-            </div>
+          <!-- Cryptographic Audit Hash (Discreet Collapsible Ledger) -->
+          <div class="drawer-card audit-disclosure-card">
+            <details class="clinical-audit-disclosure">
+              <summary class="audit-summary-header">
+                <span class="audit-badge-verified">✓ Record Cryptographically Verified</span>
+                <span class="audit-details-trigger">Technical Details &#9662;</span>
+              </summary>
+              <div class="audit-disclosure-body">
+                <p class="audit-disclosure-desc">Your clinical telemetry and consultation history are anchored to a tamper-evident SHA-256 Merkle root.</p>
+                <div class="hash-display">
+                  <span class="hash-label">Merkle Head:</span>
+                  <code id="latest-merkle-hash" class="hash-code">--</code>
+                </div>
+              </div>
+            </details>
           </div>
         </aside>
 

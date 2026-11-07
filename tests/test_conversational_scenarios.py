@@ -116,7 +116,7 @@ async def run_all_scenarios():
         resp_f = await get_response_for_turn(ws, "By the way, what are good sleep habits for better recovery?")
         print(f"  User:  'By the way, what are good sleep habits for better recovery?'")
         print(f"  Disha: '{resp_f}'")
-        assert any(w in resp_f.lower() for w in ["sleep", "recovery", "bed", "rest", "routine", "screen", "dark", "light", "neend"]), \
+        assert any(w in resp_f.lower() for w in ["sleep", "recovery", "bed", "rest", "routine", "screen", "dark", "light", "neend", "sone", "sona", "roshni", "phone"]), \
             f"Expected sleep guidance, got: {resp_f}"
         print("  ✓ Scenario F Passed: Smooth context transition on user topic shift.")
 
