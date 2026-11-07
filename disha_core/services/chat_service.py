@@ -84,7 +84,8 @@ async def generate_turn_sentences(
         ):
             emitted = True
             yield sentence
-    except Exception:
+    except Exception as exc:
+        logger.exception("Chat generation stream failed: %s", exc)
         state.validator_status = "provider_unavailable"
         if not emitted:
             yield "Disha abhi jawab nahi de paa rahi. Kripya thodi der baad phir koshish karein."

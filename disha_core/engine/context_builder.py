@@ -11,7 +11,7 @@ class ContextConnection(Protocol):
 PEP_SQL = """
 SELECT hypertension_stage, gym_clearance, allowed_modalities, restricted_modalities,
        primary_focus, secondary_focuses, user_reported_concerns, diagnosed_conditions,
-       language
+       language, dietary_preference
 FROM patient_pep WHERE patient_id = $1
 """
 DIET_SQL = """
@@ -77,6 +77,7 @@ async def build_patient_context(
 def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
     pep = context.get("pep")
     focus_xml = ""
+    diet_rule_xml = ""
     if pep:
         allowed = html.escape(", ".join(map(str, pep.get("allowed_modalities") or ())), quote=True)
         restricted = html.escape(", ".join(map(str, pep.get("restricted_modalities") or ())), quote=True)
@@ -94,6 +95,12 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
         raw_lang = str(pep.get("language") or "hinglish").strip().lower()
         valid_lang = raw_lang if raw_lang in {"english", "hindi", "hinglish"} else "hinglish"
         lang_xml = f'<USER_LANGUAGE preferred="{html.escape(valid_lang, quote=True)}"/>'
+        diet_pref = str(pep.get("dietary_preference") or "Vegetarian").strip()
+        is_veg = "veg" in diet_pref.lower() and "non" not in diet_pref.lower() and "egg" not in diet_pref.lower()
+        if is_veg:
+            diet_rule_xml = '<DIETARY_PREFERENCE preference="Vegetarian" FORBIDDEN="chicken, meat, poultry, fish, seafood, mutton, eggs"/>'
+        else:
+            diet_rule_xml = f'<DIETARY_PREFERENCE preference="{html.escape(diet_pref, quote=True)}"/>'
     else:
         pep_xml = '<PEP_PERMISSIONS status="NOT_FOUND"/>'
         lang_xml = '<USER_LANGUAGE preferred="hinglish"/>'
@@ -111,7 +118,7 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
     diet_xml = context.get("diet_slot_xml", "")
     if not isinstance(diet_xml, str):
         diet_xml = ""
-    return f'<PATIENT_PROFILE>{pep_xml}{focus_xml}{lang_xml}{diet_xml}</PATIENT_PROFILE>{clinical_xml}'
+    return f'<PATIENT_PROFILE>{pep_xml}{focus_xml}{lang_xml}{diet_rule_xml}{diet_xml}</PATIENT_PROFILE>{clinical_xml}'
 
 
 def add_approved_remedy_constraints(context: dict[str, Any], chunks: Any) -> None:

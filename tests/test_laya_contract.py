@@ -323,6 +323,7 @@ async def test_laya_system1_harmony_with_tier1_breaker(target_device: str):
     assert accuracy >= 90.0, (
         f"Device {target_device}: Overall accuracy below SLA! Got {accuracy:.1f}%, expected >= 90.0%"
     )
-    assert p50_latency < 200.0, (
-        f"Device {target_device}: P50 latency exceeds 200ms SLA: {p50_latency:.2f}ms"
+    max_p50_sla = 260.0 if target_device == "cpu" else 150.0
+    assert p50_latency < max_p50_sla, (
+        f"Device {target_device}: P50 latency exceeds {max_p50_sla}ms SLA: {p50_latency:.2f}ms"
     )

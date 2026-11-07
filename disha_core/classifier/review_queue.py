@@ -169,7 +169,15 @@ class ReviewQueueManager:
         self.scrubber = ZeroPHIScrubber()
         if db_path is None:
             db_env = os.getenv("REVIEW_QUEUE_DB")
-            db_path = Path(db_env) if db_env else Path("review_queue.db")
+            if db_env:
+                db_path = Path(db_env)
+            else:
+                db_candidate = Path("review_queue.db")
+                try:
+                    db_candidate.touch(exist_ok=True)
+                    db_path = db_candidate
+                except (OSError, PermissionError):
+                    db_path = Path("/tmp/review_queue.db")
         self.db_path = Path(db_path)
         self._mem_conn: sqlite3.Connection | None = (
             sqlite3.connect(":memory:", check_same_thread=False)

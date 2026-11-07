@@ -6,6 +6,16 @@ from typing import Any
 from fastapi import HTTPException
 
 
+def _pep_val(row: Any, key: str, default: Any = None) -> Any:
+    if not row:
+        return default
+    try:
+        val = row[key]
+        return val if val is not None else default
+    except (KeyError, IndexError, TypeError):
+        return default
+
+
 async def fetch_patient_profile(pool: Any, patient_id: str, day: str) -> dict[str, Any]:
     """Fetch patient clinical profile, PEP bounds, and prescribed day diet."""
     if pool is None:
@@ -44,22 +54,20 @@ async def fetch_patient_profile(pool: Any, patient_id: str, day: str) -> dict[st
         "day": day,
         "profile": dict(profile_row) if profile_row else None,
         "pep": {
-            "hypertension_stage": pep_row["hypertension_stage"] if pep_row else "normal",
-            "gym_clearance": pep_row["gym_clearance"] if pep_row else False,
+            "hypertension_stage": _pep_val(pep_row, "hypertension_stage", "normal"),
+            "gym_clearance": _pep_val(pep_row, "gym_clearance", False),
             "allowed_modalities": (
-                list(pep_row["allowed_modalities"])
-                if (pep_row and pep_row["allowed_modalities"])
-                else ["Brisk walking", "Gentle yoga"]
+                list(_pep_val(pep_row, "allowed_modalities", []))
+                or ["Brisk walking", "Gentle yoga"]
             ),
             "restricted_modalities": (
-                list(pep_row["restricted_modalities"])
-                if (pep_row and pep_row["restricted_modalities"])
-                else ["Heavy deadlifts", "Max weight lifting"]
+                list(_pep_val(pep_row, "restricted_modalities", []))
+                or ["Heavy deadlifts", "Max weight lifting"]
             ),
-            "primary_focus": pep_row["primary_focus"] if (pep_row and pep_row["primary_focus"]) else "",
-            "secondary_focuses": list(pep_row["secondary_focuses"]) if (pep_row and pep_row["secondary_focuses"]) else [],
-            "user_reported_concerns": pep_row["user_reported_concerns"] if (pep_row and pep_row["user_reported_concerns"]) else "",
-            "diagnosed_conditions": list(pep_row["diagnosed_conditions"]) if (pep_row and pep_row["diagnosed_conditions"]) else [],
+            "primary_focus": _pep_val(pep_row, "primary_focus", ""),
+            "secondary_focuses": list(_pep_val(pep_row, "secondary_focuses", [])),
+            "user_reported_concerns": _pep_val(pep_row, "user_reported_concerns", ""),
+            "diagnosed_conditions": list(_pep_val(pep_row, "diagnosed_conditions", [])),
         },
         "today_diet": diet_map,
     }

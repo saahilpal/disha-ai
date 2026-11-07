@@ -27,7 +27,12 @@ Core Conversational Guidelines:
 7. PEP & Health Focus: Personalize your guidance based on the user's self-reported main health focus and wellness interests (e.g. weight management, hair health, sexual wellness, habit recovery, sleep, skin, fitness). Distinguish clearly between self-reported health priorities and diagnosed medical conditions—never assume choosing a health focus means the user has a diagnosed illness.
 8. Sensitive topics: When discussing sensitive subjects (such as sexual wellness, addiction or habit recovery, and mental health), respond with complete privacy, emotional safety, warmth, and non-judgmental respect. Never force users to share sensitive details.
 9. Dynamic priority updates: When the user shifts their primary concern or priority during conversation, acknowledge their updated priority naturally and adapt your guidance while maintaining consistent context.
-10. Balanced nutritional moderation: Advocate for balanced portion moderation rather than extreme elimination or absolute food bans. Wholesome seasonal fruits (like fresh mangoes) can be enjoyed mindfully in moderation (e.g. up to 100g during daytime) within overall daily caloric balance, while remaining attentive to personal blood sugar context. Always recommend discussing significant dietary changes with a qualified doctor or dietitian."""
+10. Balanced nutritional moderation: Advocate for balanced portion moderation rather than extreme elimination or absolute food bans. Wholesome seasonal fruits (like fresh mangoes) can be enjoyed mindfully in moderation (e.g. up to 100g during daytime) within overall daily caloric balance, while remaining attentive to personal blood sugar context. Always recommend discussing significant dietary changes with a qualified doctor or dietitian.
+11. Healthcare Locality & Indian Medical Context: You operate strictly within the Indian healthcare context. Never refer to "urgent care clinics" (a US term); advise consulting their family doctor, local clinic, nursing home, or nearest hospital.
+12. Clinical Record Integrity & Zero Sycophancy: If a patient claims their lab reports or chronic diagnoses (e.g. Type-2 Diabetes, Hypothyroidism, Hypertension) were "mixed up" or tries to deny a chronic illness before extreme fasting, DO NOT validate the denial or apologize for the "mix-up". Firmly and neutrally ground them in their recorded medical history and refuse unsafe protocols.
+13. Natural Coach Tone: Never use robotic AI cliches like "As an AI model" or "As an AI health coach and not a licensed clinician". Frame boundaries warmly and naturally as a health coach.
+14. Strict Dietary Preference Invariant: If the user's profile specifies Vegetarian, NEVER recommend chicken, meat, fish, poultry, seafood, or eggs under any circumstances. Recommend plant-based proteins like paneer, tofu, moong dal, or sprouts.
+15. Shift Work Circadian Awareness: For night-shift and rotating workers, adapt meal advice dynamically to their sleep schedule (e.g. avoiding heavy meals 2-3 hours before their daytime sleep) rather than rigid daytime hours like "after 7 PM"."""
 
 _RETIRED_MODELS = {
     "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
@@ -46,7 +51,7 @@ class LLMSettings:
     gemini_api_key: str | None
     gemini_model: str | None
     base_url: str = "https://api.groq.com/openai/v1"
-    first_token_timeout: float = 3.5
+    first_token_timeout: float = 8.0
     groq_health_data_authorized: bool = False
     groq_usage_charges_authorized: bool = False
     gemini_health_data_authorized: bool = False
@@ -69,7 +74,7 @@ class LLMSettings:
             gemini_api_key=os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"),
             gemini_model=_RETIRED_MODELS.get(gemini_model, gemini_model),
             base_url=os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/"),
-            first_token_timeout=float(os.getenv("LLM_FIRST_TOKEN_TIMEOUT", "3.5")),
+            first_token_timeout=float(os.getenv("LLM_FIRST_TOKEN_TIMEOUT", "8.0")),
             groq_health_data_authorized=_enabled("GROQ_HEALTH_DATA_AUTHORIZED"),
             groq_usage_charges_authorized=_enabled("GROQ_USAGE_CHARGES_AUTHORIZED"),
             gemini_health_data_authorized=_enabled("GEMINI_HEALTH_DATA_AUTHORIZED"),

@@ -52,7 +52,7 @@ EMERGENCY_PATTERNS: dict[str, tuple[str, ...]] = {
         "stroke", "acute stroke", "face drooping", "one sided weakness", "slurred speech", "stroke symptoms",
         "hemiplegia", "transient ischemic attack", "facial droop", "suddenly paralyzed", "achanak behosh",
         "achanak chehra tedha", "bol nahi pa raha", "ek taraf kamzori",
-        "chehra ek taraf latak", "loss of balance", "blackout", "lakwa mar", "mirgi ka daura",
+        "chehra ek taraf latak", "loss of balance", "blackout ho gaya", "had a blackout", "sudden blackout", "blacked out", "blacking out", "lakwa mar", "mirgi ka daura",
         "worst headache of my life", "thunderclap headache", "grand mal", "epileptic seizure",
         "seizure", "convulsing", "unresponsive", "passed out", "completely unconscious",
         "zubaan ladkhada", "jhatke lag rahe",
@@ -255,7 +255,10 @@ class EmergencyBreaker:
             found = self._automaton.find(candidate)
             if found:
                 category, phrase = found
-                return self._result(started, category, phrase)
+                if phrase == "blackout" and re.search(r"\bblackout\s+(?:curtains?|shades?|blinds?|drapes?|window)\b", candidate):
+                    pass
+                else:
+                    return self._result(started, category, phrase)
             for phrase, pattern, category in self._regexes:
                 match = pattern.search(candidate)
                 if match:

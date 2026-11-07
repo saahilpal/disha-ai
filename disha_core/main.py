@@ -171,7 +171,8 @@ async def _turn_sentences(
             emitted = True
             generated_sentences.append(sentence)
             yield sentence
-    except Exception:
+    except Exception as exc:
+        logger.exception("LLM generation stream failed: %s", exc)
         state.validator_status = "provider_unavailable"
         if not emitted:
             yield "Disha abhi jawab nahi de paa rahi. Kripya thodi der baad phir koshish karein."

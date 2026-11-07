@@ -69,9 +69,9 @@ async def test_build_patient_context_query_safety():
 
 @pytest.mark.asyncio
 async def test_duplicate_registration_overwrites_existing_user():
-    """Vulnerability Proof: Registering an existing email overwrites the victim's profile
+    """Security Regression: Registering an existing email must be rejected with 409 Conflict
 
-    and generates an orphaned patient_id without returning 409 Conflict.
+    to prevent account hijacking or profile overwriting.
     """
     app = create_app()
     async with app.router.lifespan_context(app):
@@ -97,7 +97,7 @@ async def test_duplicate_registration_overwrites_existing_user():
             victim_pid = data_1["patient_id"]
             victim_token = data_1["token"]
 
-            # 2. Attacker registers with same email
+            # 2. Attacker attempts to register with same email
             r2 = await client.post("/auth/register", json={
                 "name": "Attacker Hijacker",
                 "email": unique_email,
@@ -108,27 +108,16 @@ async def test_duplicate_registration_overwrites_existing_user():
                 "weight_kg": 88.0,
                 "dietary_preference": "Non-Vegetarian",
             })
-            # FLAW: Returns 200 instead of 409 Conflict
-            assert r2.status_code == 200
-            data_2 = r2.json()
-            attacker_pid = data_2["patient_id"]
-            attacker_token = data_2["token"]
+            # Verified Security Fix: Returns 409 Conflict
+            assert r2.status_code == 409
+            assert "already exists" in r2.json()["detail"].lower()
 
-            # FLAW: A new patient_id was generated instead of rejecting the duplicate
-            assert attacker_pid != victim_pid
-
-            # 3. Inspect victim's profile via victim token: Name and vitals were silently overwritten!
+            # 3. Inspect victim's profile via victim token: Name and vitals must remain intact
             p1_res = await client.get("/patient/profile", headers={"Authorization": f"Bearer {victim_token}"})
             assert p1_res.status_code == 200
             victim_profile = p1_res.json()["profile"]
-            assert victim_profile["name"] == "Attacker Hijacker"
-            assert victim_profile["age"] == 48
-
-            # 4. Attacker's token points to orphaned patient_id; profile is null!
-            p2_res = await client.get("/patient/profile", headers={"Authorization": f"Bearer {attacker_token}"})
-            assert p2_res.status_code == 200
-            attacker_profile = p2_res.json()["profile"]
-            assert attacker_profile is None
+            assert victim_profile["name"] == "Victim User"
+            assert victim_profile["age"] == 32
 
 
 @pytest.mark.asyncio

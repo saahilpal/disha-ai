@@ -8,7 +8,7 @@ from functools import lru_cache
 ALIASES: dict[str, tuple[str, ...]] = {
     "GI_SYMPTOM_ACUTE": ("pet dard", "paet dard", "dast", "loose motions", "paet kharab"),
     "GI_BLOATING": ("bloating", "gas", "pet phoolna", "paet phoolna", "pet fulna"),
-    "FRUIT_MODERATION": ("mango", "aam", "fruits", "fruit"),
+    "FRUIT_MODERATION": ("mango", "mangoes", "aam", "alphonso", "seasonal fruit", "seasonal fruits"),
 }
 
 

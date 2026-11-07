@@ -140,8 +140,8 @@ async def register_patient(pool: Any, payload: OnboardingRequest) -> dict[str, A
                    patient_id, hypertension_stage, gym_clearance, 
                    allowed_modalities, restricted_modalities,
                    primary_focus, secondary_focuses, user_reported_concerns, diagnosed_conditions,
-                   language, updated_at
-               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+                   language, dietary_preference, updated_at
+               ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
                ON CONFLICT (patient_id) DO UPDATE SET
                    hypertension_stage = EXCLUDED.hypertension_stage,
                    gym_clearance = EXCLUDED.gym_clearance,
@@ -152,6 +152,7 @@ async def register_patient(pool: Any, payload: OnboardingRequest) -> dict[str, A
                    user_reported_concerns = EXCLUDED.user_reported_concerns,
                    diagnosed_conditions = EXCLUDED.diagnosed_conditions,
                    language = EXCLUDED.language,
+                   dietary_preference = EXCLUDED.dietary_preference,
                    updated_at = NOW()""",
             patient_id,
             htn_stage,
@@ -163,6 +164,7 @@ async def register_patient(pool: Any, payload: OnboardingRequest) -> dict[str, A
             other_focus,
             diagnosed_conds,
             language_val,
+            diet_pref,
         )
 
         # 4. Generate 7-day personalized diet schedules

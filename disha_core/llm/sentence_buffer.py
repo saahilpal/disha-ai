@@ -51,12 +51,6 @@ async def validated_sentences(
 ) -> AsyncIterator[str]:
     """Yield validated sentences only; never expose raw model tokens to the caller."""
     context = context or {}
-    if "GI_BLOATING" in (context.get("clinical_tags") or ()):
-        result = validator.validate_turn("", context)
-        await _close(chunks)
-        yield validator.sanitize_for_tts(result.text)
-        return
-
     intent = getattr(context.get("intent", ""), "value", context.get("intent", ""))
     if context.get("diet_status") == "NOT_FOUND" and str(intent).upper() in {"MEAL_QUERY", "RECIPE"}:
         result = validator.validate_sentence(MEAL_NOT_FOUND_REPLACEMENT, context)

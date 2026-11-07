@@ -16,7 +16,7 @@ PRICE_RE = re.compile(
     rf"(?P<amount_after>{AMOUNT}){AMOUNT_END}\s*(?P<currency_after>{CURRENCY})(?![A-Za-z]))", re.I,
 )
 PRICE_CONTEXT_RE = re.compile(
-    rf"(?:price|cost|subscription|plan|kitne\s+ka|kitni\s+hai|charge|fee).{{0,45}}?\b({AMOUNT}){AMOUNT_END}", re.I,
+    rf"(?:price|cost|subscription|paid\s+plan|subscription\s+plan|pricing\s+plan|plan\s+(?:ki\s+)?(?:fees?|price|cost|charges?)|kitne\s+ka|kitni\s+hai|charge|fee).{{0,45}}?\b({AMOUNT}){AMOUNT_END}", re.I,
 )
 MONTHLY_RE = re.compile(r"\b(?:per\s+month|monthly|a\s+month|per\s+mahina|mahine\s+ka)\b|/\s*month", re.I)
 IDENTITY_RE = re.compile(
@@ -108,6 +108,10 @@ def _strip_markdown(text: str) -> str:
     return MARKDOWN_RE.sub("", text)
 
 
+REPETITION_RE = re.compile(r"((?:\b\w+\b[\s,]*){2,6}?)(?:\s*\1){2,}", re.I)
+VEG_MEAT_RE = re.compile(r"\b(?:grilled\s+)?(?:chicken|mutton|fish|meat|poultry|seafood|prawns|beef|pork)\b", re.I)
+
+
 class SentenceValidator:
     def validate_sentence(self, sentence: str, context: dict[str, Any] | None = None) -> ValidationResult:
         context = context or {}
@@ -117,6 +121,17 @@ class SentenceValidator:
         if plain != text:
             text = plain
             reasons.append("markdown")
+
+        squashed = REPETITION_RE.sub(r"\1", text)
+        if squashed != text:
+            text = squashed
+            reasons.append("repetition_squashed")
+
+        diet_pref = str((context.get("pep") or context).get("dietary_preference", "")).casefold()
+        if "veg" in diet_pref and "non" not in diet_pref and "egg" not in diet_pref:
+            if VEG_MEAT_RE.search(text):
+                text = VEG_MEAT_RE.sub("paneer ya tofu", text)
+                reasons.append("vegetarian_guardrail")
 
         if CHANNEL_RE.search(text):
             text = CHANNEL_REPLACEMENT
