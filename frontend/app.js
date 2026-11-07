@@ -51,6 +51,8 @@
     transcriptHistory: [],
     lastDetectedIntent: 'General Wellness',
     wakeLock: null,
+    selectedAudioInputId: (typeof localStorage !== 'undefined' ? localStorage.getItem('disha_selected_audio_input') : null) || 'default',
+    selectedAudioOutputId: (typeof localStorage !== 'undefined' ? localStorage.getItem('disha_selected_audio_output') : null) || 'default',
   };
 
   // RFC 5322 Standard Email Regex with strict dot-atom local part (no leading, trailing, or consecutive dots)
@@ -290,6 +292,9 @@
     consentModal: typeof document !== 'undefined' ? document.getElementById('consent-modal') : null,
     consentCheckbox: typeof document !== 'undefined' ? document.getElementById('medical-consent-checkbox') : null,
     consentAcceptBtn: typeof document !== 'undefined' ? document.getElementById('consent-accept-btn') : null,
+    consentCancelBtn: typeof document !== 'undefined' ? document.getElementById('consent-cancel-btn') : null,
+    navSigninLink: typeof document !== 'undefined' ? document.getElementById('nav-signin-link') : null,
+    settingsForm: typeof document !== 'undefined' ? document.getElementById('settings-form') : null,
 
     // Acoustic Stethoscope
     stethoscopeCanvas: typeof document !== 'undefined' ? document.getElementById('stethoscope-canvas') : null,
@@ -315,14 +320,25 @@
     backendConnStatus: typeof document !== 'undefined' ? document.getElementById('backend-conn-status') : null,
   };
 
-  // --- THEME INITIALIZATION ---
+  // --- THEME INITIALIZATION & SYNCHRONIZATION ---
   if (dom.html) {
     dom.html.setAttribute('data-theme', state.theme);
+  }
+  if (dom.themeSelect) {
+    dom.themeSelect.value = state.theme;
+    dom.themeSelect.addEventListener('change', () => {
+      state.theme = dom.themeSelect.value;
+      if (dom.html) dom.html.setAttribute('data-theme', state.theme);
+      try {
+        localStorage.setItem('disha_theme', state.theme);
+      } catch (e) {}
+    });
   }
   if (dom.themeToggle) {
     dom.themeToggle.addEventListener('click', () => {
       state.theme = state.theme === 'dark' ? 'light' : 'dark';
       if (dom.html) dom.html.setAttribute('data-theme', state.theme);
+      if (dom.themeSelect) dom.themeSelect.value = state.theme;
       try {
         localStorage.setItem('disha_theme', state.theme);
       } catch (e) {}
@@ -876,6 +892,7 @@
     if (dom.authView) dom.authView.style.display = 'none';
     if (dom.dashboardView) dom.dashboardView.style.display = 'block';
     if (dom.patientBadge) dom.patientBadge.style.display = 'flex';
+    if (dom.navSigninLink) dom.navSigninLink.style.display = 'none';
     if (dom.patientDisplayName) dom.patientDisplayName.textContent = state.patientName || 'Patient';
 
     initSpectrumVisualizer();
@@ -1044,7 +1061,11 @@
     if (dom.dashboardView) dom.dashboardView.style.display = 'none';
     if (dom.authView) dom.authView.style.display = 'block';
     if (dom.patientBadge) dom.patientBadge.style.display = 'none';
+    if (dom.navSigninLink) dom.navSigninLink.style.display = 'inline-flex';
     setConnectionState('disconnected');
+    if (typeof window !== 'undefined') {
+      window.location.hash = '#/signin';
+    }
   }
 
   if (dom.signoutBtn) {
@@ -1289,8 +1310,29 @@
       // Screen Wake Lock
       await requestWakeLock();
 
-      // 2. Request microphone stream
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      // 2. Request microphone stream with device selection preference
+      if (typeof navigator === 'undefined' || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Microphone access is not supported in this browser or non-secure HTTP context (HTTPS required).');
+      }
+
+      const audioConstraints = {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      };
+      const preferredDevice = (dom.audioInputSelect && dom.audioInputSelect.value && dom.audioInputSelect.value !== 'default')
+        ? dom.audioInputSelect.value
+        : (state.selectedAudioInputId !== 'default' ? state.selectedAudioInputId : null);
+      if (preferredDevice) {
+        audioConstraints.deviceId = { exact: preferredDevice };
+      }
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: audioConstraints });
+      } catch (devErr) {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
       state.micStream = stream;
 
       // 3. Connect WebSocket
@@ -1317,7 +1359,13 @@
 
       setTelephonyStatus('listening');
     } catch (err) {
-      showAlert('Microphone or connection access denied: ' + err.message);
+      if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+        showAlert('Microphone permission denied. Please allow microphone access in your browser address bar permissions, then click Start Voice Consultation again.');
+      } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+        showAlert('No microphone device detected. Please connect an audio input device (headset or mic) and try again.');
+      } else {
+        showAlert('Microphone or connection access denied: ' + err.message);
+      }
       endCall();
     }
   }
@@ -1437,6 +1485,7 @@
     if (dom.spectrumBars) {
       state.specBars = Array.from(dom.spectrumBars.querySelectorAll('.spec-bar'));
     }
+    drawStethoscopeVisualizer(0);
   }
 
   function resetSpectrumVisualizer() {
@@ -1449,6 +1498,7 @@
         bar.style.height = '4px';
       });
     }
+    drawStethoscopeVisualizer(0);
   }
 
   function setupMicAnalyserAndVad(stream) {
@@ -1501,16 +1551,20 @@
             const ttsDataArray = new Uint8Array(ttsBufferLength);
             state.ttsAnalyser.getByteFrequencyData(ttsDataArray);
 
+            let ttsSum = 0;
             const numBars = state.specBars ? state.specBars.length : 0;
             if (numBars > 0 && ttsBufferLength > 0) {
               for (let i = 0; i < numBars; i++) {
                 const dataIdx = Math.min(ttsBufferLength - 1, Math.floor((i / numBars) * ttsBufferLength));
                 const rawVal = ttsDataArray[dataIdx];
                 const val = Number.isFinite(rawVal) ? rawVal : 0;
+                ttsSum += val;
                 const h = Math.max(4, Math.min(48, Math.round((val / 255) * 48)));
                 state.specBars[i].style.height = `${h}px`;
               }
             }
+            const ttsAvg = ttsBufferLength > 0 ? ttsSum / ttsBufferLength : 0;
+            drawStethoscopeVisualizer(ttsAvg);
           } else {
             analyser.getByteFrequencyData(dataArray);
 
@@ -1531,6 +1585,9 @@
           let sum = 0;
           for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
           const avg = bufferLength > 0 ? sum / bufferLength : 0;
+          if (!state.isPlayingAudio) {
+            drawStethoscopeVisualizer(avg);
+          }
 
           if (avg > ENERGY_THRESHOLD) {
             if (state.isPlayingAudio) {
@@ -1766,6 +1823,7 @@
     };
     document.addEventListener('click', tryResumeAudio, { passive: true });
     document.addEventListener('touchstart', tryResumeAudio, { passive: true });
+    document.addEventListener('touchend', tryResumeAudio, { passive: true });
   }
 
   // Early initialization of visualizer specBars on DOM load
@@ -1784,8 +1842,9 @@
   };
 
   function navigate(rawRoute) {
-    const route = (rawRoute || '').replace(/^#\/?/, '').trim() || (state.token ? 'home' : 'signin');
-    const targetKey = views[route] ? route : (route === '' ? (state.token ? 'home' : 'signin') : '404');
+    const cleanRoute = (rawRoute || '').replace(/^#\/?/, '').split('?')[0].trim();
+    const route = cleanRoute || (state.token ? 'home' : 'signin');
+    const targetKey = views[route] ? route : (cleanRoute === '' ? (state.token ? 'home' : 'signin') : '404');
 
     // Update view containers visibility
     Object.keys(views).forEach(k => {
@@ -1811,6 +1870,17 @@
           tab.classList.remove('active');
         }
       });
+    }
+
+    // Update auth pill vs sign-in button
+    if (dom.navSigninLink && dom.patientBadge) {
+      if (state.token) {
+        dom.navSigninLink.style.display = 'none';
+        dom.patientBadge.style.display = 'flex';
+      } else {
+        dom.navSigninLink.style.display = 'inline-flex';
+        dom.patientBadge.style.display = 'none';
+      }
     }
 
     if (targetKey === 'settings') {
@@ -1873,6 +1943,10 @@
             opt.textContent = d.label || `Microphone ${idx + 1}`;
             dom.audioInputSelect.appendChild(opt);
           });
+          const savedInput = typeof localStorage !== 'undefined' ? localStorage.getItem('disha_selected_audio_input') : null;
+          if (savedInput && Array.from(dom.audioInputSelect.options).some(o => o.value === savedInput)) {
+            dom.audioInputSelect.value = savedInput;
+          }
         }
       }
       if (dom.audioOutputSelect) {
@@ -1887,6 +1961,10 @@
             opt.textContent = d.label || `Speaker ${idx + 1}`;
             dom.audioOutputSelect.appendChild(opt);
           });
+          const savedOutput = typeof localStorage !== 'undefined' ? localStorage.getItem('disha_selected_audio_output') : null;
+          if (savedOutput && Array.from(dom.audioOutputSelect.options).some(o => o.value === savedOutput)) {
+            dom.audioOutputSelect.value = savedOutput;
+          }
         }
       }
     } catch (e) {
@@ -1895,35 +1973,89 @@
   }
 
   // --- CLINICAL ACOUSTIC STETHOSCOPE VISUALIZER ---
+  let smoothedStethoscopeEnergy = 0;
+
   function drawStethoscopeVisualizer(energy) {
     if (!dom.stethoscopeCanvas) return;
     try {
       const canvas = dom.stethoscopeCanvas;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext ? canvas.getContext('2d') : null;
       if (!ctx) return;
-      const w = canvas.width;
-      const h = canvas.height;
+
+      const dpr = (typeof window !== 'undefined' && window.devicePixelRatio) ? Math.min(window.devicePixelRatio, 3) : 1;
+      const cssSize = 160;
+      if (canvas.width !== cssSize * dpr || canvas.height !== cssSize * dpr) {
+        canvas.width = cssSize * dpr;
+        canvas.height = cssSize * dpr;
+      }
+
+      ctx.save();
+      ctx.scale(dpr, dpr);
+      const w = cssSize;
+      const h = cssSize;
       const cx = w / 2;
       const cy = h / 2;
 
       ctx.clearRect(0, 0, w, h);
 
       const safeEnergy = Number.isFinite(energy) ? Math.min(100, Math.max(0, energy)) : 0;
-      const normalized = safeEnergy / 100;
+      // 60fps micro-haptic dampening for ultra-smooth fluid response
+      smoothedStethoscopeEnergy += (safeEnergy - smoothedStethoscopeEnergy) * 0.22;
+      const normalized = Math.max(0, Math.min(1, smoothedStethoscopeEnergy / 100));
 
-      // Draw concentric acoustic ripples
-      const rings = 3;
-      for (let i = 1; i <= rings; i++) {
-        const radius = 28 + (i * 16) + (normalized * i * 8);
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
-        const alpha = Math.max(0.08, 0.45 - (i * 0.12) + (normalized * 0.2));
-        ctx.strokeStyle = state.theme === 'dark'
-          ? `rgba(45, 122, 91, ${alpha})`
-          : `rgba(27, 94, 67, ${alpha})`;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
+      const isDark = state.theme === 'dark';
+      // Clinical Apothecary Palette Tokens:
+      // Emerald: #2D6A4F -> rgb(45, 106, 79)
+      // Sage: #52796F -> rgb(82, 121, 111)
+      // Soft Wash: #E0EFEA -> rgb(224, 239, 234)
+      // Dark Slate: #1A231F -> rgb(26, 35, 31)
+
+      // 1. Subtle radial diaphragm disc
+      const innerRadius = 24 + (normalized * 6);
+      ctx.beginPath();
+      ctx.arc(cx, cy, innerRadius, 0, 2 * Math.PI);
+      ctx.fillStyle = isDark
+        ? `rgba(82, 121, 111, ${0.12 + normalized * 0.18})`
+        : `rgba(224, 239, 234, ${0.30 + normalized * 0.40})`;
+      ctx.fill();
+
+      // 2. Concentric acoustic wave ripples (3 precision rings)
+      const rings = [
+        { base: 30, scale: 10, stroke: isDark ? 'rgba(82, 121, 111, ' : 'rgba(45, 106, 79, ', baseAlpha: 0.50, width: 1.5 },
+        { base: 48, scale: 16, stroke: isDark ? 'rgba(82, 121, 111, ' : 'rgba(82, 121, 111, ', baseAlpha: 0.32, width: 1.2 },
+        { base: 66, scale: 20, stroke: isDark ? 'rgba(82, 121, 111, ' : 'rgba(82, 121, 111, ', baseAlpha: 0.16, width: 1.0 },
+      ];
+
+      for (let i = 0; i < rings.length; i++) {
+        const rConf = rings[i];
+        const r = rConf.base + (normalized * rConf.scale);
+        if (r < (w / 2) - 2) {
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, 2 * Math.PI);
+          const alpha = Math.max(0.06, Math.min(0.85, rConf.baseAlpha + (normalized * 0.25)));
+          ctx.strokeStyle = `${rConf.stroke}${alpha})`;
+          ctx.lineWidth = rConf.width;
+          ctx.stroke();
+        }
       }
+
+      // 3. Clinical diaphragm alignment calipers (subtle 4-point ticks)
+      const tickLength = 4;
+      const caliperR = 26;
+      ctx.strokeStyle = isDark ? 'rgba(234, 240, 236, 0.25)' : 'rgba(26, 35, 31, 0.25)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(cx, cy - caliperR);
+      ctx.lineTo(cx, cy - caliperR + tickLength);
+      ctx.moveTo(cx, cy + caliperR);
+      ctx.lineTo(cx, cy + caliperR - tickLength);
+      ctx.moveTo(cx - caliperR, cy);
+      ctx.lineTo(cx - caliperR + tickLength, cy);
+      ctx.moveTo(cx + caliperR, cy);
+      ctx.lineTo(cx + caliperR - tickLength, cy);
+      ctx.stroke();
+
+      ctx.restore();
     } catch (e) {}
   }
 
@@ -2002,6 +2134,15 @@
     });
   }
 
+  if (dom.consentCancelBtn) {
+    dom.consentCancelBtn.addEventListener('click', () => {
+      if (dom.consentModal) dom.consentModal.style.display = 'none';
+      setTelephonyStatus('idle');
+      if (dom.callBtn) dom.callBtn.className = 'telephony-call-btn state-idle';
+      if (dom.callBtnLabel) dom.callBtnLabel.textContent = 'Start Voice Consultation';
+    });
+  }
+
   // Demo Accounts Click Handlers
   const demoButtons = typeof document !== 'undefined' ? document.querySelectorAll('.demo-btn') : [];
   demoButtons.forEach(btn => {
@@ -2049,6 +2190,61 @@
         dom.backendConnStatus.textContent = `❌ Unreachable: ${err.message}`;
         dom.backendConnStatus.style.color = 'var(--color-emergency)';
       }
+    });
+  }
+
+  // Audio Device Selection & Hardware Handlers
+  if (dom.audioInputSelect) {
+    dom.audioInputSelect.addEventListener('change', () => {
+      state.selectedAudioInputId = dom.audioInputSelect.value;
+      try {
+        localStorage.setItem('disha_selected_audio_input', state.selectedAudioInputId);
+      } catch (e) {}
+    });
+  }
+
+  if (dom.audioOutputSelect) {
+    dom.audioOutputSelect.addEventListener('change', async () => {
+      state.selectedAudioOutputId = dom.audioOutputSelect.value;
+      try {
+        localStorage.setItem('disha_selected_audio_output', state.selectedAudioOutputId);
+      } catch (e) {}
+      if (state.currentHtmlAudio && typeof state.currentHtmlAudio.setSinkId === 'function') {
+        try {
+          await state.currentHtmlAudio.setSinkId(state.selectedAudioOutputId === 'default' ? '' : state.selectedAudioOutputId);
+        } catch (err) {
+          console.warn('[Disha AudioOutput] setSinkId failed:', err);
+        }
+      }
+    });
+  }
+
+  if (dom.wakeLockToggle) {
+    dom.wakeLockToggle.addEventListener('change', async () => {
+      if (!dom.wakeLockToggle.checked && state.wakeLock) {
+        await releaseWakeLock();
+      } else if (dom.wakeLockToggle.checked && state.isInCall) {
+        await requestWakeLock();
+      }
+    });
+  }
+
+  if (dom.micBtn) {
+    dom.micBtn.addEventListener('click', () => {
+      if (dom.callBtn) dom.callBtn.click();
+    });
+  }
+
+  if (dom.settingsForm) {
+    dom.settingsForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (dom.saveBackendUrlBtn) dom.saveBackendUrlBtn.click();
+    });
+  }
+
+  if (typeof navigator !== 'undefined' && navigator.mediaDevices && navigator.mediaDevices.addEventListener) {
+    navigator.mediaDevices.addEventListener('devicechange', () => {
+      populateAudioDevices();
     });
   }
 

@@ -275,3 +275,91 @@ All automated evaluation runs and audit scores are recorded here.
 - **Golden Corpus:** 2,703 turns verified with FVR < 0.001
 - **P95 Latency Overhead:** `1.4139ms`
 - **Reports:** [`audit_report_2026-11-07T18-19-32.893836_05-30.json`](reports/audit_report_2026-11-07T18-19-32.893836_05-30.json) | [`audit_report_2026-11-07T18-19-32.893836_05-30.md`](reports/audit_report_2026-11-07T18-19-32.893836_05-30.md)
+
+## [2026-11-07T18:54:06.165416+05:30] — Deterministic Audit Execution
+- **Final Score:** `98.33 / 100.0` (PASSED_UNCONSTRAINED)
+- **Hard Constraints:** All 12 Hard Constraints (C1–C12) Passed
+- **Laya Real AI Classifier:** Verified genuine in live request path
+- **UI/UX Architecture:** Verified 32/32 diagnostics & full SPA view integrity
+- **Emergency Breaker:** 100/100 intercepted (<0.05ms)
+- **Unit Tests:** 48/48 pytest invariants passed
+- **Golden Corpus:** 2,703 turns verified with FVR < 0.001
+- **P95 Latency Overhead:** `2.0702ms`
+- **Reports:** [`audit_report_2026-11-07T18-54-06.165416_05-30.json`](reports/audit_report_2026-11-07T18-54-06.165416_05-30.json) | [`audit_report_2026-11-07T18-54-06.165416_05-30.md`](reports/audit_report_2026-11-07T18-54-06.165416_05-30.md)
+
+## [2026-11-07T18:54:11.040262+05:30] — Deterministic Audit Execution
+- **Final Score:** `98.33 / 100.0` (PASSED_UNCONSTRAINED)
+- **Hard Constraints:** All 12 Hard Constraints (C1–C12) Passed
+- **Laya Real AI Classifier:** Verified genuine in live request path
+- **UI/UX Architecture:** Verified 32/32 diagnostics & full SPA view integrity
+- **Emergency Breaker:** 100/100 intercepted (<0.05ms)
+- **Unit Tests:** 48/48 pytest invariants passed
+- **Golden Corpus:** 2,703 turns verified with FVR < 0.001
+- **P95 Latency Overhead:** `1.6786ms`
+- **Reports:** [`audit_report_2026-11-07T18-54-11.040262_05-30.json`](reports/audit_report_2026-11-07T18-54-11.040262_05-30.json) | [`audit_report_2026-11-07T18-54-11.040262_05-30.md`](reports/audit_report_2026-11-07T18-54-11.040262_05-30.md)
+
+## [2026-11-07T19:08:20.636898+05:30] — Deterministic Audit Execution
+- **Final Score:** `94.17 / 100.0` (PASSED_UNCONSTRAINED)
+- **Hard Constraints:** All 12 Hard Constraints (C1–C12) Passed
+- **Laya Real AI Classifier:** Verified genuine in live request path
+- **UI/UX Architecture:** Verified 32/32 diagnostics & full SPA view integrity
+- **Emergency Breaker:** 100/100 intercepted (<0.05ms)
+- **Unit Tests:** 48/48 pytest invariants passed
+- **Golden Corpus:** 2,703 turns verified with FVR < 0.001
+- **P95 Latency Overhead:** `4.3823ms`
+- **Reports:** [`audit_report_2026-11-07T19-08-20.636898_05-30.json`](reports/audit_report_2026-11-07T19-08-20.636898_05-30.json) | [`audit_report_2026-11-07T19-08-20.636898_05-30.md`](reports/audit_report_2026-11-07T19-08-20.636898_05-30.md)
+
+## [2026-11-07T19:08:27.964518+05:30] — Deterministic Audit Execution
+- **Final Score:** `94.17 / 100.0` (PASSED_UNCONSTRAINED)
+- **Hard Constraints:** All 12 Hard Constraints (C1–C12) Passed
+- **Laya Real AI Classifier:** Verified genuine in live request path
+- **UI/UX Architecture:** Verified 32/32 diagnostics & full SPA view integrity
+- **Emergency Breaker:** 100/100 intercepted (<0.05ms)
+- **Unit Tests:** 48/48 pytest invariants passed
+- **Golden Corpus:** 2,703 turns verified with FVR < 0.001
+- **P95 Latency Overhead:** `3.5581ms`
+- **Reports:** [`audit_report_2026-11-07T19-08-27.964518_05-30.json`](reports/audit_report_2026-11-07T19-08-27.964518_05-30.json) | [`audit_report_2026-11-07T19-08-27.964518_05-30.md`](reports/audit_report_2026-11-07T19-08-27.964518_05-30.md)
+
+## [2026-11-07T19:15:58.052113+05:30] — Deterministic Audit Execution
+- **Final Score:** `96.67 / 100.0` (PASSED_UNCONSTRAINED)
+- **Hard Constraints:** All 12 Hard Constraints (C1–C12) Passed
+- **Laya Real AI Classifier:** Verified genuine in live request path
+- **UI/UX Architecture:** Verified 32/32 diagnostics & full SPA view integrity
+- **Emergency Breaker:** 100/100 intercepted (<0.05ms)
+- **Unit Tests:** 48/48 pytest invariants passed
+- **Golden Corpus:** 2,703 turns verified with FVR < 0.001
+- **P95 Latency Overhead:** `2.924ms`
+- **Reports:** [`audit_report_2026-11-07T19-15-58.052113_05-30.json`](reports/audit_report_2026-11-07T19-15-58.052113_05-30.json) | [`audit_report_2026-11-07T19-15-58.052113_05-30.md`](reports/audit_report_2026-11-07T19-15-58.052113_05-30.md)
+
+## [2026-11-07T19:16:10.857607+05:30] — Deterministic Audit Execution
+- **Final Score:** `98.33 / 100.0` (PASSED_UNCONSTRAINED)
+- **Hard Constraints:** All 12 Hard Constraints (C1–C12) Passed
+- **Laya Real AI Classifier:** Verified genuine in live request path
+- **UI/UX Architecture:** Verified 32/32 diagnostics & full SPA view integrity
+- **Emergency Breaker:** 100/100 intercepted (<0.05ms)
+- **Unit Tests:** 48/48 pytest invariants passed
+- **Golden Corpus:** 2,703 turns verified with FVR < 0.001
+- **P95 Latency Overhead:** `1.6238ms`
+- **Reports:** [`audit_report_2026-11-07T19-16-10.857607_05-30.json`](reports/audit_report_2026-11-07T19-16-10.857607_05-30.json) | [`audit_report_2026-11-07T19-16-10.857607_05-30.md`](reports/audit_report_2026-11-07T19-16-10.857607_05-30.md)
+
+## [2026-11-07T19:23:38.339545+05:30] — Deterministic Audit Execution
+- **Final Score:** `98.33 / 100.0` (PASSED_UNCONSTRAINED)
+- **Hard Constraints:** All 12 Hard Constraints (C1–C12) Passed
+- **Laya Real AI Classifier:** Verified genuine in live request path
+- **UI/UX Architecture:** Verified 32/32 diagnostics & full SPA view integrity
+- **Emergency Breaker:** 100/100 intercepted (<0.05ms)
+- **Unit Tests:** 48/48 pytest invariants passed
+- **Golden Corpus:** 2,703 turns verified with FVR < 0.001
+- **P95 Latency Overhead:** `2.0587ms`
+- **Reports:** [`audit_report_2026-11-07T19-23-38.339545_05-30.json`](reports/audit_report_2026-11-07T19-23-38.339545_05-30.json) | [`audit_report_2026-11-07T19-23-38.339545_05-30.md`](reports/audit_report_2026-11-07T19-23-38.339545_05-30.md)
+
+## [2026-11-07T19:23:57.420764+05:30] — Deterministic Audit Execution
+- **Final Score:** `98.33 / 100.0` (PASSED_UNCONSTRAINED)
+- **Hard Constraints:** All 12 Hard Constraints (C1–C12) Passed
+- **Laya Real AI Classifier:** Verified genuine in live request path
+- **UI/UX Architecture:** Verified 32/32 diagnostics & full SPA view integrity
+- **Emergency Breaker:** 100/100 intercepted (<0.05ms)
+- **Unit Tests:** 48/48 pytest invariants passed
+- **Golden Corpus:** 2,703 turns verified with FVR < 0.001
+- **P95 Latency Overhead:** `1.5203ms`
+- **Reports:** [`audit_report_2026-11-07T19-23-57.420764_05-30.json`](reports/audit_report_2026-11-07T19-23-57.420764_05-30.json) | [`audit_report_2026-11-07T19-23-57.420764_05-30.md`](reports/audit_report_2026-11-07T19-23-57.420764_05-30.md)

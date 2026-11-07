@@ -1,0 +1,177 @@
+{
+  "hardware": "Apple Silicon M5 (10 cores, 16GB LPDDR5X)",
+  "models": {
+    "Groq Whisper-large-v3-turbo": {
+      "avg_wer": 0.1136,
+      "avg_latency_p50_ms": 600.37,
+      "peak_ram_mb": 6.2,
+      "cost_per_1k_turns_usd": 0.04,
+      "offline_support": false,
+      "hipaa_egress_risk": "Requires explicit BAA / user consent"
+    },
+    "Local faster-whisper tiny (int8)": {
+      "avg_wer": 0.7454,
+      "avg_latency_p50_ms": 1351.53,
+      "peak_ram_mb": 346.3,
+      "cost_per_1k_turns_usd": 0.0,
+      "offline_support": true,
+      "hipaa_egress_risk": "Zero (Local in-process inference)"
+    },
+    "Local faster-whisper base (int8)": {
+      "avg_wer": 0.8746,
+      "avg_latency_p50_ms": 1251.75,
+      "peak_ram_mb": 212.7,
+      "cost_per_1k_turns_usd": 0.0,
+      "offline_support": true,
+      "hipaa_egress_risk": "Zero (Local in-process inference)"
+    }
+  },
+  "details": {
+    "groq_whisper_turbo": [
+      {
+        "id": "acute_gi",
+        "category": "Emergency / GI",
+        "reference_deva": "\u092a\u0947\u091f \u092e\u0947\u0902 \u092c\u0939\u0941\u0924 \u0924\u0947\u091c \u0926\u0930\u094d\u0926 \u0939\u094b \u0930\u0939\u093e \u0939\u0948 \u0914\u0930 \u0924\u0940\u0928 \u092c\u093e\u0930 \u0909\u0932\u094d\u091f\u0940 \u0939\u0941\u0908 \u0939\u0948\u0964",
+        "hypothesis": "\u092a\u0947\u091f \u092e\u0947\u0902 \u092c\u0939\u0941\u0924 \u0924\u0947\u091c \u0926\u0930\u094d\u0926 \u0939\u094b \u0930\u0939\u093e \u0939\u0948 \u0914\u0930 \u0924\u0940\u0928 \u092c\u093e\u0930 \u0909\u0932\u094d\u091f\u0940 \u0939\u0941\u0908 \u0939\u0948\u0964",
+        "script": "Devanagari",
+        "wer": 0.0,
+        "latency_p50_ms": 537.16,
+        "latency_p95_ms": 645.24
+      },
+      {
+        "id": "med_dosage",
+        "category": "Medication Safety",
+        "reference_deva": "\u092e\u0947\u0930\u093e blood sugar 240 \u0906\u092f\u093e \u0939\u0948, \u0915\u094d\u092f\u093e \u092e\u0941\u091d\u0947 metformin \u0915\u0940 dose double \u0915\u0930\u0928\u0940 \u091a\u093e\u0939\u093f\u090f?",
+        "hypothesis": "\u092e\u0947\u0930\u093e \u092c\u094d\u0932\u093e\u0921 \u0936\u0941\u0917\u0930 240 \u0906\u092f\u093e \u0939\u0948, \u0915\u094d\u092f\u093e \u092e\u0941\u091d\u0947 \u092e\u0947\u091f\u092b\u0949\u0930\u094d\u092e\u093f\u0928 \u0915\u0940 \u0921\u094b\u091c \u0921\u092c\u0932 \u0915\u0930\u0928\u0940 \u091a\u093e\u0939\u093f\u090f?",
+        "script": "Devanagari",
+        "wer": 0.3571,
+        "latency_p50_ms": 472.75,
+        "latency_p95_ms": 646.79
+      },
+      {
+        "id": "cardiac_redflag",
+        "category": "Red Flag Cardiac",
+        "reference_deva": "\u092e\u0941\u091d\u0947 \u0938\u0940\u0928\u0947 \u092e\u0947\u0902 \u092d\u093e\u0930\u0940 \u0926\u0930\u094d\u0926 \u0939\u094b \u0930\u0939\u093e \u0939\u0948, \u092a\u0938\u0940\u0928\u093e \u091b\u0942\u091f \u0930\u0939\u093e \u0939\u0948 \u0914\u0930 \u0909\u0932\u094d\u091f\u0940 \u091c\u0948\u0938\u093e \u0932\u0917 \u0930\u0939\u093e \u0939\u0948\u0964",
+        "hypothesis": "\u092e\u0941\u091d\u0947 \u0938\u0940\u0928\u0947 \u092e\u0947\u0902 \u092d\u093e\u0930\u0940 \u0926\u0930\u094d\u0927 \u0939\u094b \u0930\u0939\u093e \u0939\u0948, \u092a\u0938\u0940\u0928\u093e \u091b\u0942\u091f \u0930\u0939\u093e \u0939\u0948 \u0914\u0930 \u0909\u0932\u094d\u0924\u0940 \u091c\u0948\u0938\u093e \u0932\u0917 \u0930\u0939\u093e \u0939\u0948\u0964",
+        "script": "Devanagari",
+        "wer": 0.1111,
+        "latency_p50_ms": 332.62,
+        "latency_p95_ms": 811.91
+      },
+      {
+        "id": "diet_advice",
+        "category": "Chronic Nutrition",
+        "reference_deva": "\u0936\u0941\u0917\u0930 \u0915\u0947 \u092e\u0930\u0940\u091c \u0915\u094b \u0938\u0941\u092c\u0939 \u0928\u093e\u0936\u094d\u0924\u0947 \u092e\u0947\u0902 \u0915\u094d\u092f\u093e \u0916\u093e\u0928\u093e \u091a\u093e\u0939\u093f\u090f?",
+        "hypothesis": "\u0936\u0941\u0917\u0930 \u0915\u0947 \u092e\u0930\u0940\u091c \u0915\u094b \u0938\u0941\u092c\u093e \u0928\u093e\u0936\u094d\u0924\u0947 \u092e\u0947\u0902 \u0915\u094d\u092f\u093e \u0916\u093e\u0928\u093e \u091a\u093e\u0939\u093f\u090f?",
+        "script": "Devanagari",
+        "wer": 0.1,
+        "latency_p50_ms": 816.36,
+        "latency_p95_ms": 970.32
+      },
+      {
+        "id": "pricing_admin",
+        "category": "Admin / Pricing",
+        "reference_deva": "\u0915\u0902\u0938\u0932\u094d\u091f\u0947\u0936\u0928 \u092b\u0940\u0938 \u0915\u093f\u0924\u0928\u0940 \u0939\u0948 \u0914\u0930 \u092b\u0949\u0932\u094b \u0905\u092a \u092b\u094d\u0930\u0940 \u0939\u0948 \u0915\u094d\u092f\u093e?",
+        "hypothesis": "\u0915\u0902\u0938\u0932\u094d\u091f\u0947\u0936\u0928 \u092b\u0940\u0938 \u0915\u093f\u0924\u0928\u0940 \u0939\u0948 \u0914\u0930 \u092b\u0949\u0932\u094b \u0905\u092a \u092b\u094d\u0930\u0940 \u0939\u0948 \u0915\u094d\u092f\u093e?",
+        "script": "Devanagari",
+        "wer": 0.0,
+        "latency_p50_ms": 842.98,
+        "latency_p95_ms": 879.66
+      }
+    ],
+    "faster_whisper_tiny": [
+      {
+        "id": "acute_gi",
+        "category": "Emergency / GI",
+        "hypothesis": "Pate me bohattis dharth huraha hai,  and 3 bar ulty hui hai.",
+        "script": "Latin",
+        "wer": 0.7857,
+        "latency_p50_ms": 2270.71,
+        "latency_p95_ms": 2944.88
+      },
+      {
+        "id": "med_dosage",
+        "category": "Medication Safety",
+        "hypothesis": "Meera Blatt Sugar 200 chali saaya hai,  Kya me je metformin ki dos double kar ni chahi?",
+        "script": "Latin",
+        "wer": 0.7857,
+        "latency_p50_ms": 1933.44,
+        "latency_p95_ms": 2604.19
+      },
+      {
+        "id": "cardiac_redflag",
+        "category": "Red Flag Cardiac",
+        "hypothesis": "which is seenay me bhaari dharth huraha hai.  Paseena chutraha hai and ulty jaya sa lagraha hai.",
+        "script": "Latin",
+        "wer": 0.7778,
+        "latency_p50_ms": 523.41,
+        "latency_p95_ms": 536.9
+      },
+      {
+        "id": "diet_advice",
+        "category": "Chronic Nutrition",
+        "hypothesis": "Schugar ke maris ko suba nashte me kya khaana chahi",
+        "script": "Latin",
+        "wer": 0.6,
+        "latency_p50_ms": 1625.51,
+        "latency_p95_ms": 1920.62
+      },
+      {
+        "id": "pricing_admin",
+        "category": "Admin / Pricing",
+        "hypothesis": "Consultation fees is so much and follow up free.",
+        "script": "Latin",
+        "wer": 0.7778,
+        "latency_p50_ms": 404.56,
+        "latency_p95_ms": 424.08
+      }
+    ],
+    "faster_whisper_base": [
+      {
+        "id": "acute_gi",
+        "category": "Emergency / GI",
+        "hypothesis": "Pate \u0645\u06cc\u06ba \u0628\u06c1\u062a \u062a\u06cc\u0633 \u062f\u0631\u062f\u06be \u06c1\u0648 \u0631\u06c1\u0627 \u06c1\u06d2 \u0627\u0648\u0631 3 \u0628\u0627\u0631 \u0688\u06cc \u06c1\u06cc \u06c1\u06d2",
+        "script": "Latin",
+        "wer": 1.0,
+        "latency_p50_ms": 1017.9,
+        "latency_p95_ms": 1096.9
+      },
+      {
+        "id": "med_dosage",
+        "category": "Medication Safety",
+        "hypothesis": "\u0645\u06cc\u0631\u0627 Blatt Sugar 20040 Saya,  \u06a9\u06cc\u0627 \u0645\u062c\u06be\u06d2 \u0645\u0679\u06be \u0641\u0648\u0631\u0645\u0646 \u06a9\u06cc \u062f\u0648\u0632 \u062f\u0628\u0644 \u06a9\u0631\u0646\u06cc \u0686\u0627\u06c1\u06cc\u06d2?",
+        "script": "Latin",
+        "wer": 0.9286,
+        "latency_p50_ms": 1275.13,
+        "latency_p95_ms": 1297.79
+      },
+      {
+        "id": "cardiac_redflag",
+        "category": "Red Flag Cardiac",
+        "hypothesis": "\u06be\u0648\u0691\u06be\u06d2 \u0633\u06cc\u0646\u06d2 \u0645\u06cc\u06ba \u0628\u06be\u0627\u0631\u06cc \u062f\u0631\u062f\u06be \u06c1\u0648 \u0631\u06c1\u0627 \u06c1\u06d2  \u067e\u0633\u06cc\u0646\u06c1 \u0686\u06be\u0679 \u0631\u06c1\u0627 \u06c1\u06d2  \u0627\u0648\u0631 \u0627\u0648\u0644\u062a\u06cc \u062c\u06cc\u0633\u0627 \u0644\u06af\u0631\u06c1\u0627 \u06c1\u06d2",
+        "script": "Latin",
+        "wer": 1.0,
+        "latency_p50_ms": 1326.41,
+        "latency_p95_ms": 1410.42
+      },
+      {
+        "id": "diet_advice",
+        "category": "Chronic Nutrition",
+        "hypothesis": "\u0634\u06af\u0631 \u06a9\u06d2 \u0645\u0631\u06cc\u0632 \u06a9\u0648 \u0633\u0628\u06c1 \u0646\u0627\u0634\u062a\u06d2 \u0645\u06cc\u06ba \u06a9\u06cc\u0627 \u06a9\u06be\u0627\u0646\u0627 \u062c\u0627\u06c1\u06cc\u06d2",
+        "script": "Latin",
+        "wer": 1.0,
+        "latency_p50_ms": 1151.62,
+        "latency_p95_ms": 1159.05
+      },
+      {
+        "id": "pricing_admin",
+        "category": "Admin / Pricing",
+        "hypothesis": "Consultation, feasts, kitni hai, aur follow up free hai kiya?",
+        "script": "Latin",
+        "wer": 0.4444,
+        "latency_p50_ms": 1487.67,
+        "latency_p95_ms": 1492.77
+      }
+    ]
+  }
+}

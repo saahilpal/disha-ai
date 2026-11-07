@@ -237,7 +237,7 @@ async def verify_interruption_barge_in() -> dict[str, Any]:
     print("\n--- [TEST 4: Interruption / Barge-In Test] ---")
     async with websockets.connect(f"{WS_URL}?token={VALID_TOKEN}") as ws:
         long_query = "Mujhe acidity aur digestion ke baare mein poori jankari dijiye, subah se shaam tak kya karein."
-        print(f"  1. Dispatching prompt to trigger long streaming speech...")
+        print("  1. Dispatching prompt to trigger long streaming speech...")
         await ws.send(json.dumps({"type": "text", "text": long_query}))
 
         # Wait until first sentence or audio chunk is received (speech is actively running)
@@ -252,7 +252,7 @@ async def verify_interruption_barge_in() -> dict[str, Any]:
                     received_active_speech = True
                     break
 
-        print(f"  2. Active speech received. Sending interrupt: {{\"type\": \"interrupt\"}}...")
+        print("  2. Active speech received. Sending interrupt: {\"type\": \"interrupt\"}...")
         t_interrupt_sent = time.perf_counter()
         await ws.send(json.dumps({"type": "interrupt"}))
 

@@ -8,8 +8,10 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from disha_core import main as app_main
 from disha_core.compliance.ledger import AuditLedger, AuditRecord, current_hash
 from disha_core.engine.context_builder import (
+    PEP_SQL,
     add_approved_remedy_constraints,
     build_patient_context,
     diet_slot_xml,
@@ -29,15 +31,13 @@ from disha_core.pipeline.breaker import EmergencyBreaker
 from disha_core.pipeline.router import Intent, IntentRouter
 from disha_core.pipeline.validator import PRICING_REPLACEMENT, REMEDY_UNAVAILABLE, SentenceValidator
 from disha_core.tests.runner import evaluate_corpus, turn_sha256, wilson_upper_bound
-from disha_core.engine.context_builder import PEP_SQL
-from disha_core import main as app_main
 from disha_core.voice import (
     ENGLISH_VOICE,
     HINDI_VOICE,
+    VoicePrivacyError,
     VoiceSession,
     select_tts_voice,
     transcribe_groq,
-    VoicePrivacyError,
 )
 
 
@@ -310,7 +310,17 @@ class AsyncPipelineTests(unittest.IsolatedAsyncioTestCase):
             return None
 
         app = app_main.create_app()
-        chat = next(route.endpoint for route in app.routes if getattr(route, "path", None) == "/chat")
+        chat = next((route.endpoint for route in app.routes if getattr(route, "path", None) == "/chat"), None)
+        if chat is None:
+            for r in app.routes:
+                if hasattr(r, "original_router"):
+                    for sr in r.original_router.routes:
+                        if getattr(sr, "path", None) == "/chat":
+                            chat = sr.endpoint
+                            break
+                if chat is not None:
+                    break
+        assert chat is not None, "Could not find /chat endpoint in app routes"
         state = SimpleNamespace(
             router=SimpleNamespace(
                 breaker=SimpleNamespace(check=lambda _text: SimpleNamespace(triggered=False))
@@ -611,7 +621,7 @@ class AsyncPipelineTests(unittest.IsolatedAsyncioTestCase):
             await output.aclose()
 
     async def test_onnx_and_router_async_classify(self) -> None:
-        from disha_core.pipeline.router import RuleIntentClassifier, OnnxIntentClassifier
+        from disha_core.pipeline.router import OnnxIntentClassifier, RuleIntentClassifier
         rule_classifier = RuleIntentClassifier()
         intent = await rule_classifier.async_classify("What should I eat for dinner?")
         self.assertEqual(intent, Intent.MEAL_QUERY)
@@ -663,8 +673,8 @@ class AsyncPipelineTests(unittest.IsolatedAsyncioTestCase):
                     await ledger2._worker
 
     async def test_sigterm_and_shutdown_flushes_pending_wal(self) -> None:
-        import tempfile
         import sqlite3
+        import tempfile
         from contextlib import suppress
         with tempfile.TemporaryDirectory() as tmpdir:
             wal_file = os.path.join(tmpdir, "shutdown_wal.db")

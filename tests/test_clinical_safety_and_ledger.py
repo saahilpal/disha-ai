@@ -15,18 +15,16 @@ import asyncio
 import hashlib
 import sqlite3
 import tempfile
-import time
 import uuid
 from pathlib import Path
 from typing import Any
-from unittest.mock import AsyncMock
 
 import pytest
 
-from disha_core.compliance.ledger import AuditLedger, AuditRecord, current_hash
+from disha_core.compliance.ledger import AuditLedger, AuditRecord
 from disha_core.engine.context_builder import add_approved_remedy_constraints
 from disha_core.pipeline.breaker import EmergencyBreaker
-from disha_core.pipeline.router import Intent, IntentRouter
+from disha_core.pipeline.router import IntentRouter
 from disha_core.pipeline.validator import (
     DIAGNOSIS_REPLACEMENT,
     HYPERTENSION_SODIUM_REPLACEMENT,
@@ -34,7 +32,6 @@ from disha_core.pipeline.validator import (
     REMEDY_UNAVAILABLE,
     SentenceValidator,
 )
-
 
 # ==============================================================================
 # SECTION 1: Aho-Corasick Emergency Breaker Adversarial Edge Cases

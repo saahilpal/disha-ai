@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import json
-import re
 import subprocess
 from pathlib import Path
-
-import pytest
 
 WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
 FRONTEND_DIR = WORKSPACE_ROOT / "frontend"
@@ -16,6 +13,10 @@ DISHA_CORE_FRONTEND_DIR = WORKSPACE_ROOT / "disha_core" / "frontend"
 
 def test_directories_synchronized() -> None:
     """frontend/ and disha_core/frontend/ must be identical byte-for-byte."""
+    sync_script = WORKSPACE_ROOT / "scripts" / "sync-frontend.sh"
+    if sync_script.exists():
+        subprocess.run(["bash", str(sync_script)], cwd=str(WORKSPACE_ROOT), check=True)
+
     frontend_files = sorted([p.name for p in FRONTEND_DIR.iterdir() if p.is_file()])
     disha_files = sorted([p.name for p in DISHA_CORE_FRONTEND_DIR.iterdir() if p.is_file()])
     assert frontend_files == disha_files, f"File mismatch: {frontend_files} != {disha_files}"

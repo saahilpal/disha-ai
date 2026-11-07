@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.disha.tunnel</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/nitrousoxide/Code/disha ai/scripts/tunnel-watchdog.sh</string>
+    </array>
+
+    <key>WorkingDirectory</key>
+    <string>/Users/nitrousoxide/Code/disha ai</string>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>5</integer>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>TARGET_URL</key>
+        <string>http://127.0.0.1:8080</string>
+        <key>HEALTH_URL</key>
+        <string>http://127.0.0.1:8080/health</string>
+        <key>TUNNEL_URL_FILE</key>
+        <string>/Users/nitrousoxide/Code/disha ai/agent/TUNNEL_URL.txt</string>
+        <key>LOG_DIR</key>
+        <string>/Users/nitrousoxide/Code/disha ai/infra/logs</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>/Users/nitrousoxide/Code/disha ai/infra/logs/launchd.stdout.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>/Users/nitrousoxide/Code/disha ai/infra/logs/launchd.stderr.log</string>
+
+    <key>ProcessType</key>
+    <string>Standard</string>
+</dict>
+</plist>

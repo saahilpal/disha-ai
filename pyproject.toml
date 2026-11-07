@@ -1,0 +1,46 @@
+[tool.vulture]
+ignore_decorators = [
+    "@app.*",
+    "@router.*",
+    "@model_validator",
+    "@field_validator",
+    "@validator",
+]
+ignore_names = [
+    "clear_retrieval_cache",
+    "ReviewQueueManager",
+    "enqueue_decision",
+    "list_items",
+    "record_annotation",
+    "approve_for_training",
+    "export_training_dataset",
+    "get_stats",
+    "format",
+    "to_dict",
+    "evaluate_model",
+    "verify_defect_injection",
+    "set_review_queue",
+    "model_config",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501",  # Line length
+    "E402",  # Module level import not at top of file
+    "W291",  # Trailing whitespace
+    "W293",  # Blank line contains whitespace
+    "F841",  # Local variable assigned but unused
+]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+warn_unused_configs = true
+disallow_untyped_defs = false
+check_untyped_defs = false
+disable_error_code = ["attr-defined", "arg-type", "override", "assignment", "var-annotated"]

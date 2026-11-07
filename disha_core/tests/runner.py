@@ -12,7 +12,6 @@ from typing import Any
 from disha_core.pipeline.breaker import EmergencyBreaker
 from disha_core.pipeline.validator import SentenceValidator
 
-
 MIN_GOLDEN_TURNS = 1500
 FVR_TARGET = 0.001
 WILSON_Z_95_ONE_SIDED = 1.6448536269514722

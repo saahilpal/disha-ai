@@ -4,4 +4,5 @@ httpx
 asyncpg
 pyahocorasick
 edge-tts
+alembic>=1.13.0
 # Install onnxruntime separately only when an ONNX intent artifact is available.

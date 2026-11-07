@@ -8,7 +8,6 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import suppress
 from typing import Any
 
-
 HINDI_VOICE = "hi-IN-SwaraNeural"
 ENGLISH_VOICE = "en-IN-NeerjaNeural"
 HINDI_MARKERS = frozenset({

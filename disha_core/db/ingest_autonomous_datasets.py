@@ -226,10 +226,6 @@ ICMR_NIN_2024_CLINICAL_STANCES = [
 ]
 
 
-def _clean_word_count(text: str) -> int:
-    return len(text.strip().split())
-
-
 def _extract_pcos_hf_guidelines() -> list[dict[str, Any]]:
     """Fetch and partition PCOS Indian Diet Guidelines from Hugging Face."""
     url = "https://huggingface.co/datasets/Khyatimirani/pcos-indian-diet-guidelines/raw/main/pcos_diet_indian.jsonl"

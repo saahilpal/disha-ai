@@ -40,6 +40,7 @@ services:
       GEMINI_HEALTH_DATA_AUTHORIZED: "true"
       GEMINI_PAID_OR_CONTRACTED: "true"
       EDGE_TTS_HEALTH_DATA_PROCESSING_APPROVED: "true"
+      ALLOW_CLASSIFIER_FALLBACK: "true"
       CORS_ALLOWED_ORIGINS: "*"
     ports:
       - "127.0.0.1:8000:8000"
@@ -66,8 +67,7 @@ services:
     restart: unless-stopped
 
 volumes:
-  disha_core_postgres_data:
-    external: true
+  disha_core_postgres_data: {}
 
 networks:
   disha_internal: {}

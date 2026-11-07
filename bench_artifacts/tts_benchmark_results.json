@@ -1,0 +1,137 @@
+{
+  "hardware": "Apple Silicon M5 (10-core CPU, 16GB RAM)",
+  "models": {
+    "Hosted Edge-TTS (hi-IN-SwaraNeural)": {
+      "avg_ttfb_ms": 2095.82,
+      "avg_total_latency_ms": 3473.28,
+      "avg_rtf": 1.088,
+      "ram_footprint_mb": 15.0,
+      "hindi_accent_naturalness": 9.4,
+      "offline_support": false,
+      "cost_per_1k_turns_usd": 0.0
+    },
+    "Local Kokoro-82M (ONNX)": {
+      "avg_ttfb_ms": 1663.92,
+      "avg_total_latency_ms": 1663.92,
+      "avg_rtf": 0.2427,
+      "ram_footprint_mb": 340.0,
+      "hindi_accent_naturalness": 4.8,
+      "offline_support": true,
+      "cost_per_1k_turns_usd": 0.0
+    }
+  },
+  "edge_tts_details": [
+    {
+      "id": "cardiac_escalation",
+      "category": "Emergency Escalation",
+      "text": "Main aapki pareshani samajh sakti hoon. Kripya turant nazdeeki emergency room ya doctor ke paas jayein.",
+      "ttfb_ms": 2053.81,
+      "total_latency_ms": 5281.11,
+      "audio_bytes": 53712,
+      "chunks_count": 75,
+      "estimated_audio_duration_s": 3.36,
+      "rtf": 1.5732
+    },
+    {
+      "id": "med_dosage_refusal",
+      "category": "Medical Safety Boundary",
+      "text": "Aapka blood sugar 240 high hai, lekin dawai ki dose bina doctor ki salah ke na badlein.",
+      "ttfb_ms": 1689.36,
+      "total_latency_ms": 2619.15,
+      "audio_bytes": 46656,
+      "chunks_count": 65,
+      "estimated_audio_duration_s": 2.92,
+      "rtf": 0.8982
+    },
+    {
+      "id": "pricing_zero_followup",
+      "category": "Price Invariant",
+      "text": "Disha par follow-up consultation bilkul shunya rupaye hai, aur nutritionist plan chaudah sau ninyanve pratimaah hai.",
+      "ttfb_ms": 4320.66,
+      "total_latency_ms": 6083.43,
+      "audio_bytes": 51984,
+      "chunks_count": 73,
+      "estimated_audio_duration_s": 3.25,
+      "rtf": 1.8724
+    },
+    {
+      "id": "dietary_coaching",
+      "category": "Nutrition Coaching",
+      "text": "Subah ke nashte mein oats ya besan chilla shamil karein, jisse blood sugar control mein rahega.",
+      "ttfb_ms": 1095.35,
+      "total_latency_ms": 1538.55,
+      "audio_bytes": 44208,
+      "chunks_count": 62,
+      "estimated_audio_duration_s": 2.76,
+      "rtf": 0.5568
+    },
+    {
+      "id": "warm_greeting",
+      "category": "Conversational Greeting",
+      "text": "Namaste! Main Disha hoon, aapki AI health coach. Aaj aap kaisa mehsoos kar rahe hain?",
+      "ttfb_ms": 1319.91,
+      "total_latency_ms": 1844.14,
+      "audio_bytes": 54720,
+      "chunks_count": 76,
+      "estimated_audio_duration_s": 3.42,
+      "rtf": 0.5392
+    }
+  ],
+  "kokoro_details": [
+    {
+      "id": "cardiac_escalation",
+      "category": "Emergency Escalation",
+      "text": "Main aapki pareshani samajh sakti hoon. Kripya turant nazdeeki emergency room ya doctor ke paas jayein.",
+      "ttfb_ms": 1801.31,
+      "total_latency_ms": 1801.31,
+      "samples_count": 174592,
+      "sample_rate": 24000,
+      "audio_duration_s": 7.27,
+      "rtf": 0.2476
+    },
+    {
+      "id": "med_dosage_refusal",
+      "category": "Medical Safety Boundary",
+      "text": "Aapka blood sugar 240 high hai, lekin dawai ki dose bina doctor ki salah ke na badlein.",
+      "ttfb_ms": 1648.43,
+      "total_latency_ms": 1648.43,
+      "samples_count": 163328,
+      "sample_rate": 24000,
+      "audio_duration_s": 6.81,
+      "rtf": 0.2422
+    },
+    {
+      "id": "pricing_zero_followup",
+      "category": "Price Invariant",
+      "text": "Disha par follow-up consultation bilkul shunya rupaye hai, aur nutritionist plan chaudah sau ninyanve pratimaah hai.",
+      "ttfb_ms": 1845.96,
+      "total_latency_ms": 1845.96,
+      "samples_count": 189440,
+      "sample_rate": 24000,
+      "audio_duration_s": 7.89,
+      "rtf": 0.2339
+    },
+    {
+      "id": "dietary_coaching",
+      "category": "Nutrition Coaching",
+      "text": "Subah ke nashte mein oats ya besan chilla shamil karein, jisse blood sugar control mein rahega.",
+      "ttfb_ms": 1476.36,
+      "total_latency_ms": 1476.36,
+      "samples_count": 143360,
+      "sample_rate": 24000,
+      "audio_duration_s": 5.97,
+      "rtf": 0.2472
+    },
+    {
+      "id": "warm_greeting",
+      "category": "Conversational Greeting",
+      "text": "Namaste! Main Disha hoon, aapki AI health coach. Aaj aap kaisa mehsoos kar rahe hain?",
+      "ttfb_ms": 1547.56,
+      "total_latency_ms": 1547.56,
+      "samples_count": 153088,
+      "sample_rate": 24000,
+      "audio_duration_s": 6.38,
+      "rtf": 0.2426
+    }
+  ]
+}

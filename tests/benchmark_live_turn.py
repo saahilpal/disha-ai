@@ -16,7 +16,6 @@ import asyncio
 import io
 import json
 import os
-import sys
 import time
 from typing import Any
 
@@ -178,15 +177,15 @@ def main() -> None:
         print("=" * 65)
         print(f"Transcript: \"{summary['best_run']['transcript']}\"")
         print(f"First Validated Sentence: \"{summary['best_run']['first_sentence']}\"")
-        print(f"\nSTAGE-BY-STAGE LATENCY BREAKDOWN (Average Across Runs):")
+        print("\nSTAGE-BY-STAGE LATENCY BREAKDOWN (Average Across Runs):")
         print(f"  1. Groq Whisper Large v3 Turbo (STT):    {summary['averages']['stt_ms']} ms (Target: <300ms)")
-        print(f"  2. Deterministic Core (Breaker/RAG):     < 2.0 ms (Target: <35ms)")
+        print("  2. Deterministic Core (Breaker/RAG):     < 2.0 ms (Target: <35ms)")
         print(f"  3. LLM TTFT + Atomic Sentence Validator: {summary['averages']['llm_val_ms']} ms (Target: <350ms)")
-        print(f"  -------------------------------------------------------------")
+        print("  -------------------------------------------------------------")
         print(f"  >> ENGINE TURNAROUND (Audio In -> Text): {summary['averages']['text_turnaround_ms']} ms (Target: <650ms)")
         print(f"  4. Edge-TTS Audio Generation (First):    {summary['best_run']['tts_first_chunk_ms']} ms")
         print(f"  >> TOTAL MOUTH-TO-EAR TURNAROUND:        {summary['best_run']['total_turnaround_ms']} ms")
-        print(f"\nMerkle Audit Hash Chain:")
+        print("\nMerkle Audit Hash Chain:")
         print(f"  Event ID:      {summary['audit_ledger']['latest_record']['event_id']}")
         print(f"  Current Hash:  {summary['audit_ledger']['latest_record']['current_hash']}")
         print("=" * 65 + "\n")

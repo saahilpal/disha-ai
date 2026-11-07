@@ -7,8 +7,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Protocol
 
+from disha_core.classifier.adapter import LayaClassifierAdapter
+
 from .breaker import BreakerResult, EmergencyBreaker
-from disha_core.classifier.adapter import LayaClassifierAdapter, LayaClassificationResult
 
 
 class Intent(str, Enum):

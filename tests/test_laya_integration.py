@@ -9,9 +9,7 @@ general coaching, and emergency triage. Enforces:
 """
 from __future__ import annotations
 
-import asyncio
 import time
-from typing import Any
 
 import pytest
 
@@ -19,7 +17,6 @@ from disha_core.classifier.adapter import (
     LayaClassificationResult,
     LayaClassifierAdapter,
 )
-from disha_core.classifier.schemas import CLINICAL_QUESTIONS
 
 # 32 Curated Domain Synthetic Cases (Hinglish & English)
 LABELED_CASES: list[dict[str, str]] = [
@@ -104,7 +101,7 @@ async def test_stub_detector_catches_fake_classifier():
 async def test_laya_adapter_real_execution_and_variance():
     """Verifies that the LayaClassifierAdapter runs real inference and produces variance."""
     adapter = LayaClassifierAdapter()
-    
+
     # Check status endpoint data
     status = adapter.get_status()
     assert "inference_count" in status
@@ -130,7 +127,7 @@ async def test_30_labeled_domain_cases_eval():
     latencies: list[float] = []
     correct = 0
 
-    print(f"\n--- Running 32-Case Laya Domain Benchmark ---")
+    print("\n--- Running 32-Case Laya Domain Benchmark ---")
     for case in LABELED_CASES:
         t0 = time.monotonic()
         res = await adapter.classify(case["text"])

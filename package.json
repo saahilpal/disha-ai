@@ -1,0 +1,13 @@
+{
+  "name": "disha-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Disha AI Health Coach — Full-Duplex Deterministic Telephony Platform",
+  "scripts": {
+    "sync": "bash scripts/sync-frontend.sh",
+    "build": "bash scripts/sync-frontend.sh",
+    "test:frontend": "node tests/test_frontend_diagnostics.js",
+    "test:vercel": ".venv/bin/pytest tests/test_vercel_packaging.py",
+    "lint:duplication": "npx jscpd"
+  }
+}

@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
-
 CHANNEL_RE = re.compile(r"\b(?:whatsapp|sms|email|telegram)\b|व्हाट्स?ऐप|व्हाट्स?एप", re.I)
 AMOUNT = r"\d[\d,]*(?:\.\d+)?"
 AMOUNT_END = r"(?![\d,]|\.\d)"
@@ -21,13 +20,14 @@ PRICE_CONTEXT_RE = re.compile(
 )
 MONTHLY_RE = re.compile(r"\b(?:per\s+month|monthly|a\s+month|per\s+mahina|mahine\s+ka)\b|/\s*month", re.I)
 IDENTITY_RE = re.compile(
-    r"\b(?:main\s+(?:(?:ek|a)\s+)?(?:doctor|nurse|physician|clinician)\s+(?:hoon|hun)|"
+    r"\b(?:main\s+(?:(?:ek|a|aapka|apka)\s+)?(?:doctor|nurse|physician|clinician)\s+(?:hoon|hun)|"
     r"i\s+am\s+(?:(?:a|your)\s+)?(?:doctor|nurse|physician|clinician)|"
+    r"as\s+(?:a|your)\s+(?:doctor|physician|clinician)|"
     r"i['’]m\s+(?:(?:a|your)\s+)?(?:doctor|nurse|physician|clinician)|"
     r"maine\s+(?:aapko\s+)?prescribe\s+kiya|main\s+(?:aapko\s+)?prescribe\s+kar(?:ta|ti|unga|ungi)|"
     r"main\s+(?:a\s+)?(?:human|insaan)\s+(?:hoon|hun)|"
     r"i\s+am\s+(?:a\s+)?(?:human|person)|i['’]m\s+(?:a\s+)?(?:human|person))\b|"
-    r"मैं\s+(?:एक\s+)?(?:डॉक्टर|चिकित्सक|इंसान|मनुष्य)\s+हूँ", re.I,
+    r"मैं\s+(?:एक\s+|आपका\s+)?(?:डॉक्टर|चिकित्सक|इंसान|मनुष्य)\s+हूँ", re.I,
 )
 DIAGNOSIS_RE = re.compile(
     r"\b(?:aapko\s+(?:(?:type\s*[12]\s+)?diabetes|hypertension|sugar|bp|heart\s+disease|cancer)\s+(?:hai|ho\s+gaya|lag\s+raha\s+hai)|"
@@ -37,9 +37,10 @@ DIAGNOSIS_RE = re.compile(
 )
 PRESCRIPTION_RE = re.compile(
     r"\b(?:(?:dose|dosing|khurak)\s*(?:double|badha|kam|increase|decrease|change|badal)|"
-    r"(?:\d+\s*mg\s+(?:of\s+)?(?:metformin|amlodipine|atorvastatin|aspirin|insulin|atenolol|losartan|telmisartan)|"
-    r"(?:metformin|amlodipine|atorvastatin|aspirin|insulin|atenolol|losartan|telmisartan).{0,35}?\b(?:dose|double|\d+\s*mg|mg|lijiye|badal|start|stop|increase|decrease))|"
-    r"(?:dawai?|goli|medicine|dawa)\s*(?:badal|change|band|stop|double|badha)|"
+    r"(?:\d+\s*mg\s+(?:of\s+)?(?:metformin|amlodipine|atorvastatin|aspirin|insulin|atenolol|losartan|telmisartan|xanax|alprazolam|diazepam|clonazepam|tramadol)|"
+    r"(?:metformin|amlodipine|atorvastatin|aspirin|insulin|atenolol|losartan|telmisartan|xanax|alprazolam|diazepam|clonazepam|tramadol).{0,35}?\b(?:dose|double|\d+\s*mg|mg|lijiye|badal|start|stop|increase|decrease|prescribe))|"
+    r"(?:i\s+)?prescribe\s+(?:you\s+)?(?:xanax|alprazolam|diazepam|clonazepam|tramadol|medication|medicine|tablets?)|"
+    r"(?:dawai?|goli|medicine|dawa)\s*(?:badal|change|band|stop|double|badha|prescribe)|"
     r"(?:stop|change|alter|increase|decrease)\s+(?:your\s+)?(?:medication|dose|prescription|tablets?))\b|"
     r"दवा\s*(?:बंद|बदल|डबल)", re.I,
 )

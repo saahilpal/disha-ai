@@ -47,7 +47,7 @@ def _resolve_wal_path(wal_path: str | Path | None) -> Path | None:
         env_path = os.getenv("AUDIT_WAL_PATH")
         if env_path:
             return Path(env_path)
-        wal_path = "audit_wal.db"
+        return None
     path = Path(wal_path)
     if path.is_absolute():
         return path
@@ -188,6 +188,17 @@ class AuditLedger:
             if not pending:
                 return
             with sqlite3.connect(str(self.wal_path), timeout=5.0) as conn:
+                conn.execute(
+                    """CREATE TABLE IF NOT EXISTS wal_audit_records (
+                        event_id TEXT PRIMARY KEY,
+                        patient_id TEXT,
+                        user_input TEXT,
+                        llm_output TEXT,
+                        breaker_status TEXT,
+                        validator_status TEXT,
+                        created_at REAL
+                    )"""
+                )
                 conn.executemany(
                     """INSERT OR IGNORE INTO wal_audit_records
                        (event_id, patient_id, user_input, llm_output, breaker_status, validator_status, created_at)
@@ -354,7 +365,10 @@ class AuditLedger:
 
     async def _persist(self, record: AuditRecord) -> None:
         async with self.pool.acquire() as connection:
-            async with connection.transaction():
+            txn = connection.transaction()
+            if asyncio.iscoroutine(txn):
+                txn = await txn
+            async with txn:
                 prev_hash = await connection.fetchval(
                     "SELECT current_hash FROM audit_chain_head WHERE singleton = TRUE FOR UPDATE"
                 )

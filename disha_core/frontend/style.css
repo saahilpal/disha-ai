@@ -260,8 +260,10 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
   border-radius: var(--radius-md);
   cursor: pointer;
   display: flex;
@@ -296,6 +298,27 @@ body {
   font-size: 0.8125rem;
   font-weight: 500;
   color: var(--text-primary);
+}
+
+.nav-signin-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-heading);
+  background-color: var(--bg-card-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full);
+  padding: 5px 14px;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.nav-signin-btn:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-hover);
+  color: var(--accent-primary);
 }
 
 .patient-dot {
@@ -1016,12 +1039,12 @@ body {
 }
 
 .indicator-dot.connecting {
-  background-color: #1B5E43;
+  background-color: var(--accent-primary);
   animation: pulseDot 0.6s infinite;
 }
 
 .indicator-dot.listening {
-  background-color: #10B981;
+  background-color: var(--color-success);
   animation: pulseDot 1.2s infinite;
 }
 
@@ -1031,13 +1054,13 @@ body {
 }
 
 .indicator-dot.speaking {
-  background-color: #3B82F6;
+  background-color: var(--accent-primary);
   animation: pulseDot 1.0s infinite;
 }
 
 .indicator-dot.interrupting,
 .indicator-dot.interrupted {
-  background-color: #C24137;
+  background-color: var(--color-emergency);
   animation: pulseDot 0.4s infinite;
 }
 
@@ -1047,17 +1070,19 @@ body {
   100% { opacity: 0.4; }
 }
 
-/* 24-Bar Audio Spectrum Visualizer */
+/* 24-Bar Audio Spectrum Visualizer & Stethoscope Arena */
 .visualizer-stage {
   background-color: var(--bg-card-subtle);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 16px 20px;
+  padding: 24px 20px 20px;
   margin-bottom: 20px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 72px;
+  gap: 16px;
+  min-height: 250px;
 }
 
 .spectrum-bars {
@@ -1080,15 +1105,15 @@ body {
 }
 
 .spectrum-bars.active-listening .spec-bar {
-  background-color: #10B981;
+  background-color: var(--color-success);
 }
 
 .spectrum-bars.active-speaking .spec-bar {
-  background-color: #3B82F6;
+  background-color: var(--accent-primary);
 }
 
 .spectrum-bars.active-interrupting .spec-bar {
-  background-color: #C24137;
+  background-color: var(--color-emergency);
 }
 
 /* Persistent Telephony Control Dock */
@@ -1393,8 +1418,11 @@ body {
   background: var(--bg-card);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-full);
-  padding: 4px 10px;
-  font-size: 0.75rem;
+  padding: 8px 14px;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
   cursor: pointer;
   box-shadow: var(--shadow-sm);
@@ -1790,6 +1818,33 @@ body {
   color: #FFFFFF !important;
 }
 
+/* SPA View Container & Smooth Transitions */
+.view-container {
+  display: none;
+}
+
+.view-container.active-view {
+  display: block;
+  animation: fadeInView 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInView {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .view-container.active-view {
+    animation: none;
+  }
+}
+
 /* Home View */
 .home-grid {
   display: flex;
@@ -2051,34 +2106,18 @@ body {
   border-radius: 50%;
   border: 1px solid var(--border-sage-active);
   pointer-events: none;
-  animation: pulseRings 3s infinite ease-out;
+  opacity: 0.35;
 }
 
 .stethoscope-ring.ring-1 {
   width: 100px;
   height: 100px;
-  animation-delay: 0s;
 }
 
 .stethoscope-ring.ring-2 {
   width: 140px;
   height: 140px;
-  animation-delay: 1.5s;
-}
-
-@keyframes pulseRings {
-  0% {
-    transform: scale(0.85);
-    opacity: 0.8;
-  }
-  50% {
-    transform: scale(1.05);
-    opacity: 0.3;
-  }
-  100% {
-    transform: scale(1.15);
-    opacity: 0;
-  }
+  opacity: 0.2;
 }
 
 .stethoscope-icon-badge {
@@ -2186,6 +2225,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 12px;
 }
 
@@ -2196,6 +2237,7 @@ body {
 
 .summary-actions-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
@@ -2206,9 +2248,10 @@ body {
   background-color: var(--bg-card);
   border: 1px solid var(--border-subtle);
   color: var(--text-primary);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 600;
-  padding: 6px 12px;
+  padding: 8px 14px;
+  min-height: 44px;
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
@@ -2250,10 +2293,39 @@ body {
 .settings-wrapper {
   max-width: 680px;
   margin: 0 auto;
+  width: 100%;
 }
 
 .settings-card {
   padding: 32px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-select,
+.form-input {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-input);
+  color: var(--text-primary);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  min-height: 44px;
+}
+
+@media (max-width: 480px) {
+  .settings-card {
+    padding: 16px 12px;
+  }
+  .form-group-toggle {
+    gap: 8px;
+  }
 }
 
 .form-group-toggle {
@@ -2554,15 +2626,53 @@ input:checked + .slider:before {
   border-color: var(--border-sage-active);
 }
 
-/* Mobile & Tablet Adjustments for SPA */
+/* Mobile & Tablet Adjustments for SPA (< 768px) */
 @media (max-width: 768px) {
+  /* Fixed Mobile Clinical Bottom Navigation Bar */
   .main-nav {
-    display: none; /* Hide primary text nav on small viewports, use compact icons or menu */
+    display: flex !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    height: calc(58px + env(safe-area-inset-bottom, 0px)) !important;
+    padding: 4px 8px calc(4px + env(safe-area-inset-bottom, 0px)) !important;
+    background-color: var(--bg-card) !important;
+    border-top: 1px solid var(--border-subtle) !important;
+    z-index: 1000 !important;
+    justify-content: space-around !important;
+    align-items: center !important;
+    box-shadow: 0 -2px 12px rgba(15, 20, 18, 0.08) !important;
+  }
+
+  .nav-tab {
+    flex: 1 !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 3px !important;
+    padding: 4px !important;
+    min-height: 48px !important;
+    min-width: 44px !important;
+    font-size: 0.6875rem !important;
+    border-radius: var(--radius-sm) !important;
+    text-align: center !important;
+    border: none !important;
+  }
+
+  .nav-icon {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  /* Prevent content overlap with fixed bottom navigation bar */
+  .app-viewport {
+    padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
   }
 
   .home-hero-card {
     grid-template-columns: 1fr;
-    padding: 24px 20px;
+    padding: 24px 18px;
   }
 
   .home-quick-matrix {
@@ -2571,5 +2681,240 @@ input:checked + .slider:before {
 
   .summary-stats-grid {
     grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* Micro Handheld Viewports Down to 360px (< 480px) */
+@media (max-width: 480px) {
+  html, body {
+    overflow-x: hidden;
+  }
+
+  .app-viewport {
+    padding-left: 10px !important;
+    padding-right: 10px !important;
+    overflow-x: hidden;
+  }
+
+  .app-header {
+    padding: 8px 0 12px;
+    gap: 6px;
+  }
+
+  .brand-text .brand-name {
+    font-size: 0.9375rem;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+
+  .emergency-quick-btn {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+  }
+
+  .icon-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .nav-signin-btn {
+    min-height: 44px;
+    padding: 6px 12px;
+    font-size: 0.75rem;
+  }
+
+  .hero-title {
+    font-size: 1.375rem;
+    line-height: 1.25;
+  }
+
+  .hero-subtitle {
+    font-size: 0.875rem;
+  }
+
+  .hero-cta-group {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .primary-action-btn, .secondary-action-btn {
+    width: 100%;
+    min-height: 48px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .hero-badge-panel {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .badge-item {
+    padding: 10px 12px;
+  }
+
+  /* Telephony Stage at 360px */
+  .stage-card {
+    padding: 14px 10px;
+  }
+
+  .visualizer-stage {
+    padding: 16px 8px;
+    min-height: 220px;
+  }
+
+  .stethoscope-center-wrapper {
+    width: 130px;
+    height: 130px;
+    margin: 0 auto 10px;
+  }
+
+  .stethoscope-canvas {
+    width: 130px;
+    height: 130px;
+  }
+
+  .stethoscope-ring.ring-1 {
+    width: 80px;
+    height: 80px;
+  }
+
+  .stethoscope-ring.ring-2 {
+    width: 110px;
+    height: 110px;
+  }
+
+  .stethoscope-icon-badge {
+    width: 46px;
+    height: 46px;
+  }
+
+  .stethoscope-icon-badge svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .spectrum-bars {
+    height: 40px;
+    gap: 2px;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  .spec-bar {
+    max-width: 5px;
+  }
+
+  .telephony-dock {
+    padding: 12px 10px;
+    gap: 10px;
+  }
+
+  .call-secondary-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    width: 100%;
+  }
+
+  .control-btn {
+    min-height: 44px;
+    padding: 8px 4px;
+    font-size: 0.75rem;
+  }
+
+  .control-btn .control-text {
+    font-size: 0.6875rem;
+  }
+
+  .text-turn-form {
+    gap: 6px;
+  }
+
+  .text-input {
+    min-height: 44px;
+    font-size: 16px !important;
+    padding: 8px 12px;
+  }
+
+  .send-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .quick-chips-row {
+    gap: 6px;
+  }
+
+  .chip-btn {
+    min-height: 44px;
+    padding: 8px 10px;
+    font-size: 0.75rem;
+  }
+
+  .demo-buttons-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .demo-btn {
+    width: 100%;
+    min-height: 44px;
+    justify-content: flex-start;
+    padding: 10px 12px;
+  }
+
+  .summary-stats-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .summary-actions-row {
+    flex-direction: column;
+    width: 100%;
+    gap: 8px;
+  }
+
+  .btn-subtle {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .summary-footer-actions {
+    flex-direction: column;
+    width: 100%;
+    gap: 10px;
+  }
+
+  .input-with-button {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .input-with-button .btn-subtle {
+    width: 100%;
+  }
+
+  .modal-card {
+    margin: 10px;
+    padding: 18px 14px;
+    max-width: calc(100vw - 20px);
+  }
+
+  .modal-foot {
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .modal-foot button {
+    width: 100%;
   }
 }

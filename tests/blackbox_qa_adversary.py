@@ -24,7 +24,6 @@ import time
 from typing import Any
 
 import httpx
-import websockets
 
 BASE_URL = "http://127.0.0.1:8080"
 WS_URL = "ws://127.0.0.1:8080/ws/conversation?token=pt_test_01_valid_bearer_token"

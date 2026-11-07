@@ -13,6 +13,7 @@ import asyncio
 import logging
 import os
 import time
+import uuid
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
@@ -105,6 +106,45 @@ class LayaClassifierAdapter:
         self.threads = int(os.getenv("LAYA_THREADS", str(os.cpu_count() or 2)))
         self.breaker = EmergencyBreaker()
         self.started_at = time.time()
+        self.review_queue: Any = None
+
+    def set_review_queue(self, review_queue: Any) -> None:
+        """Attaches an optional ReviewQueueManager for zero-PHI telemetry."""
+        self.review_queue = review_queue
+
+    def _enqueue_review_trigger(
+        self,
+        raw_text: str,
+        trigger_type: str,
+        predicted_intent: str,
+        confidence: float,
+        emergency: bool,
+        fallback_reason: Optional[str] = None,
+        pre_breaker_category: Optional[str] = None,
+    ) -> None:
+        if self.review_queue is None:
+            return
+        try:
+            from disha_core.classifier.review_queue import TriggerType
+
+            trig_enum = TriggerType(trigger_type) if isinstance(trigger_type, str) else trigger_type
+            self.review_queue.enqueue_decision(
+                raw_user_input=raw_text,
+                patient_id="runtime_turn",
+                audit_event_id=str(uuid.uuid4()),
+                ledger_hash="pending_turn_commit",
+                trigger_type=trig_enum,
+                model_checkpoint=self.last_checkpoint,
+                predicted_intent=predicted_intent,
+                intent_confidence=confidence,
+                emergency_triage_prob=1.0 if emergency else 0.0,
+                pep_risk_score=0,
+                latency_ms=self.last_latency_ms,
+                fallback_reason=fallback_reason,
+                pre_breaker_category=pre_breaker_category,
+            )
+        except Exception as exc:
+            logger.debug("Non-fatal review queue ingestion exception: %s", exc)
 
     def get_status(self) -> dict[str, Any]:
         """Provides status data for /internal/classifier and /ready."""
@@ -133,12 +173,12 @@ class LayaClassifierAdapter:
                     return resp.status_code == 200
             except Exception:
                 return False
-        # If in-process, verify package is importable
+        # If in-process, verify package is importable or fallback mode permitted
         try:
             import laya  # noqa: F401
             return True
         except ImportError:
-            return False
+            return os.getenv("ALLOW_CLASSIFIER_FALLBACK", "true").lower() in ("1", "true", "yes")
 
     async def _classify_via_http(self, text: str) -> dict[str, Any]:
         """Dispatches to remote/containerized laya-serve."""
@@ -194,6 +234,16 @@ class LayaClassifierAdapter:
             intent = "symptom_complaint"
         else:
             intent = "general_coaching"
+
+        trig = "LOW_CONFIDENCE" if "low_confidence" in reason else "ABSTAINED_FALLBACK"
+        self._enqueue_review_trigger(
+            raw_text=text,
+            trigger_type=trig,
+            predicted_intent=intent,
+            confidence=0.50,
+            emergency=False,
+            fallback_reason=reason,
+        )
 
         return LayaClassificationResult(
             intent=intent,

@@ -9,11 +9,8 @@ Tests cover:
 
 from __future__ import annotations
 
-import asyncio
 import hashlib
-import json
 import uuid
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import httpx
@@ -23,13 +20,11 @@ from pydantic import ValidationError
 from disha_core.compliance.ledger import AuditLedger, AuditRecord
 from disha_core.engine.context_builder import build_patient_context
 from disha_core.main import (
-    LoginRequest,
     MAX_VOICE_TURN_BYTES,
     OnboardingRequest,
     TurnRequest,
     create_app,
 )
-
 
 # ==============================================================================
 # SECTION 1: SQL Injection & Query Parameterization
@@ -58,7 +53,7 @@ async def test_build_patient_context_query_safety():
     context = await build_patient_context(mock_conn, "pt_safe_123", "monday", "breakfast")
     assert context["patient_id"] == "pt_safe_123"
     assert mock_conn.fetchrow.call_count == 2
-    
+
     # Check that parameters are passed as separate arguments, not concatenated
     pep_call = mock_conn.fetchrow.call_args_list[0]
     diet_call = mock_conn.fetchrow.call_args_list[1]
@@ -82,10 +77,10 @@ async def test_duplicate_registration_overwrites_existing_user():
     async with app.router.lifespan_context(app):
         if app.state.pool is None:
             pytest.skip("PostgreSQL pool not available")
-        
+
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
             unique_email = f"victim_{uuid.uuid4().hex[:8]}@example.com"
-            
+
             # 1. Victim registers
             r1 = await client.post("/auth/register", json={
                 "name": "Victim User",
@@ -138,10 +133,7 @@ async def test_duplicate_registration_overwrites_existing_user():
 
 @pytest.mark.asyncio
 async def test_auth_login_credential_bypass_to_demo_account():
-    """Vulnerability Proof: Any non-existent email or wrong password bypasses auth
-
-    and returns a live token for pt_test_01 (Aarav Sharma).
-    """
+    """Verify non-existent email or wrong password correctly returns 401 Unauthorized."""
     app = create_app()
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
@@ -149,12 +141,8 @@ async def test_auth_login_credential_bypass_to_demo_account():
                 "email": "unregistered_stranger_12345@example.com",
                 "password": "invalidpassword",
             })
-            # FLAW: Instead of 401 Unauthorized, returns 200 OK and logs in as Aarav Sharma!
-            assert res.status_code == 200
-            data = res.json()
-            assert data["patient_id"] == "pt_test_01"
-            assert data["patient_name"] == "Aarav Sharma"
-            assert data["status"] == "authenticated"
+            assert res.status_code == 401
+            assert "Invalid email or password" in res.json().get("detail", "")
 
 
 def test_password_storage_insecure_hashing():
@@ -239,7 +227,7 @@ def test_hypertension_stage_parsing_loopholes():
             stage = "stage 1"
         else:
             stage = "normal"
-        
+
         # Notice "stage2", "stage-2", "grade 2", "severe hypertension", "hypertensive crisis"
         # all erroneously resolve to "normal"
         if label in ["stage2", "stage-2", "grade 2", "severe hypertension", "hypertensive crisis", "high blood pressure"]:

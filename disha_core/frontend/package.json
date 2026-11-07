@@ -4,6 +4,7 @@
   "private": true,
   "description": "Disha AI Health Coach — Production Voice Frontend",
   "scripts": {
-    "build": "echo 'Static frontend ready for edge deployment'"
+    "build": "bash ../scripts/sync-frontend.sh",
+    "sync": "bash ../scripts/sync-frontend.sh"
   }
 }

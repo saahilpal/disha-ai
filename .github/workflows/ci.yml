@@ -1,0 +1,171 @@
+name: Disha AI Production CI
+
+on:
+  push:
+    branches:
+      - main
+      - v2/remap
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # 1. SECURITY & SECRET DETECTION (GITLEAKS)
+  # ============================================================================
+  security:
+    name: Secrets & Gitleaks Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks Detection
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: false
+
+  # ============================================================================
+  # 2. CODE QUALITY & LINTING (RUFF)
+  # ============================================================================
+  lint:
+    name: Code Quality & Ruff Linter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Run Ruff Linter
+        run: |
+          uv run --with ruff ruff check disha_core audit tests
+
+      - name: Run Ruff Format Check
+        run: |
+          uv run --with ruff ruff format --check disha_core audit tests
+
+  # ============================================================================
+  # 3. STATIC TYPE INTEGRITY (MYPY)
+  # ============================================================================
+  typecheck:
+    name: Static Type Check (mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install Core Dependencies & Mypy
+        run: |
+          uv venv
+          uv pip install -r disha_core/requirements.txt mypy
+
+      - name: Run Mypy Type Analysis
+        run: |
+          uv run mypy disha_core audit
+
+  # ============================================================================
+  # 4. COMPREHENSIVE TEST MATRIX (PYTEST & NODE.JS)
+  # ============================================================================
+  test:
+    name: Unit, Invariant & Diagnostic Test Suite
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Run Frontend Diagnostic Suite (32 checks)
+        run: |
+          node tests/test_frontend_diagnostics.js
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install Dependencies
+        run: |
+          uv venv
+          uv pip install -r disha_core/requirements.txt pytest pytest-asyncio
+
+      - name: Run Pytest Invariants & Clinical Safety Suite
+        env:
+          GROQ_API_KEY: "dummy_token_scrubbed"
+          GEMINI_API_KEY: "dummy_token_scrubbed"
+          POSTGRES_PASSWORD: "postgres"
+        run: |
+          uv run pytest -v -m "not live_network"
+
+      - name: Run Vercel Packaging & Audio Engine Contract Tests
+        run: |
+          uv run pytest -q tests/test_vercel_packaging.py
+
+  # ============================================================================
+  # 5. DETERMINISTIC AUDIT JUDGE (C1-C16 INVARIANTS)
+  # ============================================================================
+  audit:
+    name: Deterministic Audit Judge (C1–C16)
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck]
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install Dependencies
+        run: |
+          uv venv
+          uv pip install -r disha_core/requirements.txt pytest pytest-asyncio laya rich python-dotenv
+
+      - name: Run Deterministic Audit Judge
+        env:
+          GROQ_API_KEY: "dummy_token_scrubbed"
+          GEMINI_API_KEY: "dummy_token_scrubbed"
+          POSTGRES_PASSWORD: "postgres"
+        run: |
+          uv run python -m audit.judge

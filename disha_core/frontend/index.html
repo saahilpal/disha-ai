@@ -102,7 +102,8 @@
           </svg>
         </button>
 
-        <!-- Authenticated Patient Pill -->
+        <!-- Authenticated Patient Pill / Sign In Link -->
+        <a href="#/signin" id="nav-signin-link" class="nav-signin-btn" title="Sign In to Clinical Portal">Sign In</a>
         <div id="patient-badge" class="patient-pill" style="display: none;">
           <span class="patient-dot"></span>
           <span id="patient-display-name">Patient</span>
@@ -825,6 +826,9 @@
           </div>
         </div>
         <div class="modal-foot">
+          <button type="button" id="consent-cancel-btn" class="btn-subtle">
+            <span>Cancel</span>
+          </button>
           <button type="button" id="consent-accept-btn" class="primary-action-btn" disabled>
             <span>Accept & Proceed</span>
           </button>

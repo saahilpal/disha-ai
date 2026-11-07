@@ -7,28 +7,20 @@ from __future__ import annotations
 
 import ast
 import hashlib
-import inspect
-import os
-import re
 from pathlib import Path
 from typing import Any
 
 from disha_core.compliance.ledger import AuditRecord, current_hash
 from disha_core.engine.context_builder import add_approved_remedy_constraints
-from disha_core.engine.normalizer import normalize
 from disha_core.engine.retriever import clear_retrieval_cache, compute_query_hash
-from disha_core.llm.client import DualProviderClient, SYSTEM_PROMPT
+from disha_core.llm.client import SYSTEM_PROMPT, DualProviderClient
 from disha_core.pipeline.breaker import EmergencyBreaker
 from disha_core.pipeline.validator import (
-    CHANNEL_RE,
     CHANNEL_REPLACEMENT,
-    IDENTITY_RE,
     IDENTITY_REPLACEMENT,
     MEAL_NOT_FOUND_REPLACEMENT,
     PEP_REPLACEMENT,
-    PRICE_RE,
     PRICING_REPLACEMENT,
-    RECIPE_RE,
     SentenceValidator,
 )
 
@@ -79,7 +71,7 @@ def _check_ast_validator_enforces_regexes() -> tuple[bool, str]:
 
     # Also check runtime pricing strings
     if "₹0" not in PRICING_REPLACEMENT or "₹1,499" not in PRICING_REPLACEMENT:
-        return False, f"PRICING_REPLACEMENT does not contain authorized ₹0 and ₹1,499 values"
+        return False, "PRICING_REPLACEMENT does not contain authorized ₹0 and ₹1,499 values"
 
     return True, "validator.py enforces PRICE_RE, CHANNEL_RE, IDENTITY_RE, and RECIPE_RE"
 
@@ -316,7 +308,7 @@ def run_design_conformance() -> dict[str, Any]:
         "name": "Dual-Provider Failover & Circuit Breaker",
         "passed": c15_passed,
         "type": "SOFT",
-        "evidence": f"DualProviderClient configured with Groq & Gemini and ConsecutiveFailureCircuitBreaker",
+        "evidence": "DualProviderClient configured with Groq & Gemini and ConsecutiveFailureCircuitBreaker",
     }
 
     # C16: No Autonomous Clinical Prescriptions (Non-Goal)

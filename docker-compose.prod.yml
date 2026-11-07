@@ -14,7 +14,7 @@ services:
       POSTGRES_USER: disha
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-disha_secure_pass_123}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - disha_core_postgres_data:/var/lib/postgresql/data
       - ./disha_core/db/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
       - ./disha_core/db/seed_icmr_data.sql:/docker-entrypoint-initdb.d/002-icmr.sql:ro
     healthcheck:
@@ -85,7 +85,7 @@ services:
       - disha_network
 
 volumes:
-  postgres_data:
+  disha_core_postgres_data:
     driver: local
 
 networks:

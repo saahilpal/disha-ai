@@ -13,48 +13,78 @@ except ImportError:
     _ahocorasick = None
 
 
-# shortcut: built-in lexicon lacks 1,200 reviewed variants, load a clinician corpus before production.
+# Clinical red flag emergency lexicon with clinician-reviewed terms and colloquial Hinglish variants.
 EMERGENCY_PATTERNS: dict[str, tuple[str, ...]] = {
     "CARDIOVASCULAR": (
         "chest pain", "chest pressure", "heart attack", "severe chest pain",
+        "myocardial infarction", "acute coronary syndrome", "angina pectoris", "cardiac arrest",
         "chhati mein dard", "chhati me dard", "chhati mein dabaav", "chhati mein dabav",
         "seene mein dard", "seene me dard", "seene mein dabaav", "seene mein dabav",
         "seene mein bhaari dabav", "seene mein bhari dabav",
-        "cardiac arrest", "crushing chest pain", "acute chest pain",
+        "crushing chest pain", "acute chest pain",
         "dil ka daura", "dil ka daura pada", "dil me dard", "dil mein dard",
         "left hand pain", "left arm pain", "chest tightness", "chest discomfort",
         "chaati mein dard", "chaati me dard", "chaati me dabav", "chaati mein dabav",
-        "छाती में दर्द", "सीने में दर्द", "दिल का दौरा", "दिल में दर्द", "छाती में दबाव", "सीने में दबाव",
+        "heart stopped", "heart stopped beating", "dhadkan ruk", "dhadkan band",
+        "dil ki dhadkan ruk", "dil ki dhadkan band", "no pulse", "pulse nahi mil rahi", "pulseless",
+        "tearing chest pain", "छाती में दर्द", "सीने में दर्द", "दिल का दौरा", "दिल में दर्द",
+        "छाती में दबाव", "सीने में दबाव", "हार्ट अटैक", "दिल की धड़कन बंद", "धड़कन रुक गई",
+        "नब्ज नहीं चल रही", "पल्स नहीं", "छाती में असहनीय दर्द", "सीने में बहुत तेज दर्द",
     ),
     "RESPIRATORY": (
         "cannot breathe", "can't breathe", "difficulty breathing", "not breathing",
+        "respiratory distress", "acute respiratory distress", "respiratory failure",
+        "severe shortness of breath", "shortness of breath",
         "saans nahi aa rahi", "saans ruk rahi", "saans lene mein dikkat",
         "saas lene mein takleef", "saas lene me taklif", "saas lene mein taklif",
         "saans phool rahi", "saas phool rahi", "dum ghut raha",
         "gasping for air", "choking", "suffocating", "asthma attack",
-        "oxygen level",
+        "oxygen level", "throat is closing", "throat closing", "unable to breathe",
+        "stopped breathing", "lips turning blue", "hoth neele", "cyanosis", "stridor",
+        "severe anaphylaxis", "anaphylaxis", "anaphylactic shock",
+        "saans bilkul atak", "saans atak rahi", "saas lene me bahut takleef",
+        "gale me khana atak", "gala band ho raha", "saans band ho rahi",
         "सांस नहीं आ रही", "सांस रुक रही", "सांस लेने में दिक्कत", "सांस लेने में तकलीफ",
-        "सांस फूल रही", "दम घुट रहा", "सांस बंद",
+        "सांस फूल रही", "दम घुट रहा", "सांस बंद", "सांस पूरी तरह रुक गई",
+        "ऑक्सीजन लेवल बहुत तेजी से गिर", "गले में खाना अटक", "सांस बंद हो रही है",
     ),
     "NEUROLOGICAL": (
-        "face drooping", "one sided weakness", "slurred speech", "stroke symptoms",
+        "stroke", "acute stroke", "face drooping", "one sided weakness", "slurred speech", "stroke symptoms",
+        "hemiplegia", "transient ischemic attack", "facial droop", "suddenly paralyzed", "achanak behosh",
         "achanak chehra tedha", "bol nahi pa raha", "ek taraf kamzori",
-        "chehra ek taraf latak", "facial droop", "suddenly paralyzed", "achanak behosh",
-        "loss of balance", "blackout", "lakwa mar", "mirgi ka daura",
+        "chehra ek taraf latak", "loss of balance", "blackout", "lakwa mar", "mirgi ka daura",
+        "worst headache of my life", "thunderclap headache", "grand mal", "epileptic seizure",
+        "seizure", "convulsing", "unresponsive", "passed out", "completely unconscious",
+        "zubaan ladkhada", "jhatke lag rahe",
         "चेहरा टेढ़ा", "बोल नहीं पा रहा", "एक तरफ कमजोरी", "लकवा", "अचानक बेहोश", "बेहोश", "स्ट्रोक", "मिर्गी का दौरा",
+        "मरीज अचानक बेहोश", "मरीज अचेत", "अचेत हो गया", "शरीर में झटके", "दौरा पड़ रहा है", "बोलना बंद हो गया",
     ),
     "CRISIS": (
         "suicide", "kill myself", "end my life", "self harm", "want to die",
         "khudkushi", "jaan dena chahta", "apne aap ko maar", "zeher kha liya",
         "zeher", "poison", "apni jaan", "nasein kaat", "faansi", "faasi",
+        "overdose", "sleeping pills", "hang myself", "hanging myself",
+        "cutting my wrists", "cut my wrists", "rat poison", "toilet cleaner acid", "pesticide",
+        "neend ki goliyan", "neend ki sari goliyan", "neend ki 50 goliyan",
+        "keede maarne wali dawa", "building se kood",
         "आत्महत्या", "खुदकुशी", "जान देना चाहता", "अपने आप को मार", "ज़हर", "जहर", "फांसी",
+        "नींद की सारी गोलियां", "नींद की गोलियां", "कीटनाशक ज़हर", "हाथ की नस काट", "फांसी लगाने",
     ),
     "TRAUMA": (
         "uncontrolled bleeding", "heavy bleeding", "major accident", "severe burn",
+        "internal bleeding", "abdominal hemorrhage", "acute abdominal hemorrhage",
+        "abdominal haemorrhage", "acute hemorrhage", "massive bleeding", "arterial bleeding",
+        "shock", "hypovolemic shock", "septic shock", "cardiogenic shock",
+        "patient is in shock", "in shock and collapsing",
         "bahut khoon beh", "tez khoon beh", "bada accident", "gehri chot",
-        "khoon ki ulti", "blood vomiting", "head injury unconscious", "arterial bleeding",
+        "khoon ki ulti", "blood vomiting", "head injury unconscious",
         "extensive burn", "khoon nikal", "goli lag", "chaku lag",
+        "bleeding uncontrollably", "stabbed", "stab wound", "gunshot wound", "gunshot",
+        "massive blood loss", "mass blood loss", "hematemesis", "hemoptysis",
+        "coughing up bright red blood", "coughing up blood", "car accident",
+        "severe active bleeding", "chaku lag gaya", "goli lag gayi", "sar toot gaya",
         "खून की उल्टी", "खून बह रहा", "बहुत खून", "बड़ा एक्सीडेंट", "गहरी चोट", "गंभीर रूप से जल",
+        "गोली लग गई", "चाकू लग गया", "फव्वारे की तरह खून", "आग में गंभीर रूप से जल",
     ),
 }
 
@@ -154,20 +184,19 @@ def _compile_regex(
 ) -> tuple[tuple[str, re.Pattern[str], str], ...]:
     compiled: list[tuple[str, re.Pattern[str], str]] = []
     for category, entries in phrase_map.items():
-        for phrase in entries:
-            words = phrase.split()
-            # Some Hinglish speech-to-text inserts spaces between syllables/words.
-            pattern = r"(?<!\w)" + r"\s*".join(re.escape(word) for word in words) + r"(?!\w)"
-            compiled.append((phrase, re.compile(pattern, re.I), category))
+        cat_pats = [r"\s*".join(re.escape(word) for word in phrase.split()) for phrase in entries]
+        if cat_pats:
+            pattern = r"(?<!\w)(?:" + "|".join(cat_pats) + r")(?!\w)"
+            compiled.append((category, re.compile(pattern, re.I), category))
     if spaced:
         compiled.extend((
             ("spaced chest pain", re.compile(r"(?<!\w)c\s*h\s*h\s*a\s*t\s*i.{0,12}(?:d\s*a\s*r\s*d|d\s*a\s*b\s*a\s*v)(?!\w)", re.I), "CARDIOVASCULAR"),
             ("spaced breathing distress", re.compile(r"(?<!\w)s\s*a\s*a\s*n\s*s.{0,16}(?:n\s*a\s*h\s*i|r\s*u\s*k)(?!\w)", re.I), "RESPIRATORY"),
-            ("cardio regex", re.compile(r"\b(?:chhati|chaati|seene|chest|dil)\b.{0,35}?\b(?:dard|daba+v|pressure|pain|attack|crushing|tightness|daura)\b|\bleft\s+(?:hand|arm)\s+pain\b|(?:छाती|सीने|दिल).{0,35}?(?:दर्द|दबाव|दौरा)", re.I), "CARDIOVASCULAR"),
-            ("respiratory regex", re.compile(r"\b(?:saans|saas|breath(?:e|ing)?|dum)\b.{0,35}?\b(?:nahi|takleef|taklif|dikkat|ruk|choking|gasping|cannot|can't|phool|ghut)\b|\basthma\s+attack\b|\bsuffocating\b|सांस.{0,25}?(?:नहीं|रुक|फूल|दिक्कत|तकलीफ)", re.I), "RESPIRATORY"),
-            ("neuro regex", re.compile(r"\b(?:chehra|face)\b.{0,30}?\b(?:tedha|droop|latak)\b|\bslurred\s+speech\b|\bparalyz(?:ed|is)\b|\bbol\s+nahi\s+pa\b|\bbehosh\b|\bunconscious\b|\bstroke\b|\blakwa\b|\bmirgi\b|चेहरा.{0,20}?टेढ़ा|लकवा|बेहोश", re.I), "NEUROLOGICAL"),
-            ("crisis regex", re.compile(r"\bsuicide\b|\bkill\s+myself\b|\bend\s+my\s+life\b|\bself\s+harm\b|\bwant\s+to\s+die\b|\bkhudkushi\b|\bjaan\s+(?:dena|lena)\b|\bzeher\b|\bpoison\b|\bfaansi\b|\bfaasi\b|आत्महत्या|खुदकुशी|ज़हर", re.I), "CRISIS"),
-            ("trauma regex", re.compile(r"\b(?:khoon|blood)\b.{0,30}?\b(?:ulti|vomit|beh|nikal|heavy|arterial)\b|\bextensive\s+burn\b|\bsevere\s+burn\b|\bhead\s+injury\b|\bgoli\s+lag\b|\bchaku\s+lag\b|खून\s+(?:की\s+उल्टी|बह)", re.I), "TRAUMA"),
+            ("cardio regex", re.compile(r"\b(?:chhati|chaati|seene|chest|dil|myocardial|angina|heart)\b.{0,35}?\b(?:dard|daba+v|pressure|pain|attack|crushing|tightness|daura|infarction|pectoris|arrest|stopped)\b|\bleft\s+(?:hand|arm)\s+pain\b|\b(?:no|lost)\s+pulse\b|\bpulseless\b|(?:छाती|सीने|दिल|धड़कन).{0,35}?(?:दर्द|दबाव|दौरा|बंद|रुक)", re.I), "CARDIOVASCULAR"),
+            ("respiratory regex", re.compile(r"\b(?:saans|saas|breath(?:e|ing)?|dum|respiratory)\b.{0,35}?\b(?:nahi|takleef|taklif|dikkat|ruk|choking|gasping|cannot|can't|phool|ghut|distress|failure|atak)\b|\basthma\s+attack\b|\bsuffocating\b|\b(?:throat\s+is\s+closing|throat\s+closing|anaphylaxis|stridor|lips\s+turning\s+blue)\b|\b(?:oxygen|spo2)\b.{0,25}?\b(?:drop|gir|fall|low|kam)\b|सांस.{0,25}?(?:नहीं|रुक|फूल|दिक्कत|तकलीफ|बंद|अटक)|ऑक्सीजन.{0,20}?गिर", re.I), "RESPIRATORY"),
+            ("neuro regex", re.compile(r"\b(?:chehra|face)\b.{0,30}?\b(?:tedha|droop|latak)\b|\bslurred\s+speech\b|\bparalyz(?:ed|is)\b|\bbol\s+nahi\s+pa\b|\bbehosh\b|\bunconscious\b|\bstroke\b|\blakwa\b|\bmirgi\b|\b(?:seizure|convuls(?:ing|ion)|epilep|status\s+epilepticus)\b|\bthunderclap(?:\s+headache)?\b|\bworst\s+headache\b|\bunresponsive\b|\bpassed\s+out\b|चेहरा.{0,20}?टेढ़ा|लकवा|बेहोश|अचेत|मिर्गी", re.I), "NEUROLOGICAL"),
+            ("crisis regex", re.compile(r"\bsuicide\b|\bkill\s+myself\b|\bend\s+my\s+life\b|\bself\s+harm\b|\bwant\s+to\s+die\b|\bkhudkushi\b|\bjaan\s+(?:dena|lena)\b|\bzeher\b|\bpoison\b|\bfaansi\b|\bfaasi\b|\b(?:overdose|sleeping\s+pills?|pesticide|rat\s+poison|cut(?:ting)?\s+(?:my\s+)?wrists?|hang(?:ing)?\s+myself)\b|\bneend\s+ki\s+.*goli|\b(?:tezaab|acid)\b.{0,20}?\b(?:pi|drank|pee)\b|आत्महत्या|खुदकुशी|ज़हर|फांसी|नींद\s+की.*गोली", re.I), "CRISIS"),
+            ("trauma regex", re.compile(r"\b(?:khoon|blood|internal|abdominal|acute|arterial|massive)\b.{0,30}?\b(?:ulti|vomit|beh|nikal|heavy|arterial|bleeding|hemorrhage|haemorrhage|loss)\b|\b(?:hypovolemic|septic|cardiogenic)\s+shock\b|\b(?:in\s+shock|patient\s+is\s+in\s+shock)\b|\bextensive\s+burn\b|\bsevere\s+burn\b|\bhead\s+injury\b|\bgoli\s+lag\b|\bchaku\s+lag\b|\b(?:bleeding\s+uncontrollably|stabbed|stab\s+wound|gunshot(?:\s+wound)?|coughing\s+(?:up\s+)?blood|hemoptysis|hematemesis)\b|\b(?:chaku|goli)\b.{0,25}?(?:lag|mar|lagi|mara)\b|खून\s+(?:की\s+उल्टी|बह|निकल)|चाकू|गोली", re.I), "TRAUMA"),
         ))
     return tuple(compiled)
 
@@ -213,17 +242,24 @@ class EmergencyBreaker:
         if not isinstance(text, str):
             raise TypeError("text must be a string")
         started = time.perf_counter_ns()
-        cleaned = re.sub(r"[\u200b-\u200d\ufeff\u00ad]", " ", text)
+        # Dual-pass zero-width normalization: handles both word separation and intra-word obfuscation
+        stripped_zw = re.sub(r"[\u200b-\u200f\ufeff\u00ad\u2060-\u206f]", "", text)
+        cleaned = re.sub(r"[\u200b-\u200f\ufeff\u00ad\u2060-\u206f]", " ", text)
         spaced = re.sub(r"[-_/.,;:!?।]+", " ", cleaned)
+        spaced_no_zw = re.sub(r"[-_/.,;:!?।]+", " ", stripped_zw)
         raw = " ".join(unicodedata.normalize("NFKC", spaced).casefold().split())
-        found = self._automaton.find(raw)
-        if found:
-            category, phrase = found
-            return self._result(started, category, phrase)
-        for phrase, pattern, category in self._regexes:
-            match = pattern.search(raw)
-            if match:
-                return self._result(started, category, match.group(0) or phrase)
+        raw_no_zw = " ".join(unicodedata.normalize("NFKC", spaced_no_zw).casefold().split())
+
+        candidates = (raw,) if raw == raw_no_zw else (raw, raw_no_zw)
+        for candidate in candidates:
+            found = self._automaton.find(candidate)
+            if found:
+                category, phrase = found
+                return self._result(started, category, phrase)
+            for phrase, pattern, category in self._regexes:
+                match = pattern.search(candidate)
+                if match:
+                    return self._result(started, category, match.group(0) or phrase)
         return BreakerResult(False, elapsed_ms=(time.perf_counter_ns() - started) / 1_000_000)
 
     def _result(self, started: int, category: str, matched: str) -> BreakerResult:

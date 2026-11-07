@@ -1,0 +1,62 @@
+{
+  "hardware": "Apple Silicon M5 (16GB RAM, Darwin arm64)",
+  "frame_latency": {
+    "pytorch": {
+      "p50_us": 78.25,
+      "p95_us": 91.39,
+      "p99_us": 140.97,
+      "frame_window_ms": 32.0,
+      "cpu_utilization_per_stream": 0.245
+    },
+    "onnx": {
+      "p50_us": 68.21,
+      "p95_us": 79.05,
+      "p99_us": 189.2,
+      "frame_window_ms": 32.0,
+      "cpu_utilization_per_stream": 0.213
+    }
+  },
+  "false_trigger_and_accuracy": {
+    "digital_silence": {
+      "total_frames": 93,
+      "triggered_frames": 0,
+      "trigger_rate": 0.0,
+      "avg_probability": 0.0037,
+      "max_probability": 0.0089
+    },
+    "heavy_breathing_sigh": {
+      "total_frames": 93,
+      "triggered_frames": 0,
+      "trigger_rate": 0.0,
+      "avg_probability": 0.0049,
+      "max_probability": 0.0426
+    },
+    "ambient_clinic_noise_35db": {
+      "total_frames": 93,
+      "triggered_frames": 0,
+      "trigger_rate": 0.0,
+      "avg_probability": 0.0095,
+      "max_probability": 0.0241
+    },
+    "keyboard_click_transients": {
+      "total_frames": 93,
+      "triggered_frames": 0,
+      "trigger_rate": 0.0,
+      "avg_probability": 0.0135,
+      "max_probability": 0.0733
+    },
+    "real_clinical_speech": {
+      "total_frames": 158,
+      "triggered_frames": 119,
+      "trigger_rate": 0.7532,
+      "avg_probability": 0.7406,
+      "max_probability": 1.0
+    }
+  },
+  "recommendation": {
+    "speech_threshold": 0.5,
+    "min_speech_duration_ms": 100,
+    "silence_cutoff_duration_ms": 650,
+    "verdict": "Silero VAD is extraordinarily efficient on Apple M5 (<0.25% CPU core per stream) with 0.0% false trigger on breathing, ambient clinic noise, and keyboard clicks."
+  }
+}
