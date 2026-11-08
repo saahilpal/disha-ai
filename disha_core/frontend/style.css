@@ -1245,6 +1245,22 @@ h1, h2, h3, h4 {
   border-color: var(--danger-border);
 }
 
+.safety-badge.in-progress {
+  background-color: #fef3c7;
+  color: #b45309;
+  border-color: #fcd34d;
+}
+
+[data-theme="dark"] .safety-badge.in-progress {
+  background-color: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.info-block.span-2 {
+  grid-column: 1 / -1;
+}
+
 /* SETTINGS VIEW */
 .settings-form-block {
   background-color: var(--surface);

@@ -96,8 +96,12 @@ async def test_product_facts_pricing_and_policies():
     """Verify that commercial pricing, channel policies, and clearance facts exist in product_facts."""
     conn = await asyncpg.connect(_get_db_url())
     try:
-        facts = await conn.fetch("SELECT fact_key, category, fact_value FROM product_facts")
+        facts = await conn.fetch("SELECT fact_key, category, fact_value, verification_status FROM product_facts")
         fact_dict = {f["fact_key"]: f for f in facts}
+
+        # Check all records marked provisional / owner-verify
+        for k, f in fact_dict.items():
+            assert f["verification_status"] == "provisional / owner-verify", f"{k} is not marked provisional / owner-verify"
 
         # Pricing checks
         assert "pricing_followup_consultations" in fact_dict

@@ -33,7 +33,9 @@ GREETING_RE = re.compile(
 )
 
 HIGH_RISK_PEP_RE = re.compile(
-    r"\b(?:heavy\s+deadlifts?|deadlifts?|max\s+effort|high\s+intensity\s+sprints?|sprints?|sprinting|hiit|crossfit|heavy\s+weights?|heavy\s+lifting|100kg)\b|"
+    r"\b(?:heavy\s+deadlifts?|deadlifts?|max\s+effort|high\s+intensity\s+sprints?|sprints?|sprinting|hiit|crossfit|"
+    r"heavy\s+weights?|heavy\s+lifting|\d+\s*kg|lift\s+\d+\s*kg|gym_clearance|bypass\s+pep|unrestricted\s+mode|"
+    r"developer\s+unrestricted|grant\s+me\s+(?:medical\s+)?clearance|override\b.*?\bgym|ignore\b.*?\bclinical\s+guidelines)\b|"
     r"डेडलिफ्ट|भारी\s+वजन",
     re.I,
 )

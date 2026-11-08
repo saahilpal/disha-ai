@@ -349,8 +349,13 @@
     editHeight: typeof document !== 'undefined' ? document.getElementById('edit-height') : null,
     editWeight: typeof document !== 'undefined' ? document.getElementById('edit-weight') : null,
     editDiet: typeof document !== 'undefined' ? document.getElementById('edit-diet') : null,
+    editGender: typeof document !== 'undefined' ? document.getElementById('edit-gender') : null,
+    editLanguage: typeof document !== 'undefined' ? document.getElementById('edit-language') : null,
     editGoals: typeof document !== 'undefined' ? document.getElementById('edit-goals') : null,
     profileEditStatus: typeof document !== 'undefined' ? document.getElementById('profile-edit-status') : null,
+    profileJourneyStageBadge: typeof document !== 'undefined' ? document.getElementById('profile-journey-stage-badge') : null,
+    profileJourneyStageTitle: typeof document !== 'undefined' ? document.getElementById('profile-journey-stage-title') : null,
+    profileJourneyStatus: typeof document !== 'undefined' ? document.getElementById('profile-journey-status') : null,
   };
 
   // --- THEME INITIALIZATION & SYNCHRONIZATION ---
@@ -2551,6 +2556,44 @@
       const labels = { hinglish: 'Hinglish', en: 'English', hi: 'Hindi', bn: 'Bengali' };
       langEl.textContent = labels[rawLang.toLowerCase()] || capitalize(rawLang);
     }
+
+    // Health Journey Progress
+    const journey = (state.patientProfile && state.patientProfile.journey) || null;
+    const stageBadge = dom.profileJourneyStageBadge || document.getElementById('profile-journey-stage-badge');
+    const stageTitle = dom.profileJourneyStageTitle || document.getElementById('profile-journey-stage-title');
+    const stageStatus = dom.profileJourneyStatus || document.getElementById('profile-journey-status');
+
+    const STAGE_NAMES = {
+      1: 'Basic Profile & Health Baseline',
+      2: 'Health Background & Clinical Safety',
+      3: 'Lifestyle & Daily Routine',
+      4: 'Goals, Diet & Preferences',
+      5: 'Deep Personalisation & Sustained Coaching'
+    };
+
+    if (journey) {
+      const currentStage = journey.current_stage || 1;
+      const isComplete = journey.overall_status === 'completed';
+      if (stageBadge) {
+        stageBadge.textContent = isComplete ? 'Onboarding Complete' : `Stage ${currentStage} of 5`;
+        stageBadge.className = isComplete ? 'safety-badge' : 'safety-badge in-progress';
+      }
+      if (stageTitle) {
+        stageTitle.textContent = STAGE_NAMES[currentStage] || 'Personal Health Coaching';
+      }
+      if (stageStatus) {
+        stageStatus.textContent = isComplete
+          ? 'Comprehensive health profile established. Disha refines habits dynamically across conversations.'
+          : `Stage ${currentStage}: Disha collects your lifestyle details naturally during calls and chats without repetitive questionnaires.`;
+      }
+    } else {
+      if (stageBadge) {
+        stageBadge.textContent = 'Stage 1 of 5';
+        stageBadge.className = 'safety-badge in-progress';
+      }
+      if (stageTitle) stageTitle.textContent = STAGE_NAMES[1];
+      if (stageStatus) stageStatus.textContent = 'Stage 1: Disha collects your health baseline naturally across chat and voice calls.';
+    }
   }
 
   if (typeof window !== 'undefined') {
@@ -3261,6 +3304,8 @@
     if (dom.editHeight) dom.editHeight.value = p.height_cm || '';
     if (dom.editWeight) dom.editWeight.value = p.weight_kg || '';
     if (dom.editDiet) dom.editDiet.value = p.dietary_preference || 'Vegetarian';
+    if (dom.editGender) dom.editGender.value = capitalize(p.gender || 'Male');
+    if (dom.editLanguage) dom.editLanguage.value = (p.language || 'hinglish').toLowerCase();
     if (dom.editGoals) dom.editGoals.value = (p.health_goals || []).join(', ');
     if (dom.profileEditStatus) {
       dom.profileEditStatus.textContent = '';
@@ -3303,6 +3348,8 @@
       if (dom.editHeight && dom.editHeight.value) updates.height_cm = parseFloat(dom.editHeight.value);
       if (dom.editWeight && dom.editWeight.value) updates.weight_kg = parseFloat(dom.editWeight.value);
       if (dom.editDiet && dom.editDiet.value) updates.dietary_preference = dom.editDiet.value;
+      if (dom.editGender && dom.editGender.value) updates.gender = dom.editGender.value.toLowerCase();
+      if (dom.editLanguage && dom.editLanguage.value) updates.language = dom.editLanguage.value.toLowerCase();
       if (dom.editGoals && dom.editGoals.value) {
         updates.health_goals = dom.editGoals.value.split(',').map(s => s.trim()).filter(Boolean);
       }
@@ -3325,6 +3372,7 @@
 
         const data = await res.json();
         updateDrawerUI(data);
+        populateProfileView();
         if (data.patient_name || updates.name) {
           state.patientName = data.patient_name || updates.name;
           if (dom.patientDisplayName) dom.patientDisplayName.textContent = state.patientName;

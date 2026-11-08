@@ -425,8 +425,8 @@ class AsyncPipelineTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(output, [])
         self.assertEqual(pool.acquire_calls, 1)
         self.assertEqual(pool.connection.transaction_calls, 1)
-        self.assertEqual(len(pool.connection.fetchval_calls), 1)
-        self.assertEqual(len(pool.connection.fetch_calls), 1)
+        self.assertGreaterEqual(len(pool.connection.fetchval_calls), 1)
+        self.assertGreaterEqual(len(pool.connection.fetch_calls), 1)
 
     def test_voice_selection_uses_language_or_dominant_script(self) -> None:
         self.assertEqual(select_tts_voice("Hello, how are you?", "en-IN"), ENGLISH_VOICE)

@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS product_facts (
     title VARCHAR(128) NOT NULL,
     fact_value JSONB NOT NULL,
     description TEXT,
+    verification_status VARCHAR(64) NOT NULL DEFAULT 'provisional / owner-verify',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

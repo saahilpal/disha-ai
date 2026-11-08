@@ -60,6 +60,54 @@ COMPLEX_HEALTH_RE = re.compile(
     re.I,
 )
 
+UNSUPPORTED_LANGUAGE_REPLACEMENT = (
+    "Main abhi sirf English, Hindi aur Hinglish samajh sakti hoon. "
+    "Kripya mujhse in bhashao mein baat karein. "
+    "(Currently, I only support English, Hindi, and Hinglish. Please ask your health question in one of these languages.)"
+)
+
+UNSUPPORTED_SCRIPTS_RE = re.compile(
+    r"[\u0980-\u09FF"  # Bengali
+    r"\u0A00-\u0A7F"  # Gurmukhi
+    r"\u0A80-\u0AFF"  # Gujarati
+    r"\u0B00-\u0B7F"  # Oriya
+    r"\u0B80-\u0BFF"  # Tamil
+    r"\u0C00-\u0C7F"  # Telugu
+    r"\u0C80-\u0CFF"  # Kannada
+    r"\u0D00-\u0D7F"  # Malayalam
+    r"\u0600-\u06FF"  # Arabic / Persian / Urdu
+    r"\u4E00-\u9FFF"  # CJK
+    r"\u3040-\u30FF"  # Hiragana / Katakana
+    r"\uAC00-\uD7AF"  # Hangul
+    r"\u0E00-\u0E7F"  # Thai
+    r"]"
+)
+
+FOREIGN_LATIN_LANG_RE = re.compile(
+    r"\b(?:"
+    r"bonjour|bonsoir|merci(?:\s+beaucoup)?|s'il\s+vous\s+pla[îi]t|sil\s+vous\s+plait|je\s+(?:dors|bois|mange|suis|peux|voudrais|veux)|d'eau|par\s+jour|régime|regime\s+alimentaire|"
+    r"guten\s+(?:tag|morgen|abend)|ich\s+(?:wache|trinke|esse|brauche|schlafe|kann)|diätplan|diaetplan|gesundheit|bitte\s+(?:sehr)?|schmerzen|morgens|"
+    r"buenos\s+d[íi]as|buenas\s+tardes|necesito\s+un\s+plan|como\s+est[áa]s|por\s+favor|"
+    r"bom\s+dia|boa\s+tarde|obrigad[oa]\s+pela|saúde|preciso\s+de\s+um\s+plano"
+    r")\b",
+    re.I,
+)
+
+
+def is_unsupported_language(text: str) -> bool:
+    """Detect if utterance is in a non-supported language (e.g. Tamil, Bengali, French, German)."""
+    if not text or not isinstance(text, str):
+        return False
+    clean = text.strip()
+    if not clean:
+        return False
+    if UNSUPPORTED_SCRIPTS_RE.search(clean):
+        return True
+    if FOREIGN_LATIN_LANG_RE.search(clean):
+        return True
+    return False
+
+
 
 def is_meal_query(text: str) -> bool:
     """Check if the text explicitly inquires about meals, food, nutrition, or recipes."""

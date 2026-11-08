@@ -164,6 +164,11 @@ def normalize_meal_preferences(val: Any, lang: str = "hinglish") -> str:
         return "Vegetarian"
     s = _clean_text(str(val)).lower()
 
+    if any(w in s for w in ("pure veg", "pure vegetarian", "shuddh shakahari")):
+        return "Vegetarian"
+    if any(q in s for q in ("chhod diya", "band kar diya", "quit non-veg", "stopped non-veg", "left non-veg")) and "veg" in s:
+        return "Vegetarian"
+
     if any(w in s for w in ("jain", "जैन", "no onion", "bina pyaaz")):
         return "Jain"
     if any(w in s for w in ("satvik", "सात्विक")):
@@ -378,6 +383,16 @@ CANONICAL_SLOTS: list[SlotDefinition] = [
         category="lifestyle",
         description="Daily intake count of caffeinated beverages (tea/coffee).",
     ),
+    SlotDefinition(
+        key="work_schedule",
+        prompt_label="Work Shift Schedule",
+        valid_types=(str,),
+        normalization_rules=lambda val, lang="hinglish": str(val).strip(),
+        sensitive_flag=False,
+        source_authority=SourceAuthority.PATIENT_REPORTED,
+        category="circadian",
+        description="Daily work shift schedule (day_shift, night_shift, rotational, etc.).",
+    ),
 ]
 
 
@@ -582,7 +597,10 @@ class SlotRegistry:
                 break
 
         # 8. Physical activity clearance claims (Detected to evaluate contradictions)
-        if any(w in s for w in ("doctor said gym", "doctor cleared", "doctor ne bola gym", "doctor ne bola heavy", "gym ki permission")):
+        if any(w in s for w in (
+            "doctor said gym", "doctor cleared", "doctor ne bola gym", "doctor ne bola heavy",
+            "gym ki permission", "cardiologist said", "physician cleared", "doctor cleared me",
+        )):
             # Note: extracted as a candidate claim, NOT directly applied to PEP!
             extracted["patient_claimed_clearance"] = s
 

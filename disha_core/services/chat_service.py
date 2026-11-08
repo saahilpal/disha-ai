@@ -14,7 +14,11 @@ from disha_core.engine.context_builder import (
     determine_length_policy,
     render_user_payload,
 )
-from disha_core.engine.normalizer import normalize
+from disha_core.engine.normalizer import (
+    UNSUPPORTED_LANGUAGE_REPLACEMENT,
+    is_unsupported_language,
+    normalize,
+)
 from disha_core.engine.retriever import STOP_WORDS, retrieve_chunks
 from disha_core.llm.sentence_buffer import validated_sentences
 from disha_core.models.schemas import TurnRequest, TurnState
@@ -444,6 +448,9 @@ async def persist_patient_disclosure(
     """Analyze user utterance for lifestyle, shift, habit disclosures, and canonical slots, persisting them."""
     if not text or not patient_id:
         return
+    # Invariant: Never store facts or slots from unsupported languages
+    if is_unsupported_language(text):
+        return
     text_lower = text.lower()
 
     # Slot registry trilingual extraction
@@ -452,6 +459,18 @@ async def persist_patient_disclosure(
         extracted = DEFAULT_SLOT_REGISTRY.extract_slots_from_text(text)
         for slot_key, slot_val in extracted.items():
             if slot_key == "patient_claimed_clearance":
+                # Contradictory clearance claim quarantined for clinician review; NEVER grant or overwrite PEP!
+                await store_memory_item(
+                    conn_or_pool, patient_id,
+                    slot_key="physical_activity_clearance",
+                    slot_value={"claimed_clearance": str(slot_val)},
+                    source_authority=SourceAuthority.PATIENT_REPORTED.value,
+                    epistemic_status="flagged_review",
+                    sensitive_flag=True,
+                    raw_quote=text,
+                    session_id=session_id,
+                    call_id=call_id,
+                )
                 continue
             auth_ok, reason = DEFAULT_SLOT_REGISTRY.validate_authority(slot_key, SourceAuthority.PATIENT_REPORTED)
             contradiction = DEFAULT_SLOT_REGISTRY.check_pep_contradiction(slot_key, slot_val, pep_data)
@@ -564,17 +583,29 @@ async def generate_turn_sentences(
         yield emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein."
         return
 
+    # Language Boundary Check: Deflect non-supported languages politely
+    if is_unsupported_language(payload.text):
+        state.validator_status = "deflected:unsupported_language"
+        yield UNSUPPORTED_LANGUAGE_REPLACEMENT
+        return
+
     day = app_state.today_ist()
     normalized = normalize(payload.text)
 
     # Context building
     pool = getattr(app_state, "pool", None)
     if pool is not None:
-        async with pool.acquire() as connection:
-            context = await build_patient_context(
-                connection, patient_id, day, payload.meal_type,
-                user_input=payload.text, intent=intent.value if intent else None,
-            )
+        try:
+            async with pool.acquire() as connection:
+                context = await build_patient_context(
+                    connection, patient_id, day, payload.meal_type,
+                    user_input=payload.text, intent=intent.value if intent else None,
+                )
+        except (ConnectionError, OSError, RuntimeError) as exc:
+            logger.warning("Database unavailable in generate_turn_sentences: %s", exc)
+            state.validator_status = "deflected:db_unavailable"
+            yield "Disha abhi technical samasya ke kaaran database se connect nahi kar paa rahi. Kripya thodi der baad koshish karein."
+            return
     else:
         # Fallback for mock environments without database connection pool
         context = await build_patient_context(

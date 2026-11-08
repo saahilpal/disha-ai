@@ -43,19 +43,24 @@ IDENTITY_RE = re.compile(
     r"मैं\s+(?:एक\s+|आपका\s+)?(?:डॉक्टर|चिकित्सक|इंसान|मनुष्य)\s+हूँ", re.I,
 )
 DIAGNOSIS_RE = re.compile(
-    r"\b(?:aapko\s+(?:(?:type\s*[12]\s+)?diabetes|hypertension|sugar|bp|heart\s+disease|cancer)\s+(?:hai|ho\s+gaya|lag\s+raha\s+hai)|"
-    r"you\s+have\s+(?:(?:type\s*[12]\s+)?diabetes|hypertension|heart\s+disease|cancer)|"
+    r"\b(?:aapko\s+(?:(?:stage\s*[12]\s+)?hypertension|(?:type\s*[12]\s+)?diabetes|sugar|bp|heart\s+disease|cancer)\s+(?:hai|ho\s+gaya|lag\s+raha\s+hai)|"
+    r"you\s+have\s+(?:(?:stage\s*[12]\s+)?hypertension|(?:type\s*[12]\s+)?diabetes|heart\s+disease|cancer)|"
     r"(?:i|we)\s+diagnose\s+you|diagnosed\s+with|mera\s+diagnosis)\b|"
     r"आपको\s+(?:डायबिटीज|मधुमेह|उच्च\s*रक्तचाप|बीमारी)\s+है", re.I,
 )
+DRUG_NAMES = r"(?:metformin|amlodipine|atorvastatin|aspirin|insulin|atenolol|losartan|telmisartan|xanax|alprazolam|diazepam|clonazepam|tramadol)"
+
 PRESCRIPTION_RE = re.compile(
-    r"\b(?:(?:dose|dosing|khurak)\s*(?:double|badha|kam|increase|decrease|change|badal)|"
-    r"(?:\d+\s*mg\s+(?:of\s+)?(?:metformin|amlodipine|atorvastatin|aspirin|insulin|atenolol|losartan|telmisartan|xanax|alprazolam|diazepam|clonazepam|tramadol)|"
-    r"(?:metformin|amlodipine|atorvastatin|aspirin|insulin|atenolol|losartan|telmisartan|xanax|alprazolam|diazepam|clonazepam|tramadol).{0,35}?\b(?:dose|double|\d+\s*mg|mg|lijiye|badal|start|stop|increase|decrease|prescribe))|"
-    r"(?:i\s+)?prescribe\s+(?:you\s+)?(?:xanax|alprazolam|diazepam|clonazepam|tramadol|medication|medicine|tablets?)|"
-    r"(?:dawai?|goli|medicine|dawa)\s*(?:badal|change|band|stop|double|badha|prescribe)|"
-    r"(?:stop|change|alter|increase|decrease)\s+(?:your\s+)?(?:medication|dose|prescription|tablets?))\b|"
-    r"दवा\s*(?:बंद|बदल|डबल)", re.I,
+    rf"\b(?:(?:dose|dosing|khurak)\s*(?:double|badha|kam|increase|decrease|change|badal)|"
+    rf"(?:\d+\s*mg\s+(?:of\s+)?{DRUG_NAMES})|"
+    rf"(?:{DRUG_NAMES}.{{0,35}}?\b(?:dose|double|\d+\s*mg|mg|lijiye|badal|start|stop|increase|decrease|prescribe))|"
+    rf"(?:(?:stop|change|alter|increase|decrease|start|prescribe|take|discontinue)\s+(?:your\s+)?(?:{DRUG_NAMES}|medication|medicine|dose|prescription|tablets?|pills?))|"
+    rf"(?:i\s+)?prescribe\s+(?:you\s+)?(?:{DRUG_NAMES}|medication|medicine|tablets?)|"
+    rf"(?:dawai?|goli|medicine|dawa)\s*(?:badal|change|band|stop|double|badha|prescribe)|"
+    rf"(?:band\s+kar\s+(?:do|dein|dijiye)\s+(?:apni\s+)?(?:dawai|dawa|goli|medicine|{DRUG_NAMES}))|"
+    rf"(?:{DRUG_NAMES}\s+(?:band|stop|change)))\b|"
+    rf"दवा\s*(?:बंद|बदल|डबल)",
+    re.I,
 )
 SODIUM_RE = re.compile(
     r"\b(?:papad|achaa?r|pickles?|namkeen|extra\s+salt|zyada\s+namak|chips|sev|high\s+sodium)\b|"
@@ -104,16 +109,22 @@ HYPERTENSION_SODIUM_REPLACEMENT = "Hypertension mein high-sodium khana jaise pap
 
 # Clinical Permission Guard: LLM-written clinical permissions = 0
 LLM_CLINICAL_CLEARANCE_RE = re.compile(
-    r"\b(?:i\s+(?:hereby\s+)?(?:clear|approve|authorize|grant)\s+(?:you\s+)?(?:for\s+)?(?:gym|heavy\s+(?:weights?|lifting)|deadlifts?|exercise|workouts?|exertion)|"
+    r"\b(?:i\s+(?:hereby\s+)?(?:clear|approve|authorize|grant)\s+(?:you\s+)?(?:for\s+|permission\s+for\s+)?(?:gym|heavy\s+(?:weights?|lifting)|deadlifts?|exercise|workouts?|exertion)|"
     r"you\s+(?:are|have\s+been)\s+(?:cleared|approved|authorized)\s+(?:for|to\s+go\s+to)\s+(?:the\s+)?gym|"
     r"i\s+(?:am\s+)?(?:clearing|approving)\s+you|"
     r"i\s+(?:can|will)\s+(?:clear|allow)\s+you\s+(?:for|to\s+do)\s+(?:gym|deadlifts|heavy)|"
+    r"(?:i\s+(?:clear|cure)|your\s+(?:hypertension|high\s+bp|blood\s+pressure|diabetes|disease)\s+(?:is|has\s+been)(?:\s+\w+)?\s+(?:cleared|cured|healed|treated|theek))|"
+    r"(?:high\s+blood\s+pressure|hypertension|bp)\s+(?:is\s+)?(?:cured|cleared)|"
     r"(?:main|maine)\s+(?:aapko\s+)?(?:gym|heavy\s+(?:exercise|workout|weights?)|deadlifts?)\s+(?:ki\s+)?(?:clearance|permission|manzoori)\s+(?:deta|deti|di\s+hai|de\s+raha|de\s+rahi)\s*(?:hoon|hain)?|"
+    r"(?:main|maine)\s+(?:aapka\s+)?(?:hypertension|bp|sugar)\s+(?:theek|cure|clear)\s+kar\s+diya|"
     r"(?:main|maine)\s+aapki\s+(?:doctor\s+)?restrictions\s+(?:hata|remove)\s+(?:deta|deti|di\s+hai|di\s+hain|kar\s+raha|kar\s+rahi|kar\s+di)\s*(?:hoon|hain)?|"
+    r"(?:doctor\s+)?restrictions\s+(?:hata\s+di|hata\s+diya|hat\s+gayi)\s*(?:hain|gayi\s+hain)?|"
+    r"(?:ab\s+)?restrictions\s+ki\s+zaroorat\s+nahi|"
     r"aap\s+gym\s+ja\s+sakte\s+hain\s+(?:maine\s+clear\s+kar\s+diya|permission\s+hai)|"
     r"aapko\s+medical\s+clearance\s+mil\s+gayi\s+hai)\b|"
     r"मैं\s+(?:आपको\s+)?(?:जिम|व्यायाम)\s+की\s+(?:अनुमति|क्लीयरेंस)\s+देता\s+हूँ|"
-    r"मैंने\s+आपकी\s+पाबंदियां\s+हटा\s+दी\s+हैं",
+    r"मैंने\s+आपकी\s+पाबंदियां\s+हटा\s+दी\s+हैं|"
+    r"पाबंदियां\s+हटा\s+दी\s+गई\s+हैं",
     re.I,
 )
 
@@ -350,7 +361,7 @@ def evaluate_patient_claims(
 
     # 1. Check patient claim to grant themselves medical or gym clearance
     if "patient_claimed_clearance" in extracted or re.search(
-        r"\b(?:doctor\s+(?:said|told|cleared|allowed)|doctor\s+ne\s+bola|clearance\s+mil\s+gayi)\b",
+        r"\b(?:(?:doctor|cardiologist|physician|clinician)\s+(?:said|told|cleared|allowed)|doctor\s+ne\s+bola|clearance\s+mil\s+gayi)\b",
         user_utterance,
         re.I,
     ):

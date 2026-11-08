@@ -481,6 +481,23 @@
               <span class="safety-value warning-text" id="profile-page-restricted-modalities">--</span>
             </div>
           </div>
+
+          <!-- Onboarding Journey Progress Block -->
+          <div class="info-block span-2" id="profile-page-journey-block">
+            <h2 class="block-title">Health Journey Progress</h2>
+            <div class="safety-detail-row">
+              <span class="safety-label">Onboarding Stage:</span>
+              <span class="safety-badge" id="profile-journey-stage-badge">Stage 1 of 5</span>
+            </div>
+            <div class="safety-detail-row">
+              <span class="safety-label">Current Focus:</span>
+              <span class="safety-value" id="profile-journey-stage-title">Basic Profile &amp; Health Baseline</span>
+            </div>
+            <div class="safety-detail-row">
+              <span class="safety-label">Journey Status:</span>
+              <span class="safety-value" id="profile-journey-status">In progress — Disha collects your routine naturally across chat and voice calls.</span>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -577,6 +594,25 @@
             <div class="form-group">
               <label for="edit-weight" class="form-label">Weight (kg)</label>
               <input type="number" id="edit-weight" class="form-input" min="20" max="300" step="any" />
+            </div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="edit-gender" class="form-label">Gender</label>
+              <select id="edit-gender" class="form-select">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="edit-language" class="form-label">Preferred Language</label>
+              <select id="edit-language" class="form-select">
+                <option value="hinglish">Hinglish</option>
+                <option value="en">English</option>
+                <option value="hi">Hindi</option>
+                <option value="bn">Bengali</option>
+              </select>
             </div>
           </div>
           <div class="form-group">

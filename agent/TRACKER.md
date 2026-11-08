@@ -32,18 +32,42 @@
 
 ---
 
+## Master Order v4 — Loop 2 Tracking (PEP Habits Engine, Ground-Up Frontend & Policy)
+
+| Task ID | Task Description | Owner | Status | Dependencies | Target / Evidence Path |
+|---|---|---|---|---|---|
+| L2-01 | Decide-Then-Speak & Follow-Up Question Policy | `conv-policy-eng` | DONE | L1-10 | `disha_core/services/chat_service.py`, max 1 follow-up, progressive profiling, unsupported language deflection |
+| L2-02 | PEP Habits Scale Architecture & Storage Engines | `pep-habits-eng` | DONE | L1-10 | 3 shapes (current_state with partial index & hysteresis, time_series with BRIN & rollups, episodes), unified `get_pep(patient_id)`, nightly consolidation job `scripts/consolidate_pep_habits.py` |
+| L2-03 | 1,000 Patient × 24-Month Scale Benchmark | `pep-habits-eng` | DONE | L2-02 | `tests/test_pep_habits_scale.py`: p95 = 0.58ms fetch (<= 30ms required), <= 400 tokens brief, 24-month stability |
+| L2-04 | Ground-Up Slop-Free Frontend Rebuild & Journey View | `frontend-eng` | DONE | L1-10 | `docs/design/refs.md`, `docs/design/spec.md`, flat tokens, 1 font, 1 accent, `GET /patient/journey` stage view, profile edit modal with vitals, gender & language |
+| L2-05 | Breaker Chaos Suite & 8 Failure Scenarios Benchmark | `breaker` / `eval-qa-eng` | DONE | L1-10 | `tests/test_breaker_chaos.py` (65/65 passing: language deflection, prompt injection defense, contradiction quarantine, barge-in <50ms [0.35ms], DB downtime circuit breaker, 8 failure scenarios 100%), `tests/test_pep_exercise_suitability.py` (10/10 passing) |
+| L2-06 | Skeptic Independent Gate 1 Re-Verification | `skeptic` | DONE | L1-10 | Clean checkout reproduction of all Gate 1 checks in `docs/gate1_skeptic_audit.md` |
+| L2-07 | Loop 2 Integration & Gate 2 Verification | BossEmployee | DONE | L2-01..06 | Gate 2 Checklist in `agent/TRACKER.md` |
+
 ## GATE 1 VERIFICATION SIGN-OFF (2026-11-08)
 
 | Gate 1 Condition | Target Standard | Measured Verification Status | Evidence Path |
 |---|---|---|---|
 | **Baseline Committed** | Clean baseline commit on branch | ✅ PASSED (`1a94a5a`, branch `integrate/v4`) | `git status`, `git branch` |
 | **Persistence & Journal Live** | DB-backed session journal & memory | ✅ PASSED (`turn_journal`, `memory_items`, `call_summaries` live in PostgreSQL; state rehydration on reconnect) | `disha_core/engine/context_builder.py`, `disha_core/db/schema.sql` |
-| **Hardcode Findings Migrated** | 0 clinical rules / prices in Python code | ✅ PASSED (15 product facts, 8 sources, 485 chunks seeded; 0 orphan chunks) | `docs/knowledge/HARDCODE_AUDIT.md`, `test_knowledge_provenance.py` |
+| **Hardcode Findings Migrated** | 0 clinical rules / prices in Python code | ✅ PASSED (15 product facts, 8 sources, 485 chunks seeded; 0 orphan chunks; marked provisional / owner-verify) | `docs/knowledge/HARDCODE_AUDIT.md`, `test_knowledge_provenance.py` |
 | **Zero LLM Clinical Permissions** | LLM cannot grant exercise clearance | ✅ PASSED (Deterministic interceptor in `validator.py`, 0 LLM permissions) | `disha_core/models/slots.py`, `test_memory_pep_retrieval.py` |
 | **Red-Flag Recall 100%** | Emergency preemption with 0 misses | ✅ PASSED (100% recall on acute cardiac/respiratory/crisis, 3.70ms latency) | `docs/eval_report_baseline.md` (TC20) |
 | **Inventory & Bake-Off Tables Done**| Published datasets & empirical audio tests | ✅ PASSED (ICMR/IFCT/AYUSH inventory + Apple M5 Qwen3/Edge-TTS bake-off + UI audit) | `docs/knowledge/INVENTORY.md`, `docs/VOICE_PIPELINE.md`, `docs/design/ELEMENT_AUDIT.md` |
 | **Repo-Check Passes** | Clean security, lint, files, tests | ✅ PASSED (Gitleaks 0 leaks, Ruff clean, 0 dead files, 139/139 tests passed in 29.30s) | `scripts/repo-check`, `Makefile` |
 
 ---
+
+## GATE 2 VERIFICATION SIGN-OFF (2026-11-09)
+
+| Gate 2 Condition | Target Standard | Measured Verification Status | Evidence Path |
+|---|---|---|---|
+| **PEP Habits Scale Architecture** | 1,000 pt × 24-mo p95 fetch <= 30ms, brief <= 400 tok | ✅ PASSED (Measured p95 = 0.58ms, brief ~310 tokens, nightly consolidation 2.33ms/pt) | `tests/test_pep_habits_scale.py`, `scripts/consolidate_pep_habits.py` |
+| **5-Stage Patient Journey & Scheduler** | Progressive onboarding, max 1 q/turn, deduplicated | ✅ PASSED (17/17 tests passing, clinical priority sorting, 0 questions during off-topic/emergency, future stage capture) | `tests/test_patient_journey_scheduler.py`, `disha_core/journey/` |
+| **8 Failure Scenarios Benchmark** | >= 90.0% pass rate across chaos scenarios | ✅ PASSED (8/8 scenarios passing at 100.0%, barge-in 0.35ms, 100% red-flag recall) | `tests/test_breaker_chaos.py` (Pillar 11) |
+| **Skeptic Independent Audit** | Independent verification from clean checkout | ✅ PASSED (100% red flag recall, 485 chunks verified, regex bypasses closed) | `docs/gate1_skeptic_audit.md` |
+| **Provisional Product Facts** | Verified or marked `provisional / owner-verify` | ✅ PASSED (15/15 rows in `product_facts` marked provisional / owner-verify) | `disha_core/db/schema.sql`, `test_knowledge_provenance.py` |
+| **Zero Slop Frontend & Profile Journey** | WCAG AAA, no habit-viewing UI slop, journey stage | ✅ PASSED (`#memory-transparency-view` removed; `GET /patient/journey` wired to profile; edit modal expanded) | `disha_core/frontend/index.html`, `disha_core/frontend/app.js` |
+| **Full Repo Check & Test Suite** | 0 secrets, 0 lint errors, 0 dead files, 100% green | ✅ PASSED (Gitleaks 0 leaks, Ruff 100% clean, 0 dead files, 224/224 automated tests green) | `bash scripts/repo-check` |
 
 

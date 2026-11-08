@@ -54,8 +54,102 @@ CREATE TABLE IF NOT EXISTS patient_pep (
     diagnosed_conditions TEXT[] DEFAULT '{}',
     language VARCHAR(32) DEFAULT 'hinglish',
     dietary_preference VARCHAR(64) DEFAULT 'Vegetarian',
+    habits JSONB DEFAULT '{}'::jsonb NOT NULL,
+    habits_version INT DEFAULT 1 NOT NULL,
+    is_dirty BOOLEAN DEFAULT FALSE NOT NULL,
+    habits_updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- ============================================================================
+-- PEP Habits Scale Engine (Loop 2 Architecture)
+-- ============================================================================
+
+-- 1. Current-state habit slots with partial unique index & hysteresis tracking
+CREATE TABLE IF NOT EXISTS habit_current_state (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id VARCHAR(64) NOT NULL,
+    slot_key VARCHAR(64) NOT NULL,
+    value_norm TEXT NOT NULL,
+    value_raw TEXT NOT NULL,
+    raw_lang VARCHAR(16) NOT NULL DEFAULT 'hinglish',
+    first_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_confirmed_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    confirm_count INT NOT NULL DEFAULT 1,
+    confidence NUMERIC(4,3) NOT NULL DEFAULT 1.000,
+    source VARCHAR(32) NOT NULL DEFAULT 'call',
+    evidence_ref TEXT,
+    valid_from TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    valid_to TIMESTAMPTZ,
+    supersedes BIGINT REFERENCES habit_current_state(id),
+    version INT NOT NULL DEFAULT 1,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_habit_current_active 
+    ON habit_current_state (patient_id, slot_key) 
+    WHERE valid_to IS NULL;
+CREATE INDEX IF NOT EXISTS idx_habit_current_patient_slot 
+    ON habit_current_state (patient_id, slot_key);
+
+-- 2. Append-only habit observations partitioned by month with BRIN index
+CREATE TABLE IF NOT EXISTS habit_observations (
+    id BIGSERIAL,
+    patient_id VARCHAR(64) NOT NULL,
+    slot_key VARCHAR(64) NOT NULL,
+    observed_at TIMESTAMPTZ NOT NULL,
+    value NUMERIC(10,2),
+    unit VARCHAR(32),
+    source VARCHAR(32) DEFAULT 'call',
+    evidence_ref TEXT,
+    dedupe_key VARCHAR(128),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (id, observed_at)
+) PARTITION BY RANGE (observed_at);
+
+CREATE TABLE IF NOT EXISTS habit_observations_default 
+    PARTITION OF habit_observations DEFAULT;
+
+CREATE INDEX IF NOT EXISTS idx_habit_obs_brin 
+    ON habit_observations USING BRIN(observed_at);
+CREATE INDEX IF NOT EXISTS idx_habit_obs_pt_slot_time 
+    ON habit_observations (patient_id, slot_key, observed_at DESC);
+CREATE INDEX IF NOT EXISTS idx_habit_obs_dedupe 
+    ON habit_observations (dedupe_key, observed_at);
+
+-- 3. Incremental habit rollups (day/week/month)
+CREATE TABLE IF NOT EXISTS habit_rollups (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id VARCHAR(64) NOT NULL,
+    slot_key VARCHAR(64) NOT NULL,
+    period_type VARCHAR(16) NOT NULL CHECK (period_type IN ('day', 'week', 'month')),
+    period_start DATE NOT NULL,
+    count INT NOT NULL DEFAULT 0,
+    min_val NUMERIC(10,2),
+    max_val NUMERIC(10,2),
+    mean_val NUMERIC(10,2),
+    last_val NUMERIC(10,2),
+    trend VARCHAR(32) NOT NULL DEFAULT 'stable',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(patient_id, slot_key, period_type, period_start)
+);
+CREATE INDEX IF NOT EXISTS idx_habit_rollups_lookup 
+    ON habit_rollups (patient_id, slot_key, period_type, period_start DESC);
+
+-- 4. Transient symptoms and commitments (episodes)
+CREATE TABLE IF NOT EXISTS habit_episodes (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id VARCHAR(64) NOT NULL,
+    episode_type VARCHAR(64) NOT NULL,
+    description TEXT NOT NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'resolved', 'expired')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    due_at TIMESTAMPTZ,
+    expires_at TIMESTAMPTZ,
+    resolved_at TIMESTAMPTZ,
+    evidence_ref TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_habit_episodes_pt_status 
+    ON habit_episodes (patient_id, status);
 
 -- Backward and forward compatibility view for clinical guideline retrieval
 CREATE OR REPLACE VIEW clinical_guideline_chunks AS
@@ -238,8 +332,60 @@ CREATE TABLE IF NOT EXISTS product_facts (
     title VARCHAR(128) NOT NULL,
     fact_value JSONB NOT NULL,
     description TEXT,
+    verification_status VARCHAR(64) NOT NULL DEFAULT 'provisional / owner-verify',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_product_facts_category ON product_facts(category);
+
+-- ============================================================================
+-- Patient Onboarding Journey and Question Scheduler State
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS patient_journey_state (
+    patient_id VARCHAR(64) PRIMARY KEY,
+    current_stage INT NOT NULL DEFAULT 1 CHECK (current_stage BETWEEN 1 AND 5),
+    stage_status JSONB NOT NULL DEFAULT '{}'::jsonb,
+    overall_status VARCHAR(32) NOT NULL DEFAULT 'in_progress' 
+        CHECK (overall_status IN ('not_started', 'in_progress', 'completed', 'post_onboarding')),
+    completed_fields TEXT[] NOT NULL DEFAULT '{}',
+    missing_fields TEXT[] NOT NULL DEFAULT '{}',
+    uncertain_fields TEXT[] NOT NULL DEFAULT '{}',
+    conflicting_fields TEXT[] NOT NULL DEFAULT '{}',
+    skipped_fields TEXT[] NOT NULL DEFAULT '{}',
+    last_interaction_ts TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_interaction_channel VARCHAR(16) NOT NULL DEFAULT 'chat'
+        CHECK (last_interaction_channel IN ('chat', 'voice')),
+    last_completed_stage INT NOT NULL DEFAULT 0,
+    journey_version INT NOT NULL DEFAULT 1,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_pjs_status ON patient_journey_state(overall_status);
+CREATE INDEX IF NOT EXISTS idx_pjs_stage ON patient_journey_state(current_stage);
+
+CREATE TABLE IF NOT EXISTS journey_question_history (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id VARCHAR(64) NOT NULL,
+    question_id VARCHAR(64) NOT NULL,
+    stage INT NOT NULL CHECK (stage BETWEEN 1 AND 5),
+    target_field VARCHAR(64) NOT NULL,
+    channel VARCHAR(16) NOT NULL DEFAULT 'chat'
+        CHECK (channel IN ('chat', 'voice')),
+    status VARCHAR(32) NOT NULL DEFAULT 'asked'
+        CHECK (status IN ('asked', 'answered', 'skipped', 'clarification_requested', 'superseded')),
+    question_text TEXT NOT NULL,
+    asked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    answered_at TIMESTAMPTZ,
+    response_text TEXT,
+    extracted_value JSONB,
+    attempts INT NOT NULL DEFAULT 1,
+    skip_reason TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_jqh_patient_qid ON journey_question_history(patient_id, question_id);
+CREATE INDEX IF NOT EXISTS idx_jqh_patient_field ON journey_question_history(patient_id, target_field, status);
+CREATE INDEX IF NOT EXISTS idx_jqh_patient_stage ON journey_question_history(patient_id, stage);

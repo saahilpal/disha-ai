@@ -35,7 +35,11 @@ from disha_core.engine.context_builder import (
     determine_length_policy,
     render_user_payload,
 )
-from disha_core.engine.normalizer import normalize
+from disha_core.engine.normalizer import (
+    UNSUPPORTED_LANGUAGE_REPLACEMENT,
+    is_unsupported_language,
+    normalize,
+)
 from disha_core.engine.retriever import retrieve_chunks
 from disha_core.llm.client import DualProviderClient
 from disha_core.llm.sentence_buffer import validated_sentences
@@ -99,13 +103,17 @@ async def _authenticated_patient(request: Request | WebSocket, authorization: st
     pool = getattr(getattr(request, "app", request).state, "pool", None)
     if pool is None:
         raise HTTPException(status_code=503, detail="Patient storage unavailable")
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            """SELECT patient_id FROM patient_access_tokens
-               WHERE token_hash = $1 AND revoked_at IS NULL
-                 AND (expires_at IS NULL OR expires_at > NOW())""",
-            access_token_hash(token.strip()),
-        )
+    try:
+        async with pool.acquire() as conn:
+            row = await conn.fetchrow(
+                """SELECT patient_id FROM patient_access_tokens
+                   WHERE token_hash = $1 AND revoked_at IS NULL
+                     AND (expires_at IS NULL OR expires_at > NOW())""",
+                access_token_hash(token.strip()),
+            )
+    except (ConnectionError, OSError, RuntimeError) as exc:
+        logger.warning("Database unavailable during token auth: %s", exc)
+        raise HTTPException(status_code=503, detail="Database temporarily unavailable; please retry shortly")
     if row is None:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
     return str(row["patient_id"])
@@ -148,10 +156,25 @@ async def _turn_sentences(
         yield text
         return
 
+    # Language Boundary Check: Deflect non-supported languages politely
+    if is_unsupported_language(payload.text):
+        state.validator_status = "deflected:unsupported_language"
+        generated_sentences.append(UNSUPPORTED_LANGUAGE_REPLACEMENT)
+        yield UNSUPPORTED_LANGUAGE_REPLACEMENT
+        return
+
     day = app_state.today_ist()
-    context = await build_patient_context(
-        app_state.pool, patient_id, day, payload.meal_type
-    )
+    try:
+        context = await build_patient_context(
+            app_state.pool, patient_id, day, payload.meal_type
+        )
+    except (ConnectionError, OSError, RuntimeError) as exc:
+        logger.warning("Database unavailable in _turn_sentences: %s", exc)
+        state.validator_status = "deflected:db_unavailable"
+        deflection_msg = "Disha abhi technical samasya ke kaaran database se connect nahi kar paa rahi. Kripya thodi der baad koshish karein."
+        generated_sentences.append(deflection_msg)
+        yield deflection_msg
+        return
     normalized = normalize(payload.text)
     context["clinical_tags"] = normalized.tags
     context["intent"] = intent.value if intent else Intent.UNKNOWN.value
@@ -194,31 +217,83 @@ async def _turn_sentences(
     history = app_state.conversation_history.get(patient_id, [])[-8:]
     context["has_history"] = bool(history)
 
-    # Retrieval Routing:
-    # If Laya classifies intent as pure greeting, general coaching, or app meta,
-    # SKIP pgvector database retrieval, saving DB connection latency & context window.
-    if skip_retrieval or intent in {Intent.GENERAL_COACHING, Intent.APP_META, Intent.GREETING}:
-        chunks = ()
-    else:
-        target_tags = list(normalized.tags)
-        if intent == Intent.SYMPTOM_COMPLAINT and not target_tags:
-            target_tags = ["GI_BLOATING"]
-        elif intent == Intent.MEAL_QUERY and not target_tags:
-            target_tags = ["FRUIT_MODERATION"]
-        elif intent == Intent.EXERCISE_QUERY and not target_tags:
-            target_tags = ["EXERCISE_GUIDELINES"]
-
-        async with app_state.pool.acquire() as connection:
-            chunks = await retrieve_chunks(
-                connection, normalized.normalized, patient_id=patient_id, tags=target_tags
-            )
-            if getattr(app_state, "sync_history", False) and not app_state.conversation_history[patient_id]:
+    # 5-Stage Patient Journey & Retrieval Routing via single acquired connection
+    channel = "voice" if hasattr(request, "client_state") or "WebSocket" in str(type(request)) else "chat"
+    chunks = ()
+    if getattr(app_state, "pool", None) is not None:
+        try:
+            async with app_state.pool.acquire() as connection:
                 with suppress(Exception):
-                    from disha_core.services.chat_service import load_conversation_history
-                    loaded = await load_conversation_history(connection, patient_id, 8)
-                    if loaded:
-                        app_state.conversation_history[patient_id] = loaded
-                        history = loaded[-8:]
+                    from disha_core.journey import (
+                        extract_patient_disclosures,
+                        load_or_create_journey,
+                        record_field_answer,
+                        select_next_question,
+                    )
+                    lang = context.get("language") or "hinglish"
+                    # 1. Multi-field extraction from user input
+                    disclosures = extract_patient_disclosures(payload.text, lang=lang)
+                    for f_id, f_val in disclosures.items():
+                        await record_field_answer(
+                            patient_id=patient_id,
+                            field_id=f_id,
+                            raw_value=f_val,
+                            raw_text=payload.text,
+                            channel=channel,
+                            conn=connection,
+                            lang=lang,
+                        )
+
+                    # 2. Sync / load journey state
+                    journey_state = await load_or_create_journey(patient_id, conn=connection, channel=channel)
+                    context["journey_state"] = journey_state
+
+                    # 3. Off-topic check (e.g. general nutrition query vs answering onboarding question)
+                    is_off_topic = bool(
+                        normalized.is_meal_query 
+                        or normalized.is_exercise_query 
+                        or intent in {Intent.MEAL_QUERY, Intent.EXERCISE_QUERY, Intent.SYMPTOM_COMPLAINT}
+                    ) and not disclosures
+
+                    # 4. Schedule next question
+                    scheduled_q = await select_next_question(
+                        patient_id=patient_id,
+                        journey_state=journey_state,
+                        user_turn_text=payload.text,
+                        channel=channel,
+                        is_emergency=emergency.triggered,
+                        is_off_topic_query=is_off_topic,
+                        conn=connection,
+                        preferred_lang=lang,
+                    )
+                    if scheduled_q:
+                        context["scheduled_question"] = scheduled_q.text
+
+                # Retrieval Routing:
+                # If Laya classifies intent as pure greeting, general coaching, or app meta,
+                # SKIP pgvector database retrieval, saving DB connection latency & context window.
+                if not (skip_retrieval or intent in {Intent.GENERAL_COACHING, Intent.APP_META, Intent.GREETING}):
+                    target_tags = list(normalized.tags)
+                    if intent == Intent.SYMPTOM_COMPLAINT and not target_tags:
+                        target_tags = ["GI_BLOATING"]
+                    elif intent == Intent.MEAL_QUERY and not target_tags:
+                        target_tags = ["FRUIT_MODERATION"]
+                    elif intent == Intent.EXERCISE_QUERY and not target_tags:
+                        target_tags = ["EXERCISE_GUIDELINES"]
+
+                    chunks = await retrieve_chunks(
+                        connection, normalized.normalized, patient_id=patient_id, tags=target_tags
+                    )
+                    if getattr(app_state, "sync_history", False) and not app_state.conversation_history[patient_id]:
+                        with suppress(Exception):
+                            from disha_core.services.chat_service import load_conversation_history
+                            loaded = await load_conversation_history(connection, patient_id, 8)
+                            if loaded:
+                                app_state.conversation_history[patient_id] = loaded
+                                history = loaded[-8:]
+        except (ConnectionError, OSError, RuntimeError) as exc:
+            logger.warning("Database retrieval unavailable: %s", exc)
+            chunks = ()
 
     add_approved_remedy_constraints(context, chunks)
     prompt = render_user_payload(normalized.normalized, context, chunks)
@@ -467,7 +542,15 @@ def create_app() -> FastAPI:
                 "status": f"triggered:{emergency.category}",
             }
 
-        patient_id = await _authenticated_patient(request, authorization)
+        try:
+            patient_id = await _authenticated_patient(request, authorization)
+        except HTTPException as he:
+            if he.status_code == 503:
+                return {
+                    "response": "Disha abhi technical samasya ke kaaran database se connect nahi kar paa rahi. Kripya thodi der baad koshish karein.",
+                    "status": "deflected:db_unavailable",
+                }
+            raise
         state = TurnState()
         sentences = [sentence async for sentence in _turn_sentences(request, patient_id, payload, state)]
         output = " ".join(sentences)
@@ -511,7 +594,15 @@ def create_app() -> FastAPI:
                 },
             )
 
-        patient_id = await _authenticated_patient(request, authorization)
+        try:
+            patient_id = await _authenticated_patient(request, authorization)
+        except HTTPException as he:
+            if he.status_code == 503:
+                return {
+                    "response": "Disha abhi technical samasya ke kaaran database se connect nahi kar paa rahi. Kripya thodi der baad koshish karein.",
+                    "status": "deflected:db_unavailable",
+                }
+            raise
         state = TurnState()
 
         async def events() -> AsyncIterator[str]:

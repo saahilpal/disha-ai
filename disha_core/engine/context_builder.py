@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 import html
+import logging
 from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any, Protocol
+
+logger = logging.getLogger("disha_core.engine.context_builder")
 
 from disha_core.engine.normalizer import (
     is_complex_health_query,
@@ -124,8 +127,13 @@ async def build_patient_context(
     if day_of_week not in WEEKDAYS:
         raise ValueError("day_of_week must be a full weekday name")
 
-    pep = await connection.fetchrow(PEP_SQL, patient_id)
-    pep_dict = dict(pep) if pep else None
+    pep_dict: dict[str, Any] | None = None
+    if connection is not None and hasattr(connection, "fetchrow"):
+        try:
+            pep = await connection.fetchrow(PEP_SQL, patient_id)
+            pep_dict = dict(pep) if pep else None
+        except Exception as exc:
+            logger.warning("Database unavailable in build_patient_context fetchrow: %s", exc)
 
     patient_facts: list[dict[str, Any]] = []
     patient_slots: list[dict[str, Any]] = []
@@ -164,7 +172,10 @@ async def build_patient_context(
         meal_type = meal_type.strip().casefold()
         if meal_type not in {"breakfast", "lunch", "dinner"}:
             raise ValueError("meal_type must be breakfast, lunch, or dinner")
-        diet = await connection.fetchrow(DIET_SQL, patient_id, day_of_week, meal_type)
+        diet = None
+        if connection is not None and hasattr(connection, "fetchrow"):
+            with suppress(Exception):
+                diet = await connection.fetchrow(DIET_SQL, patient_id, day_of_week, meal_type)
         items = diet["prescribed_items"] if diet else None
         if isinstance(items, str):
             items = items.strip() or None
@@ -219,8 +230,13 @@ async def rehydrate_session_state(
         raise ValueError("patient_id is required")
     patient_id = patient_id.strip()
 
-    pep = await connection.fetchrow(PEP_SQL, patient_id)
-    pep_dict = dict(pep) if pep else None
+    pep_dict: dict[str, Any] | None = None
+    if connection is not None and hasattr(connection, "fetchrow"):
+        try:
+            pep = await connection.fetchrow(PEP_SQL, patient_id)
+            pep_dict = dict(pep) if pep else None
+        except Exception as exc:
+            logger.warning("Database unavailable in build_patient_context fetchrow: %s", exc)
 
     conversation_history: list[dict[str, str]] = []
     patient_facts: list[dict[str, Any]] = []
@@ -415,8 +431,20 @@ def render_user_payload(user_input: str, context: dict[str, Any], chunks: Any = 
         f'prompted_for_meals="{str(is_meal).lower()}" '
         f'prompted_for_exercise="{str(is_exercise).lower()}"/>'
     )
+
+    scheduled_xml = ""
+    scheduled_q = context.get("scheduled_question")
+    if scheduled_q:
+        scheduled_text = html.escape(str(scheduled_q))
+        scheduled_xml = (
+            f'<SCHEDULED_ONBOARDING_INQUIRY instruction="After addressing the patient above, naturally ask this single question at the end:">'
+            f'{scheduled_text}'
+            f'</SCHEDULED_ONBOARDING_INQUIRY>'
+        )
+
     return (
         f"{render_context_xml(context, chunks)}"
         f"{discipline_xml}"
+        f"{scheduled_xml}"
         f"<USER_UTTERANCE>{html.escape(user_input)}</USER_UTTERANCE>"
     )

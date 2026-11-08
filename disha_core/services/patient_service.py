@@ -42,6 +42,12 @@ async def fetch_patient_profile(pool: Any, patient_id: str, day: str) -> dict[st
         )
         diet_map = {r["meal_type"]: r["prescribed_items"] for r in diet_rows}
 
+        journey_row = await conn.fetchrow(
+            """SELECT current_stage, stage_status, overall_status, last_completed_stage
+               FROM patient_journey_state WHERE patient_id = $1""",
+            patient_id,
+        )
+
     name = (
         profile_row["name"]
         if profile_row
@@ -70,6 +76,11 @@ async def fetch_patient_profile(pool: Any, patient_id: str, day: str) -> dict[st
             "diagnosed_conditions": list(_pep_val(pep_row, "diagnosed_conditions", [])),
         },
         "today_diet": diet_map,
+        "journey": dict(journey_row) if journey_row else {
+            "current_stage": 1,
+            "overall_status": "in_progress",
+            "last_completed_stage": 0,
+        },
     }
 
 
@@ -204,5 +215,11 @@ async def update_patient_profile(pool: Any, patient_id: str, updates: dict[str, 
             )
             update_sql = f"UPDATE patient_pep SET {', '.join(pep_fields)} WHERE patient_id = ${p_idx}"
             await conn.execute(update_sql, *pep_values)
+
+        try:
+            from disha_core.journey import sync_known_fields_from_db
+            await sync_known_fields_from_db(patient_id, conn)
+        except Exception:
+            pass
 
     return await fetch_patient_profile(pool, patient_id, day)
