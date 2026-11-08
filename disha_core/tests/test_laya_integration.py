@@ -23,7 +23,6 @@ Validates:
 """
 from __future__ import annotations
 
-import asyncio
 import tempfile
 import time
 from pathlib import Path
@@ -33,22 +32,16 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from disha_core.classifier.adapter import (
-    LayaClassificationResult,
     LayaClassifierAdapter,
 )
 from disha_core.classifier.review_queue import (
     ReviewQueueManager,
     TriggerType,
 )
-from disha_core.classifier.schemas import ALL_INTENTS, CLINICAL_QUESTIONS
 from disha_core.models.schemas import TurnRequest, TurnState
-from disha_core.pipeline.breaker import BreakerResult, EmergencyBreaker
 from disha_core.pipeline.router import (
     Intent,
     IntentRouter,
-    LayaIntentClassifier,
-    RouteDecision,
-    RuleIntentClassifier,
 )
 from disha_core.pipeline.validator import PEP_REPLACEMENT, SentenceValidator
 from disha_core.services.chat_service import generate_turn_sentences

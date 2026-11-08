@@ -14,10 +14,10 @@ import time
 from pathlib import Path
 from typing import Any
 
-from dotenv import load_dotenv
 import edge_tts
 import httpx
 import jiwer
+from dotenv import load_dotenv
 from faster_whisper import WhisperModel
 
 load_dotenv(".env")

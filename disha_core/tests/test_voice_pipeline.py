@@ -16,13 +16,15 @@ from disha_core.voice import (
     HINDI_VOICE,
     QWEN3_DEFAULT_MODEL,
     QWEN3_DEFAULT_VOICE,
-    WHISPER_SILENCE_HALLUCINATIONS,
     VoicePrivacyError,
     VoiceSession,
+    detect_turn_language,
     execute_voice_turn,
+    is_hindi_turn,
     is_silence_hallucination,
     is_silent_audio,
     normalize_hinglish_phonetics,
+    route_tts,
     select_tts_voice,
     stream_qwen3_tts,
     synthesize_speech_stream,
@@ -412,3 +414,144 @@ class VoicePipelineTests(IsolatedAsyncioTestCase):
                 frame3 = ws.receive_json()
                 self.assertEqual(frame3["type"], "done")
                 self.assertEqual(frame3["status"], "validated")
+
+    def test_detect_turn_language_devanagari_and_hinglish(self) -> None:
+        """Verify detect_turn_language correctly categorizes Devanagari, Hinglish, and English."""
+        # Pure Devanagari
+        self.assertEqual(detect_turn_language("नमस्ते! मैं दिशा हूँ"), "hi")
+        self.assertEqual(detect_turn_language("बीपी 140/90 है, क्या दवा लूँ?"), "hi")
+
+        # Romanized Hinglish with Hindi markers
+        self.assertEqual(detect_turn_language("Aap warm jeera water lein aur pet dard mein aaram karein"), "hi")
+        self.assertEqual(detect_turn_language("Mujhe gas aur pet dard ho raha hai"), "hi")
+        self.assertEqual(detect_turn_language("Namaste doctor, kya main walk kar sakti hoon?"), "hi")
+        self.assertTrue(is_hindi_turn("Aapka blood pressure kaisa hai?"))
+
+        # English turns
+        self.assertEqual(detect_turn_language("Hello doctor, I would like to schedule an appointment"), "en")
+        self.assertEqual(detect_turn_language("Please consult your treating physician before altering your medication"), "en")
+        self.assertFalse(is_hindi_turn("Should I take Metformin before or after meals?"))
+
+        # Explicit language hints
+        self.assertEqual(detect_turn_language("Some mixed turn", language_hint="hi-IN"), "hi")
+        self.assertEqual(detect_turn_language("Some mixed turn", language_hint="en-US"), "en")
+
+    def test_route_tts_dual_engine_policy(self) -> None:
+        """Verify route_tts implements the language-routed dual engine policy."""
+        # Hindi & Hinglish route to Edge-TTS hi-IN-SwaraNeural
+        eng_hi, voice_hi = route_tts("Aap warm jeera water lejiye")
+        self.assertEqual(eng_hi, "edge-tts")
+        self.assertEqual(voice_hi, HINDI_VOICE)
+
+        eng_dev, voice_dev = route_tts("नमस्ते डॉक्टर साहब")
+        self.assertEqual(eng_dev, "edge-tts")
+        self.assertEqual(voice_dev, HINDI_VOICE)
+
+        # English routes to Qwen3-TTS
+        eng_en, voice_en = route_tts("Please follow your doctor's instructions carefully")
+        self.assertEqual(eng_en, "qwen3")
+        self.assertEqual(voice_en, QWEN3_DEFAULT_VOICE)
+
+        # Forced engine override
+        eng_forced, voice_forced = route_tts("Aap kaise hain?", preferred_engine="qwen3")
+        self.assertEqual(eng_forced, "qwen3")
+
+        eng_forced_edge, voice_forced_edge = route_tts("Hello doctor", preferred_engine="edge-tts")
+        self.assertEqual(eng_forced_edge, "edge-tts")
+        self.assertEqual(voice_forced_edge, ENGLISH_VOICE)
+
+    async def test_synthesize_speech_stream_routes_hindi_to_edge_tts(self) -> None:
+        """Verify synthesize_speech_stream delegates Hindi directly to Edge-TTS under dual engine policy."""
+        called_edge = False
+        called_qwen = False
+
+        async def fake_edge(text: str, voice: str):
+            nonlocal called_edge
+            called_edge = True
+            yield b"edge_swara_bytes"
+
+        async def fake_qwen(text: str, voice: str, **kwargs):
+            nonlocal called_qwen
+            called_qwen = True
+            yield b"qwen_bytes"
+
+        with patch("disha_core.voice.stream_edge_tts", side_effect=fake_edge), \
+             patch("disha_core.voice.stream_qwen3_tts", side_effect=fake_qwen):
+            # 1. Hindi turn should route directly to Edge-TTS
+            chunks = []
+            async for chunk in synthesize_speech_stream("Aap warm jeera water lein."):
+                chunks.append(chunk)
+
+            self.assertTrue(called_edge)
+            self.assertFalse(called_qwen)
+            self.assertEqual(chunks, [b"edge_swara_bytes"])
+
+            # 2. English turn should route to Qwen3-TTS
+            called_edge = False
+            called_qwen = False
+            chunks_en = []
+            async for chunk in synthesize_speech_stream("Please drink water and rest."):
+                chunks_en.append(chunk)
+
+            self.assertTrue(called_qwen)
+            self.assertEqual(chunks_en, [b"qwen_bytes"])
+
+    async def test_barge_in_latency_under_50ms(self) -> None:
+        """Verify barge_in cancellation executes well within 50ms stop latency."""
+        import time
+
+        started_event = asyncio.Event()
+
+        async def infinite_synthesizer(text: str, voice: str):
+            started_event.set()
+            while True:
+                yield b"audio_chunk"
+                await asyncio.sleep(0.01)
+
+        session = VoiceSession(synthesizer=infinite_synthesizer)
+
+        async def mock_sink(b: bytes) -> None:
+            pass
+
+        speak_task = asyncio.create_task(session.speak("Utterance for barge-in test", mock_sink))
+        await started_event.wait()
+
+        # Measure barge-in stop latency
+        t0 = time.perf_counter()
+        await session.barge_in()
+        try:
+            await speak_task
+        except asyncio.CancelledError:
+            pass
+        t_stop_ms = (time.perf_counter() - t0) * 1000.0
+
+        self.assertLess(t_stop_ms, 50.0, f"Barge-in took {t_stop_ms:.2f}ms, exceeding 50ms budget")
+        self.assertIsNone(session._active)
+
+    def test_websocket_barge_in_and_interruption_event(self) -> None:
+        """Verify WebSocket barge-in event cancels speech generation and sends interrupted frame."""
+        from fastapi.testclient import TestClient
+        app = app_main.create_app()
+
+        async def mock_slow_turn_gen(ws, patient_id, payload, state):
+            state.validator_status = "validated"
+            yield "Sentence one."
+            await asyncio.sleep(1.0)
+            yield "Sentence two."
+
+        with patch.object(app_main, "_authenticated_patient", return_value="pt_barge_test"), \
+             patch.object(app_main, "_turn_sentences", mock_slow_turn_gen), \
+             patch.object(VoiceSession, "speak", AsyncMock()):
+            client = TestClient(app)
+            with client.websocket_connect("/voice?token=valid_tok") as ws:
+                # 1. Start a turn
+                ws.send_json({"type": "text", "text": "Mujhe pet dard hai."})
+                frame1 = ws.receive_json()
+                self.assertEqual(frame1["type"], "transcript")
+                frame2 = ws.receive_json()
+                self.assertEqual(frame2["type"], "sentence")
+
+                # 2. Trigger barge-in
+                ws.send_json({"type": "barge_in"})
+                interrupt_frame = ws.receive_json()
+                self.assertEqual(interrupt_frame["type"], "interrupted")

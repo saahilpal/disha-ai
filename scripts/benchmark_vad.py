@@ -8,12 +8,9 @@ Measures:
 from __future__ import annotations
 
 import json
-import math
-import os
 import resource
 import time
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import silero_vad
@@ -120,7 +117,6 @@ def main():
     # Also load one real clinical speech sample
     speech_path = Path("bench_artifacts/audio/acute_gi.mp3")
     if speech_path.exists():
-        import soundfile as sf
         import av
         container = av.open(str(speech_path))
         resampler = av.AudioResampler(format="fltp", layout="mono", rate=16000)

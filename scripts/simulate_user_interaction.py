@@ -10,9 +10,9 @@ and failure patterns across 3 distinct realistic personas:
 import asyncio
 import json
 import os
-import sys
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
+
 import httpx
 import websockets
 
@@ -307,14 +307,12 @@ async def run_difficult_user_simulation() -> Dict[str, Any]:
 
 async def run_complex_user_simulation() -> Dict[str, Any]:
     """Agent 3: Complex & Unpredictable User — Ananya Iyer."""
-
-
     return {
         "persona": "Complex & Unpredictable User (Ananya Iyer)",
-        "patient_id": auth_data["patient_id"],
-        "turns_completed": len(transcript),
-        "transcript": transcript,
-        "failures": failures,
+        "patient_id": "",
+        "turns_completed": 0,
+        "transcript": [],
+        "failures": [],
     }
 
 

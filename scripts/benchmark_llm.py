@@ -18,14 +18,12 @@ import asyncio
 import json
 import os
 import re
-import resource
 import time
 from pathlib import Path
-from typing import Any, AsyncIterator
-from urllib.parse import quote
+from typing import Any
 
-from dotenv import load_dotenv
 import httpx
+from dotenv import load_dotenv
 
 load_dotenv(".env")
 

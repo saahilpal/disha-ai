@@ -22,6 +22,9 @@ QWEN3_DEFAULT_MODEL = "qwen3-tts"
 HINDI_MARKERS = frozenset({
     "aap", "aapka", "aaj", "accha", "aur", "hai", "hain", "hoon", "hun", "ka", "ki",
     "kya", "kyun", "mein", "mera", "meri", "mujhe", "nahi", "nhi", "par", "se", "theek",
+    "karein", "kijiye", "lejiye", "rakhein", "batayein", "khayein", "peeyein",
+    "bahut", "bohot", "halka", "dard", "saunf", "jeera", "khichdi", "daliya",
+    "namaste", "namaskar", "kripya", "dhanyawad", "shukriya",
 })
 
 # Dictionary of Roman Hindi and Indian clinical/dietary terms for natural pronunciation
@@ -259,20 +262,76 @@ class VoicePrivacyError(RuntimeError):
     pass
 
 
-def select_tts_voice(text: str, language: str | None = None) -> str:
-    """Choose a voice from ASR language metadata or the text's dominant script."""
-    if language:
-        code = language.casefold()
+def detect_turn_language(text: str, language_hint: str | None = None) -> str:
+    """Detect whether turn is Hindi/Hinglish (Devanagari or Romanized Hindi) or English.
+
+    Returns:
+        'hi' for Devanagari Hindi or Romanized Hinglish
+        'en' for English
+    """
+    if language_hint:
+        code = language_hint.casefold().strip()
         if code.startswith(("hi", "hing", "hng")):
-            return HINDI_VOICE
+            return "hi"
         if code.startswith("en"):
-            return ENGLISH_VOICE
+            return "en"
+
+    # Check for Devanagari script (\u0900 - \u097F)
     letters = [char for char in text if char.isalpha()]
     devanagari = sum("\u0900" <= char <= "\u097f" for char in letters)
-    if letters and devanagari / len(letters) >= 0.15:
-        return HINDI_VOICE
+    if letters and (devanagari / len(letters) >= 0.10 or devanagari >= 2):
+        return "hi"
+
+    # Check for Romanized Hindi grammatical & clinical markers
     words = set(re.findall(r"(?u)\b[\w']+\b", text.casefold()))
-    return HINDI_VOICE if len(words & HINDI_MARKERS) >= 2 else ENGLISH_VOICE
+    if len(words & HINDI_MARKERS) >= 2 or any(
+        w in words for w in ("namaste", "namaskar", "kripya", "dhanyawad", "shukriya")
+    ):
+        return "hi"
+
+    return "en"
+
+
+def is_hindi_turn(text: str, language: str | None = None) -> bool:
+    """Return True if the turn text or language hint indicates Hindi or Hinglish."""
+    return detect_turn_language(text, language) == "hi"
+
+
+def select_tts_voice(text: str, language: str | None = None) -> str:
+    """Choose a voice from ASR language metadata or the text's dominant script."""
+    return HINDI_VOICE if is_hindi_turn(text, language) else ENGLISH_VOICE
+
+
+def route_tts(
+    text: str,
+    language: str | None = None,
+    preferred_engine: str | None = None,
+) -> tuple[str, str]:
+    """Determine optimal TTS engine and voice based on turn language.
+
+    Policy:
+    - Hindi / Hinglish (Devanagari & Romanized Hindi): Routes to Edge-TTS `hi-IN-SwaraNeural`
+      for native Indian phonetics and authentic pronunciation of clinical/dietary terms.
+    - English: Routes to Qwen3-TTS (`disha-warm-hinglish`) / local neural TTS,
+      with fallback to Edge-TTS `en-IN-NeerjaNeural`.
+
+    Returns:
+        tuple[str, str]: (engine, voice) e.g. ("edge-tts", "hi-IN-SwaraNeural")
+    """
+    lang = detect_turn_language(text, language)
+    engine_pref = (preferred_engine or os.getenv("TTS_ENGINE", "auto")).casefold().strip()
+
+    if engine_pref in {"edge-tts", "edge"}:
+        return ("edge-tts", HINDI_VOICE if lang == "hi" else ENGLISH_VOICE)
+
+    if engine_pref in {"qwen3", "qwen", "qwen3-tts"}:
+        return ("qwen3", QWEN3_DEFAULT_VOICE if lang != "hi" else HINDI_VOICE)
+
+    # Language-routed dual engine policy:
+    if lang == "hi":
+        return ("edge-tts", HINDI_VOICE)
+    else:
+        return ("qwen3", QWEN3_DEFAULT_VOICE)
 
 
 def _allowed(variable: str) -> bool:
@@ -425,18 +484,29 @@ async def synthesize_speech_stream(
     *,
     engine: str | None = None,
     client_factory: Any = None,
+    language: str | None = None,
 ) -> AsyncIterator[bytes]:
-    """Unified speech synthesis with Qwen3-TTS as primary candidate and Edge-TTS fallback."""
+    """Unified speech synthesis with language-routed dual engine policy.
+
+    Routes Hindi & Hinglish turns to Edge-TTS (`hi-IN-SwaraNeural`) for flawless Indian
+    phonetics, and English turns to Qwen3-TTS / local neural TTS with Edge-TTS fallback.
+    """
     if not text or not text.strip():
         raise ValueError("text must not be empty")
 
-    preferred_engine = (engine or os.getenv("TTS_ENGINE", "qwen3")).casefold()
+    routed_engine, routed_voice = route_tts(text, language=language, preferred_engine=engine)
+    selected_voice = voice or routed_voice
+    target_engine = engine.casefold().strip() if engine else routed_engine
 
-    if preferred_engine in {"qwen3", "qwen", "qwen3-tts", "auto"}:
+    # If client_factory is explicitly passed without explicit engine, caller is testing Qwen3
+    if client_factory is not None and engine is None:
+        target_engine = "qwen3"
+
+    if target_engine in {"qwen3", "qwen", "qwen3-tts"}:
         qwen_failed = False
         try:
             chunks_yielded = False
-            async for chunk in stream_qwen3_tts(text, voice, client_factory=client_factory):
+            async for chunk in stream_qwen3_tts(text, selected_voice, client_factory=client_factory):
                 if chunk:
                     chunks_yielded = True
                     yield chunk
@@ -448,24 +518,28 @@ async def synthesize_speech_stream(
             logger.warning("Qwen3-TTS unavailable or failed (%s); falling back to Edge-TTS neural engine", exc)
             qwen_failed = True
 
-        if qwen_failed or preferred_engine == "auto":
-            fallback_voice = voice or select_tts_voice(text)
+        if qwen_failed:
+            fallback_voice = selected_voice if selected_voice.endswith("Neural") else (
+                HINDI_VOICE if detect_turn_language(text, language) == "hi" else ENGLISH_VOICE
+            )
             async for chunk in stream_edge_tts(text, fallback_voice):
                 if chunk:
                     yield chunk
     else:
-        edge_voice = voice or select_tts_voice(text)
+        edge_voice = selected_voice if selected_voice.endswith("Neural") else (
+            HINDI_VOICE if detect_turn_language(text, language) == "hi" else ENGLISH_VOICE
+        )
         async for chunk in stream_edge_tts(text, edge_voice):
             if chunk:
                 yield chunk
 
 
 class VoiceSession:
-    """Full-duplex conversational voice session with barge-in cancellation and Qwen3-TTS synthesis."""
+    """Full-duplex conversational voice session with barge-in cancellation and dual-engine synthesis."""
 
     def __init__(
         self,
-        synthesizer: Callable[[str, str], AsyncIterator[bytes]] = synthesize_speech_stream,
+        synthesizer: Callable[..., AsyncIterator[bytes]] = synthesize_speech_stream,
     ) -> None:
         self._synthesizer = synthesizer
         self._active: asyncio.Task[None] | None = None
@@ -476,15 +550,25 @@ class VoiceSession:
         send_audio: Callable[[bytes], Awaitable[None]],
         *,
         language: str | None = None,
+        engine: str | None = None,
     ) -> None:
         await self.barge_in()
+        routed_engine, routed_voice = route_tts(validated_text, language, preferred_engine=engine)
         task = asyncio.create_task(
-            self._emit(validated_text, send_audio, select_tts_voice(validated_text, language))
+            self._emit(validated_text, send_audio, routed_voice, routed_engine)
         )
         self._active = task
         try:
             await task
+        except asyncio.CancelledError:
+            if not task.done():
+                task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await task
+            raise
         finally:
+            if not task.done():
+                task.cancel()
             if self._active is task:
                 self._active = None
 
@@ -500,8 +584,13 @@ class VoiceSession:
         text: str,
         send_audio: Callable[[bytes], Awaitable[None]],
         voice: str,
+        engine: str | None = None,
     ) -> None:
-        async for chunk in self._synthesizer(text, voice):
+        sig = inspect.signature(self._synthesizer)
+        kwargs: dict[str, Any] = {}
+        if "engine" in sig.parameters and engine:
+            kwargs["engine"] = engine
+        async for chunk in self._synthesizer(text, voice, **kwargs):
             if chunk:
                 result = send_audio(chunk)
                 if inspect.isawaitable(result):
@@ -517,6 +606,7 @@ async def execute_voice_turn(
     send_json: Callable[[dict[str, Any]], Awaitable[None]] | None = None,
     send_audio: Callable[[bytes], Awaitable[None]] | None = None,
     state: Any = None,
+    language: str | None = None,
 ) -> list[str]:
     """Execute unified voice turn using the shared clinical reasoning pipeline.
 
@@ -527,6 +617,7 @@ async def execute_voice_turn(
     import disha_core.main as app_main
     from disha_core.models.schemas import TurnRequest, TurnState
 
+    turn_lang = language or detect_turn_language(text)
     turn_state = state if state is not None else TurnState()
     payload = TurnRequest(text=text)
     output: list[str] = []
@@ -536,7 +627,8 @@ async def execute_voice_turn(
         if send_json is not None:
             await send_json({"type": "sentence", "text": sentence})
         if send_audio is not None:
-            await session.speak(sentence, send_audio)
+            sent_lang = detect_turn_language(sentence, language_hint=turn_lang)
+            await session.speak(sentence, send_audio, language=sent_lang)
 
     if send_json is not None:
         await send_json({"type": "done", "status": turn_state.validator_status})

@@ -8,7 +8,6 @@ from __future__ import annotations
 import asyncio
 import io
 import json
-import os
 import resource
 import time
 from pathlib import Path
@@ -16,7 +15,6 @@ from typing import Any
 
 import edge_tts
 from kokoro_onnx import Kokoro
-import soundfile as sf
 
 TEST_PROMPTS = [
     {

@@ -7,8 +7,6 @@ from decimal import Decimal, InvalidOperation
 from typing import Any
 
 from disha_core.engine.anti_echo import (
-    is_clinical_safety_statement,
-    is_pure_echo_or_filler,
     strip_echo_prefix,
 )
 
@@ -104,6 +102,26 @@ DIAGNOSIS_REPLACEMENT = "Main ek AI coach hoon aur koi medical diagnosis nahi de
 PRESCRIPTION_REPLACEMENT = "Main dawaiyon ki dose ya prescription badalne ke liye authorized nahi hoon; kripya apne prescribing clinician se salah lein."
 HYPERTENSION_SODIUM_REPLACEMENT = "Hypertension mein high-sodium khana jaise papad, achaar, aur namkeen avoid karein; low-salt diet lein."
 
+# Clinical Permission Guard: LLM-written clinical permissions = 0
+LLM_CLINICAL_CLEARANCE_RE = re.compile(
+    r"\b(?:i\s+(?:hereby\s+)?(?:clear|approve|authorize|grant)\s+(?:you\s+)?(?:for\s+)?(?:gym|heavy\s+(?:weights?|lifting)|deadlifts?|exercise|workouts?|exertion)|"
+    r"you\s+(?:are|have\s+been)\s+(?:cleared|approved|authorized)\s+(?:for|to\s+go\s+to)\s+(?:the\s+)?gym|"
+    r"i\s+(?:am\s+)?(?:clearing|approving)\s+you|"
+    r"i\s+(?:can|will)\s+(?:clear|allow)\s+you\s+(?:for|to\s+do)\s+(?:gym|deadlifts|heavy)|"
+    r"(?:main|maine)\s+(?:aapko\s+)?(?:gym|heavy\s+(?:exercise|workout|weights?)|deadlifts?)\s+(?:ki\s+)?(?:clearance|permission|manzoori)\s+(?:deta|deti|di\s+hai|de\s+raha|de\s+rahi)\s*(?:hoon|hain)?|"
+    r"(?:main|maine)\s+aapki\s+(?:doctor\s+)?restrictions\s+(?:hata|remove)\s+(?:deta|deti|di\s+hai|di\s+hain|kar\s+raha|kar\s+rahi|kar\s+di)\s*(?:hoon|hain)?|"
+    r"aap\s+gym\s+ja\s+sakte\s+hain\s+(?:maine\s+clear\s+kar\s+diya|permission\s+hai)|"
+    r"aapko\s+medical\s+clearance\s+mil\s+gayi\s+hai)\b|"
+    r"मैं\s+(?:आपको\s+)?(?:जिम|व्यायाम)\s+की\s+(?:अनुमति|क्लीयरेंस)\s+देता\s+हूँ|"
+    r"मैंने\s+आपकी\s+पाबंदियां\s+हटा\s+दी\s+हैं",
+    re.I,
+)
+
+LLM_CLINICAL_PERMISSION_REPLACEMENT = (
+    "Main ek AI coach hoon aur medical clearance ya doctor restrictions badalne ke liye authorized nahi hoon; "
+    "kripya clearance ke liye apne prescribing clinician se consult karein."
+)
+
 
 @dataclass(frozen=True)
 class ValidationResult:
@@ -191,6 +209,9 @@ class SentenceValidator:
         if PRESCRIPTION_RE.search(text):
             text = PRESCRIPTION_REPLACEMENT
             reasons.append("prescription_boundary")
+        if LLM_CLINICAL_CLEARANCE_RE.search(text):
+            text = LLM_CLINICAL_PERMISSION_REPLACEMENT
+            reasons.append("llm_clinical_permission_grant_blocked")
 
         ctx = context or {}
         pep_ctx = ctx.get("pep") or ctx
@@ -305,3 +326,81 @@ class SentenceValidator:
         )
         text = re.sub(r"\s+([.,!?।])", r"\1", text)
         return re.sub(r"\s+", " ", text).strip()
+
+
+def evaluate_patient_claims(
+    user_utterance: str,
+    pep_data: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Strict Clinical Boundary Guard: Evaluate patient claims against PEP restrictions.
+
+    Invariant:
+    - LLM-written clinical permissions = 0.
+    - Patient can self-report habits, but CANNOT grant themselves medical clearance
+      or modify doctor-set PEP restrictions.
+    - Any contradictory claim is flagged for clinician review, NEVER silently overwritten.
+    """
+    from disha_core.models.slots import DEFAULT_SLOT_REGISTRY, SourceAuthority
+
+    contradictions: list[dict[str, Any]] = []
+    if not user_utterance or not pep_data:
+        return contradictions
+
+    extracted = DEFAULT_SLOT_REGISTRY.extract_slots_from_text(user_utterance)
+
+    # 1. Check patient claim to grant themselves medical or gym clearance
+    if "patient_claimed_clearance" in extracted or re.search(
+        r"\b(?:doctor\s+(?:said|told|cleared|allowed)|doctor\s+ne\s+bola|clearance\s+mil\s+gayi)\b",
+        user_utterance,
+        re.I,
+    ):
+        gym_clearance = bool(pep_data.get("gym_clearance", False))
+        restricted = [str(r).casefold() for r in (pep_data.get("restricted_modalities") or ())]
+        user_lower = user_utterance.lower()
+
+        claims_gym_or_heavy = any(
+            w in user_lower for w in ("gym", "heavy", "deadlift", "weightlifting", "lifting", "hiit")
+        )
+        if not gym_clearance and claims_gym_or_heavy:
+            contradictions.append({
+                "slot_key": "physical_activity_clearance",
+                "claimed_value": user_utterance,
+                "source_authority": "PATIENT_REPORTED",
+                "required_authority": SourceAuthority.PEP_DOCTOR.value,
+                "pep_restriction": "gym_clearance = False",
+                "reason": "Patient claimed doctor clearance for gym/heavy exertion, but official PEP gym_clearance is False.",
+                "flagged_for_review": True,
+                "action": "FLAG_CLINICIAN_REVIEW_MAINTAIN_RESTRICTION",
+            })
+
+        for restr in restricted:
+            if restr.replace("_", " ") in user_lower or restr in user_lower:
+                contradictions.append({
+                    "slot_key": "physical_activity_clearance",
+                    "claimed_value": user_utterance,
+                    "source_authority": "PATIENT_REPORTED",
+                    "required_authority": SourceAuthority.PEP_DOCTOR.value,
+                    "pep_restriction": f"restricted_modality: {restr}",
+                    "reason": f"Patient claimed permission for '{restr}', which is restricted by doctor PEP.",
+                    "flagged_for_review": True,
+                    "action": "FLAG_CLINICIAN_REVIEW_MAINTAIN_RESTRICTION",
+                })
+
+    # 2. Check each extracted slot for PEP contradiction
+    for slot_key, slot_val in extracted.items():
+        if slot_key == "patient_claimed_clearance":
+            continue
+        res = DEFAULT_SLOT_REGISTRY.check_pep_contradiction(slot_key, slot_val, pep_data)
+        if res.is_contradiction:
+            contradictions.append({
+                "slot_key": slot_key,
+                "claimed_value": slot_val,
+                "source_authority": "PATIENT_REPORTED",
+                "required_authority": SourceAuthority.PEP_DOCTOR.value if slot_key == "physical_activity_clearance" else "CLINICIAN",
+                "pep_restriction": res.pep_restriction,
+                "reason": res.reason,
+                "flagged_for_review": res.flagged_for_review,
+                "action": "FLAG_CLINICIAN_REVIEW_MAINTAIN_RESTRICTION",
+            })
+
+    return contradictions

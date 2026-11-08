@@ -57,3 +57,4 @@
 - **Synapse CLI (`synap`)**: Codebase structural AST indexing, token-efficient `skeleton`, `outline`, and `search`.
 - **Chrome DevTools / Playwright**: Real headless & headed browser test harness with visual screenshots and axe accessibility.
 - **Agent Skills**: `frontend-design`, `backend-patterns`, `python-patterns`, `python-testing`, `security-review`, `coding-standards`.
+

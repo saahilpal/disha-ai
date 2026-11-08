@@ -57,7 +57,7 @@ def register_user(client: httpx.Client, profile: dict[str, Any]) -> str:
 
 
 def evaluate_golden_set():
-    print(f"=== Disha AI Golden Evaluation Suite ===")
+    print("=== Disha AI Golden Evaluation Suite ===")
     print(f"Target: {BACKEND_URL}")
     print(f"Golden Set: {GOLDEN_SET_PATH}\n")
     

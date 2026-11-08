@@ -25,7 +25,6 @@ from fastapi.responses import StreamingResponse
 from starlette.staticfiles import StaticFiles
 from starlette.websockets import WebSocketDisconnect
 
-from disha_core.security.rate_limiter import limiter
 from disha_core.adapters.db import create_database_pool
 from disha_core.classifier.adapter import LayaClassifierAdapter
 from disha_core.compliance.ledger import AuditLedger, AuditRecord
@@ -57,6 +56,7 @@ from disha_core.pipeline.validator import (
     PEP_REPLACEMENT,
     SentenceValidator,
 )
+from disha_core.security.rate_limiter import limiter
 from disha_core.services.auth_service import (
     access_token_hash,
     login_patient,

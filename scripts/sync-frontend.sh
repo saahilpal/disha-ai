@@ -12,6 +12,21 @@ WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SOURCE_DIR="${WORKSPACE_ROOT}/frontend"
 TARGET_DIR="${WORKSPACE_ROOT}/disha_core/frontend"
 
+if [ -L "${SOURCE_DIR}" ]; then
+  link_target="$(readlink "${SOURCE_DIR}")"
+  if [ "${link_target}" = "disha_core/frontend" ] || [ "${link_target}" = "${TARGET_DIR}" ]; then
+    echo "[+] Canonical frontend is consolidated: frontend -> disha_core/frontend (Symlink active)."
+    echo "[+] Validating canonical assets in ${TARGET_DIR}..."
+    if [ -f "${TARGET_DIR}/app.js" ] && [ -f "${TARGET_DIR}/index.html" ] && [ -f "${TARGET_DIR}/style.css" ]; then
+      echo "[+] Canonical frontend verified! (Zero drift, single source of truth: disha_core/frontend/)"
+      exit 0
+    else
+      echo "[-] Missing critical frontend assets in ${TARGET_DIR}" >&2
+      exit 1
+    fi
+  fi
+fi
+
 if [ ! -d "${SOURCE_DIR}" ]; then
   echo "[-] Canonical frontend directory not found: ${SOURCE_DIR}" >&2
   exit 1

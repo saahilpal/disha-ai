@@ -12,20 +12,16 @@ Authoritative automated verification for:
 """
 from __future__ import annotations
 
-import asyncio
 import os
 import re
 import tempfile
 import unittest
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
 
-from fastapi import HTTPException
 from fastapi.testclient import TestClient
-from starlette.datastructures import Headers
 
 import disha_core.main as app_main
-from disha_core.compliance.ledger import AuditLedger, AuditRecord, scrub_phi_and_secrets
+from disha_core.compliance.ledger import AuditLedger, AuditRecord
 from disha_core.engine.context_builder import build_patient_context
 from disha_core.engine.retriever import clear_retrieval_cache, retrieve_chunks
 from disha_core.models.schemas import (
@@ -33,10 +29,9 @@ from disha_core.models.schemas import (
     OnboardingRequest,
     ProfileUpdateRequest,
     TurnRequest,
-    TurnState,
 )
 from disha_core.pipeline.validator import SentenceValidator
-from disha_core.security.rate_limiter import SlidingWindowRateLimiter, limiter
+from disha_core.security.rate_limiter import limiter
 
 
 class PatientIsolationTests(unittest.IsolatedAsyncioTestCase):
@@ -522,7 +517,7 @@ class ZeroSecretsScanTests(unittest.TestCase):
         self.assertEqual(
             findings,
             [],
-            f"Hardcoded secrets detected in repository:\n" + "\n".join(findings),
+            "Hardcoded secrets detected in repository:\n" + "\n".join(findings),
         )
 
 

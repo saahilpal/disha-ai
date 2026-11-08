@@ -1,0 +1,22 @@
+# Gitleaks configuration for Disha AI
+title = "Disha AI Gitleaks Configuration"
+
+[allowlist]
+description = "Global allowlist for ignored paths and known mock test fixtures"
+paths = [
+    '''^\.venv/''',
+    '''^node_modules/''',
+    '''^\.git/''',
+    '''^\.pytest_cache/''',
+    '''^\.mypy_cache/''',
+    '''^\.ruff_cache/''',
+    '''^audit_wal\.db''',
+    '''^audit/simulations/''',
+    '''^bench_artifacts/'''
+]
+regexes = [
+    '''diagnosed_condition\.stage_2_hypertension''',
+    '''pt_live_[a-zA-Z0-9_\.]+''',
+    '''AIzaSy_REDACTED[a-zA-Z0-9_\.]*'''
+]
+

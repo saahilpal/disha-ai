@@ -9,30 +9,38 @@ Tests:
 from __future__ import annotations
 
 import os
+from typing import Any
 import unittest
-from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from typing import Any
 
-import pytest
 from dotenv import load_dotenv
 
 from disha_core.engine.context_builder import (
     build_patient_context,
+    rehydrate_session_state,
     render_context_xml,
     render_user_payload,
 )
-from disha_core.engine.normalizer import normalize
 from disha_core.engine.retriever import retrieve_chunks
+from disha_core.models.slots import (
+    DEFAULT_SLOT_REGISTRY,
+    SourceAuthority,
+)
 from disha_core.pipeline.validator import (
+    LLM_CLINICAL_PERMISSION_REPLACEMENT,
     PEP_REPLACEMENT,
     SentenceValidator,
+    evaluate_patient_claims,
 )
 from disha_core.services.chat_service import (
+    load_call_summaries,
     load_conversation_history,
+    load_memory_items,
     load_patient_facts,
     persist_patient_disclosure,
+    store_call_summary,
     store_conversation_turn,
-    store_patient_fact,
+    store_memory_item,
 )
 
 load_dotenv()
@@ -337,6 +345,410 @@ class TestLivePostgresMemoryEndToEnd(unittest.IsolatedAsyncioTestCase):
             await conn.execute("DELETE FROM patient_turn_journal WHERE patient_id = $1", test_pid)
             await conn.execute("DELETE FROM patient_temporal_facts WHERE patient_id = $1", test_pid)
             await conn.execute("DELETE FROM patient_pep WHERE patient_id = $1", test_pid)
+            await conn.close()
+
+
+class TestCanonicalSlotRegistry(unittest.TestCase):
+    """Verify trilingual slot registry across English, Hindi (Devanagari), and Hinglish."""
+
+    def setUp(self) -> None:
+        self.registry = DEFAULT_SLOT_REGISTRY
+
+    def test_canonical_slots_completeness(self) -> None:
+        expected_slots = {
+            "wake_time",
+            "sleep_time",
+            "water_intake_target",
+            "meal_preferences",
+            "dietary_restrictions",
+            "physical_activity_clearance",
+            "daily_steps_target",
+            "tea_coffee_frequency",
+        }
+        registered_keys = {s.key for s in self.registry.list_all()}
+        self.assertTrue(expected_slots.issubset(registered_keys), f"Missing slots: {expected_slots - registered_keys}")
+
+        # Check PEP-controlled slot has PEP_DOCTOR authority and sensitive_flag=True
+        pep_slot = self.registry.get("physical_activity_clearance")
+        self.assertIsNotNone(pep_slot)
+        self.assertEqual(pep_slot.source_authority, SourceAuthority.PEP_DOCTOR)
+        self.assertTrue(pep_slot.sensitive_flag)
+
+        # Check dietary_restrictions has sensitive_flag=True
+        diet_slot = self.registry.get("dietary_restrictions")
+        self.assertIsNotNone(diet_slot)
+        self.assertTrue(diet_slot.sensitive_flag)
+
+    def test_trilingual_wake_time_normalization(self) -> None:
+        # English
+        self.assertEqual(self.registry.normalize("wake_time", "7:00 AM"), "07:00")
+        self.assertEqual(self.registry.normalize("wake_time", "6:30 am"), "06:30")
+        # Hindi Devanagari
+        self.assertEqual(self.registry.normalize("wake_time", "सुबह ७ बजे"), "07:00")
+        self.assertEqual(self.registry.normalize("wake_time", "सुबह 7 बजे"), "07:00")
+        # Hinglish
+        self.assertEqual(self.registry.normalize("wake_time", "subah 7 baje"), "07:00")
+        self.assertEqual(self.registry.normalize("wake_time", "subha 6:30 baje"), "06:30")
+
+    def test_trilingual_sleep_time_normalization(self) -> None:
+        # English
+        self.assertEqual(self.registry.normalize("sleep_time", "11:00 PM"), "23:00")
+        self.assertEqual(self.registry.normalize("sleep_time", "10:30 pm"), "22:30")
+        # Hindi Devanagari
+        self.assertEqual(self.registry.normalize("sleep_time", "रात ११ बजे"), "23:00")
+        self.assertEqual(self.registry.normalize("sleep_time", "रात 10:30 बजे सोना"), "22:30")
+        # Hinglish
+        self.assertEqual(self.registry.normalize("sleep_time", "raat 11 baje"), "23:00")
+        self.assertEqual(self.registry.normalize("sleep_time", "11pm pe sote hain"), "23:00")
+
+    def test_trilingual_water_intake_target(self) -> None:
+        # English
+        self.assertEqual(self.registry.normalize("water_intake_target", "3 liters"), 3.0)
+        self.assertEqual(self.registry.normalize("water_intake_target", "8 glasses"), 2.0)
+        # Hindi Devanagari
+        self.assertEqual(self.registry.normalize("water_intake_target", "३ लीटर पानी"), 3.0)
+        self.assertEqual(self.registry.normalize("water_intake_target", "८ गिलास पानी"), 2.0)
+        # Hinglish
+        self.assertEqual(self.registry.normalize("water_intake_target", "3 litre paani"), 3.0)
+        self.assertEqual(self.registry.normalize("water_intake_target", "8 glass pani"), 2.0)
+
+    def test_trilingual_meal_preferences(self) -> None:
+        # English
+        self.assertEqual(self.registry.normalize("meal_preferences", "Vegetarian"), "Vegetarian")
+        self.assertEqual(self.registry.normalize("meal_preferences", "non-veg"), "Non-Vegetarian")
+        # Hindi Devanagari
+        self.assertEqual(self.registry.normalize("meal_preferences", "शाकाहारी"), "Vegetarian")
+        self.assertEqual(self.registry.normalize("meal_preferences", "मांसाहारी"), "Non-Vegetarian")
+        self.assertEqual(self.registry.normalize("meal_preferences", "जैन खाना"), "Jain")
+        self.assertEqual(self.registry.normalize("meal_preferences", "सात्विक"), "Satvik")
+        # Hinglish
+        self.assertEqual(self.registry.normalize("meal_preferences", "shakahari"), "Vegetarian")
+        self.assertEqual(self.registry.normalize("meal_preferences", "non veg"), "Non-Vegetarian")
+        self.assertEqual(self.registry.normalize("meal_preferences", "jain"), "Jain")
+
+    def test_trilingual_dietary_restrictions(self) -> None:
+        # English
+        self.assertEqual(
+            self.registry.normalize("dietary_restrictions", "gluten-free, lactose intolerant"),
+            ["gluten_free", "lactose_intolerant"],
+        )
+        # Hindi Devanagari
+        self.assertEqual(
+            self.registry.normalize("dietary_restrictions", "बिना प्याज लहसुन, कम नमक"),
+            ["low_sodium", "no_onion_garlic"],
+        )
+        # Hinglish
+        self.assertEqual(
+            self.registry.normalize("dietary_restrictions", "bina pyaaz lehsun, kam namak, sugar free"),
+            ["low_sodium", "no_onion_garlic", "sugar_free"],
+        )
+
+    def test_trilingual_daily_steps_target(self) -> None:
+        # English
+        self.assertEqual(self.registry.normalize("daily_steps_target", "10,000 steps"), 10000)
+        self.assertEqual(self.registry.normalize("daily_steps_target", "8000 steps"), 8000)
+        self.assertEqual(self.registry.normalize("daily_steps_target", "10k"), 10000)
+        # Hindi Devanagari
+        self.assertEqual(self.registry.normalize("daily_steps_target", "१०,००० कदम"), 10000)
+        self.assertEqual(self.registry.normalize("daily_steps_target", "दस हजार कदम"), 10000)
+        # Hinglish
+        self.assertEqual(self.registry.normalize("daily_steps_target", "10 hazar kadam"), 10000)
+        self.assertEqual(self.registry.normalize("daily_steps_target", "8k steps"), 8000)
+
+    def test_trilingual_tea_coffee_frequency(self) -> None:
+        # English
+        res_en = self.registry.normalize("tea_coffee_frequency", "2 cups of tea daily")
+        self.assertEqual(res_en["tea_cups_per_day"], 2)
+        # Hindi Devanagari
+        res_hi = self.registry.normalize("tea_coffee_frequency", "दो कप चाय")
+        self.assertEqual(res_hi["tea_cups_per_day"], 2)
+        # Hinglish
+        res_hing = self.registry.normalize("tea_coffee_frequency", "din mein teen cup chai")
+        self.assertEqual(res_hing["tea_cups_per_day"], 3)
+        res_coffee = self.registry.normalize("tea_coffee_frequency", "ek cup coffee")
+        self.assertEqual(res_coffee["coffee_cups_per_day"], 1)
+
+    def test_slot_extraction_from_utterance(self) -> None:
+        text = "Main subah 7 baje uthta hoon, roz 3 litre pani peeta hoon aur mera 10,000 steps ka target hai."
+        extracted = self.registry.extract_slots_from_text(text)
+        self.assertEqual(extracted.get("wake_time"), "07:00")
+        self.assertEqual(extracted.get("water_intake_target"), 3.0)
+        self.assertEqual(extracted.get("daily_steps_target"), 10000)
+
+
+class TestStrictClinicalBoundaryGuard(unittest.TestCase):
+    """Verify strict clinical boundaries: LLM permissions = 0, contradiction quarantine, no silent overwrites."""
+
+    def setUp(self) -> None:
+        self.validator = SentenceValidator()
+        self.registry = DEFAULT_SLOT_REGISTRY
+
+    def test_source_authority_pep_doctor_enforcement(self) -> None:
+        # Patient self-report cannot write physical_activity_clearance
+        auth_ok, reason = self.registry.validate_authority(
+            "physical_activity_clearance", SourceAuthority.PATIENT_REPORTED
+        )
+        self.assertFalse(auth_ok)
+        self.assertIn("Permission Denied", reason)
+
+        # PEP_DOCTOR is authorized
+        auth_ok, reason = self.registry.validate_authority(
+            "physical_activity_clearance", SourceAuthority.PEP_DOCTOR
+        )
+        self.assertTrue(auth_ok)
+
+    def test_llm_written_clinical_permissions_zero(self) -> None:
+        """Enforce: LLM-written clinical permissions = 0."""
+        forbidden_llm_grants = [
+            "I hereby clear you for gym and heavy lifting.",
+            "You are cleared for gym; start lifting weights.",
+            "Main aapko gym ki clearance deta hoon.",
+            "Main aapko heavy workout ki permission de raha hoon.",
+            "Maine aapki doctor restrictions hata di hain, aap gym ja sakte hain.",
+            "Aap gym ja sakte hain maine clear kar diya.",
+            "मैं आपको जिम की अनुमति देता हूँ।",
+            "मैंने आपकी पाबंदियां हटा दी हैं।",
+        ]
+
+        for grant in forbidden_llm_grants:
+            res = self.validator.validate_sentence(grant)
+            self.assertEqual(res.status, "rewritten", f"LLM grant was not blocked: {grant}")
+            self.assertIn("llm_clinical_permission_grant_blocked", res.reasons)
+            self.assertEqual(res.text, LLM_CLINICAL_PERMISSION_REPLACEMENT)
+
+    def test_patient_claim_against_pep_restrictions_flagged_for_review(self) -> None:
+        """Patient claims doctor clearance when PEP says gym_clearance=False."""
+        pep = {
+            "hypertension_stage": "stage 2",
+            "gym_clearance": False,
+            "allowed_modalities": ["brisk_walking"],
+            "restricted_modalities": ["heavy_deadlifts", "hiit"],
+        }
+
+        # 1. Patient claims doctor cleared them for heavy gym
+        patient_claim = "Doctor cleared me for heavy gym and deadlifts."
+        contradictions = evaluate_patient_claims(patient_claim, pep)
+        self.assertTrue(len(contradictions) > 0)
+        self.assertTrue(any(c["flagged_for_review"] for c in contradictions))
+        self.assertEqual(contradictions[0]["required_authority"], "PEP_DOCTOR")
+        self.assertEqual(contradictions[0]["action"], "FLAG_CLINICIAN_REVIEW_MAINTAIN_RESTRICTION")
+
+        # 2. Hindi Hinglish patient claim
+        patient_hi_claim = "Doctor ne bola heavy deadlifts kar sakte ho ab."
+        contradictions_hi = evaluate_patient_claims(patient_hi_claim, pep)
+        self.assertTrue(len(contradictions_hi) > 0)
+        self.assertTrue(any("heavy_deadlifts" in c.get("pep_restriction", "") or "gym_clearance" in c.get("pep_restriction", "") for c in contradictions_hi))
+
+    def test_contradiction_injected_in_context_xml(self) -> None:
+        """Contradictory claims must be flagged in context XML and NEVER silently overwritten."""
+        context = {
+            "pep": {
+                "hypertension_stage": "stage 2",
+                "gym_clearance": False,
+                "allowed_modalities": ["walking"],
+                "restricted_modalities": ["heavy_weightlifting"],
+            },
+            "contradictions": [
+                {
+                    "slot_key": "physical_activity_clearance",
+                    "pep_restriction": "gym_clearance = False",
+                    "reason": "Patient claimed doctor clearance for gym, but official PEP gym_clearance is False.",
+                    "flagged_for_review": True,
+                }
+            ],
+            "diet_slot_xml": "",
+        }
+        xml = render_context_xml(context)
+        self.assertIn("<PEP_CONTRADICTION_NOTICE", xml)
+        self.assertIn('status="FLAGGED_FOR_CLINICIAN_REVIEW"', xml)
+        self.assertIn('action="MAINTAIN_RESTRICTIONS"', xml)
+        self.assertIn("gym_clearance = False", xml)
+        self.assertIn("LLM-written clinical permissions are 0", xml)
+
+
+class TestPersistenceAndRehydration(unittest.IsolatedAsyncioTestCase):
+    """Verify zero in-RAM session state loss on reconnect, turn_journal view, and memory_items."""
+
+    async def test_zero_in_ram_state_lost_on_reconnect(self) -> None:
+        """State must completely rehydrate from DB by session_id / call_id after RAM wipe."""
+        db_url = os.getenv("DATABASE_URL")
+        if not db_url:
+            self.skipTest("DATABASE_URL not configured")
+
+        try:
+            import asyncpg
+            conn = await asyncpg.connect(db_url)
+        except Exception as exc:
+            self.skipTest(f"PostgreSQL connection unavailable: {exc}")
+
+        test_pid = "pt_rehydrate_test_42"
+        test_session = "sess_rehydrate_001"
+        test_call = "call_telephony_999"
+
+        try:
+            # 1. Setup DB state
+            await conn.execute("DELETE FROM patient_turn_journal WHERE patient_id = $1", test_pid)
+            await conn.execute("DELETE FROM memory_items WHERE patient_id = $1", test_pid)
+            await conn.execute("DELETE FROM call_summaries WHERE patient_id = $1", test_pid)
+            await conn.execute(
+                """INSERT INTO patient_pep (patient_id, hypertension_stage, gym_clearance, allowed_modalities, restricted_modalities)
+                   VALUES ($1, 'Normal', TRUE, ARRAY['walking', 'yoga'], ARRAY['heavy_deadlifts'])
+                   ON CONFLICT (patient_id) DO UPDATE SET gym_clearance = TRUE""",
+                test_pid,
+            )
+
+            # Store turn with session_id and call_id
+            await store_conversation_turn(
+                conn, test_pid,
+                "Mujhe subah 7 baje uthna pasand hai.",
+                "Bahut accha! Hum aapka breakfast 8 baje schedule karenge.",
+                session_id=test_session,
+                call_id=test_call,
+            )
+
+            # Store habit slot in memory_items
+            await store_memory_item(
+                conn, test_pid,
+                slot_key="wake_time",
+                slot_value="07:00",
+                session_id=test_session,
+                call_id=test_call,
+            )
+
+            # 2. Simulate complete RAM wipe: in-RAM process restarts, RAM cache is EMPTY
+            in_ram_cache: dict[str, Any] = {}
+            self.assertNotIn(test_pid, in_ram_cache)
+
+            # 3. Rehydrate from DB by session_id and call_id
+            rehydrated = await rehydrate_session_state(
+                conn, test_pid, session_id=test_session, call_id=test_call
+            )
+
+            self.assertTrue(rehydrated["rehydrated_from_db"])
+            self.assertEqual(len(rehydrated["conversation_history"]), 2)
+            self.assertEqual(rehydrated["conversation_history"][0]["role"], "user")
+            self.assertIn("7 baje", rehydrated["conversation_history"][0]["content"])
+            self.assertEqual(rehydrated["session_id"], test_session)
+            self.assertEqual(rehydrated["call_id"], test_call)
+            self.assertIsNotNone(rehydrated["pep"])
+            self.assertTrue(rehydrated["pep"]["gym_clearance"])
+
+            # Verify memory slots rehydrated
+            self.assertTrue(any(s["slot_key"] == "wake_time" for s in rehydrated["patient_slots"]))
+
+        finally:
+            await conn.execute("DELETE FROM patient_turn_journal WHERE patient_id = $1", test_pid)
+            await conn.execute("DELETE FROM memory_items WHERE patient_id = $1", test_pid)
+            await conn.execute("DELETE FROM call_summaries WHERE patient_id = $1", test_pid)
+            await conn.execute("DELETE FROM patient_pep WHERE patient_id = $1", test_pid)
+            await conn.close()
+
+    async def test_turn_journal_and_patient_turn_journal_sync(self) -> None:
+        """Verify turn_journal view reads from and writes to patient_turn_journal."""
+        db_url = os.getenv("DATABASE_URL")
+        if not db_url:
+            self.skipTest("DATABASE_URL not configured")
+
+        try:
+            import asyncpg
+            conn = await asyncpg.connect(db_url)
+        except Exception as exc:
+            self.skipTest(f"PostgreSQL connection unavailable: {exc}")
+
+        test_pid = "pt_journal_sync_test"
+        try:
+            # Insert into turn_journal view
+            await conn.execute(
+                """INSERT INTO turn_journal (patient_id, session_id, turn_index, speaker, raw_utterance)
+                   VALUES ($1, 's1', 0, 'user', 'Sync test utterance')""",
+                test_pid,
+            )
+
+            # Read from patient_turn_journal table
+            row = await conn.fetchrow(
+                "SELECT raw_utterance FROM patient_turn_journal WHERE patient_id = $1", test_pid
+            )
+            self.assertIsNotNone(row)
+            self.assertEqual(row["raw_utterance"], "Sync test utterance")
+
+        finally:
+            await conn.execute("DELETE FROM patient_turn_journal WHERE patient_id = $1", test_pid)
+            await conn.close()
+
+    async def test_memory_items_persistence_and_superseding(self) -> None:
+        """Verify memory_items stores and supersedes slots while maintaining history."""
+        db_url = os.getenv("DATABASE_URL")
+        if not db_url:
+            self.skipTest("DATABASE_URL not configured")
+
+        try:
+            import asyncpg
+            conn = await asyncpg.connect(db_url)
+        except Exception as exc:
+            self.skipTest(f"PostgreSQL connection unavailable: {exc}")
+
+        test_pid = "pt_mem_items_test"
+        try:
+            # Step 1: Patient reports wake time 07:00
+            await store_memory_item(conn, test_pid, slot_key="wake_time", slot_value="07:00")
+            items = await load_memory_items(conn, test_pid, slot_key="wake_time")
+            self.assertEqual(len(items), 1)
+            self.assertEqual(items[0]["slot_value"], "07:00")
+            self.assertEqual(items[0]["epistemic_status"], "active")
+
+            # Step 2: Patient updates wake time to 06:30
+            await store_memory_item(conn, test_pid, slot_key="wake_time", slot_value="06:30")
+            active_items = await load_memory_items(conn, test_pid, slot_key="wake_time", epistemic_status="active")
+            self.assertEqual(len(active_items), 1)
+            self.assertEqual(active_items[0]["slot_value"], "06:30")
+
+            # Check that previous item was superseded, not deleted
+            superseded_items = await load_memory_items(conn, test_pid, slot_key="wake_time", epistemic_status="superseded")
+            self.assertEqual(len(superseded_items), 1)
+            self.assertEqual(superseded_items[0]["slot_value"], "07:00")
+
+        finally:
+            await conn.execute("DELETE FROM memory_items WHERE patient_id = $1", test_pid)
+            await conn.close()
+
+    async def test_call_summaries_persistence(self) -> None:
+        """Verify call_summaries table stores and retrieves call summaries."""
+        db_url = os.getenv("DATABASE_URL")
+        if not db_url:
+            self.skipTest("DATABASE_URL not configured")
+
+        try:
+            import asyncpg
+            conn = await asyncpg.connect(db_url)
+        except Exception as exc:
+            self.skipTest(f"PostgreSQL connection unavailable: {exc}")
+
+        test_pid = "pt_summary_test_01"
+        test_call = "call_sum_test_xyz"
+        try:
+            await store_call_summary(
+                conn,
+                call_id=test_call,
+                patient_id=test_pid,
+                session_id="sess_01",
+                duration_seconds=185,
+                summary_text="Patient reported sleeping at 11pm and requested low sodium diet advice.",
+                action_items=["Drink 3L water", "Avoid papad/namkeen"],
+                habits_disclosed={"sleep_time": "23:00", "dietary_restrictions": ["low_sodium"]},
+                contradictions_detected=[],
+                sentiment="positive",
+            )
+
+            summaries = await load_call_summaries(conn, test_pid, limit=1)
+            self.assertEqual(len(summaries), 1)
+            s = summaries[0]
+            self.assertEqual(s["call_id"], test_call)
+            self.assertEqual(s["duration_seconds"], 185)
+            self.assertIn("11pm", s["summary_text"])
+            self.assertIn("Drink 3L water", s["action_items"])
+
+        finally:
+            await conn.execute("DELETE FROM call_summaries WHERE call_id = $1", test_call)
             await conn.close()
 
 

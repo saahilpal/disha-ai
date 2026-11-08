@@ -8,8 +8,8 @@ from contextlib import suppress
 from fastapi import APIRouter, HTTPException, WebSocket
 
 from disha_core.compliance.ledger import AuditRecord
-from disha_core.models.schemas import TurnRequest, TurnState
-from disha_core.voice import VoiceSession, execute_voice_turn, transcribe_groq
+from disha_core.models.schemas import TurnState
+from disha_core.voice import VoiceSession, detect_turn_language, execute_voice_turn, transcribe_groq
 
 router = APIRouter(tags=["Voice"])
 
@@ -69,7 +69,8 @@ async def voice(websocket: WebSocket) -> None:
         output: list[str] = []
         try:
             transcript = await transcribe_groq(audio)
-            await websocket.send_json({"type": "transcript", "text": transcript})
+            lang = detect_turn_language(transcript)
+            await websocket.send_json({"type": "transcript", "text": transcript, "language": lang})
             output = await execute_voice_turn(
                 websocket,
                 patient_id,
@@ -78,6 +79,7 @@ async def voice(websocket: WebSocket) -> None:
                 send_json=websocket.send_json,
                 send_audio=websocket.send_bytes,
                 state=state,
+                language=lang,
             )
         except asyncio.CancelledError:
             raise
@@ -104,7 +106,8 @@ async def voice(websocket: WebSocket) -> None:
         state = TurnState()
         output: list[str] = []
         try:
-            await websocket.send_json({"type": "transcript", "text": text})
+            lang = detect_turn_language(text)
+            await websocket.send_json({"type": "transcript", "text": text, "language": lang})
             output = await execute_voice_turn(
                 websocket,
                 patient_id,
@@ -113,6 +116,7 @@ async def voice(websocket: WebSocket) -> None:
                 send_json=websocket.send_json,
                 send_audio=websocket.send_bytes,
                 state=state,
+                language=lang,
             )
         except asyncio.CancelledError:
             raise

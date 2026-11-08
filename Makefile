@@ -23,7 +23,7 @@ BLUE   := $(shell printf '\033[34m')
 BOLD   := $(shell printf '\033[1m')
 RESET  := $(shell printf '\033[0m')
 
-.PHONY: help doctor dev test audit qa tunnel lint typecheck format clean status
+.PHONY: help doctor dev test audit qa tunnel lint typecheck format clean status repo-check
 
 help: ## Show this help message
 	@echo "$(BOLD)DISHA AI — COMMAND REFERENCE$(RESET)"
@@ -121,6 +121,9 @@ test: ## Run full pytest and node diagnostic suites
 	@$(PYTEST) -v disha_core/tests tests/test_clinical_safety_and_ledger.py tests/test_laya_integration.py tests/test_laya_contract.py tests/test_audit_security_and_edge_cases.py tests/test_vercel_packaging.py
 	@echo ""
 	@echo "$(GREEN)$(BOLD)✓ All automated test suites PASSED successfully.$(RESET)"
+
+repo-check: ## Execute full repository integrity check (secrets, lint, duplicates, tests)
+	@bash scripts/repo-check
 
 audit: ## Run deterministic multi-dimensional judge evaluation
 	@echo "$(BOLD)[+] Running automated audit judge (/audit/judge.py)...$(RESET)"

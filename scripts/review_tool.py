@@ -22,7 +22,6 @@ if str(repo_root) not in sys.path:
 
 from disha_core.classifier.retrain_oracle import (
     LayaPromotionOracle,
-    PromotionDecision,
 )
 from disha_core.classifier.review_queue import (
     ReviewQueueManager,
@@ -64,22 +63,22 @@ def cmd_show(manager: ReviewQueueManager, args: argparse.Namespace) -> None:
     print(f"Trigger Type:         {item.trigger_type.value}")
     print(f"Review Status:        {item.review_status.value}")
     print(f"Model Checkpoint:     {item.model_checkpoint}")
-    print(f"\n[Scrubbed Clinical Input]")
+    print("\n[Scrubbed Clinical Input]")
     print(f"  {item.scrubbed_input_text}")
-    print(f"\n[Model Decision]")
+    print("\n[Model Decision]")
     print(f"  Predicted Intent:   {item.model_decision.predicted_intent}")
     print(f"  Confidence:         {item.model_decision.intent_confidence:.4f}")
     print(f"  Emergency Triage:   {item.model_decision.emergency_triage_prob:.4f}")
     print(f"  PEP Risk Score:     {item.model_decision.pep_risk_score}")
     print(f"  Latency:            {item.model_decision.latency_ms:.2f} ms")
-    print(f"\n[Trigger Context]")
+    print("\n[Trigger Context]")
     print(f"  Fallback Reason:    {item.trigger_context.fallback_reason}")
     print(f"  Override Source:    {item.trigger_context.override_source}")
     print(f"  Breaker Category:   {item.trigger_context.pre_breaker_category}")
     print(f"  Violations:         {item.trigger_context.validator_violations}")
 
     if item.clinician_annotation:
-        print(f"\n[Clinician Annotation]")
+        print("\n[Clinician Annotation]")
         print(f"  Reviewer ID:        {item.clinician_annotation.reviewer_id}")
         print(f"  Ground Intent:      {item.clinician_annotation.ground_truth_intent}")
         print(f"  Ground Emergency:   {item.clinician_annotation.ground_truth_emergency}")

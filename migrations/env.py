@@ -24,11 +24,13 @@ def get_url() -> str:
         db_user = os.getenv("DB_USER", "disha")
         db_pass = os.getenv("DB_PASSWORD", "your_secure_password_here")
         db_url = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
-    # Standardize driver to synchronous postgresql for alembic
+    # Standardize driver to synchronous postgresql (psycopg2) for alembic
     if db_url.startswith("postgresql+asyncpg://"):
-        db_url = db_url.replace("postgresql+asyncpg://", "postgresql://", 1)
+        db_url = db_url.replace("postgresql+asyncpg://", "postgresql+psycopg2://", 1)
     elif db_url.startswith("postgres://"):
-        db_url = db_url.replace("postgres://", "postgresql://", 1)
+        db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+    elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+psycopg2://"):
+        db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
     return db_url
 
 

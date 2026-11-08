@@ -417,6 +417,24 @@ async def run_autonomous_ingestion() -> dict[str, Any]:
         )
         inserted_count += 1
 
+    # 3b. Sync into knowledge_chunks with authoritative source provenance
+    await conn.execute("""
+        INSERT INTO knowledge_sources (id, name, license, url, version, language, domain, trust_tier)
+        VALUES 
+            ('src_icmr_nin_2024', 'ICMR-NIN 2024 Dietary Guidelines for Indians', 'GODL-India', 'https://www.nin.res.in/dietaryguidelines/', '2024.1', 'en', 'dietary_guidelines', 'tier_1'),
+            ('src_hf_pcos_nutrition_2024', 'Hugging Face PCOS Indian Diet & Clinical Nutrition Guidelines', 'Apache-2.0', 'https://huggingface.co/datasets/Khyatimirani/pcos-indian-diet-guidelines', '2024.1', 'en', 'womens_health', 'tier_2')
+        ON CONFLICT (id) DO NOTHING;
+    """)
+
+    for chunk in valid_chunks:
+        src_id = 'src_hf_pcos_nutrition_2024' if 'HuggingFace' in chunk.get('source_citation', '') or chunk.get('condition_tag', '').startswith('PCOS') else 'src_icmr_nin_2024'
+        domain = 'womens_health' if 'PCOS' in chunk.get('condition_tag', '') else 'clinical_nutrition'
+        await conn.execute("""
+            INSERT INTO knowledge_chunks (source_id, domain, condition_tags, diet_tags, language, script, content, derived)
+            VALUES ($1, $2, $3, $4, 'hinglish', 'latin', $5, FALSE)
+            ON CONFLICT DO NOTHING
+        """, src_id, domain, [chunk["condition_tag"]], ["dietary_guideline"], chunk["guideline_content"])
+
     print(f"[INGESTION] Successfully inserted {inserted_count} new clinical micro-chunks.")
 
     # 4. Ingest Patient Profiles, Diet Schedules, and Bearer Tokens

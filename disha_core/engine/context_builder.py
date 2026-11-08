@@ -33,10 +33,26 @@ SELECT category, fact_key, fact_value FROM patient_temporal_facts
 WHERE patient_id = $1 AND epistemic_status = 'active'
 ORDER BY created_at ASC
 """
+SLOTS_SQL = """
+SELECT slot_key, slot_value, category, source_authority, sensitive_flag
+FROM memory_items
+WHERE patient_id = $1 AND epistemic_status = 'active'
+ORDER BY created_at ASC
+"""
 HISTORY_SQL = """
 SELECT speaker, raw_utterance FROM patient_turn_journal
 WHERE patient_id = $1
 ORDER BY timestamp_utc DESC LIMIT $2
+"""
+HISTORY_SESSION_SQL = """
+SELECT speaker, raw_utterance FROM patient_turn_journal
+WHERE patient_id = $1 AND session_id = $2
+ORDER BY timestamp_utc DESC LIMIT $3
+"""
+HISTORY_CALL_SQL = """
+SELECT speaker, raw_utterance FROM patient_turn_journal
+WHERE patient_id = $1 AND call_id = $2
+ORDER BY timestamp_utc DESC LIMIT $3
 """
 WEEKDAYS = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
 
@@ -95,6 +111,9 @@ async def build_patient_context(
     meal_type: str | None = None,
     user_input: str | None = None,
     intent: str | None = None,
+    session_id: str | None = None,
+    call_id: str | None = None,
+    check_contradictions: bool = True,
 ) -> dict[str, Any]:
     if not isinstance(patient_id, str) or not patient_id.strip():
         raise ValueError("patient_id is required")
@@ -106,19 +125,34 @@ async def build_patient_context(
         raise ValueError("day_of_week must be a full weekday name")
 
     pep = await connection.fetchrow(PEP_SQL, patient_id)
+    pep_dict = dict(pep) if pep else None
 
     patient_facts: list[dict[str, Any]] = []
+    patient_slots: list[dict[str, Any]] = []
     conversation_history: list[dict[str, str]] = []
     if hasattr(connection, "fetch"):
         with suppress(Exception):
             fact_rows = await connection.fetch(FACTS_SQL, patient_id)
             patient_facts = [dict(r) for r in fact_rows]
         with suppress(Exception):
-            hist_rows = await connection.fetch(HISTORY_SQL, patient_id, 8)
+            slot_rows = await connection.fetch(SLOTS_SQL, patient_id)
+            patient_slots = [dict(r) for r in slot_rows]
+        with suppress(Exception):
+            if call_id:
+                hist_rows = await connection.fetch(HISTORY_CALL_SQL, patient_id, call_id, 8)
+            elif session_id:
+                hist_rows = await connection.fetch(HISTORY_SESSION_SQL, patient_id, session_id, 8)
+            else:
+                hist_rows = await connection.fetch(HISTORY_SQL, patient_id, 8)
             for r in reversed(hist_rows):
                 speaker = str(r["speaker"]).lower()
                 role = "assistant" if speaker in ("assistant", "coach") else "user"
                 conversation_history.append({"role": role, "content": str(r["raw_utterance"])})
+
+    contradictions: list[dict[str, Any]] = []
+    if user_input and check_contradictions and pep_dict:
+        from disha_core.pipeline.validator import evaluate_patient_claims
+        contradictions = evaluate_patient_claims(user_input, pep_dict)
 
     length_policy = None
     if user_input:
@@ -136,8 +170,12 @@ async def build_patient_context(
             items = items.strip() or None
         ctx = {
             "patient_id": patient_id,
-            "pep": dict(pep) if pep else None,
+            "session_id": session_id or "default",
+            "call_id": call_id,
+            "pep": pep_dict,
             "patient_facts": patient_facts,
+            "patient_slots": patient_slots,
+            "contradictions": contradictions,
             "conversation_history": conversation_history,
             "diet_status": "FOUND" if items is not None else "NOT_FOUND",
             "diet_items": items,
@@ -149,8 +187,12 @@ async def build_patient_context(
 
     ctx = {
         "patient_id": patient_id,
-        "pep": dict(pep) if pep else None,
+        "session_id": session_id or "default",
+        "call_id": call_id,
+        "pep": pep_dict,
         "patient_facts": patient_facts,
+        "patient_slots": patient_slots,
+        "contradictions": contradictions,
         "conversation_history": conversation_history,
         "diet_status": "NOT_REQUESTED",
         "diet_items": None,
@@ -159,6 +201,60 @@ async def build_patient_context(
     if length_policy:
         ctx["length_policy"] = length_policy
     return ctx
+
+
+async def rehydrate_session_state(
+    connection: ContextConnection,
+    patient_id: str,
+    session_id: str | None = None,
+    call_id: str | None = None,
+    limit: int = 16,
+) -> dict[str, Any]:
+    """Rehydrate complete session and conversational state from PostgreSQL.
+
+    Guarantees ZERO in-RAM session state is lost on client disconnect,
+    worker recycling, or container reconnect.
+    """
+    if not isinstance(patient_id, str) or not patient_id.strip():
+        raise ValueError("patient_id is required")
+    patient_id = patient_id.strip()
+
+    pep = await connection.fetchrow(PEP_SQL, patient_id)
+    pep_dict = dict(pep) if pep else None
+
+    conversation_history: list[dict[str, str]] = []
+    patient_facts: list[dict[str, Any]] = []
+    patient_slots: list[dict[str, Any]] = []
+
+    if hasattr(connection, "fetch"):
+        with suppress(Exception):
+            fact_rows = await connection.fetch(FACTS_SQL, patient_id)
+            patient_facts = [dict(r) for r in fact_rows]
+        with suppress(Exception):
+            slot_rows = await connection.fetch(SLOTS_SQL, patient_id)
+            patient_slots = [dict(r) for r in slot_rows]
+        with suppress(Exception):
+            if call_id:
+                hist_rows = await connection.fetch(HISTORY_CALL_SQL, patient_id, call_id, limit)
+            elif session_id:
+                hist_rows = await connection.fetch(HISTORY_SESSION_SQL, patient_id, session_id, limit)
+            else:
+                hist_rows = await connection.fetch(HISTORY_SQL, patient_id, limit)
+            for r in reversed(hist_rows):
+                speaker = str(r["speaker"]).lower()
+                role = "assistant" if speaker in ("assistant", "coach") else "user"
+                conversation_history.append({"role": role, "content": str(r["raw_utterance"])})
+
+    return {
+        "patient_id": patient_id,
+        "session_id": session_id or "default",
+        "call_id": call_id,
+        "conversation_history": conversation_history,
+        "pep": pep_dict,
+        "patient_facts": patient_facts,
+        "patient_slots": patient_slots,
+        "rehydrated_from_db": True,
+    }
 
 
 def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
@@ -247,7 +343,38 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
         max_s = str(getattr(policy, "max_sentences", 4) if hasattr(policy, "max_sentences") else policy.get("max_sentences", 4))
         length_xml = f'<RESPONSE_TARGET category="{category}" min_sentences="{min_s}" max_sentences="{max_s}"/>'
 
-    return f'<PATIENT_PROFILE>{pep_xml}{pep_rule_xml}{focus_xml}{lang_xml}{diet_rule_xml}{facts_xml}{diet_xml}</PATIENT_PROFILE>{length_xml}{clinical_xml}'
+    contradiction_xml = ""
+    contradictions = context.get("contradictions") or ()
+    if contradictions:
+        c_parts = []
+        for c in contradictions:
+            slot = html.escape(str(c.get("slot_key", "")), quote=True)
+            restr = html.escape(str(c.get("pep_restriction", "")), quote=True)
+            reason = html.escape(str(c.get("reason", "")))
+            c_parts.append(
+                f'<CONTRADICTION slot="{slot}" restriction="{restr}" flagged="true">{reason}</CONTRADICTION>'
+            )
+        contradiction_xml = (
+            f'<PEP_CONTRADICTION_NOTICE status="FLAGGED_FOR_CLINICIAN_REVIEW" action="MAINTAIN_RESTRICTIONS">'
+            f'{"".join(c_parts)}'
+            f'Patient reported claims contradicting official PEP clinical restrictions. '
+            f'LLM-written clinical permissions are 0. Do NOT grant or affirm medical clearance.'
+            f'</PEP_CONTRADICTION_NOTICE>'
+        )
+
+    slots_xml = ""
+    slots = context.get("patient_slots") or ()
+    if slots:
+        slot_parts = []
+        for s in slots:
+            k = html.escape(str(s.get("slot_key", "")), quote=True)
+            auth = html.escape(str(s.get("source_authority", "PATIENT_REPORTED")), quote=True)
+            val = html.escape(str(s.get("slot_value", "")))
+            slot_parts.append(f'<SLOT key="{k}" authority="{auth}">{val}</SLOT>')
+        if slot_parts:
+            slots_xml = f'<PATIENT_SLOTS>{"".join(slot_parts)}</PATIENT_SLOTS>'
+
+    return f'<PATIENT_PROFILE>{pep_xml}{pep_rule_xml}{focus_xml}{lang_xml}{diet_rule_xml}{facts_xml}{slots_xml}{contradiction_xml}{diet_xml}</PATIENT_PROFILE>{length_xml}{clinical_xml}'
 
 
 def add_approved_remedy_constraints(context: dict[str, Any], chunks: Any) -> None:

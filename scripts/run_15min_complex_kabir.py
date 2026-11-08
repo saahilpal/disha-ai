@@ -9,7 +9,7 @@ import asyncio
 import json
 import os
 import time
-from typing import Any, Dict, List
+
 import httpx
 
 BACKEND_URL = os.getenv("DISHA_HTTP_URL", "http://127.0.0.1:8080")

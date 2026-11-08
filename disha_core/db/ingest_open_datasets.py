@@ -22,7 +22,6 @@ from typing import Any
 
 import asyncpg
 
-
 # Common Sanskrit / Ayurvedic indication translations to Hinglish/English triggers
 INDICATION_MAP: dict[str, str] = {
     "kasa": "cough khansi throat irritation",
@@ -249,6 +248,24 @@ async def run_ingestion() -> dict[str, Any]:
             chunk["source_citation"],
         )
         inserted += 1
+
+    # 3b. Sync into knowledge_chunks with strict source provenance
+    await conn.execute("""
+        INSERT INTO knowledge_sources (id, name, license, url, version, language, domain, trust_tier)
+        VALUES 
+            ('src_ayush_remedies_2024', 'Ayurvedic Pharmacopoeia of India (API) & Evidence-Based Home Remedies', 'CC-BY-4.0', 'https://ayush.gov.in/', 'API-IX', 'sa', 'ayush_integrative_health', 'tier_1'),
+            ('src_mohfw_protocols', 'MoHFW National Health Portal Treatment Protocols', 'GODL-India', 'https://www.nhp.gov.in/', '2023.2', 'hi', 'clinical_medicine', 'tier_1')
+        ON CONFLICT (id) DO NOTHING;
+    """)
+
+    for chunk in valid_chunks:
+        src_id = 'src_mohfw_protocols' if 'National Health Portal' in chunk.get('source_citation', '') or 'MoHFW' in chunk.get('source_citation', '') else 'src_ayush_remedies_2024'
+        domain = 'ayush_integrative_health' if 'AYUSH' in chunk.get('condition_tag', '') else 'gastrointestinal'
+        await conn.execute("""
+            INSERT INTO knowledge_chunks (source_id, domain, condition_tags, diet_tags, language, script, content, derived)
+            VALUES ($1, $2, $3, $4, 'hinglish', 'latin', $5, FALSE)
+            ON CONFLICT DO NOTHING
+        """, src_id, domain, [chunk["condition_tag"]], ["home_remedy"], chunk["guideline_content"])
 
     total_count = await conn.fetchval("SELECT COUNT(*) FROM clinical_knowledge_base WHERE approval_status = 'approved'")
     total_tags = await conn.fetchval("SELECT COUNT(DISTINCT condition_tag) FROM clinical_knowledge_base")
