@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 import os
 import time
 from dataclasses import dataclass
 from typing import Any, AsyncIterator, Protocol
 from urllib.parse import quote
 
-SYSTEM_PROMPT = """You are Disha, an empathetic, intelligent AI health coach. Return plain text only without markdown formatting. Never claim to be a doctor, clinician, or human. Never invent prices: follow-ups with Disha are ₹0, and a dedicated nutritionist plan is ₹1,499/month. Never promise external delivery; all plans and exercise guides are accessed in the app's My Plan tab.
+logger = logging.getLogger(__name__)
+
+SYSTEM_PROMPT = """You are Disha, an empathetic, intelligent personal health coach. Return plain text only without markdown formatting. Never claim to be a doctor, clinician, or human. Never invent prices: follow-ups with Disha are ₹0, and a dedicated nutritionist plan is ₹1,499/month. Never promise external delivery; all plans and exercise guides are accessed in the app's My Plan tab.
 
 CRITICAL LANGUAGE REQUIREMENT:
 You MUST reply strictly in the user's preferred language as indicated in <USER_LANGUAGE> or the user's utterance:
@@ -16,6 +19,19 @@ You MUST reply strictly in the user's preferred language as indicated in <USER_L
 - If preferred language is 'hindi', reply in Devanagari Hindi.
 - If preferred language is 'english' and the user writes in English, reply in English.
 - Always use warm, spoken 2-3 sentences matching their language strictly.
+- STRICT FOREIGN LANGUAGE BAN: NEVER speak Portuguese (e.g. 'Obrigado'), Spanish ('Gracias'), Korean, or any other non-Indian/non-English language under any circumstances.
+
+GREETING & CONVERSATION DISCIPLINE:
+- Greet ONCE at the start of a conversation. If there is already history or ongoing dialogue, NEVER repeat greetings like 'Namaste', 'Hi', 'Main Disha hoon', or 'Aapka swagat hai'. Jump directly into the answer.
+- NEVER parrot or repeat the user's question before answering (e.g. do not say 'Aapne poocha ki...'). Answer directly.
+- NEVER loop on repetitive phrases like 'Theek hai', 'Aapka swagat hai', or 'Thank you'.
+
+5-PHASE CLINICAL COACHING MODEL:
+1. Phase 1 (Empathy & Listening): Acknowledge the user's feeling or symptom with genuine warmth.
+2. Phase 2 (Calm Triage): Assess symptoms calmly without panicky robotic boilerplate.
+3. Phase 3 (Evidence Grounding): When home remedies or symptoms are discussed, strictly ground your advice in <CLINICAL_GROUNDING> (e.g. suggest warm jeera or saunf water for bloating/gas, soaked methi dana for blood sugar, cold milk or banana for acidity).
+4. Phase 4 (Actionable Guidance): Recommend simple, doable Indian habits (10-15 min light post-meal walk / shatapadi, portion moderation, hydration).
+5. Phase 5 (Closed-Loop Follow-up): Conclude with a caring check-in ('Aap ise try karein aur mujhe batayein, theek hai?').
 
 Core Conversational Guidelines:
 1. Actively listen and address the user's specific statement or question directly. Do not divert the topic.
@@ -59,6 +75,8 @@ class LLMSettings:
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "qwen2.5:7b"
     ollama_enabled: bool = False
+    groq_enabled: bool = True
+    gemini_enabled: bool = True
 
     def __post_init__(self) -> None:
         if self.first_token_timeout <= 0:
@@ -82,6 +100,8 @@ class LLMSettings:
             ollama_base_url=os.getenv("OLLAMA_BASE_URL") or os.getenv("LOCAL_LLM_URL") or "http://127.0.0.1:11434",
             ollama_model=os.getenv("OLLAMA_MODEL") or os.getenv("LOCAL_LLM_MODEL") or "qwen2.5:7b",
             ollama_enabled=_enabled("OLLAMA_ENABLED") or _enabled("LOCAL_LLM_ENABLED"),
+            groq_enabled=_enabled("GROQ_ENABLED") if os.getenv("GROQ_ENABLED") is not None else True,
+            gemini_enabled=_enabled("GEMINI_ENABLED") if os.getenv("GEMINI_ENABLED") is not None else True,
         )
 
 
@@ -342,10 +362,9 @@ async def _yield_provider(
 class DualProviderClient:
     def __init__(self, settings: LLMSettings | None = None) -> None:
         self.settings = settings or LLMSettings.from_env()
-        providers: list[Provider] = []
+        providers: list[Provider] = [GroqProvider(self.settings), GeminiProvider(self.settings)]
         if self.settings.ollama_enabled:
             providers.append(OllamaProvider(self.settings))
-        providers.extend([GroqProvider(self.settings), GeminiProvider(self.settings)])
         self.providers: tuple[Provider, ...] = tuple(providers)
         self.circuit = ConsecutiveFailureCircuitBreaker(threshold=2)
 
@@ -357,8 +376,15 @@ class DualProviderClient:
         if len(providers) >= 2 and await self.circuit.allow_primary():
             primary = providers[0]
             iterator = _yield_provider(primary, prompt, self.settings.first_token_timeout, messages=messages).__aiter__()
+            early_pieces: list[str] = []
             try:
                 first = await anext(iterator)
+                early_pieces.append(first)
+                try:
+                    second = await asyncio.wait_for(anext(iterator), timeout=self.settings.first_token_timeout)
+                    early_pieces.append(second)
+                except StopAsyncIteration:
+                    pass
             except Exception as exc:
                 if _transient(exc):
                     await self.circuit.record_failure()
@@ -367,7 +393,8 @@ class DualProviderClient:
                     await close()
             else:
                 await self.circuit.record_success()
-                yield first
+                for piece in early_pieces:
+                    yield piece
                 try:
                     async for piece in iterator:
                         yield piece

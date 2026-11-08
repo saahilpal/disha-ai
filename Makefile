@@ -109,6 +109,10 @@ dev: ## Launch local backend and proxy with live healthcheck
 	@echo "   WebSocket Route:  ws://127.0.0.1:8080/ws/conversation"
 	@echo "$(GREEN)$(BOLD)======================================================================$(RESET)"
 
+test-ux: ## Run Playwright browser automated UX verification suite
+	@echo "$(BOLD)[+] Executing Playwright Browser Automated UX Suite (8 core workflows)...$(RESET)"
+	@$(NODE) tests/test_playwright_ux.js
+
 test: ## Run full pytest and node diagnostic suites
 	@echo "$(BOLD)[+] Executing Node.js Frontend Diagnostics Suite (32 checks)...$(RESET)"
 	@$(NODE) tests/test_frontend_diagnostics.js

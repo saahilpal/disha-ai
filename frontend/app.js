@@ -314,6 +314,7 @@
     audioOutputSelect: typeof document !== 'undefined' ? document.getElementById('audio-output-select') : null,
     wakeLockToggle: typeof document !== 'undefined' ? document.getElementById('wake-lock-toggle') : null,
     themeSelect: typeof document !== 'undefined' ? document.getElementById('theme-select') : null,
+    languageSelect: typeof document !== 'undefined' ? document.getElementById('language-select') : null,
     backendUrlInput: typeof document !== 'undefined' ? document.getElementById('backend-url-input') : null,
     saveBackendUrlBtn: typeof document !== 'undefined' ? document.getElementById('save-backend-url-btn') : null,
     testBackendBtn: typeof document !== 'undefined' ? document.getElementById('test-backend-btn') : null,
@@ -321,6 +322,7 @@
 
     // Header & Drawer Action Controls
     headerCallBtn: typeof document !== 'undefined' ? document.getElementById('header-call-btn') : null,
+    callModalCloseBtn: typeof document !== 'undefined' ? document.getElementById('call-modal-close-btn') : null,
     toggleDrawerBtn: typeof document !== 'undefined' ? document.getElementById('toggle-drawer-btn') : null,
     drawerCloseBtn: typeof document !== 'undefined' ? document.getElementById('drawer-close-btn') : null,
     clinicalDrawer: typeof document !== 'undefined' ? document.getElementById('clinical-drawer') : null,
@@ -335,6 +337,8 @@
 
     // Profile Edit Modal Controls
     openProfileEditBtn: typeof document !== 'undefined' ? document.getElementById('open-profile-edit-btn') : null,
+    profilePageEditBtn: typeof document !== 'undefined' ? document.getElementById('profile-page-edit-btn') : null,
+    profilePageLanguage: typeof document !== 'undefined' ? document.getElementById('profile-page-language') : null,
     profileEditModal: typeof document !== 'undefined' ? document.getElementById('profile-edit-modal') : null,
     profileEditCloseBtn: typeof document !== 'undefined' ? document.getElementById('profile-edit-close-btn') : null,
     profileCancelBtn: typeof document !== 'undefined' ? document.getElementById('profile-cancel-btn') : null,
@@ -371,6 +375,24 @@
       try {
         localStorage.setItem('disha_theme', state.theme);
       } catch (e) {}
+    });
+  }
+
+  // --- LANGUAGE INITIALIZATION & SYNCHRONIZATION ---
+  const savedLang = (typeof localStorage !== 'undefined' && localStorage.getItem('disha_language')) || state.language || 'hinglish';
+  state.language = savedLang;
+  if (dom.languageSelect) {
+    dom.languageSelect.value = savedLang;
+    dom.languageSelect.addEventListener('change', () => {
+      state.language = dom.languageSelect.value;
+      try {
+        localStorage.setItem('disha_language', state.language);
+      } catch (e) {}
+      const labels = { hinglish: 'Hinglish', en: 'English', hi: 'Hindi', bn: 'Bengali' };
+      if (dom.profilePageLanguage) {
+        dom.profilePageLanguage.textContent = labels[state.language] || state.language;
+      }
+      showAlert('Language preference set to ' + (dom.languageSelect.options[dom.languageSelect.selectedIndex]?.text || state.language));
     });
   }
 
@@ -1074,40 +1096,21 @@
         return;
       }
 
-      // Checked conditions
-      const conditionEls = typeof document !== 'undefined' ? document.querySelectorAll('input[name="condition"]:checked') : [];
-      const conditions = Array.from(conditionEls).map(el => el.value);
+      // Diet & Health Focus selection
+      const dietSelect = document.getElementById('onboard-diet');
+      const dietPref = (dietSelect && dietSelect.value) ? dietSelect.value : 'Vegetarian';
 
-      const activity = dom.onboardActivity ? dom.onboardActivity.value : 'light';
-      const clearanceEl = typeof document !== 'undefined' ? document.querySelector('input[name="gym_clearance"]:checked') : null;
-      const gymClearance = clearanceEl ? clearanceEl.value === 'true' : false;
-      const restrictions = (dom.onboardRestrictions ? dom.onboardRestrictions.value : '').split(',').map(s => s.trim()).filter(Boolean);
-
-      const dietEl = typeof document !== 'undefined' ? document.querySelector('input[name="diet_pref"]:checked') : null;
-      const dietPref = dietEl ? dietEl.value : 'Vegetarian';
-
-      const goalEls = typeof document !== 'undefined' ? document.querySelectorAll('input[name="health_goal"]:checked') : [];
-      const goals = Array.from(goalEls).map(el => el.value);
-
-      // Preferred conversation language
-      const langInput = typeof document !== 'undefined' ? document.getElementById('onboard-language') : null;
-      const language = (langInput && langInput.value) ? langInput.value.trim() : 'hinglish';
-
-      // Health Focus areas
-      const focusEls = typeof document !== 'undefined' ? document.querySelectorAll('input[name="health_focus"]:checked') : [];
-      const healthFocuses = Array.from(focusEls).map(el => el.value).filter(val => val !== 'Other');
-
-      // Health Focus other custom text
-      const otherInput = typeof document !== 'undefined' ? document.getElementById('health-focus-other-input') : null;
-      const otherChecked = typeof document !== 'undefined' ? document.getElementById('health-focus-other-check')?.checked : false;
-      const healthFocusOther = (otherChecked && otherInput) ? otherInput.value.trim() : '';
-      if (healthFocusOther && !healthFocuses.includes(healthFocusOther)) {
-        healthFocuses.push(healthFocusOther);
-      }
-
-      let htnStage = 'normal';
-      if (conditions.includes('Hypertension Stage 2')) htnStage = 'stage 2';
-      else if (conditions.includes('Hypertension Stage 1')) htnStage = 'stage 1';
+      const focusSelect = document.getElementById('onboard-focus');
+      const focusVal = (focusSelect && focusSelect.value) ? focusSelect.value : 'Fitness & General Wellness';
+      const goals = [focusVal];
+      const healthFocuses = [focusVal];
+      const conditions = [];
+      const activity = 'moderate';
+      const gymClearance = true;
+      const restrictions = [];
+      const language = 'hinglish';
+      const healthFocusOther = '';
+      const htnStage = focusVal.toLowerCase().includes('pressure') ? 'stage 1' : 'normal';
 
       if (dom.onboardSubmitBtn) dom.onboardSubmitBtn.disabled = true;
 
@@ -1161,36 +1164,6 @@
           });
         }
 
-        // Delightful cinematic companion personalization sequence
-        const overlay = typeof document !== 'undefined' ? document.getElementById('onboard-transition-overlay') : null;
-        const patNameSpan = typeof document !== 'undefined' ? document.getElementById('transition-patient-name') : null;
-        if (patNameSpan) patNameSpan.textContent = name || 'you';
-
-        if (overlay) {
-          overlay.style.display = 'flex';
-          const s1 = document.getElementById('trans-step-1');
-          const s2 = document.getElementById('trans-step-2');
-          const s3 = document.getElementById('trans-step-3');
-          if (s1) s1.classList.add('active');
-
-          await new Promise(r => setTimeout(r, 400));
-          if (s1) s1.classList.add('done');
-          if (s2) s2.classList.add('active');
-
-          await new Promise(r => setTimeout(r, 450));
-          if (s2) s2.classList.add('done');
-          if (s3) s3.classList.add('active');
-
-          await new Promise(r => setTimeout(r, 450));
-          if (s3) s3.classList.add('done');
-
-          await new Promise(r => setTimeout(r, 350));
-          overlay.classList.add('fade-out');
-          await new Promise(r => setTimeout(r, 300));
-          overlay.style.display = 'none';
-          overlay.classList.remove('fade-out');
-        }
-
         await transitionToDashboard();
         triggerPersonalizedFirstConsultation(name, goals, htnStage);
       } catch (err) {
@@ -1206,40 +1179,23 @@
     if (!chatStream) return;
 
     const firstName = name ? name.split(' ')[0] : 'friend';
-    const goalsSummary = goals && goals.length ? goals.slice(0, 2).join(' and ') : 'heart health';
-    const stageDesc = htnStage === 'stage 2' ? 'Stage 2 BP safety boundaries' : htnStage === 'stage 1' ? 'Stage 1 BP pacing' : 'healthy cardiovascular maintenance';
+    const goalsSummary = goals && goals.length ? goals.slice(0, 2).join(' and ') : 'daily wellness';
 
-    const welcomeMsg = `Namaste ${firstName}! I am Disha, your dedicated AI health coach. I have personalized your clinical baseline, calibrated your metabolic pacing, and initialized your ${stageDesc} with a focus on ${goalsSummary}.\n\nHow are you feeling right now? Would you like to review your daily routine or start with nutrition?`;
+    const welcomeMsg = `Namaste ${firstName}! I am Disha, your personal health coach. I have noted your health profile with a focus on ${goalsSummary}.\n\nHow are you feeling today? Would you like to review today’s nutrition plan or discuss your wellness goals?`;
 
     // Add proactive message bubble
     const msgEl = document.createElement('div');
-    msgEl.className = 'chat-message assistant proactive-welcome animate-in';
+    msgEl.className = 'chat-message assistant';
     msgEl.innerHTML = `
-      <div class="msg-avatar">D</div>
-      <div class="msg-body">
-        <div class="proactive-badge-pill">Calibrated for ${escapeHtml(firstName)}</div>
-        <p class="msg-text">${escapeHtml(welcomeMsg).replace(/\\n\\n/g, '<br><br>')}</p>
-        <div class="proactive-quick-actions">
-          <button type="button" class="proactive-chip-btn" data-query="Explain my exercise safety limits">Review exercise safety</button>
-          <button type="button" class="proactive-chip-btn" data-query="What should I eat today?">Today's meal plan</button>
-          <button type="button" class="proactive-chip-btn" data-query="Explain my BMI and hydration target">Hydration &amp; BMI target</button>
-        </div>
-        <span class="msg-meta">Disha AI &bull; Grounded Guidance</span>
+      <div class="msg-avatar" aria-hidden="true">D</div>
+      <div class="msg-bubble">
+        <p class="msg-text">${escapeHtml(welcomeMsg).replace(/\n\n/g, '<br><br>')}</p>
       </div>
     `;
 
     chatStream.appendChild(msgEl);
-    chatStream.scrollTop = chatStream.scrollHeight;
-
-    // Attach click listeners to quick chips
-    msgEl.querySelectorAll('.proactive-chip-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const q = btn.getAttribute('data-query');
-        if (q && typeof dispatchTurn === 'function') {
-          dispatchTurn(q);
-        }
-      });
-    });
+    const wrapper = chatStream.closest('.chat-messages-area') || chatStream;
+    wrapper.scrollTop = wrapper.scrollHeight;
   }
 
   function saveSession(token, patientId, patientName) {
@@ -1267,11 +1223,14 @@
     state.wsExplicitlyClosed = false;
     state.wsReconnectAttempts = 0;
     if (dom.authView) dom.authView.style.display = 'none';
-    if (dom.dashboardView) dom.dashboardView.style.display = 'block';
     if (dom.patientBadge) dom.patientBadge.style.display = 'flex';
     if (dom.navSigninLink) dom.navSigninLink.style.display = 'none';
     if (dom.patientDisplayName) dom.patientDisplayName.textContent = state.patientName || 'Patient';
 
+    if (typeof window !== 'undefined' && window.location.hash !== '#/chat') {
+      window.location.hash = '#/chat';
+    }
+    navigate('chat');
     initSpectrumVisualizer();
     await fetchPatientProfile();
   }
@@ -1415,6 +1374,9 @@
         dom.latestMerkleHash.title = rawHash;
       }
     }
+
+    if (typeof populateMealsView === 'function') populateMealsView();
+    if (typeof populateProfileView === 'function') populateProfileView();
   }
 
   function capitalize(str) {
@@ -1607,19 +1569,20 @@
     state.transcriptHistory.push({ role, text, meta, timestamp: Date.now() });
     state.turnCount = (state.turnCount || 0) + 1;
 
-    if (!dom.chatStream) return;
+    const chatStream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
+    if (!chatStream) return;
     const safeRole = role === 'assistant' ? 'assistant' : 'user';
     const msgEl = document.createElement('div');
     msgEl.className = `chat-message ${safeRole}`;
     msgEl.innerHTML = `
-      <div class="msg-avatar">${safeRole === 'assistant' ? 'D' : 'P'}</div>
-      <div class="msg-body">
+      <div class="msg-avatar" aria-hidden="true">${safeRole === 'assistant' ? 'D' : 'P'}</div>
+      <div class="msg-bubble">
         <p class="msg-text">${escapeHtml(text)}</p>
-        ${meta ? `<span class="msg-meta">${escapeHtml(meta)}</span>` : ''}
       </div>
     `;
-    dom.chatStream.appendChild(msgEl);
-    dom.chatStream.scrollTop = dom.chatStream.scrollHeight;
+    chatStream.appendChild(msgEl);
+    const scrollContainer = chatStream.closest('.chat-messages-area') || chatStream;
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
   }
 
   function escapeHtml(str) {
@@ -2237,31 +2200,141 @@
     });
   }
 
-  function dispatchTurn(text) {
+  async function dispatchTurn(text) {
     appendChatMessage('user', text);
     setTelephonyStatus('processing');
 
+    const chatStream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
+    const scrollContainer = chatStream ? (chatStream.closest('.chat-messages-area') || chatStream) : null;
+
     if (state.ws && state.ws.readyState === WebSocket.OPEN) {
       state.ws.send(JSON.stringify({ type: 'text', text: text }));
-    } else {
-      const config = getBackendConfig();
-      fetch(`${config.httpBase}/chat`, {
+      return;
+    }
+
+    const config = getBackendConfig();
+
+    // Prepare assistant message bubble for live streaming
+    let assistantMsgEl = null;
+    let assistantTextP = null;
+    let accumulatedText = '';
+
+    if (chatStream) {
+      assistantMsgEl = document.createElement('div');
+      assistantMsgEl.className = 'chat-message assistant';
+      assistantMsgEl.innerHTML = `
+        <div class="msg-avatar" aria-hidden="true">D</div>
+        <div class="msg-bubble">
+          <p class="msg-text streaming-cursor"></p>
+        </div>
+      `;
+      chatStream.appendChild(assistantMsgEl);
+      assistantTextP = assistantMsgEl.querySelector('.msg-text');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    }
+
+    try {
+      const res = await fetch(`${config.httpBase}/chat/stream`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${state.token}`,
         },
         body: JSON.stringify({ text: text }),
-      })
-      .then(r => r.json())
-      .then(d => {
-        appendChatMessage('assistant', d.response, 'Grounded Response');
-        setTelephonyStatus('idle');
-      })
-      .catch(err => {
-        showAlert('Query failed: ' + err.message);
-        setTelephonyStatus('idle');
       });
+
+      if (!res.ok || !res.body) {
+        // Fallback to standard /chat endpoint
+        const fallbackRes = await fetch(`${config.httpBase}/chat`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.token}`,
+          },
+          body: JSON.stringify({ text: text }),
+        });
+        if (!fallbackRes.ok) {
+          throw new Error(`Chat request failed: ${fallbackRes.status}`);
+        }
+        const fallbackData = await fallbackRes.json();
+        accumulatedText = fallbackData.response || '';
+        if (assistantTextP) {
+          assistantTextP.textContent = accumulatedText;
+          assistantTextP.classList.remove('streaming-cursor');
+        }
+        if (!state.transcriptHistory) state.transcriptHistory = [];
+        state.transcriptHistory.push({ role: 'assistant', text: accumulatedText, meta: 'Grounded Response', timestamp: Date.now() });
+        state.turnCount = (state.turnCount || 0) + 1;
+        setTelephonyStatus('idle');
+        if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        return;
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let buffer = '';
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data: ')) {
+            const jsonStr = trimmed.slice(6).trim();
+            if (jsonStr) {
+              try {
+                const parsed = JSON.parse(jsonStr);
+                if (parsed.sentence) {
+                  accumulatedText = accumulatedText ? `${accumulatedText} ${parsed.sentence}` : parsed.sentence;
+                  if (assistantTextP) {
+                    assistantTextP.textContent = accumulatedText;
+                  }
+                  if (scrollContainer) {
+                    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+                  }
+                }
+              } catch (e) {}
+            }
+          }
+        }
+      }
+
+      if (buffer.trim().startsWith('data: ')) {
+        try {
+          const parsed = JSON.parse(buffer.trim().slice(6).trim());
+          if (parsed.sentence) {
+            accumulatedText = accumulatedText ? `${accumulatedText} ${parsed.sentence}` : parsed.sentence;
+            if (assistantTextP) {
+              assistantTextP.textContent = accumulatedText;
+            }
+          }
+        } catch (e) {}
+      }
+
+      if (assistantTextP) {
+        assistantTextP.classList.remove('streaming-cursor');
+      }
+
+      if (!state.transcriptHistory) state.transcriptHistory = [];
+      state.transcriptHistory.push({ role: 'assistant', text: accumulatedText, meta: 'Grounded Stream', timestamp: Date.now() });
+      state.turnCount = (state.turnCount || 0) + 1;
+      setTelephonyStatus('idle');
+      if (scrollContainer) {
+        scrollContainer.scrollTop = scrollContainer.scrollHeight;
+      }
+    } catch (err) {
+      if (assistantTextP) {
+        assistantTextP.textContent = 'Service unavailable. Please verify connection and retry.';
+        assistantTextP.classList.remove('streaming-cursor');
+      }
+      showAlert('Query failed: ' + err.message);
+      setTelephonyStatus('idle');
     }
   }
 
@@ -2319,29 +2392,32 @@
 
   // --- SPA ROUTING & NAVIGATION ENGINE ---
   const views = {
-    home: dom.viewHome,
-    consultation: dom.dashboardView,
-    signin: dom.authView,
-    auth: dom.authView,
-    summary: dom.viewSummary,
-    settings: dom.viewSettings,
-    privacy: dom.viewPrivacy,
-    '404': dom.view404,
+    chat: dom.dashboardView || (typeof document !== 'undefined' ? document.getElementById('dashboard-view') : null),
+    consultation: dom.dashboardView || (typeof document !== 'undefined' ? document.getElementById('dashboard-view') : null),
+    meals: typeof document !== 'undefined' ? document.getElementById('view-meals') : null,
+    profile: typeof document !== 'undefined' ? document.getElementById('view-profile') : null,
+    settings: dom.viewSettings || (typeof document !== 'undefined' ? document.getElementById('view-settings') : null),
+    signin: dom.authView || (typeof document !== 'undefined' ? document.getElementById('auth-view') : null),
+    auth: dom.authView || (typeof document !== 'undefined' ? document.getElementById('auth-view') : null),
+    '404': dom.view404 || (typeof document !== 'undefined' ? document.getElementById('view-404') : null),
   };
 
   function navigate(rawRoute) {
     const cleanRoute = (rawRoute || '').replace(/^#\/?/, '').split('?')[0].trim();
-    const route = cleanRoute || (state.token ? 'home' : 'signin');
-    const targetKey = views[route] ? route : (cleanRoute === '' ? (state.token ? 'home' : 'signin') : '404');
+    let target = cleanRoute;
+    if (target === 'consultation' || target === 'home' || target === '') {
+      target = state.token ? 'chat' : 'signin';
+    }
+    const targetKey = views[target] ? target : (state.token ? 'chat' : 'signin');
 
     // Update view containers visibility
     Object.keys(views).forEach(k => {
-      const el = views[k];
+      const el = views[k] || (typeof document !== 'undefined' ? document.getElementById(k === 'chat' ? 'dashboard-view' : `view-${k}`) : null);
       if (el) {
-        if (k === targetKey || (targetKey === 'consultation' && k === 'consultation') || (targetKey === 'signin' && k === 'auth')) {
-          el.style.display = 'block';
+        if (k === targetKey) {
+          el.style.display = (k === 'chat' || k === 'consultation') ? 'flex' : 'block';
           el.classList.add('active-view');
-        } else if (k !== 'auth' || (targetKey !== 'signin' && targetKey !== 'auth')) {
+        } else if (k !== 'auth' && k !== 'consultation') {
           el.style.display = 'none';
           el.classList.remove('active-view');
         }
@@ -2349,10 +2425,11 @@
     });
 
     // Update nav tab highlights
-    if (dom.navTabs && dom.navTabs.length) {
-      dom.navTabs.forEach(tab => {
+    const navTabs = dom.navTabs && dom.navTabs.length ? dom.navTabs : (typeof document !== 'undefined' ? document.querySelectorAll('.nav-tab') : []);
+    if (navTabs && navTabs.length) {
+      navTabs.forEach(tab => {
         const tabRoute = tab.getAttribute('data-route');
-        if (tabRoute === targetKey || (targetKey === 'consultation' && tabRoute === 'consultation')) {
+        if (tabRoute === targetKey || (targetKey === 'chat' && tabRoute === 'chat')) {
           tab.classList.add('active');
         } else {
           tab.classList.remove('active');
@@ -2361,24 +2438,118 @@
     }
 
     // Update auth pill vs sign-in button
-    if (dom.navSigninLink && dom.patientBadge) {
+    const signinLink = dom.navSigninLink || (typeof document !== 'undefined' ? document.getElementById('nav-signin-link') : null);
+    const badge = dom.patientBadge || (typeof document !== 'undefined' ? document.getElementById('patient-badge') : null);
+    if (signinLink && badge) {
       if (state.token) {
-        dom.navSigninLink.style.display = 'none';
-        dom.patientBadge.style.display = 'flex';
+        signinLink.style.display = 'none';
+        badge.style.display = 'flex';
       } else {
-        dom.navSigninLink.style.display = 'inline-flex';
-        dom.patientBadge.style.display = 'none';
+        signinLink.style.display = 'inline-flex';
+        badge.style.display = 'none';
       }
     }
 
     if (targetKey === 'settings') {
       populateAudioDevices();
-    } else if (targetKey === 'summary') {
-      populateSummaryView();
+    } else if (targetKey === 'meals') {
+      populateMealsView();
+    } else if (targetKey === 'profile') {
+      populateProfileView();
     }
 
     if (typeof window !== 'undefined' && window.scrollTo) {
       window.scrollTo(0, 0);
+    }
+  }
+
+  function populateMealsView() {
+    const d = (state.patientProfile && state.patientProfile.today_diet) || null;
+    const b = document.getElementById('meals-page-breakfast');
+    const l = document.getElementById('meals-page-lunch');
+    const din = document.getElementById('meals-page-dinner');
+
+    if (d) {
+      const getMeal = (type) => {
+        const val = d[type] || d[type.toLowerCase()] || d[capitalize(type)];
+        if (!val) return 'None prescribed for today';
+        if (Array.isArray(val)) return val.join(', ');
+        return String(val);
+      };
+      if (b) b.textContent = getMeal('breakfast');
+      if (l) l.textContent = getMeal('lunch');
+      if (din) din.textContent = getMeal('dinner');
+    } else {
+      if (b) b.textContent = 'Oats porridge with almonds, chia seeds, and fresh berries.';
+      if (l) l.textContent = 'Whole grain roti, yellow dal tadka, sautéed palak, and mixed cucumber salad.';
+      if (din) din.textContent = 'Grilled vegetables with paneer or moong dal chilla, cumin-infused clear broth.';
+    }
+  }
+
+  function populateProfileView() {
+    const p = (state.patientProfile && state.patientProfile.profile) || null;
+    const pep = (state.patientProfile && state.patientProfile.pep) || null;
+
+    const ageSexEl = document.getElementById('profile-page-age-sex');
+    const hwEl = document.getElementById('profile-page-height-weight');
+    const bmiEl = document.getElementById('profile-page-bmi');
+    const dietEl = document.getElementById('profile-page-diet');
+    const focusEl = document.getElementById('profile-page-focus');
+    const clearanceEl = document.getElementById('profile-page-gym-clearance');
+    const allowedEl = document.getElementById('profile-page-allowed-modalities');
+    const restrictedEl = document.getElementById('profile-page-restricted-modalities');
+
+    if (p) {
+      if (ageSexEl) ageSexEl.textContent = `${p.age || '52'} / ${capitalize(p.gender || 'Male')}`;
+      if (hwEl) hwEl.textContent = `${p.height_cm || '175'} cm / ${p.weight_kg || '82'} kg`;
+      if (p.height_cm && p.weight_kg) {
+        const h = parseFloat(p.height_cm);
+        const w = parseFloat(p.weight_kg);
+        if (h >= 50 && w >= 20) {
+          const bmi = (w / Math.pow(h / 100, 2)).toFixed(1);
+          if (bmiEl) bmiEl.textContent = `${bmi} kg/m²`;
+        }
+      } else if (bmiEl) {
+        bmiEl.textContent = '26.8 kg/m²';
+      }
+      if (dietEl) dietEl.textContent = p.dietary_preference || 'Vegetarian';
+      if (focusEl) {
+        const goals = (p.health_goals && p.health_goals.length) ? p.health_goals.join(', ') : (p.health_focuses ? p.health_focuses.join(', ') : 'Cardiovascular Health & Recovery');
+        focusEl.textContent = goals;
+      }
+    } else {
+      if (ageSexEl) ageSexEl.textContent = '52 / Male';
+      if (hwEl) hwEl.textContent = '175 cm / 82 kg';
+      if (bmiEl) bmiEl.textContent = '26.8 kg/m²';
+      if (dietEl) dietEl.textContent = 'Vegetarian';
+      if (focusEl) focusEl.textContent = 'Cardiovascular Health & Recovery';
+    }
+
+    if (pep) {
+      if (clearanceEl) {
+        clearanceEl.textContent = pep.gym_clearance ? 'Cleared for Gym' : 'Exercise Caution';
+        clearanceEl.className = pep.gym_clearance ? 'safety-badge' : 'safety-badge restricted';
+      }
+      if (allowedEl) {
+        allowedEl.textContent = (pep.allowed_modalities || []).join(', ') || 'Brisk walking, bodyweight squats, gentle yoga';
+      }
+      if (restrictedEl) {
+        restrictedEl.textContent = (pep.restricted_modalities || []).join(', ') || 'Heavy deadlifts, max exertion cardio';
+      }
+    } else {
+      if (clearanceEl) {
+        clearanceEl.textContent = 'Cleared for General Fitness';
+        clearanceEl.className = 'safety-badge';
+      }
+      if (allowedEl) allowedEl.textContent = 'Brisk walking, stretching, light resistance';
+      if (restrictedEl) restrictedEl.textContent = 'High intensity interval training without warm-up';
+    }
+
+    const langEl = document.getElementById('profile-page-language');
+    if (langEl) {
+      const rawLang = (p && p.language) || (typeof localStorage !== 'undefined' && localStorage.getItem('disha_language')) || state.language || 'hinglish';
+      const labels = { hinglish: 'Hinglish', en: 'English', hi: 'Hindi', bn: 'Bengali' };
+      langEl.textContent = labels[rawLang.toLowerCase()] || capitalize(rawLang);
     }
   }
 
@@ -2952,40 +3123,43 @@
     });
   }
 
-  // Progressive Onboarding Step Navigation
+  // Progressive Onboarding Step Navigation (Clean 3-Step Flow)
   function goToOnboardingStep(targetStep) {
-    if (targetStep < 1 || targetStep > 4) return;
+    if (targetStep < 1 || targetStep > 3) return;
 
     if (targetStep > 1) {
-      const name = (dom.onboardName ? dom.onboardName.value : '').trim();
-      const ageVal = dom.onboardAge ? parseInt(dom.onboardAge.value, 10) : NaN;
+      const name = (dom.onboardName ? dom.onboardName.value : (document.getElementById('onboard-name')?.value || '')).trim();
+      const ageEl = dom.onboardAge || document.getElementById('onboard-age');
+      const ageVal = ageEl ? parseInt(ageEl.value, 10) : NaN;
       if (!name) {
         showAlert('Please enter your full name to proceed.');
-        if (dom.onboardName) dom.onboardName.focus();
+        if (ageEl) ageEl.focus();
         return;
       }
       if (!Number.isFinite(ageVal) || ageVal < 1 || ageVal > 120) {
         showAlert('Please enter a valid age between 1 and 120.');
-        if (dom.onboardAge) dom.onboardAge.focus();
+        if (ageEl) ageEl.focus();
         return;
       }
     }
     if (targetStep > 2) {
-      const h = dom.onboardHeight ? parseFloat(dom.onboardHeight.value) : NaN;
-      const w = dom.onboardWeight ? parseFloat(dom.onboardWeight.value) : NaN;
+      const hEl = dom.onboardHeight || document.getElementById('onboard-height');
+      const wEl = dom.onboardWeight || document.getElementById('onboard-weight');
+      const h = hEl ? parseFloat(hEl.value) : NaN;
+      const w = wEl ? parseFloat(wEl.value) : NaN;
       if (!Number.isFinite(h) || h < 50 || h > 250) {
         showAlert('Please enter a valid height between 50 and 250 cm.');
-        if (dom.onboardHeight) dom.onboardHeight.focus();
+        if (hEl) hEl.focus();
         return;
       }
       if (!Number.isFinite(w) || w < 20 || w > 300) {
         showAlert('Please enter a valid weight between 20 and 300 kg.');
-        if (dom.onboardWeight) dom.onboardWeight.focus();
+        if (wEl) wEl.focus();
         return;
       }
     }
 
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 1; i <= 3; i++) {
       const panel = typeof document !== 'undefined' ? document.getElementById(`onboard-step-panel-${i}`) : null;
       const tracker = typeof document !== 'undefined' ? document.getElementById(`tracker-step-${i}`) : null;
       if (panel) {
@@ -3010,31 +3184,43 @@
         }
       }
     }
-
-    // Smoothly fill progressive tracker lines
-    for (let j = 1; j <= 3; j++) {
-      const fill = typeof document !== 'undefined' ? document.getElementById(`tracker-fill-${j}`) : null;
-      if (fill) {
-        fill.style.width = targetStep > j ? '100%' : '0%';
-      }
-    }
   }
 
-  if (dom.step1NextBtn) dom.step1NextBtn.addEventListener('click', () => goToOnboardingStep(2));
-  if (dom.step2BackBtn) dom.step2BackBtn.addEventListener('click', () => goToOnboardingStep(1));
-  if (dom.step2NextBtn) dom.step2NextBtn.addEventListener('click', () => goToOnboardingStep(3));
-  if (dom.step3BackBtn) dom.step3BackBtn.addEventListener('click', () => goToOnboardingStep(2));
-  if (dom.step3NextBtn) dom.step3NextBtn.addEventListener('click', () => goToOnboardingStep(4));
-  if (dom.step4BackBtn) dom.step4BackBtn.addEventListener('click', () => goToOnboardingStep(3));
+  const step1Next = dom.step1NextBtn || (typeof document !== 'undefined' ? document.getElementById('step-1-next-btn') : null);
+  const step2Back = dom.step2BackBtn || (typeof document !== 'undefined' ? document.getElementById('step-2-back-btn') : null);
+  const step2Next = dom.step2NextBtn || (typeof document !== 'undefined' ? document.getElementById('step-2-next-btn') : null);
+  const step3Back = dom.step3BackBtn || (typeof document !== 'undefined' ? document.getElementById('step-3-back-btn') : null);
 
-  const step3SkipBtn = typeof document !== 'undefined' ? document.getElementById('step-3-skip-btn') : null;
-  if (step3SkipBtn) step3SkipBtn.addEventListener('click', () => goToOnboardingStep(4));
+  if (step1Next) step1Next.addEventListener('click', () => goToOnboardingStep(2));
+  if (step2Back) step2Back.addEventListener('click', () => goToOnboardingStep(1));
+  if (step2Next) step2Next.addEventListener('click', () => goToOnboardingStep(3));
+  if (step3Back) step3Back.addEventListener('click', () => goToOnboardingStep(2));
 
   const switchToChatBtn = typeof document !== 'undefined' ? document.getElementById('switch-to-chat-btn') : null;
   if (switchToChatBtn) {
     switchToChatBtn.addEventListener('click', () => {
       const callModal = typeof document !== 'undefined' ? document.getElementById('call-overlay-modal') : null;
       if (callModal) callModal.style.display = 'none';
+    });
+  }
+
+  const callCloseBtn = dom.callModalCloseBtn || (typeof document !== 'undefined' ? document.getElementById('call-modal-close-btn') : null);
+  if (callCloseBtn) {
+    callCloseBtn.addEventListener('click', () => {
+      const callModal = typeof document !== 'undefined' ? document.getElementById('call-overlay-modal') : null;
+      if (callModal) callModal.style.display = 'none';
+    });
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const callModal = typeof document !== 'undefined' ? document.getElementById('call-overlay-modal') : null;
+        if (callModal && callModal.style.display !== 'none') {
+          callModal.style.display = 'none';
+        }
+        closeProfileEditModal();
+      }
     });
   }
 
@@ -3084,12 +3270,14 @@
   }
 
   function closeProfileEditModal() {
-    if (dom.profileEditModal) {
-      dom.profileEditModal.style.display = 'none';
+    const modal = dom.profileEditModal || (typeof document !== 'undefined' ? document.getElementById('profile-edit-modal') : null);
+    if (modal) {
+      modal.style.display = 'none';
     }
   }
 
-  if (dom.openProfileEditBtn) dom.openProfileEditBtn.addEventListener('click', openProfileEditModal);
+  const profileEditTrigger = dom.openProfileEditBtn || (typeof document !== 'undefined' ? document.getElementById('profile-page-edit-btn') : null);
+  if (profileEditTrigger) profileEditTrigger.addEventListener('click', openProfileEditModal);
   if (dom.profileEditCloseBtn) dom.profileEditCloseBtn.addEventListener('click', closeProfileEditModal);
   if (dom.profileCancelBtn) dom.profileCancelBtn.addEventListener('click', closeProfileEditModal);
 

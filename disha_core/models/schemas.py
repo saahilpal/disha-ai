@@ -47,6 +47,8 @@ class TurnRequest(BaseModel):
     def validate_text_not_blank(self) -> TurnRequest:
         if not self.text.strip():
             raise ValueError("text must not be empty or whitespace only")
+        if "\x00" in self.text:
+            raise ValueError("text must not contain null bytes")
         return self
 
 
@@ -57,6 +59,12 @@ class LoginRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255, description="Patient registered email")
     password: str = Field(min_length=1, max_length=255, description="Plaintext password for verification")
 
+    @model_validator(mode="after")
+    def validate_login_fields(self) -> LoginRequest:
+        if "\x00" in self.email or "\x00" in self.password:
+            raise ValueError("Credentials must not contain null bytes")
+        return self
+
 
 class OnboardingRequest(BaseModel):
     """Patient registration and clinical profile onboarding payload."""
@@ -66,19 +74,27 @@ class OnboardingRequest(BaseModel):
     email: str = Field(min_length=3, max_length=255, description="Unique account email")
     password: str = Field(min_length=6, max_length=255, description="Account password (min 6 chars)")
     age: int = Field(default=35, ge=1, le=120, description="Age in years")
-    gender: str = Field(default="male", description="Gender identity")
-    height_cm: float = Field(default=170.0, ge=50, le=260, description="Height in centimeters")
-    weight_kg: float = Field(default=70.0, ge=20, le=300, description="Weight in kilograms")
-    conditions: list[str] = Field(default_factory=list, description="Self-reported clinical conditions")
-    hypertension_stage: str = Field(default="normal", description="Hypertension grade or stage")
+    gender: str = Field(default="male", max_length=32, description="Gender identity")
+    height_cm: float = Field(default=170.0, ge=40.0, le=280.0, description="Height in centimeters")
+    weight_kg: float = Field(default=70.0, ge=10.0, le=400.0, description="Weight in kilograms")
+    conditions: list[str] = Field(default_factory=list, max_length=50, description="Self-reported clinical conditions")
+    hypertension_stage: str = Field(default="normal", max_length=32, description="Hypertension grade or stage")
     gym_clearance: bool = Field(default=False, description="Clinician clearance for gym exertion")
-    activity_level: str = Field(default="light", description="Baseline activity level")
-    movement_restrictions: list[str] = Field(default_factory=list, description="Physical movement limitations")
-    dietary_preference: str = Field(default="Vegetarian", description="Dietary pattern")
-    health_goals: list[str] = Field(default_factory=list, description="Primary health coaching objectives")
-    language: str = Field(default="hinglish", description="Preferred language (english, hindi, hinglish)")
-    health_focuses: list[str] = Field(default_factory=list, description="Selected health focus areas")
-    health_focus_other: str = Field(default="", description="Custom self-described health concern")
+    activity_level: str = Field(default="light", max_length=32, description="Baseline activity level")
+    movement_restrictions: list[str] = Field(default_factory=list, max_length=50, description="Physical movement limitations")
+    dietary_preference: str = Field(default="Vegetarian", max_length=64, description="Dietary pattern")
+    health_goals: list[str] = Field(default_factory=list, max_length=50, description="Primary health coaching objectives")
+    language: str = Field(default="hinglish", max_length=32, description="Preferred language (english, hindi, hinglish)")
+    health_focuses: list[str] = Field(default_factory=list, max_length=50, description="Selected health focus areas")
+    health_focus_other: str = Field(default="", max_length=1000, description="Custom self-described health concern")
+
+    @model_validator(mode="after")
+    def validate_onboard_fields(self) -> OnboardingRequest:
+        if "@" not in self.email or "." not in self.email:
+            raise ValueError("Invalid email format")
+        if "\x00" in self.email or "\x00" in self.password or "\x00" in self.name:
+            raise ValueError("Fields must not contain null bytes")
+        return self
 
 
 class HealthResponse(BaseModel):
@@ -163,17 +179,24 @@ class ProfileUpdateRequest(BaseModel):
     """Payload for updating patient personal and health details."""
     model_config = ConfigDict(extra="ignore")
 
-    name: str | None = None
+    name: str | None = Field(default=None, max_length=128)
     age: int | None = Field(default=None, ge=1, le=120)
-    gender: str | None = None
+    gender: str | None = Field(default=None, max_length=32)
     height_cm: float | None = Field(default=None, ge=40.0, le=280.0)
     weight_kg: float | None = Field(default=None, ge=10.0, le=400.0)
-    dietary_preference: str | None = None
-    health_goals: list[str] | None = None
-    health_conditions: list[str] | None = None
-    language: str | None = None
-    health_focuses: list[str] | None = None
-    health_focus_other: str | None = None
-    primary_focus: str | None = None
-    secondary_focuses: list[str] | None = None
-    user_reported_concerns: str | None = None
+    dietary_preference: str | None = Field(default=None, max_length=64)
+    health_goals: list[str] | None = Field(default=None, max_length=50)
+    health_conditions: list[str] | None = Field(default=None, max_length=50)
+    language: str | None = Field(default=None, max_length=32)
+    health_focuses: list[str] | None = Field(default=None, max_length=50)
+    health_focus_other: str | None = Field(default=None, max_length=1000)
+    primary_focus: str | None = Field(default=None, max_length=255)
+    secondary_focuses: list[str] | None = Field(default=None, max_length=50)
+    user_reported_concerns: str | None = Field(default=None, max_length=2000)
+
+    @model_validator(mode="after")
+    def validate_profile_fields(self) -> ProfileUpdateRequest:
+        for k, v in self.__dict__.items():
+            if isinstance(v, str) and "\x00" in v:
+                raise ValueError(f"{k} must not contain null bytes")
+        return self

@@ -1,10 +1,25 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from collections import OrderedDict
 from typing import Any, Protocol, Sequence
 
 from .normalizer import normalize
+
+STOP_WORDS = frozenset({
+    "hai", "hain", "me", "mein", "aur", "ka", "ki", "ke", "ko", "se", "par",
+    "kya", "kyun", "the", "a", "an", "is", "in", "to", "for", "with", "and",
+    "or", "mera", "meri", "mere", "mujhe", "bhi", "ho", "raha", "rahi", "rahe",
+    "kuch", "bahut", "bohot", "thoda", "thodi", "please", "batao", "bataiye",
+})
+
+
+def _build_or_tsquery(text: str) -> str:
+    """Extract significant keywords and build a disjunctive full-text tsquery expression."""
+    tokens = [re.sub(r"[^\w]", "", w) for w in text.split()]
+    clean_tokens = [w for w in tokens if len(w) > 2 and w not in STOP_WORDS]
+    return " | ".join(clean_tokens) if clean_tokens else ""
 
 
 class PgConnection(Protocol):
@@ -16,20 +31,25 @@ class PgConnection(Protocol):
 RETRIEVE_SQL = """
 SELECT chunk_id, condition_tag, context_header, guideline_content, source_citation,
        required_remedy_tokens,
-       similarity(trigger_terms, $1) AS trigram_score,
-       ts_rank(tsv_content, plainto_tsquery('simple', $1)) AS text_score
-FROM clinical_knowledge_base
+       GREATEST(similarity(trigger_terms, $1), similarity(guideline_content, $1)) AS trigram_score,
+       GREATEST(
+           ts_rank(tsv_content, plainto_tsquery('simple', $1)),
+           CASE WHEN $4 <> '' THEN ts_rank(tsv_content, to_tsquery('simple', $4)) ELSE 0.0 END
+       ) AS text_score
+FROM clinical_guideline_chunks
 WHERE approval_status = 'approved'
   AND (
        condition_tag = ANY($3)
        OR trigger_terms % $1
        OR tsv_content @@ plainto_tsquery('simple', $1)
+       OR ($4 <> '' AND tsv_content @@ to_tsquery('simple', $4))
   )
 ORDER BY 
     CASE WHEN condition_tag = ANY($3) THEN 1.0 ELSE 0.0 END DESC,
     GREATEST(similarity(trigger_terms, $1),
-             ts_rank(tsv_content, plainto_tsquery('simple', $1))) DESC
-LIMIT $2
+             ts_rank(tsv_content, plainto_tsquery('simple', $1)),
+             CASE WHEN $4 <> '' THEN ts_rank(tsv_content, to_tsquery('simple', $4)) ELSE 0.0 END) DESC
+LIMIT $2::bigint
 """
 
 # Multi-tenant cache partitioned by compound key (patient_id, query_hash) for C11 isolation
@@ -65,8 +85,9 @@ async def retrieve_chunks(
         raise ValueError("threshold must be in [0, 1] and limit in [1, 50]")
 
     tag_list = list(tags) if tags is not None else list(norm.tags)
+    tsquery_or = _build_or_tsquery(query_norm)
 
-    query_hash = compute_query_hash(f"{query_norm}:{','.join(sorted(tag_list))}")
+    query_hash = compute_query_hash(f"{query_norm}:{tsquery_or}:{','.join(sorted(tag_list))}")
     cache_key = (patient_id, query_hash)
     if use_cache and cache_key in _RETRIEVAL_CACHE:
         _RETRIEVAL_CACHE.move_to_end(cache_key)
@@ -75,7 +96,41 @@ async def retrieve_chunks(
     # The trigram GIN operator reads this threshold; keep it local to this query.
     async with connection.transaction():
         await connection.fetchval("SELECT set_config('pg_trgm.similarity_threshold', $1, true)", str(threshold))
-        results = await connection.fetch(RETRIEVE_SQL, query_norm, limit, tag_list)
+        raw_results = await connection.fetch(RETRIEVE_SQL, query_norm, limit * 2, tag_list, tsquery_or)
+
+    # Post-retrieval deduplication and strict quality thresholding
+    deduped: list[Any] = []
+    seen_ids: set[Any] = set()
+    seen_contents: set[tuple[str, str]] = set()
+
+    for item in raw_results:
+        getter = item.get if hasattr(item, "get") else lambda k, default=None: getattr(item, k, default)
+        cid = getter("chunk_id", None)
+        tag = getter("condition_tag", "")
+        content = str(getter("guideline_content", "")).strip()
+        trigram_sc = float(getter("trigram_score", 0.0) or 0.0)
+        text_sc = float(getter("text_score", 0.0) or 0.0)
+
+        # Deduplication
+        dedup_tuple = (tag, content)
+        if cid is not None and cid in seen_ids:
+            continue
+        if dedup_tuple in seen_contents:
+            continue
+
+        # Quality thresholding: direct tag match, or sufficient trigram / full-text score
+        is_tag_match = bool(tag_list and tag in tag_list)
+        is_relevant = is_tag_match or (trigram_sc >= threshold) or (text_sc >= 0.03)
+
+        if is_relevant:
+            if cid is not None:
+                seen_ids.add(cid)
+            seen_contents.add(dedup_tuple)
+            deduped.append(item)
+            if len(deduped) >= limit:
+                break
+
+    results = tuple(deduped)
 
     if use_cache:
         if len(_RETRIEVAL_CACHE) >= _CACHE_MAX_SIZE:

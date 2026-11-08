@@ -1,13 +1,25 @@
 """Versioned question schemas for Laya System 1 decision engine.
 
-Schema Version: 2026-11-07.v1
+Schema Version: 2026-11-08.v2
 Design Conformance: Aligned with LLD Section 2.3 & Disha Clinical Protocol.
+Supported Intents: meal_query, symptom_complaint, general_coaching, exercise_query, emergency_escalation, app_meta.
 """
 from __future__ import annotations
 
 from typing import Any
 
-SCHEMA_VERSION = "2026-11-07.v1"
+SCHEMA_VERSION = "2026-11-08.v2"
+LEGACY_SCHEMA_VERSION = "2026-11-07.v1"
+
+ALL_INTENTS: tuple[str, ...] = (
+    "meal_query",
+    "symptom_complaint",
+    "general_coaching",
+    "exercise_query",
+    "emergency_escalation",
+    "app_meta",
+    "greeting",
+)
 
 CLINICAL_QUESTIONS: dict[str, dict[str, Any]] = {
     "intent": {

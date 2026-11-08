@@ -6,6 +6,12 @@ from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from typing import Any
 
+from disha_core.engine.anti_echo import (
+    is_clinical_safety_statement,
+    is_pure_echo_or_filler,
+    strip_echo_prefix,
+)
+
 CHANNEL_RE = re.compile(r"\b(?:whatsapp|sms|email|telegram)\b|व्हाट्स?ऐप|व्हाट्स?एप", re.I)
 AMOUNT = r"\d[\d,]*(?:\.\d+)?"
 AMOUNT_END = r"(?![\d,]|\.\d)"
@@ -16,7 +22,16 @@ PRICE_RE = re.compile(
     rf"(?P<amount_after>{AMOUNT}){AMOUNT_END}\s*(?P<currency_after>{CURRENCY})(?![A-Za-z]))", re.I,
 )
 PRICE_CONTEXT_RE = re.compile(
-    rf"(?:price|cost|subscription|paid\s+plan|subscription\s+plan|pricing\s+plan|plan\s+(?:ki\s+)?(?:fees?|price|cost|charges?)|kitne\s+ka|kitni\s+hai|charge|fee).{{0,45}}?\b({AMOUNT}){AMOUNT_END}", re.I,
+    rf"(?:price|cost|subscription|paid\s+plan|subscription\s+plan|pricing\s+plan|nutritionist\s+plan|plan\s+(?:ki\s+)?(?:fees?|price|cost|charges?)|kitne\s+ka|kitni\s+hai|charge|fee).{{0,45}}?\b({AMOUNT}){AMOUNT_END}", re.I,
+)
+FOREIGN_LANG_RE = re.compile(
+    r"\b(?:obrigad[oa]|gracias|de\s+nada|por\s+favor)\b|[\uac00-\ud7af]", re.I
+)
+ROBOTIC_GREETING_PREFIX_RE = re.compile(
+    r"^(?:namaste!?(?:\s+main\s+disha\s+hoon[^\.\!\?]*)?[\.\!\?]?\s*|"
+    r"aapka\s+swagat\s+hai[^\.\!\?]*[\.\!\?]?\s*|"
+    r"(?:theek\s+hai|thank\s+you)[,\.]?\s*)",
+    re.I,
 )
 MONTHLY_RE = re.compile(r"\b(?:per\s+month|monthly|a\s+month|per\s+mahina|mahine\s+ka)\b|/\s*month", re.I)
 IDENTITY_RE = re.compile(
@@ -55,15 +70,28 @@ RECIPE_RE = re.compile(
 ACTIVITY_PATTERNS = {
     "brisk_walking": re.compile(r"\b(?:brisk\s+walking|brisk\s+walk|walking)\b", re.I),
     "yoga": re.compile(r"\byoga\b", re.I),
-    "light_strength": re.compile(r"\b(?:light\s+strength|light\s+weights|weight\s+lifting|weight\s+training)\b", re.I),
+    "light_strength": re.compile(r"\b(?:light\s+(?:strength|weights?)|bodyweight)\b|(?<!heavy\s)(?<!power\s)\b(?:weight\s+lifting|weight\s+training)\b", re.I),
+    "heavy_weightlifting": re.compile(r"\b(?:heavy\s+(?:weight\s*lifting|weights?|lifting)|power\s*lifting)\b", re.I),
     "heavy_deadlifts": re.compile(r"\b(?:heavy\s+)?deadlifts?\b", re.I),
-    "high_intensity_sprints": re.compile(r"\b(?:high\s+intensity|sprints?|sprinting|hiit)\b", re.I),
+    "high_intensity_sprints": re.compile(r"\b(?:high\s+intensity|sprints?|sprinting)\b", re.I),
+    "hiit": re.compile(r"\b(?:hiit|high\s*intensity\s*(?:interval\s+training|training|workout|exercise)?)\b", re.I),
+    "valsalva_maneuver": re.compile(r"\bvalsalva\b", re.I),
     "running": re.compile(r"\b(?:running|run|jogging|jog)\b", re.I),
     "cycling": re.compile(r"\b(?:cycling|cycle|bicycling)\b", re.I),
     "swimming": re.compile(r"\b(?:swimming|swim)\b", re.I),
     "gym": re.compile(r"\bgym\b", re.I),
 }
-WORKOUT_RE = re.compile(r"\b(?:workout|exercise|training|activity|karein\s+exercise)\b", re.I)
+PRESCRIPTIVE_WORKOUT_RE = re.compile(
+    r"\b(?:(?:aaj|daily|roj|kripya|please)\s+(?:workout|exercise|training)|"
+    r"(?:karein|kijiye|start|shuru|badhaiye)\s+(?:workout|exercise|training)|"
+    r"(?:workout|exercise|training)\s+(?:karein|kijiye|start|shuru|badhaiye))\b",
+    re.I,
+)
+NEGATED_OR_TIMING_RE = re.compile(
+    r"\b(?:mat\s+(?:karein|kijiye)|na\s+karein|theek\s+nahi|avoid|mana|turant\s+nahi|"
+    r"se\s+pehle|ke\s+baad|timing|samay|digestion)\b",
+    re.I,
+)
 MARKDOWN_RE = re.compile(r"[*_#~`\[\]{}<>]|\u200b")
 
 CHANNEL_REPLACEMENT = "Aap apna plan sirf app ke 'My Plan' tab mein dekh sakte hain."
@@ -127,6 +155,24 @@ class SentenceValidator:
             text = squashed
             reasons.append("repetition_squashed")
 
+        if FOREIGN_LANG_RE.search(text):
+            text = FOREIGN_LANG_RE.sub("", text).strip()
+            reasons.append("foreign_language")
+
+        if context.get("has_history") and ROBOTIC_GREETING_PREFIX_RE.match(text):
+            stripped = ROBOTIC_GREETING_PREFIX_RE.sub("", text).strip()
+            if stripped:
+                text = stripped
+                reasons.append("robotic_greeting_suppressed")
+
+        # Anti-Echo: strip parroting intro clauses from opening sentence
+        user_input = context.get("user_input")
+        if user_input:
+            stripped_echo = strip_echo_prefix(text, user_input)
+            if stripped_echo != text and stripped_echo:
+                text = stripped_echo
+                reasons.append("echo_stripped")
+
         diet_pref = str((context.get("pep") or context).get("dietary_preference", "")).casefold()
         if "veg" in diet_pref and "non" not in diet_pref and "egg" not in diet_pref:
             if VEG_MEAT_RE.search(text):
@@ -182,29 +228,57 @@ class SentenceValidator:
             reasons.append("meal_not_found")
 
         pep = context.get("pep") or context
-        restricted = {str(item).replace("_", " ").casefold() for item in pep.get("restricted_modalities") or ()}
-        allowed = {str(item).replace("_", " ").casefold() for item in pep.get("allowed_modalities") or ()}
-        gym_clearance = bool(pep.get("gym_clearance", False))
-        mentioned = {tag for tag, pattern in ACTIVITY_PATTERNS.items() if pattern.search(text)}
-        blocked = any(tag.replace("_", " ") in restricted for tag in mentioned)
-        for tag in mentioned:
-            normalized_tag = tag.replace("_", " ")
-            if normalized_tag in restricted:
-                continue
-            if tag == "gym":
-                blocked |= not gym_clearance
-            else:
-                blocked |= normalized_tag not in allowed
-        if WORKOUT_RE.search(text) and not mentioned:
-            blocked = True
-        if blocked:
-            text = PEP_REPLACEMENT
-            reasons.append("pep_restriction")
+        has_pep = (
+            "allowed_modalities" in pep
+            or "restricted_modalities" in pep
+            or "gym_clearance" in pep
+            or "diagnosed_conditions" in pep
+            or "hypertension_stage" in pep
+            or bool(context.get("pep"))
+        )
+        if has_pep:
+            restricted = {str(item).replace("_", " ").casefold() for item in pep.get("restricted_modalities") or ()}
+            allowed = {str(item).replace("_", " ").casefold() for item in pep.get("allowed_modalities") or ()}
+            gym_clearance = bool(pep.get("gym_clearance", False))
+
+            diag_conditions = {str(d).casefold() for d in pep.get("diagnosed_conditions") or ()}
+            htn_stage = str(pep.get("hypertension_stage", "")).casefold()
+            is_cardiac = any(any(c in d for c in ("cardiac", "heart", "cad", "angina", "coronary", "arrhythmia", "mi")) for d in diag_conditions)
+            is_htn_severe = "stage 2" in htn_stage or "crisis" in htn_stage
+            if is_cardiac or is_htn_severe:
+                restricted.update({
+                    "heavy weightlifting", "heavy deadlifts", "hiit", "high intensity sprints", "valsalva maneuver"
+                })
+
+            mentioned = {tag for tag, pattern in ACTIVITY_PATTERNS.items() if pattern.search(text)}
+            blocked = any(tag.replace("_", " ") in restricted for tag in mentioned)
+            for tag in mentioned:
+                normalized_tag = tag.replace("_", " ")
+                if normalized_tag in restricted:
+                    continue
+                if tag == "gym":
+                    blocked |= not gym_clearance
+                else:
+                    blocked |= normalized_tag not in allowed
+            if (
+                PRESCRIPTIVE_WORKOUT_RE.search(text)
+                and not NEGATED_OR_TIMING_RE.search(text)
+                and not mentioned
+                and bool(allowed or restricted or not gym_clearance)
+            ):
+                blocked = True
+            if blocked:
+                text = PEP_REPLACEMENT
+                reasons.append("pep_restriction")
 
         return ValidationResult(text, "rewritten" if reasons else "accepted", tuple(reasons))
 
     def validate_turn(self, text: str, context: dict[str, Any] | None = None) -> ValidationResult:
         context = context or {}
+        user_input = context.get("user_input")
+        if user_input:
+            text = strip_echo_prefix(text, user_input)
+
         result = self.validate_sentence(text, context)
         value, reasons = result.text, list(result.reasons)
         clinical_tags = context.get("clinical_tags") or ()
@@ -215,12 +289,10 @@ class SentenceValidator:
         approved_text = str(context.get("approved_remedy_text", "")).strip()
         if not context.get("protocol_approved") or not tokens:
             return ValidationResult(REMEDY_UNAVAILABLE, "rewritten", tuple(reasons + ["remedy_not_configured"]))
-        if tokens and all(re.search(rf"(?<!\w){re.escape(token)}(?!\w)", value, re.I) for token in tokens):
+        if tokens and any(re.search(rf"(?<!\w){re.escape(token)}(?!\w)", value, re.I) for token in tokens):
             return result
-        if approved_text and all(re.search(rf"(?<!\w){re.escape(token)}(?!\w)", approved_text, re.I) for token in tokens):
-            approved = self.validate_sentence(approved_text, context)
-            if approved.status == "accepted":
-                return ValidationResult(approved.text, "rewritten", tuple(reasons + ["remedy_assertion"]))
+        if approved_text:
+            return ValidationResult(approved_text, "rewritten", tuple(reasons + ["remedy_assertion"]))
         return ValidationResult(REMEDY_UNAVAILABLE, "rewritten", tuple(reasons + ["remedy_not_configured"]))
 
     @staticmethod

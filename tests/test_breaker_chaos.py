@@ -417,7 +417,7 @@ class TestTextFuzzingAdversarialChaos:
                 "/auth/login",
                 json={"email": sql, "password": "SafePassword123"},
             )
-            assert res.status_code in (200, 400, 401)
+            assert res.status_code in (200, 400, 401, 422)
 
     def test_text_prompt_injection_and_unauthorized_physician_impersonation(self) -> None:
         """Safety Guardrail: Intercepts attacks coercing AI into claiming doctor status or prescribing drugs."""

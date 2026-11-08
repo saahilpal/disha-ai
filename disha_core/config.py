@@ -40,11 +40,18 @@ class Settings:
     gemini_paid_or_contracted: bool = True
 
     edge_tts_health_data_processing_approved: bool = True
+    qwen3_tts_health_data_processing_approved: bool = True
+    qwen3_tts_url: str = "http://localhost:8880/v1/audio/speech"
+    qwen3_tts_model: str = "qwen3-tts"
+    qwen3_tts_voice: str = "disha-warm-hinglish"
+    tts_engine: str = "qwen3"
 
     # Security & API limits
     cors_allowed_origins: Sequence[str] = field(default_factory=tuple)
     admin_api_key: str = ""
     max_voice_turn_bytes: int = 10 * 1024 * 1024  # 10 MB limit for voice turns
+    max_request_body_bytes: int = 2 * 1024 * 1024  # 2 MB limit for standard JSON payloads
+    rate_limit_enabled: bool = True
     password_salt: str = "disha_salt_v1"
 
     @classmethod
@@ -73,9 +80,16 @@ class Settings:
             gemini_health_data_authorized=os.getenv("GEMINI_HEALTH_DATA_AUTHORIZED", "true").casefold() == "true",
             gemini_paid_or_contracted=os.getenv("GEMINI_PAID_OR_CONTRACTED", "true").casefold() == "true",
             edge_tts_health_data_processing_approved=os.getenv("EDGE_TTS_HEALTH_DATA_PROCESSING_APPROVED", "true").casefold() == "true",
+            qwen3_tts_health_data_processing_approved=os.getenv("QWEN3_TTS_HEALTH_DATA_PROCESSING_APPROVED", "true").casefold() == "true",
+            qwen3_tts_url=os.getenv("QWEN3_TTS_URL", "http://localhost:8880/v1/audio/speech"),
+            qwen3_tts_model=os.getenv("QWEN3_TTS_MODEL", "qwen3-tts"),
+            qwen3_tts_voice=os.getenv("QWEN3_TTS_VOICE", "disha-warm-hinglish"),
+            tts_engine=os.getenv("TTS_ENGINE", "qwen3"),
             cors_allowed_origins=cors_origins,
             admin_api_key=os.getenv("ADMIN_API_KEY", ""),
             max_voice_turn_bytes=int(os.getenv("MAX_VOICE_TURN_BYTES", str(10 * 1024 * 1024))),
+            max_request_body_bytes=int(os.getenv("MAX_REQUEST_BODY_BYTES", str(2 * 1024 * 1024))),
+            rate_limit_enabled=os.getenv("RATE_LIMIT_ENABLED", "true").casefold() != "false",
             password_salt=os.getenv("PASSWORD_SALT", "disha_salt_v1"),
         )
 

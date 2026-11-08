@@ -19,11 +19,13 @@ from pathlib import Path
 from typing import Any, AsyncIterator
 from zoneinfo import ZoneInfo
 
-from fastapi import FastAPI, Header, HTTPException, Request, WebSocket
+from fastapi import FastAPI, Header, HTTPException, Request, Response, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from starlette.staticfiles import StaticFiles
+from starlette.websockets import WebSocketDisconnect
 
+from disha_core.security.rate_limiter import limiter
 from disha_core.adapters.db import create_database_pool
 from disha_core.classifier.adapter import LayaClassifierAdapter
 from disha_core.compliance.ledger import AuditLedger, AuditRecord
@@ -31,6 +33,7 @@ from disha_core.config import get_settings
 from disha_core.engine.context_builder import (
     add_approved_remedy_constraints,
     build_patient_context,
+    determine_length_policy,
     render_user_payload,
 )
 from disha_core.engine.normalizer import normalize
@@ -50,9 +53,8 @@ from disha_core.models.schemas import (
 )
 from disha_core.pipeline.router import Intent, IntentRouter, LayaIntentClassifier
 from disha_core.pipeline.validator import (
-    CHANNEL_RE,
-    CHANNEL_REPLACEMENT,
     MEAL_NOT_FOUND_REPLACEMENT,
+    PEP_REPLACEMENT,
     SentenceValidator,
 )
 from disha_core.services.auth_service import (
@@ -61,7 +63,7 @@ from disha_core.services.auth_service import (
     register_patient,
 )
 from disha_core.services.patient_service import fetch_patient_profile, update_patient_profile
-from disha_core.voice import VoiceSession, transcribe_groq
+from disha_core.voice import VoiceSession, execute_voice_turn, transcribe_groq
 
 MAX_VOICE_TURN_BYTES = 10 * 1024 * 1024  # 10 MB limit for voice turns
 logger = logging.getLogger(__name__)
@@ -119,19 +121,31 @@ async def _turn_sentences(
     app_state = getattr(request, "app", request).state
     router = app_state.router
 
-    if hasattr(router, "async_route"):
+    pep_risk = 0
+    skip_retrieval = False
+    if hasattr(router, "async_route_decision"):
+        decision = await router.async_route_decision(payload.text)
+        emergency = decision.breaker
+        intent = decision.intent
+        pep_risk = decision.pep_risk
+        skip_retrieval = decision.skip_retrieval
+    elif hasattr(router, "async_route"):
         emergency, intent = await router.async_route(payload.text)
+        pep_risk = getattr(router, "last_pep_risk", 0)
+        skip_retrieval = intent in {Intent.GENERAL_COACHING, Intent.APP_META, Intent.GREETING}
     else:
         emergency, intent = router.route(payload.text)
+        pep_risk = getattr(router, "last_pep_risk", 0)
+        skip_retrieval = intent in {Intent.GENERAL_COACHING, Intent.APP_META, Intent.GREETING}
+
+    emitted = False
+    generated_sentences: list[str] = []
 
     if emergency.triggered:
         state.breaker_status = f"triggered:{emergency.category}"
-        yield emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein."
-        return
-
-    if CHANNEL_RE.search(payload.text):
-        state.validator_status = "rewritten:channel_boundary"
-        yield CHANNEL_REPLACEMENT
+        text = emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein."
+        generated_sentences.append(text)
+        yield text
         return
 
     day = app_state.today_ist()
@@ -141,23 +155,73 @@ async def _turn_sentences(
     normalized = normalize(payload.text)
     context["clinical_tags"] = normalized.tags
     context["intent"] = intent.value if intent else Intent.UNKNOWN.value
+    context["pep_risk"] = pep_risk
+    context["user_input"] = payload.text
+    context["meal_relevant"] = normalized.is_meal_query or intent == Intent.MEAL_QUERY
+    context["exercise_relevant"] = normalized.is_exercise_query or intent == Intent.EXERCISE_QUERY
+    context["length_policy"] = determine_length_policy(
+        payload.text,
+        intent.value if intent else None,
+        is_emergency=emergency.triggered,
+    )
 
     if intent == Intent.MEAL_QUERY and context["diet_status"] == "NOT_FOUND":
         state.validator_status = "rewritten:meal_not_found"
+        generated_sentences.append(MEAL_NOT_FOUND_REPLACEMENT)
         yield MEAL_NOT_FOUND_REPLACEMENT
         return
 
-    async with app_state.pool.acquire() as connection:
-        chunks = await retrieve_chunks(connection, normalized.normalized, patient_id=patient_id)
-
-    add_approved_remedy_constraints(context, chunks)
-    prompt = render_user_payload(normalized.normalized, context, chunks)
-    emitted = False
-    generated_sentences: list[str] = []
+    # Early PEP Risk Triage via Laya System 1:
+    pep = context.get("pep") or {}
+    restricted = {str(item).replace("_", " ").casefold() for item in pep.get("restricted_modalities") or ()}
+    has_cardiac_htn = bool(pep.get("hypertension_stage")) or not pep.get("gym_clearance", True)
+    if pep_risk >= 2 and (restricted or has_cardiac_htn):
+        state.validator_status = "rewritten:pep_restriction"
+        generated_sentences.append(PEP_REPLACEMENT)
+        yield PEP_REPLACEMENT
+        return
 
     if not hasattr(app_state, "conversation_history"):
         app_state.conversation_history = {}
+
+    db_history = context.get("conversation_history") or []
+    if patient_id not in app_state.conversation_history or not app_state.conversation_history[patient_id]:
+        if db_history:
+            app_state.conversation_history[patient_id] = list(db_history)
+        else:
+            app_state.conversation_history[patient_id] = []
+
     history = app_state.conversation_history.get(patient_id, [])[-8:]
+    context["has_history"] = bool(history)
+
+    # Retrieval Routing:
+    # If Laya classifies intent as pure greeting, general coaching, or app meta,
+    # SKIP pgvector database retrieval, saving DB connection latency & context window.
+    if skip_retrieval or intent in {Intent.GENERAL_COACHING, Intent.APP_META, Intent.GREETING}:
+        chunks = ()
+    else:
+        target_tags = list(normalized.tags)
+        if intent == Intent.SYMPTOM_COMPLAINT and not target_tags:
+            target_tags = ["GI_BLOATING"]
+        elif intent == Intent.MEAL_QUERY and not target_tags:
+            target_tags = ["FRUIT_MODERATION"]
+        elif intent == Intent.EXERCISE_QUERY and not target_tags:
+            target_tags = ["EXERCISE_GUIDELINES"]
+
+        async with app_state.pool.acquire() as connection:
+            chunks = await retrieve_chunks(
+                connection, normalized.normalized, patient_id=patient_id, tags=target_tags
+            )
+            if getattr(app_state, "sync_history", False) and not app_state.conversation_history[patient_id]:
+                with suppress(Exception):
+                    from disha_core.services.chat_service import load_conversation_history
+                    loaded = await load_conversation_history(connection, patient_id, 8)
+                    if loaded:
+                        app_state.conversation_history[patient_id] = loaded
+                        history = loaded[-8:]
+
+    add_approved_remedy_constraints(context, chunks)
+    prompt = render_user_payload(normalized.normalized, context, chunks)
 
     try:
         llm_stream = app_state.llm.stream(prompt, messages=history)
@@ -186,6 +250,13 @@ async def _turn_sentences(
             app_state.conversation_history[patient_id].append({"role": "user", "content": payload.text})
             app_state.conversation_history[patient_id].append({"role": "assistant", "content": full_reply})
             app_state.conversation_history[patient_id] = app_state.conversation_history[patient_id][-16:]
+
+            if getattr(app_state, "pool", None) is not None:
+                with suppress(Exception):
+                    from disha_core.services.chat_service import persist_patient_disclosure, store_conversation_turn
+                    async with app_state.pool.acquire() as save_conn:
+                        await store_conversation_turn(save_conn, patient_id, payload.text, full_reply)
+                        await persist_patient_disclosure(save_conn, patient_id, payload.text)
 
 
 def create_app() -> FastAPI:
@@ -243,6 +314,7 @@ def create_app() -> FastAPI:
     )
     app.state.pool = None
     app.state.ledger = None
+    app.state.sync_history = True
     app.state.today_ist = lambda: datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%A").casefold()
 
     # CORS configuration
@@ -251,9 +323,26 @@ def create_app() -> FastAPI:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=origins,
-            allow_methods=["GET", "POST"],
+            allow_methods=["GET", "POST", "PUT"],
             allow_headers=["Authorization", "Content-Type"],
         )
+
+    # Request body size limiter middleware (Max 2 MB for standard JSON payloads)
+    @app.middleware("http")
+    async def enforce_payload_size_limit(request: Request, call_next: Any) -> Response:
+        content_length = request.headers.get("content-length")
+        if content_length:
+            try:
+                max_bytes = int(os.getenv("MAX_REQUEST_BODY_BYTES", str(settings.max_request_body_bytes)))
+                if int(content_length) > max_bytes:
+                    return Response(
+                        content=json.dumps({"detail": "Payload too large. Maximum allowed size is 2MB."}),
+                        status_code=413,
+                        media_type="application/json",
+                    )
+            except ValueError:
+                pass
+        return await call_next(request)
 
     # Top-level API Routes (Registered directly for path introspectability)
     @app.get("/health", response_model=HealthResponse)
@@ -313,11 +402,27 @@ def create_app() -> FastAPI:
     @app.post("/auth/register")
     @app.post("/auth/onboarding")
     async def register(payload: OnboardingRequest, request: Request) -> dict[str, Any]:
+        client_ip = request.client.host if request.client else "127.0.0.1"
+        allowed, _, retry_after = limiter.is_allowed(f"auth_{client_ip}", "auth", limit=20, window_seconds=60.0)
+        if not allowed:
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded. Please try again later.",
+                headers={"Retry-After": str(int(retry_after))},
+            )
         pool = getattr(request.app.state, "pool", None)
         return await register_patient(pool, payload)
 
     @app.post("/auth/login")
     async def login(payload: LoginRequest, request: Request) -> dict[str, Any]:
+        client_ip = request.client.host if request.client else "127.0.0.1"
+        allowed, _, retry_after = limiter.is_allowed(f"auth_{client_ip}", "auth", limit=20, window_seconds=60.0)
+        if not allowed:
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded. Please try again later.",
+                headers={"Retry-After": str(int(retry_after))},
+            )
         pool = getattr(request.app.state, "pool", None)
         return await login_patient(pool, payload)
 
@@ -346,6 +451,15 @@ def create_app() -> FastAPI:
         request: Request,
         authorization: str | None = Header(default=None),
     ) -> dict[str, str]:
+        client_key = authorization.removeprefix("Bearer ").strip() if authorization else (request.client.host if request.client else "127.0.0.1")
+        allowed, _, retry_after = limiter.is_allowed(f"chat_{client_key[:16]}", "chat", limit=60, window_seconds=60.0)
+        if not allowed:
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded. Please try again later.",
+                headers={"Retry-After": str(int(retry_after))},
+            )
+
         emergency = request.app.state.router.breaker.check(payload.text)
         if emergency.triggered:
             return {
@@ -370,6 +484,15 @@ def create_app() -> FastAPI:
         request: Request,
         authorization: str | None = Header(default=None),
     ) -> StreamingResponse:
+        client_key = authorization.removeprefix("Bearer ").strip() if authorization else (request.client.host if request.client else "127.0.0.1")
+        allowed, _, retry_after = limiter.is_allowed(f"chat_{client_key[:16]}", "chat", limit=60, window_seconds=60.0)
+        if not allowed:
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded. Please try again later.",
+                headers={"Retry-After": str(int(retry_after))},
+            )
+
         emergency = request.app.state.router.breaker.check(payload.text)
         if emergency.triggered:
             text = emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein."
@@ -378,7 +501,15 @@ def create_app() -> FastAPI:
                 yield f"data: {json.dumps({'sentence': text}, ensure_ascii=False)}\n\n"
                 yield f"event: done\ndata: {json.dumps({'status': f'triggered:{emergency.category}'})}\n\n"
 
-            return StreamingResponse(emergency_event(), media_type="text/event-stream")
+            return StreamingResponse(
+                emergency_event(),
+                media_type="text/event-stream",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no",
+                },
+            )
 
         patient_id = await _authenticated_patient(request, authorization)
         state = TurnState()
@@ -389,7 +520,11 @@ def create_app() -> FastAPI:
                 async for sentence in _turn_sentences(request, patient_id, payload, state):
                     output.append(sentence)
                     yield f"data: {json.dumps({'sentence': sentence}, ensure_ascii=False)}\n\n"
+                    if await request.is_disconnected():
+                        break
                 yield f"event: done\ndata: {json.dumps({'status': state.validator_status})}\n\n"
+            except (asyncio.CancelledError, GeneratorExit):
+                pass
             finally:
                 _enqueue_audit(
                     request.app.state.ledger,
@@ -399,7 +534,11 @@ def create_app() -> FastAPI:
         return StreamingResponse(
             events(),
             media_type="text/event-stream",
-            headers={"Cache-Control": "no-cache"},
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no",
+            },
         )
 
     @app.websocket("/voice")
@@ -453,17 +592,31 @@ def create_app() -> FastAPI:
             state = TurnState()
             output: list[str] = []
             try:
-                transcript = await transcribe_groq(audio)
-                await websocket.send_json({"type": "transcript", "text": transcript})
-                payload = TurnRequest(text=transcript)
-                async for sentence in _turn_sentences(websocket, patient_id, payload, state):
-                    output.append(sentence)
-                    await websocket.send_json({"type": "sentence", "text": sentence})
-                    await session.speak(sentence, websocket.send_bytes)
-                await websocket.send_json({"type": "done", "status": state.validator_status})
-            except asyncio.CancelledError:
+                async with asyncio.timeout(30.0):
+                    transcript = await transcribe_groq(audio)
+                    await websocket.send_json({"type": "transcript", "text": transcript})
+                    output = await execute_voice_turn(
+                        websocket,
+                        patient_id,
+                        transcript,
+                        session,
+                        send_json=websocket.send_json,
+                        send_audio=websocket.send_bytes,
+                        state=state,
+                    )
+            except (asyncio.CancelledError, GeneratorExit):
                 raise
-            except Exception:
+            except (asyncio.TimeoutError, TimeoutError):
+                with suppress(Exception):
+                    await websocket.send_json(
+                        {"type": "error", "message": "Voice processing timed out."}
+                    )
+            except Exception as exc:
+                err_str = str(exc)
+                if "filtered silence hallucination" in err_str or "silent audio frame" in err_str:
+                    with suppress(Exception):
+                        await websocket.send_json({"type": "silence", "message": "Silence detected"})
+                    return
                 with suppress(Exception):
                     await websocket.send_json(
                         {"type": "error", "message": "Voice turn unavailable; please try again."}
@@ -481,15 +634,24 @@ def create_app() -> FastAPI:
             state = TurnState()
             output: list[str] = []
             try:
-                await websocket.send_json({"type": "transcript", "text": text})
-                payload = TurnRequest(text=text)
-                async for sentence in _turn_sentences(websocket, patient_id, payload, state):
-                    output.append(sentence)
-                    await websocket.send_json({"type": "sentence", "text": sentence})
-                    await session.speak(sentence, websocket.send_bytes)
-                await websocket.send_json({"type": "done", "status": state.validator_status})
-            except asyncio.CancelledError:
+                async with asyncio.timeout(30.0):
+                    await websocket.send_json({"type": "transcript", "text": text, "is_text_echo": True})
+                    output = await execute_voice_turn(
+                        websocket,
+                        patient_id,
+                        text,
+                        session,
+                        send_json=websocket.send_json,
+                        send_audio=websocket.send_bytes,
+                        state=state,
+                    )
+            except (asyncio.CancelledError, GeneratorExit):
                 raise
+            except (asyncio.TimeoutError, TimeoutError):
+                with suppress(Exception):
+                    await websocket.send_json(
+                        {"type": "error", "message": "Text processing timed out."}
+                    )
             except Exception:
                 with suppress(Exception):
                     await websocket.send_json(
@@ -506,7 +668,13 @@ def create_app() -> FastAPI:
 
         try:
             while True:
-                message = await websocket.receive()
+                try:
+                    message = await asyncio.wait_for(websocket.receive(), timeout=300.0)
+                except (asyncio.TimeoutError, TimeoutError):
+                    with suppress(Exception):
+                        await websocket.close(code=1000, reason="Inactivity timeout")
+                    break
+
                 if message["type"] == "websocket.disconnect":
                     break
                 audio = message.get("bytes")
@@ -555,6 +723,10 @@ def create_app() -> FastAPI:
                 else:
                     assert text_input is not None
                     turn_task = asyncio.create_task(process_text(text_input))
+        except (WebSocketDisconnect, RuntimeError):
+            pass
+        except Exception as exc:
+            logger.warning("Voice websocket unexpected exception: %s", exc)
         finally:
             if turn_task is not None and not turn_task.done():
                 turn_task.cancel()

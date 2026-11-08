@@ -5,6 +5,7 @@ import atexit
 import hashlib
 import logging
 import os
+import re
 import signal
 import sqlite3
 import time
@@ -15,6 +16,35 @@ from typing import Any, Protocol
 
 logger = logging.getLogger(__name__)
 
+# Sensitive regex patterns for Zero-PHI and credentials redaction in audit logs
+_SENSITIVE_AUDIT_PATTERNS = [
+    # Auth tokens and keys
+    (re.compile(r"Bearer\s+[A-Za-z0-9_\-\.]+", re.IGNORECASE), "Bearer [REDACTED]"),
+    (re.compile(r"\bpt_live_[0-9a-fA-F]+", re.IGNORECASE), "pt_live_[REDACTED]"),
+    (re.compile(r"\bpt_test_[A-Za-z0-9_]+_token", re.IGNORECASE), "pt_test_[REDACTED]"),
+    (re.compile(r"(?i)\b(?:password|passwd|pwd)\s*[:=]\s*[^\s,]+"), "password=[REDACTED]"),
+    (re.compile(r"(?i)\b(?:token|api_key|apikey|secret)\s*[:=]\s*['\"]?[A-Za-z0-9_\-\.]{8,}['\"]?"), "token=[REDACTED]"),
+    (re.compile(r"AIza[0-9A-Za-z\-_]{30,40}"), "[GOOGLE_API_KEY_REDACTED]"),
+    (re.compile(r"gsk_[a-zA-Z0-9]{20,}"), "[GROQ_API_KEY_REDACTED]"),
+    (re.compile(r"sk-[a-zA-Z0-9]{20,}"), "[API_KEY_REDACTED]"),
+
+    # Direct personal identifiers / PII / PHI
+    (re.compile(r"\b\d{4}[\s\-]\d{4}[\s\-]\d{4}\b"), "[AADHAAR_REDACTED]"),
+    (re.compile(r"(?:\+91[\-\s]?)?[6789]\d{9}\b|\b\d{5}[\-\s]?\d{5}\b"), "[PHONE_REDACTED]"),
+    (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"), "[EMAIL_REDACTED]"),
+    (re.compile(r"\b(?:MRN|UHID|PATIENT|IPD|OPD)[#:\-\s]*[A-Za-z0-9]{4,15}\b", re.IGNORECASE), "[MRN_REDACTED]"),
+]
+
+
+def scrub_phi_and_secrets(text: str) -> str:
+    """Scrub sensitive credentials, tokens, and PHI identifiers from audit text."""
+    if not isinstance(text, str) or not text:
+        return text or ""
+    redacted = text
+    for pattern, replacement in _SENSITIVE_AUDIT_PATTERNS:
+        redacted = pattern.sub(replacement, redacted)
+    return redacted
+
 
 @dataclass(frozen=True)
 class AuditRecord:
@@ -24,6 +54,10 @@ class AuditRecord:
     breaker_status: str
     validator_status: str
     event_id: uuid.UUID = field(default_factory=uuid.uuid4)
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "user_input", scrub_phi_and_secrets(self.user_input))
+        object.__setattr__(self, "llm_output", scrub_phi_and_secrets(self.llm_output))
 
     @property
     def status(self) -> str:

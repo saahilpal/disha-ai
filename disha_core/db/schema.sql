@@ -53,8 +53,13 @@ CREATE TABLE IF NOT EXISTS patient_pep (
     user_reported_concerns TEXT DEFAULT '',
     diagnosed_conditions TEXT[] DEFAULT '{}',
     language VARCHAR(32) DEFAULT 'hinglish',
+    dietary_preference VARCHAR(64) DEFAULT 'Vegetarian',
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Backward and forward compatibility view for clinical guideline retrieval
+CREATE OR REPLACE VIEW clinical_guideline_chunks AS
+SELECT * FROM clinical_knowledge_base;
 
 CREATE TABLE IF NOT EXISTS patient_diet_schedules (
     schedule_id BIGSERIAL PRIMARY KEY,
@@ -97,3 +102,37 @@ CREATE TABLE IF NOT EXISTS audit_chain_head (
 );
 INSERT INTO audit_chain_head(singleton, current_hash)
 VALUES (TRUE, repeat('0', 64)) ON CONFLICT (singleton) DO NOTHING;
+
+-- Persistent multi-turn conversation journal across sessions
+CREATE TABLE IF NOT EXISTS patient_turn_journal (
+    turn_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id VARCHAR(64) NOT NULL,
+    session_id VARCHAR(64) NOT NULL DEFAULT 'default',
+    turn_index INT NOT NULL DEFAULT 0,
+    speaker VARCHAR(16) NOT NULL CHECK (speaker IN ('user', 'assistant', 'patient', 'coach', 'system')),
+    timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT CLOCK_TIMESTAMP(),
+    raw_utterance TEXT NOT NULL CHECK (btrim(raw_utterance) <> ''),
+    normalized_utterance TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_journal_patient_time 
+    ON patient_turn_journal(patient_id, timestamp_utc DESC);
+CREATE INDEX IF NOT EXISTS idx_journal_session_turn 
+    ON patient_turn_journal(session_id, turn_index ASC);
+
+-- Structured temporal fact graph for patient lifestyle, disclosures, and habit facts
+CREATE TABLE IF NOT EXISTS patient_temporal_facts (
+    fact_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id VARCHAR(64) NOT NULL,
+    category VARCHAR(64) NOT NULL DEFAULT 'lifestyle',
+    fact_key VARCHAR(64) NOT NULL,
+    fact_value TEXT NOT NULL,
+    epistemic_status VARCHAR(24) NOT NULL DEFAULT 'active'
+        CHECK (epistemic_status IN ('active', 'superseded', 'resolved', 'contradicted')),
+    valid_from TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    valid_to TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_facts_patient_key_active 
+    ON patient_temporal_facts(patient_id, fact_key)
+    WHERE epistemic_status = 'active';

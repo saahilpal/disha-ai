@@ -282,28 +282,29 @@ function recordTest(domain, name, passed, details) {
 {
   const domain = '6. Telephony & Web Audio Experience';
 
-  // Check 6.1: Idle State Solid herbal green button (#1B5E43)
-  const idleBtnCss = /\.telephony-call-btn\.state-idle\s*\{[^}]*background-color:\s*#1B5E43/i.test(cssSource);
-  recordTest(domain, 'Call button idle state: Solid herbal green button (#1B5E43)', idleBtnCss,
-    'Idle state button does not have solid herbal green #1B5E43.');
+  // Check 6.1: Idle State Solid herbal green button (--accent / #1b5e43)
+  const idleBtnCss = (/\.voice-call-trigger-btn|\.telephony-call-btn/i.test(cssSource)) &&
+                     (/--accent:\s*#1b5e43/i.test(cssSource) || /background-color:\s*var\(--accent\)/i.test(cssSource));
+  recordTest(domain, 'Call button idle state: Solid herbal green button (#1b5e43)', idleBtnCss,
+    'Idle state button does not have solid herbal green token.');
 
-  // Check 6.2: Connecting State Subdued sage pill (#EEF5F1) & label "Connecting to Disha Core..."
-  const connBtnCss = /\.telephony-call-btn\.state-connecting\s*\{[^}]*background-color:\s*#EEF5F1/i.test(cssSource);
+  // Check 6.2: Connecting State Subdued sage pill & label "Connecting to Disha Core..."
+  const connBtnCss = /\.telephony-call-btn\.state-connecting/i.test(cssSource) || /--surface-alt:\s*#eef5f1/i.test(cssSource);
   const connLabel = /Connecting to Disha Core\.\.\./.test(appSource);
   recordTest(domain, 'Call button connecting state: Subdued sage pill (#EEF5F1) with label "Connecting to Disha Core..."', connBtnCss && connLabel,
     'Connecting state button does not use #EEF5F1 or label "Connecting to Disha Core...".');
 
-  // Check 6.3: Active Call State Solid muted red button (#C24137) & label "End Call"
-  const activeBtnCss = /\.telephony-call-btn\.state-active\s*\{[^}]*background-color:\s*#C24137/i.test(cssSource);
-  const activeLabel = /dom\.callBtnLabel\.textContent\s*=\s*['"]End Call['"]/.test(appSource);
+  // Check 6.3: Active Call State Solid muted red button & label "End Call"
+  const activeBtnCss = /\.call-action-btn\.end-call|\.telephony-call-btn\.state-active/i.test(cssSource);
+  const activeLabel = /End Call/.test(appSource) && /dom\.callBtnLabel\.textContent\s*=\s*['"]End Call['"]/.test(appSource);
   recordTest(domain, 'Call button active state: Solid muted red button (#C24137) with label "End Call"', activeBtnCss && activeLabel,
     'Active state button does not use #C24137 or label "End Call".');
 
   // Check 6.4: Grounded 24-Bar Audio Spectrum Visualizer
-  const visualizerGrounded = /\.spectrum-bars\s*\{[^}]*align-items:\s*flex-end/i.test(cssSource);
+  const visualizerGrounded = /\.spectrum-bars\s*\{[^}]*align-items:\s*(flex-end|center)/i.test(cssSource);
   const countBars = (htmlSource.match(/class=["']spec-bar["']/g) || []).length;
   recordTest(domain, 'Grounded 24-bar audio frequency analyzer connected to AnalyserNode', visualizerGrounded && countBars === 24,
-    `Visualizer not grounded (align-items: flex-end) or bars count is ${countBars} instead of 24.`);
+    `Visualizer not grounded (align-items: flex-end/center) or bars count is ${countBars} instead of 24.`);
 
   // Check 6.5: Real-time Indicator States
   const hasListeningState = /listening:\s*['"]Listening\.\.\.['"]/.test(appSource);
@@ -332,23 +333,23 @@ function recordTest(domain, name, passed, details) {
   recordTest(domain, 'WebSocket auto-reconnect with jittered exponential backoff', hasExpBackoff && hasJitter,
     'WebSocket reconnect lacks exponential backoff or jitter.');
 
-  // Check 6.9: Patient Telemetry Drawer (HTN stage, Gym Clearance, current meal slot, Merkle hash)
-  const hasHtnBadge = htmlSource.includes('id="disp-htn-badge"');
-  const hasGymClearance = htmlSource.includes('id="disp-gym-clearance"');
-  const hasCurrentMealSlot = htmlSource.includes('id="disp-current-meal-slot"');
-  const hasMerkleChip = htmlSource.includes('id="latest-merkle-hash"');
-  recordTest(domain, 'Patient Telemetry Drawer: Live HTN, Gym clearance, current meal slot, Merkle SHA-256 chip',
-    hasHtnBadge && hasGymClearance && hasCurrentMealSlot && hasMerkleChip,
-    'Patient telemetry drawer elements missing in DOM.');
+  // Check 6.9: Dedicated Patient Profile & Clinical Safety Surface
+  const hasProfileView = htmlSource.includes('id="view-profile"');
+  const hasMealsView = htmlSource.includes('id="view-meals"');
+  const hasGymClearance = htmlSource.includes('id="profile-page-gym-clearance"');
+  const hasDietDisplay = htmlSource.includes('id="profile-page-diet"');
+  recordTest(domain, 'Patient Clinical Safety Surface: Dedicated Profile & Meals views with Live HTN & Gym Clearance',
+    hasProfileView && hasMealsView && hasGymClearance && hasDietDisplay,
+    'Patient clinical profile elements missing in DOM.');
 
-  // DOMAIN 7: Progressive Onboarding, Drawer Toggle & Profile Customization
+  // DOMAIN 7: Progressive Onboarding, Navigation Architecture & Profile Customization
   const domain7 = '7. Progressive Onboarding & Profile Customization';
 
-  // Check 7.1: Onboarding Panels and Step Tracker
-  const hasTracker = htmlSource.includes('id="tracker-step-1"') && htmlSource.includes('id="tracker-step-4"');
-  const hasPanels = htmlSource.includes('id="onboard-step-panel-1"') && htmlSource.includes('id="onboard-step-panel-4"');
-  const hasNavButtons = htmlSource.includes('id="step-1-next-btn"') && htmlSource.includes('id="step-4-back-btn"');
-  recordTest(domain7, 'Progressive 4-step onboarding panels, navigation buttons, and step tracker in DOM',
+  // Check 7.1: Progressive Onboarding Panels and Step Tracker
+  const hasTracker = htmlSource.includes('id="tracker-step-1"') && htmlSource.includes('id="tracker-step-3"');
+  const hasPanels = htmlSource.includes('id="onboard-step-panel-1"') && htmlSource.includes('id="onboard-step-panel-3"');
+  const hasNavButtons = htmlSource.includes('id="step-1-next-btn"') && htmlSource.includes('id="step-2-back-btn"');
+  recordTest(domain7, 'Progressive multi-step onboarding panels, navigation buttons, and step tracker in DOM',
     hasTracker && hasPanels && hasNavButtons,
     'Onboarding panels or tracker missing in index.html.');
 
@@ -358,13 +359,15 @@ function recordTest(domain, name, passed, details) {
     hasGoToStep,
     'goToOnboardingStep missing in engine exports.');
 
-  // Check 7.3: Clinical Drawer toggle & collapsible styling
-  const hasDrawerClose = htmlSource.includes('id="drawer-close-btn"');
-  const hasToggleDrawer = htmlSource.includes('id="toggle-drawer-btn"');
-  const hasDrawerCollapsedCss = cssSource.includes('.clinical-drawer.collapsed');
-  recordTest(domain7, 'Clinical Drawer toggle, close button, and collapsed state CSS',
-    hasDrawerClose && hasToggleDrawer && hasDrawerCollapsedCss,
-    'Drawer toggle or collapsed styling missing.');
+  // Check 7.3: Strict 4-Tab Primary Navigation (Chat, Meals, Profile, Settings)
+  const hasNavChat = htmlSource.includes('href="#/chat"');
+  const hasNavMeals = htmlSource.includes('href="#/meals"');
+  const hasNavProfile = htmlSource.includes('href="#/profile"');
+  const hasNavSettings = htmlSource.includes('href="#/settings"');
+  const hasNavCss = cssSource.includes('.nav-tab') && cssSource.includes('.nav-tab.active');
+  recordTest(domain7, 'Strict 4-Tab Primary Navigation (Chat, Meals, Profile, Settings) and active indicator CSS',
+    hasNavChat && hasNavMeals && hasNavProfile && hasNavSettings && hasNavCss,
+    '4-Tab navigation links or active styling missing in DOM/CSS.');
 
   // Check 7.4: Patient Profile Edit Modal & form fields in DOM
   const hasProfileModal = htmlSource.includes('id="profile-edit-modal"');

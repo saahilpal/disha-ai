@@ -9,7 +9,7 @@ from fastapi import APIRouter, HTTPException, WebSocket
 
 from disha_core.compliance.ledger import AuditRecord
 from disha_core.models.schemas import TurnRequest, TurnState
-from disha_core.voice import VoiceSession, transcribe_groq
+from disha_core.voice import VoiceSession, execute_voice_turn, transcribe_groq
 
 router = APIRouter(tags=["Voice"])
 
@@ -70,15 +70,23 @@ async def voice(websocket: WebSocket) -> None:
         try:
             transcript = await transcribe_groq(audio)
             await websocket.send_json({"type": "transcript", "text": transcript})
-            payload = TurnRequest(text=transcript)
-            async for sentence in app_main._turn_sentences(websocket, patient_id, payload, state):
-                output.append(sentence)
-                await websocket.send_json({"type": "sentence", "text": sentence})
-                await session.speak(sentence, websocket.send_bytes)
-            await websocket.send_json({"type": "done", "status": state.validator_status})
+            output = await execute_voice_turn(
+                websocket,
+                patient_id,
+                transcript,
+                session,
+                send_json=websocket.send_json,
+                send_audio=websocket.send_bytes,
+                state=state,
+            )
         except asyncio.CancelledError:
             raise
-        except Exception:
+        except Exception as exc:
+            err_str = str(exc)
+            if "filtered silence hallucination" in err_str or "silent audio frame" in err_str:
+                with suppress(Exception):
+                    await websocket.send_json({"type": "silence", "message": "Silence detected"})
+                return
             with suppress(Exception):
                 await websocket.send_json(
                     {"type": "error", "message": "Voice turn unavailable; please try again."}
@@ -97,12 +105,15 @@ async def voice(websocket: WebSocket) -> None:
         output: list[str] = []
         try:
             await websocket.send_json({"type": "transcript", "text": text})
-            payload = TurnRequest(text=text)
-            async for sentence in app_main._turn_sentences(websocket, patient_id, payload, state):
-                output.append(sentence)
-                await websocket.send_json({"type": "sentence", "text": sentence})
-                await session.speak(sentence, websocket.send_bytes)
-            await websocket.send_json({"type": "done", "status": state.validator_status})
+            output = await execute_voice_turn(
+                websocket,
+                patient_id,
+                text,
+                session,
+                send_json=websocket.send_json,
+                send_audio=websocket.send_bytes,
+                state=state,
+            )
         except asyncio.CancelledError:
             raise
         except Exception:

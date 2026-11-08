@@ -54,3 +54,7 @@ ehthumbs.db
 node_modules/
 .vercel/
 .vercel
+.synap/
+.synapse/
+.synapse/*-wal
+.synapse/*-shm

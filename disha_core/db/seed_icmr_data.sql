@@ -47,6 +47,29 @@ INSERT INTO clinical_knowledge_base (
     NOW()
 );
 
+-- 3. Condition 3: Knee & Joint Pain Care (Approved Micro-Chunk)
+INSERT INTO clinical_knowledge_base (
+    condition_tag,
+    trigger_terms,
+    context_header,
+    guideline_content,
+    required_remedy_tokens,
+    source_citation,
+    approval_status,
+    clinician_id,
+    approved_at
+) VALUES (
+    'KNEE_PAIN_CARE',
+    'knee pain ghutno ka dard ghutne me dard knee stiffness osteoarthritis joint mobility quad strengthening low impact walking',
+    '[Scope: Musculoskeletal Care; Authority: Institutional Clinical Protocol]',
+    'For knee discomfort or joint stiffness, prefer low-impact walking on flat surfaces, quad isometrics, and warm compresses. Avoid deep squats, high jumping, and twisting loads.',
+    ARRAY['walking', 'quad'],
+    'Institutional Clinical Protocol',
+    'approved',
+    'clin_lead_01',
+    NOW()
+);
+
 -- 3. Seed Test Profile: pt_test_01
 INSERT INTO patient_pep (
     patient_id,
