@@ -1,0 +1,197 @@
+name: Disha AI Production CI
+
+on:
+  push:
+    branches:
+      - main
+      - main-clean
+      - master
+  pull_request:
+    branches:
+      - main
+      - main-clean
+      - master
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ============================================================================
+  # 1. GITLEAKS SECRETS AUDIT
+  # ============================================================================
+  gitleaks:
+    name: Secrets & Gitleaks Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks Detection
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: false
+
+  # ============================================================================
+  # 2. TRIVY VULNERABILITY SCANNER
+  # ============================================================================
+  trivy:
+    name: Container & Dependency Vulnerability Scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "table"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
+
+  # ============================================================================
+  # 3. CODE QUALITY & LINTING (RUFF)
+  # ============================================================================
+  lint:
+    name: Code Quality & Ruff Linter
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Run Ruff Linter
+        run: |
+          uv run --with ruff ruff check .
+
+      - name: Run Ruff Format Check
+        run: |
+          uv run --with ruff ruff format --check .
+
+  # ============================================================================
+  # 4. STATIC TYPE INTEGRITY (PYRIGHT)
+  # ============================================================================
+  pyright:
+    name: Static Type Check (Pyright)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install Core Dependencies
+        run: |
+          uv venv
+          uv pip install -r disha_core/requirements.txt
+
+      - name: Run Pyright Type Analysis
+        run: |
+          uv run --with pyright pyright
+
+  # ============================================================================
+  # 5. HARDCODE & SECRET HYGIENE
+  # ============================================================================
+  hardcode-check:
+    name: Hardcode & Secret Hygiene Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Hardcode & Secret Check
+        run: |
+          python3 scripts/hardcode-check
+
+  # ============================================================================
+  # 6. LIVING DOCUMENTATION DRIFT AUDIT
+  # ============================================================================
+  docs-drift:
+    name: Living Documentation Drift Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Docs Drift Validator
+        run: |
+          python3 scripts/docs-drift
+
+  # ============================================================================
+  # 7. ARCHITECTURE DIAGRAM VERIFICATION
+  # ============================================================================
+  diagram-check:
+    name: Architecture Diagram Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Diagram Check
+        run: |
+          python3 scripts/diagram-check
+
+  # ============================================================================
+  # 8. CANONICAL TEST MATRIX (PYTEST)
+  # ============================================================================
+  tests:
+    name: Canonical Test Matrix (Pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.12
+        run: uv python install 3.12
+
+      - name: Install Dependencies
+        run: |
+          uv venv
+          uv pip install -r disha_core/requirements.txt pytest pytest-asyncio
+
+      - name: Run Canonical Pytest Suite
+        env:
+          GROQ_API_KEY: "dummy_token_scrubbed"
+          GEMINI_API_KEY: "dummy_token_scrubbed"
+          POSTGRES_PASSWORD: "postgres"
+        run: |
+          uv run pytest -v tests/ -m "not live_network and not manual"
