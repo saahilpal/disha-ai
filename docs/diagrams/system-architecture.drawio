@@ -1,0 +1,166 @@
+<mxfile host="app.diagrams.net" modified="2026-11-05T09:00:00.000Z" agent="Antigravity Lead Architect" version="24.0.0" type="device">
+  <diagram id="Disha-System-Architecture" name="Disha AI System Architecture">
+    <mxGraphModel dx="1422" dy="850" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- CLIENT CHANNELS CONTAINER -->
+        <mxCell id="channel_box" value="CLIENT INGESTION CHANNELS (Dual-Mode: Voice Call + Text Chat)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#94a3b8;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="40" y="40" width="340" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="mic_in" value="Voice Ingestion: Web Audio API&#xa;16kHz Mono PCM, 20ms Frames&#xa;Silero VAD (WASM Client-side)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0f2fe;strokeColor=#0284c7;fontStyle=1;" vertex="1" parent="channel_box">
+          <mxGeometry x="30" y="50" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="asr_node" value="Fast Streaming ASR&#xa;Groq Whisper Large v3 Turbo&#xa;(Latency: 120ms - 140ms)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e0e7ff;strokeColor=#4f46e5;fontStyle=1;" vertex="1" parent="channel_box">
+          <mxGeometry x="30" y="140" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="chat_in" value="Interactive Text Chat&#xa;WebSocket / SSE Stream&#xa;(Latency: &lt;5ms Ingestion)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef3c7;strokeColor=#d97706;fontStyle=1;" vertex="1" parent="channel_box">
+          <mxGeometry x="30" y="240" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="barge_in" value="Client-Side Barge-In Engine&#xa;&lt;40ms AudioContext Interruption" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fee2e2;strokeColor=#dc2626;fontStyle=1;" vertex="1" parent="channel_box">
+          <mxGeometry x="30" y="330" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="edge1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="channel_box" source="mic_in" target="asr_node">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- DETERMINISTIC PRE-SPINE CONTAINER -->
+        <mxCell id="spine_box" value="THICK DETERMINISTIC PRE-SPINE (FastAPI Gateway - Latency &lt;15ms)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#ecfdf5;strokeColor=#059669;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="420" y="40" width="400" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="cb_node" value="1. Pre-Turn Emergency Circuit Breaker&#xa;Compiled Aho-Corasick Automaton&#xa;Execution: &lt;0.01ms (8 microseconds)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fecdd3;strokeColor=#e11d48;fontStyle=1;fontColor=#881337;" vertex="1" parent="spine_box">
+          <mxGeometry x="30" y="50" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="phi_node" value="2. Upstream PHI De-identification Proxy&#xa;Tokens: [PATIENT_01], [PHONE_REDACTED]&#xa;DPDP Act 2023 Compliant (&lt;1ms)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ccfbf1;strokeColor=#0d9488;fontStyle=1;" vertex="1" parent="spine_box">
+          <mxGeometry x="30" y="140" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="jit_node" value="3. JIT State &amp; PEP Constraint Injection&#xa;Dinner Lookup (dow=Today) &amp; Gym Clearance&#xa;Closed-Domain Fallback (&lt;3ms)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dbeafe;strokeColor=#2563eb;fontStyle=1;" vertex="1" parent="spine_box">
+          <mxGeometry x="30" y="230" width="340" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="fts_node" value="4. Knowledge Retrieval: SQLite FTS5 (BM25)&#xa;Exact Lexical Match on Hinglish Keywords&#xa;Zero Semantic Drift (&lt;1.5ms)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ede9fe;strokeColor=#7c3aed;fontStyle=1;" vertex="1" parent="spine_box">
+          <mxGeometry x="30" y="320" width="340" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- PROBABILISTIC LEAF NODE -->
+        <mxCell id="leaf_box" value="PROBABILISTIC LEAF NODE" style="swimlane;whiteSpace=wrap;html=1;fillColor=#faf5ff;strokeColor=#a855f7;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="860" y="40" width="320" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="llm_node" value="Groq Llama 3.3 70B Versatile&#xa;Language Processing Unit (LPU)&#xa;TTFT: 140ms - 180ms&#xa;Streaming: ~300 tokens/sec&#xa;Hard Token Ceiling: &lt;320 tokens" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f3e8ff;strokeColor=#9333ea;fontStyle=1;" vertex="1" parent="leaf_box">
+          <mxGeometry x="20" y="50" width="280" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- DETERMINISTIC POST-SPINE CONTAINER -->
+        <mxCell id="gate_box" value="POST-TURN SANITIZER (The Gate - Latency &lt;2ms)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#fff1f2;strokeColor=#f43f5e;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="860" y="270" width="320" height="420" as="geometry" />
+        </mxCell>
+        <mxCell id="asb_node" value="Atomic Sentence Buffer Barrier&#xa;Buffers tokens to [.?!।] boundary (prevents race)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe4e6;strokeColor=#fb7185;fontStyle=1;" vertex="1" parent="gate_box">
+          <mxGeometry x="20" y="40" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="g1" value="Persona Invariant Guard (AI Coach Only)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fda4af;" vertex="1" parent="gate_box">
+          <mxGeometry x="20" y="105" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="g2" value="Channel Boundary Gate (No WhatsApp)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fda4af;" vertex="1" parent="gate_box">
+          <mxGeometry x="20" y="160" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="g3" value="Price Whitelist Gate (No Hallucinated INR)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fda4af;" vertex="1" parent="gate_box">
+          <mxGeometry x="20" y="215" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="g4" value="Mandatory Remedy Gate (Jeera/Saunf Water)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fda4af;" vertex="1" parent="gate_box">
+          <mxGeometry x="20" y="270" width="280" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="g5" value="EgressGate Credential &amp; PHI Redactor" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#fda4af;" vertex="1" parent="gate_box">
+          <mxGeometry x="20" y="325" width="280" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- EGRESS DELIVERY CONTAINER -->
+        <mxCell id="egress_box" value="CHANNEL DELIVERY" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f0fdf4;strokeColor=#16a34a;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="270" width="340" height="320" as="geometry" />
+        </mxCell>
+        <mxCell id="tts_node" value="Voice Mode: Microsoft Edge-TTS&#xa;hi-IN-SwaraNeural / en-IN-NeerjaNeural&#xa;Latency: 130ms - 180ms" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dcfce7;strokeColor=#15803d;fontStyle=1;" vertex="1" parent="egress_box">
+          <mxGeometry x="30" y="50" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="chat_stream" value="Chat Mode: WebSocket / SSE Text&#xa;Markdown, Macros, Remedy Badges&#xa;Latency: &lt;10ms" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fef9c3;strokeColor=#ca8a04;fontStyle=1;" vertex="1" parent="egress_box">
+          <mxGeometry x="30" y="140" width="280" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="speaker_out" value="WebRTC Speaker / Telephony Ear" style="ellipse;whiteSpace=wrap;html=1;fillColor=#bbf7d0;strokeColor=#16a34a;fontStyle=1;" vertex="1" parent="egress_box">
+          <mxGeometry x="60" y="230" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- DATABASE & PERSISTENCE -->
+        <mxCell id="db_box" value="DATA PERSISTENCE &amp; AUDIT (SQLite WAL Mode)" style="swimlane;whiteSpace=wrap;html=1;fillColor=#f1f5f9;strokeColor=#64748b;fontStyle=1;fontSize=14;" vertex="1" parent="1">
+          <mxGeometry x="420" y="500" width="400" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="db_pep" value="Patients Master &amp; PEP Constraints (WAL Mode)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e2e8f0;strokeColor=#475569;" vertex="1" parent="db_box">
+          <mxGeometry x="30" y="40" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="db_meals" value="Meal Schedules (By DOW in IST)" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#e2e8f0;strokeColor=#475569;" vertex="1" parent="db_box">
+          <mxGeometry x="220" y="40" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="db_audit" value="Merkle Hash-Chained Audit Ledger (SHA-256 Chain)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fee2e2;strokeColor=#b91c1c;fontStyle=1;" vertex="1" parent="db_box">
+          <mxGeometry x="30" y="130" width="340" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- EMERGENCY DEFLECTION PATH -->
+        <mxCell id="emerg_box" value="EMERGENCY 112 DEFLECTION PATH" style="swimlane;whiteSpace=wrap;html=1;fillColor=#fef2f2;strokeColor=#ef4444;fontStyle=1;fontSize=14;fontColor=#b91c1c;" vertex="1" parent="1">
+          <mxGeometry x="40" y="500" width="340" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="audio_112" value="Pre-Cached 24kHz 112 Audio&#xa;Plays Instantly from RAM (0ms synthesis)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fee2e2;strokeColor=#dc2626;fontStyle=1;" vertex="1" parent="emerg_box">
+          <mxGeometry x="30" y="40" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="careops" value="P0 Care Operations Webhook&#xa;Emergency SMS / WhatsApp to Family" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fee2e2;strokeColor=#dc2626;fontStyle=1;" vertex="1" parent="emerg_box">
+          <mxGeometry x="30" y="110" width="280" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="hangup" value="Graceful Telephony Call Hangup (5s)" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fca5a5;strokeColor=#b91c1c;fontStyle=1;" vertex="1" parent="emerg_box">
+          <mxGeometry x="70" y="175" width="200" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- EDGES BETWEEN CONTAINERS -->
+        <mxCell id="e_asr_spine" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="asr_node" target="cb_node">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_chat_spine" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="chat_in" target="cb_node">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="390" y="310" />
+              <mxPoint x="390" y="120" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_cb_emerg" value="MATCH (&lt;0.01ms)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=#e11d48;strokeWidth=2;fontColor=#b91c1c;fontStyle=1;" edge="1" parent="1" source="cb_node" target="emerg_box">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_spine_llm" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="fts_node" target="llm_node">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="840" y="390" />
+              <mxPoint x="840" y="145" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_llm_asb" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="llm_node" target="asb_node">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_gate_tts" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="g5" target="tts_node">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1200" y="615" />
+              <mxPoint x="1200" y="350" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_gate_chat" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="g5" target="chat_stream">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1200" y="615" />
+              <mxPoint x="1200" y="440" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_tts_speaker" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="tts_node" target="speaker_out">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

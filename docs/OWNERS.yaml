@@ -1,0 +1,82 @@
+# Disha AI Documentation Ownership Mapping (docs/OWNERS.yaml)
+# Maps repository file globs to required living documentation files.
+# Enforced by scripts/docs-drift in pre-commit and CI.
+
+mappings:
+  - glob: "disha_core/main.py"
+    docs:
+      - "docs/contracts.md"
+      - "docs/architecture/02_runtime_components.md"
+    description: "Core API routes and application lifespan"
+
+  - glob: "disha_core/models/turn_context.py"
+    docs:
+      - "docs/contracts.md"
+      - "docs/architecture/02_runtime_components.md"
+    description: "Per-turn typed pipeline schema and context passing"
+
+  - glob: "disha_core/models/slots.py"
+    docs:
+      - "docs/contracts.md"
+      - "docs/design/flows.md"
+    description: "Onboarding slot registry and validation schemas"
+
+  - glob: "disha_core/voice.py"
+    docs:
+      - "docs/VOICE_PIPELINE.md"
+      - "docs/architecture/03_voice_turn_sequence.md"
+    description: "Real-time streaming voice pipeline, VAD, and ASR"
+
+  - glob: "disha_core/pipeline/validator.py"
+    docs:
+      - "docs/AI_RESPONSE_QUALITY.md"
+      - "docs/contracts.md"
+    description: "Clinical sentence validator and safety invariants"
+
+  - glob: "disha_core/pipeline/router.py"
+    docs:
+      - "docs/LAYA_INTEGRATION.md"
+      - "docs/architecture/02_runtime_components.md"
+    description: "Laya intent routing and emergency breaker gate"
+
+  - glob: "disha_core/engine/retriever.py"
+    docs:
+      - "docs/MEMORY_AND_PEP.md"
+      - "docs/architecture/04_rag_ingestion_and_retrieval.md"
+    description: "pgvector hybrid semantic search and chunk retrieval"
+
+  - glob: "disha_core/journey/*"
+    docs:
+      - "docs/contracts.md"
+      - "docs/architecture/05_memory_and_stage_engine.md"
+    description: "Deterministic patient journey scheduler and stage engine"
+
+  - glob: "disha_core/frontend/*"
+    docs:
+      - "docs/design/flows.md"
+      - "docs/design-system.md"
+    description: "User health coach frontend UI, voice modal, and journey state"
+
+  - glob: "disha_core/config.py"
+    docs:
+      - "docs/DEPLOYMENT.md"
+      - "README.md"
+    description: "Pydantic settings and environment variables"
+
+  - glob: "docker-compose.yml"
+    docs:
+      - "docs/DEPLOYMENT.md"
+      - "docs/architecture/06_deployment_topology.md"
+    description: "Container stack and service topology"
+
+  - glob: "scripts/local-models.sh"
+    docs:
+      - "docs/DEPLOYMENT.md"
+      - "README.md"
+    description: "Turnkey local Apple Silicon & Ollama model runner"
+
+  - glob: "scripts/board"
+    docs:
+      - "docs/architecture/07_agent_collaboration.md"
+      - "agent/BOARD.md"
+    description: "Agent shared brain and coordination board"
