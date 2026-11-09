@@ -49,6 +49,7 @@ logger = logging.getLogger("disha_core.harness")
 
 def _get_app_main() -> Any:
     import sys
+
     return sys.modules.get("disha_core.main")
 
 
@@ -162,9 +163,7 @@ class ResponseHarness:
             state.retrieval_status = "unavailable"
             tc.validator.status = "deflected:db_unavailable"
             tc.retrieval.skipped = True
-            err_msg = format_system_error(
-                "Database connection unavailable", "Kripya thodi der baad koshish karein."
-            )
+            err_msg = format_system_error("Database connection unavailable", "Kripya thodi der baad koshish karein.")
             yield err_msg
             return
 
@@ -255,7 +254,17 @@ class ResponseHarness:
 
                         lang = normalize_preferred_language((context.get("pep") or {}).get("language"))
                         lang = {"english": "en", "hindi": "hi"}.get(lang, "hinglish")
-                        disclosures = extract_patient_disclosures(payload.text, lang=lang)
+
+                        # Check for active pending question awaiting user's answer
+                        pending_row = await connection.fetchrow(
+                            """SELECT question_id, target_field, question_text FROM journey_question_history
+                               WHERE patient_id = $1 AND status = 'asked'
+                               ORDER BY asked_at DESC LIMIT 1""",
+                            patient_id,
+                        )
+                        pending_target = pending_row["target_field"] if pending_row else None
+
+                        disclosures = extract_patient_disclosures(payload.text, lang=lang, pending_field=pending_target)
                         for f_id, f_val in disclosures.items():
                             await record_field_answer(
                                 patient_id=patient_id,
@@ -268,15 +277,15 @@ class ResponseHarness:
                             )
                         journey_state = await load_or_create_journey(patient_id, conn=connection, channel=channel)
                         context["journey_state"] = journey_state
-                        is_off_topic = (
-                            bool(
-                                normalized.is_meal_query
-                                or normalized.is_exercise_query
-                                or intent in {Intent.MEAL_QUERY, Intent.EXERCISE_QUERY, Intent.SYMPTOM_COMPLAINT}
-                            )
-                            and not disclosures
+                        is_coaching_query = bool(
+                            normalized.is_meal_query
+                            or normalized.is_exercise_query
+                            or intent in {Intent.MEAL_QUERY, Intent.EXERCISE_QUERY, Intent.SYMPTOM_COMPLAINT}
                         )
-                        if not is_incomplete_thought:
+                        is_off_topic = is_coaching_query and not disclosures
+                        # Prioritize user's immediate question without forcing onboarding questionnaire (Bug 5)
+                        suppress_question = is_coaching_query or is_off_topic
+                        if not is_incomplete_thought and not suppress_question:
                             scheduled_q = await select_next_question(
                                 patient_id=patient_id,
                                 journey_state=journey_state,
@@ -327,9 +336,7 @@ class ResponseHarness:
                         profile_tags = normalize(" ".join(contextual_terms)).tags
                         target_tags = list(dict.fromkeys((*normalized.tags, *profile_tags)))
                         retriever = getattr(app_m, "retrieve_chunks", retrieve_chunks) if app_m else retrieve_chunks
-                        chunks = await retriever(
-                            connection, retrieval_query, patient_id=patient_id, tags=target_tags
-                        )
+                        chunks = await retriever(connection, retrieval_query, patient_id=patient_id, tags=target_tags)
                         state.retrieval_status = "retrieved" if chunks else "no_results"
                         state.evidence_ids = [
                             str(getter("chunk_id"))
@@ -477,9 +484,7 @@ class ResponseHarness:
             state.validator_status = "provider_unavailable"
             tc.validator.status = "provider_unavailable"
             if not emitted:
-                err_msg = format_system_error(
-                    "LLM provider unavailable", "Kripya thodi der baad koshish karein."
-                )
+                err_msg = format_system_error("LLM provider unavailable", "Kripya thodi der baad koshish karein.")
                 yield err_msg
                 return
 

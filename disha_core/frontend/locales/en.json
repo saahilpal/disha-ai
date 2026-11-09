@@ -18,7 +18,8 @@
     "captions_muted": "Microphone muted. Tap Unmute to speak.",
     "captions_ended": "Voice consultation ended.",
     "mic_level_label": "Microphone input level",
-    "call_disclaimer": "Disha is an AI health coach • Lifestyle guidance only • In emergency, dial 112"
+    "call_disclaimer": "Disha is an AI health coach • Lifestyle guidance only • In emergency, dial 112",
+    "call_api_limit_advisory": "Live voice calling may experience latency due to provider quotas. Feel free to switch to chat anytime."
   },
   "consent": {
     "modal_title": "Clinical AI Health Coach Disclosure & Consent",

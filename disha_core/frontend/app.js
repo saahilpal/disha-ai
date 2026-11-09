@@ -418,13 +418,40 @@
     });
   }
 
+  async function updateI18nTexts(lang) {
+    if (typeof document === 'undefined' || typeof fetch === 'undefined') return;
+    const l = ['hi', 'hinglish', 'en'].includes(lang) ? lang : 'hinglish';
+    try {
+      const res = await fetch(`/locales/${l}.json`);
+      if (res.ok) {
+        const data = await res.json();
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const key = el.getAttribute('data-i18n');
+          if (!key) return;
+          const parts = key.split('.');
+          let val = data;
+          for (const p of parts) {
+            val = val ? val[p] : undefined;
+          }
+          if (typeof val === 'string') {
+            el.textContent = val;
+          }
+        });
+      }
+    } catch (e) {
+      // Graceful fallback
+    }
+  }
+
   // --- LANGUAGE INITIALIZATION & SYNCHRONIZATION ---
   const savedLang = state.language;
   state.language = savedLang;
+  updateI18nTexts(savedLang);
   if (dom.onboardLanguage) {
     dom.onboardLanguage.value = savedLang;
     dom.onboardLanguage.addEventListener('change', () => {
       state.language = dom.onboardLanguage.value;
+      updateI18nTexts(state.language);
       try {
         localStorage.setItem('disha_language', state.language);
       } catch (e) {}
@@ -457,6 +484,7 @@
         }
 
         state.language = language;
+        updateI18nTexts(language);
         try {
           localStorage.setItem('disha_language', language);
         } catch (error) {
@@ -1172,35 +1200,12 @@
   }
 
   function updateInChatJourneyBanner(stageNum, isComplete) {
+    // Journey progression is purely tracked in the backend;
+    // banner is kept hidden for a clean conversational experience.
     const banner = dom.chatJourneyBanner || (typeof document !== 'undefined' ? document.getElementById('chat-journey-banner') : null);
-    if (!banner) return;
-    banner.style.display = 'flex';
-    const stagePill = dom.chatStagePill || (typeof document !== 'undefined' ? document.getElementById('chat-stage-pill') : null);
-    const stageName = dom.chatStageName || (typeof document !== 'undefined' ? document.getElementById('chat-stage-name') : null);
-    const dots = (typeof document !== 'undefined' ? document.querySelectorAll('#chat-progress-dots .journey-dot') : []);
-
-    const STAGE_NAMES = {
-      1: 'Basic Profile & Health Baseline',
-      2: 'Health Background & Clinical Safety',
-      3: 'Lifestyle & Daily Routine',
-      4: 'Goals, Diet & Preferences',
-      5: 'Deep Personalisation & Sustained Coaching'
-    };
-
-    const s = Math.min(5, Math.max(1, stageNum || 1));
-    if (stagePill) {
-      stagePill.textContent = isComplete ? 'Onboarding Complete' : `Stage ${s} of 5`;
+    if (banner) {
+      banner.style.display = 'none';
     }
-    if (stageName) {
-      stageName.textContent = isComplete ? 'Personalized Coaching Active' : (STAGE_NAMES[s] || 'Personal Health Coaching');
-    }
-
-    dots.forEach((dot, idx) => {
-      const dotStage = idx + 1;
-      dot.className = 'journey-dot';
-      if (isComplete || dotStage < s) dot.classList.add('completed');
-      else if (dotStage === s) dot.classList.add('active');
-    });
   }
 
   function saveSession(token, patientId, patientName) {
@@ -1633,12 +1638,16 @@
       trace = document.createElement('small');
       trace.className = 'source-trace';
       trace.setAttribute('aria-label', 'Response source trace');
+      trace.setAttribute('hidden', 'true');
+      trace.style.display = 'none';
       bubble.appendChild(trace);
     }
     const parts = [];
     if (evidenceIds.length) parts.push(`Sources: ${evidenceIds.join(', ')}`);
     if (retrievalStatus) parts.push(`Retrieval: ${retrievalStatus}`);
     trace.textContent = parts.join(' · ');
+    trace.style.display = 'none';
+    trace.setAttribute('hidden', 'true');
   }
 
   function applyMessageProvenance(messageElement, historyEntry, payload) {

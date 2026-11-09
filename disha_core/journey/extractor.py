@@ -49,8 +49,20 @@ CONDITION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\b(?:thyroid|hypothyroid|hyperthyroid)\b", re.I), "thyroid"),
     (re.compile(r"\b(?:pcod|pcos)\b", re.I), "pcod"),
     (re.compile(r"\b(?:heart\s+disease|cardiac|heart\s+attack|dil\s+ki\s+bimari)\b", re.I), "cardiac_history"),
-    (re.compile(r"\b(?:none|no\s+conditions?|koi\s+bimari\s+nahi|kuch\s+nahi|sab\s+theek\s+hai)\b", re.I), "none"),
+    (
+        re.compile(
+            r"\b(?:none|no\s+conditions?|koi\s+bimari\s+nahi|kuch\s+nahi|kuch\s+ni|sab\s+theek\s+hai|koi\s+dikkat\s+nahi|koi\s+issue\s+nahi|bilkul\s+nahi|not\s+diagnosed)\b",
+            re.I,
+        ),
+        "none",
+    ),
 ]
+
+# Generalized negative responses to closed questions
+NEGATIVE_AFFIRMATION_PATTERN = re.compile(
+    r"^\s*(?:nhi|nahi|nah|no|nope|na|nothing|none|kuch\s+nahi|kuch\s+ni|bilkul\s+nahi|not\s+really|koi\s+bhi\s+nahi|aisa\s+kuch\s+nahi|kuch\s+bhi\s+nahi|no\s+issue|all\s+good|sab\s+theek\s+hai)\b",
+    re.I,
+)
 
 # Medication patterns
 MEDICATION_PATTERN = re.compile(
@@ -67,13 +79,40 @@ WORK_SCHEDULE_PATTERNS = [
 ]
 
 
-def extract_patient_disclosures(text: str, lang: str = "hinglish") -> dict[str, Any]:
-    """Parse a user utterance and return a mapping of extracted journey fields."""
+def extract_patient_disclosures(
+    text: str,
+    lang: str = "hinglish",
+    pending_field: str | None = None,
+) -> dict[str, Any]:
+    """Parse a user utterance and return a mapping of extracted journey fields.
+
+    If pending_field is provided, contextually interprets direct affirmations
+    and negative responses (e.g. 'nhi', 'nahi', 'no', 'haan') towards that field.
+    """
     if not text:
         return {}
 
     extracted: dict[str, Any] = {}
-    lower = text.lower()
+    lower = text.strip().lower()
+
+    # Contextual resolution for negative affirmations when answering pending questions
+    is_negative = bool(NEGATIVE_AFFIRMATION_PATTERN.search(lower))
+    if pending_field and is_negative:
+        if pending_field in ("diagnosed_conditions", "health_conditions"):
+            extracted["diagnosed_conditions"] = ["none"]
+            return extracted
+        if pending_field == "medications":
+            extracted["medications"] = ["none"]
+            return extracted
+        if pending_field in ("allergies_intolerances", "dietary_restrictions"):
+            extracted["allergies_intolerances"] = ["none"]
+            return extracted
+        if pending_field == "injuries_or_limitations":
+            extracted["injuries_or_limitations"] = ["none"]
+            return extracted
+        if pending_field == "disliked_foods":
+            extracted["disliked_foods"] = ["none"]
+            return extracted
 
     # 1. Transient symptoms vs Diagnosed conditions
     # Check transient symptoms first
@@ -97,6 +136,8 @@ def extract_patient_disclosures(text: str, lang: str = "hinglish") -> dict[str, 
             extracted["diagnosed_conditions"] = ["none"]
         else:
             extracted["diagnosed_conditions"] = [c for c in found_conditions if c != "none"]
+    elif pending_field in ("diagnosed_conditions", "health_conditions") and is_negative:
+        extracted["diagnosed_conditions"] = ["none"]
 
     # 2. Medications
     meds = MEDICATION_PATTERN.findall(lower)
@@ -222,7 +263,10 @@ def extract_patient_disclosures(text: str, lang: str = "hinglish") -> dict[str, 
 
     age_match = (
         re.search(r"\b(\d{1,2})\s*(?:years?(?:\s+old)?|yrs?(?:\s+old)?|yo\b|saal(?:\s+ka|\s+ki)?|varsh|sal)\b", lower)
-        or re.search(r"\b(?:i\s+am|i\'m|\bim\b|am|my\s+age(?:\s+is)?|age(?:\s+is)?|umer(?:\s+hai|\s+is)?|umar(?:\s+hai|\s+is)?|meri\s+(?:umar|age)(?:\s+hai|\s+bhi)?)\s*(?:is|hai|:|-)?\s*(\d{1,2})\b", lower)
+        or re.search(
+            r"\b(?:i\s+am|i\'m|\bim\b|am|my\s+age(?:\s+is)?|age(?:\s+is)?|umer(?:\s+hai|\s+is)?|umar(?:\s+hai|\s+is)?|meri\s+(?:umar|age)(?:\s+hai|\s+bhi)?)\s*(?:is|hai|:|-)?\s*(\d{1,2})\b",
+            lower,
+        )
         or re.search(r"\b(?:around|turning|about)\s*(\d{1,2})\b", lower)
         or (re.match(r"^\s*(?:age\s*)?(\d{1,2})\s*$", lower.strip()))
     )

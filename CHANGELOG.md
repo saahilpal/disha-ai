@@ -9,6 +9,34 @@ Style Standard: Strict technical precision, zero emojis.
 
 ---
 
+## [1.2.0] - 2026-11-09
+
+### Added
+- **Onboarding State, Repetition Elimination & Conversational Empathy Suite**:
+  - Added 10-scenario regression test suite in `tests/test_onboarding_conversation_rep.py` covering negative medical history, repeated meal requests, acknowledgments, direct demands, previously collected information deduplication, Hinglish phonetic parsing, cross-session persistence, stage progression UI isolation, emotional empathy for struggles, and token-efficient prompt discipline.
+  - Added non-hardcoded provider API rate-limit advisory pill (`#call-advisory-pill`) on voice call screen with localized strings in `disha_core/frontend/locales/` (`en.json`, `hi.json`, `hinglish.json`).
+  - Added granular field state classification in `load_or_create_journey`: `not_asked`, `asked_unanswered`, `answered_negatively`, `answered_positively`, `needs_clarification`.
+
+### Fixed
+- **Critical Medical Condition Question Loop & State Loss**:
+  - Resolved root cause where negative responses (`"nhi"`, `"nahi"`, `"no"`, `"nope"`, `"na"`, `"nothing"`, `"kuch nahi"`) to pending onboarding questions were dropped by the disclosure extractor.
+  - `extract_patient_disclosures` now resolves negative answers against `pending_field` contextually, storing `{"diagnosed_conditions": ["none"]}`.
+  - `sync_known_fields_from_db` now queries `journey_question_history` for confirmed answered fields, preventing empty lists or missing fields from triggering repeated questions.
+  - `record_field_answer` now updates both `patient_pep` and `patient_profiles` and marks all asked questions for the target field as `status = 'answered'`.
+  - Question scheduler now enforces strict deduplication: answered questions (required or optional) are permanently excluded from candidate selection, preventing repeated questions.
+  - Suppressed onboarding questions during active health/coaching inquiries (meal queries, symptoms, exercise) to address user's immediate need first.
+- **Conversational Tone, Empathy & Response Discipline**:
+  - Enhanced Structured Turn Planner in `disha_core/harness/planner.py` to perceive emotional struggles (stress, low motivation, guilt, cheat meals, setbacks) and schedule validation with genuine empathy while avoiding toxic positivity or blame.
+  - Added repetition avoidance move: when user repeats inquiries (e.g. repeated "breakfast" requests), planner instructs fresh variety and alternatives rather than echoing identical food items.
+  - Added clean handling for simple acknowledgments ("okay", "theek hai") to avoid re-explaining advice or spamming questions.
+  - Added immediate execution for direct demands ("nhi jo hai de do") with concrete recommendations and zero follow-up preference questions.
+  - Updated `SYSTEM_PROMPT` in `disha_core/llm/client.py` enforcing concise, token-efficient responses (2–4 focused sentences), sincere concern, warm Indian coaching voice, and zero robotic canned intros.
+- **Chat UI Cleanliness & Telemetry Metadata Removal**:
+  - Removed visible 5-stage onboarding progress indicator (`#chat-journey-banner`) from the chat shell; progression is now purely backend-driven.
+  - Stripped internal retrieval and telemetry metadata (`Retrieval: ...`, `Sources: ...`) from user-facing chat bubbles via `.source-trace { display: none !important; }` and DOM suppression in `renderMessageProvenance`.
+
+---
+
 ## [1.1.0] - 2026-11-09
 
 ### Added

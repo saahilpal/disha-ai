@@ -1102,7 +1102,7 @@ h1, h2, h3, h4 {
 }
 
 .source-trace {
-  display: block;
+  display: none !important;
   margin-top: var(--space-2xs);
   color: var(--ink-secondary);
   font-size: 0.72rem;
@@ -1628,15 +1628,21 @@ h1, h2, h3, h4 {
   padding-top: var(--space-xs);
 }
 
-/* In-Chat Onboarding 5-Stage Journey Progress Banner */
+.call-advisory-notice {
+  font-size: 0.75rem;
+  color: var(--ink-secondary);
+  background: var(--surface-alt);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 4px 12px;
+  text-align: center;
+  margin-top: var(--space-xs);
+  display: inline-block;
+}
+
+/* In-Chat Onboarding 5-Stage Journey Progress Banner - Kept hidden for clean chat shell */
 .chat-journey-banner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 16px;
-  background-color: var(--surface-alt);
-  border-bottom: 1px solid var(--border);
-  font-size: 0.85rem;
+  display: none !important;
 }
 
 .journey-stage-indicator {

@@ -18,7 +18,8 @@
     "captions_muted": "Microphone muted hai. Bolne ke liye Unmute karein.",
     "captions_ended": "Voice consultation khatam ho gaya.",
     "mic_level_label": "Microphone input level",
-    "call_disclaimer": "Disha ek AI health coach hai • Sirf lifestyle guidance • Emergency mein 112 dial karein"
+    "call_disclaimer": "Disha ek AI health coach hai • Sirf lifestyle guidance • Emergency mein 112 dial karein",
+    "call_api_limit_advisory": "Live voice calls mein provider quotas ki wajah se thoda delay ho sakta hai. Aap chahein toh kisi bhi waqt chat par switch kar sakte hain."
   },
   "consent": {
     "modal_title": "Clinical AI Health Coach Disclosure & Consent",
