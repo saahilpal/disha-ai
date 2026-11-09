@@ -141,12 +141,13 @@ from collections import defaultdict
 from pathlib import Path
 
 ignore_dirs = {
-    ".git", ".venv", "node_modules", ".ruff_cache",
-    ".pytest_cache", ".mypy_cache", ".synap", "audit_wal.db",
+    ".git", ".venv", ".venv-mlx-audio", "node_modules", ".ruff_cache",
+    ".pytest_cache", ".mypy_cache", ".synap", ".synapse", ".agent", "audit_wal.db",
     "review_queue.db", "models", "baseline", "docs/screenshots"
 }
 allowed_identical = {
-    ".cursorrules", "AGENTS.md", "CLAUDE.md", "__init__.py"
+    ".cursorrules", "AGENTS.md", "CLAUDE.md", "__init__.py", "CODEOWNERS",
+    "red_flags.json", "red_flags.yaml", "behavior_policies.yaml"
 }
 dead_extensions = (".tmp", ".bak", ".orig", ".rej")
 dead_names = {".DS_Store", "Thumbs.db", "ehthumbs.db"}

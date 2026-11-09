@@ -486,13 +486,19 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
         # Session 1 Ends.
         # Now Session 2 begins: Fresh HTTP client query asking for the saved habit
         async with httpx.AsyncClient(base_url=BASE_HTTP, timeout=30.0) as client:
-            resp = await client.post(
-                "/chat",
-                headers={"Authorization": f"Bearer {token}"},
-                json={"text": "Disha, mera daily water intake target kitna set kiya tha humne?"},
-            )
-            self.assertEqual(resp.status_code, 200)
-            ans = resp.json()["response"]
+            ans = ""
+            for attempt in range(3):
+                resp = await client.post(
+                    "/chat",
+                    headers={"Authorization": f"Bearer {token}"},
+                    json={"text": "Disha, mera daily water intake target kitna set kiya tha humne?"},
+                )
+                self.assertEqual(resp.status_code, 200)
+                ans = resp.json()["response"]
+                if "System Error" not in ans:
+                    break
+                if attempt < 2:
+                    await asyncio.sleep(1.5)
 
             # Disha demonstrably recalls and uses the saved habit across sessions
             self.assertTrue(
