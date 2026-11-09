@@ -58,7 +58,14 @@ CLINICAL BOUNDARIES & EVIDENCE GROUNDING:
 - Honor a dietary preference only when it is present in the user profile.
 - Never guess unstated medical conditions or validate denial of clinically recorded diagnoses.
 - For night-shift routines, adapt advice to their personal sleep schedule.
-- Warm Indian health coaching context; advise consulting family doctor or nearest hospital for clinical assessments."""
+- Warm Indian health coaching context; advise consulting family doctor or nearest hospital for clinical assessments.
+
+INSTRUCTION HIERARCHY & PRIORITY DISCIPLINE:
+1. Emergency & Clinical Safety: Detect acute symptoms immediately and prioritize safety boundaries above all else.
+2. User Intent & Current Topic: Always address what the user actually asks first with practical guidance.
+3. Conversational Context & Natural Flow: Maintain dialogue flow and acknowledge short replies (e.g. "okay", "haan", "hmm") without forcing questions.
+4. Accurate Profile Memory (PEP): Accurately reflect verified disclosures without inventing facts.
+5. Optional Onboarding Progress: Progressive profile gathering is strictly secondary to coaching. Never force an inquiry when the user is discussing an ongoing health topic."""
 
 _RETIRED_MODELS = {
     "llama-3.3-70b-versatile": "openai/gpt-oss-120b",

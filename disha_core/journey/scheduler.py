@@ -41,6 +41,7 @@ async def select_next_question(
     is_off_topic_query: bool = False,
     conn: asyncpg.Connection | None = None,
     preferred_lang: str = "hinglish",
+    auto_record: bool = True,
 ) -> ScheduledQuestion | None:
     """Select the single best next question to advance the patient's journey.
 
@@ -130,8 +131,8 @@ async def select_next_question(
     lang_key = "hi" if preferred_lang == "hi" else ("en" if preferred_lang == "en" else "hinglish")
     q_text = selected.phrasings.get(lang_key) or selected.phrasings.get("hinglish") or selected.phrasings["en"]
 
-    # 5. Record asked question in history if connection provided
-    if conn is not None:
+    # 5. Record asked question in history if connection provided and auto_record is True
+    if conn is not None and auto_record:
         await record_question_asked(
             patient_id=patient_id,
             question_id=selected.question_id,

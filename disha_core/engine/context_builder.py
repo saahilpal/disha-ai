@@ -551,9 +551,9 @@ def render_user_payload(user_input: str, context: dict[str, Any], chunks: Any = 
     if scheduled_q:
         scheduled_text = html.escape(str(scheduled_q))
         scheduled_xml = (
-            f'<SCHEDULED_ONBOARDING_INQUIRY instruction="After addressing the patient above, naturally ask this single question at the end:">'
+            f'<ONBOARDING_INQUIRY_SUGGESTION guidance="If conversation flow naturally permits after addressing the patient, you may inquire about this unknown field. Prioritize the user\'s immediate question and do not force this inquiry if changing topics or if the user gave a simple acknowledgment:">'
             f"{scheduled_text}"
-            f"</SCHEDULED_ONBOARDING_INQUIRY>"
+            f"</ONBOARDING_INQUIRY_SUGGESTION>"
         )
 
     # Conversational state: identify follow-ups, short responses, and last assistant utterance

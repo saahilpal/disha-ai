@@ -167,6 +167,16 @@ class ResponseHarness:
         # 1d. Patient context and PEP loading
         day = app_state.today_ist() if hasattr(app_state, "today_ist") else "monday"
         prescribed_meal_query = is_prescribed_meal_query(payload.text)
+        effective_meal_type = payload.meal_type
+        if not effective_meal_type:
+            t_lower = payload.text.casefold()
+            if "breakfast" in t_lower or "nashta" in t_lower:
+                effective_meal_type = "breakfast"
+            elif "lunch" in t_lower or "dopahar" in t_lower:
+                effective_meal_type = "lunch"
+            elif "dinner" in t_lower or "raat" in t_lower:
+                effective_meal_type = "dinner"
+
         pool = getattr(app_state, "pool", None)
         context: dict[str, Any] = {}
 
@@ -178,7 +188,7 @@ class ResponseHarness:
                     None,
                     patient_id,
                     day,
-                    payload.meal_type if prescribed_meal_query else None,
+                    effective_meal_type if prescribed_meal_query else None,
                     user_input=payload.text,
                     intent=intent.value if intent else None,
                 )
@@ -188,7 +198,7 @@ class ResponseHarness:
                         connection,
                         patient_id,
                         day,
-                        payload.meal_type if prescribed_meal_query else None,
+                        effective_meal_type if prescribed_meal_query else None,
                         user_input=payload.text,
                         intent=intent.value if intent else None,
                     )
@@ -203,14 +213,7 @@ class ResponseHarness:
             return
 
         normalized = normalize(payload.text)
-        is_incomplete_thought = payload.text.strip().endswith("...") or (
-            len(payload.text.strip().split()) <= 4
-            and not normalized.is_recommendation_request
-            and not any(
-                q_word in payload.text.casefold()
-                for q_word in ("kya", "kaise", "kyun", "what", "how", "why", "when", "kahan", "where", "hi", "hello")
-            )
-        )
+        is_incomplete_thought = payload.text.strip().endswith("...")
         context["is_incomplete_thought"] = is_incomplete_thought
         context["clinical_tags"] = normalized.tags
         context["intent"] = intent.value if intent else Intent.UNKNOWN.value
@@ -225,7 +228,7 @@ class ResponseHarness:
         )
 
         # 1e. Prescribed Meal & Diet Status Checks
-        if prescribed_meal_query and payload.meal_type is None:
+        if prescribed_meal_query and effective_meal_type is None:
             state.validator_status = "deflected:meal_window_required"
             tc.validator.status = "deflected:meal_window_required"
             msg = "Aap apne prescribed plan mein kaunsa meal dekhna chahte hain: breakfast, lunch, ya dinner?"
@@ -234,13 +237,19 @@ class ResponseHarness:
             return
 
         if prescribed_meal_query and context.get("diet_status") == "NOT_FOUND":
-            state.validator_status = "rewritten:meal_not_found"
-            tc.validator.status = "rewritten:meal_not_found"
-            await _commit_turn(app_state, patient_id, payload.text, MEAL_NOT_FOUND_REPLACEMENT)
-            yield MEAL_NOT_FOUND_REPLACEMENT
-            return
+            # If the user previously discussed this meal in recent history, let LLM answer from context
+            has_meal_in_history = any(
+                effective_meal_type in m.get("content", "").lower()
+                for m in (context.get("conversation_history") or ())
+            ) if effective_meal_type else False
+            if not has_meal_in_history:
+                state.validator_status = "rewritten:meal_not_found"
+                tc.validator.status = "rewritten:meal_not_found"
+                await _commit_turn(app_state, patient_id, payload.text, MEAL_NOT_FOUND_REPLACEMENT)
+                yield MEAL_NOT_FOUND_REPLACEMENT
+                return
 
-        if prescribed_meal_query and context.get("diet_status") != "FOUND":
+        if prescribed_meal_query and context.get("diet_status") not in {"FOUND", "NOT_FOUND"}:
             state.validator_status = "deflected:meal_plan_unavailable"
             tc.validator.status = "deflected:meal_plan_unavailable"
             msg = "Main abhi aapka saved meal plan access nahi kar paa rahi. Kripya thodi der baad phir koshish karein."
@@ -346,9 +355,11 @@ class ResponseHarness:
                                 is_off_topic_query=is_off_topic,
                                 conn=connection,
                                 preferred_lang=lang,
+                                auto_record=False,
                             )
                             if scheduled_q:
                                 context["scheduled_question"] = scheduled_q.text
+                                context["scheduled_question_obj"] = scheduled_q
 
                     should_retrieve = not prescribed_meal_query and (
                         bool(normalized.tags)
@@ -361,31 +372,8 @@ class ResponseHarness:
                         )
                     )
                     if should_retrieve:
-                        pep_context = context.get("pep") or {}
-                        contextual_terms: list[str] = []
-                        if normalized.is_meal_query:
-                            contextual_terms.extend(
-                                str(value)
-                                for value in (
-                                    pep_context.get("dietary_preference"),
-                                    pep_context.get("primary_focus"),
-                                    *(pep_context.get("diagnosed_conditions") or ()),
-                                )
-                                if value
-                            )
-                        if normalized.is_exercise_query:
-                            contextual_terms.extend(
-                                str(value)
-                                for value in (
-                                    pep_context.get("user_reported_concerns"),
-                                    *(pep_context.get("restricted_modalities") or ()),
-                                    *(pep_context.get("diagnosed_conditions") or ()),
-                                )
-                                if value
-                            )
-                        retrieval_query = " ".join((normalized.normalized, *contextual_terms))
-                        profile_tags = normalize(" ".join(contextual_terms)).tags
-                        target_tags = list(dict.fromkeys((*normalized.tags, *profile_tags)))
+                        retrieval_query = normalized.normalized
+                        target_tags = list(normalized.tags)
                         retriever = getattr(app_m, "retrieve_chunks", retrieve_chunks) if app_m else retrieve_chunks
                         chunks = await retriever(connection, retrieval_query, patient_id=patient_id, tags=target_tags)
                         state.retrieval_status = "retrieved" if chunks else "no_results"
@@ -570,6 +558,26 @@ class ResponseHarness:
         if generated_sentences:
             full_reply = " ".join(generated_sentences)
             await _commit_turn(app_state, patient_id, payload.text, full_reply)
+
+            # Record scheduled question only if actually delivered in the reply
+            scheduled_q_obj = context.get("scheduled_question_obj")
+            if scheduled_q_obj and getattr(app_state, "pool", None) is not None:
+                q_text_sample = scheduled_q_obj.text.split("?")[0].strip()
+                was_delivered = "?" in full_reply and any(
+                    word in full_reply.lower() for word in q_text_sample.lower().split()[-4:]
+                )
+                if was_delivered:
+                    with suppress(Exception):
+                        from disha_core.journey.state_machine import record_question_asked
+
+                        async with app_state.pool.acquire() as q_conn:
+                            await record_question_asked(
+                                patient_id=patient_id,
+                                question_id=scheduled_q_obj.question_id,
+                                channel=channel,
+                                question_text=scheduled_q_obj.text,
+                                conn=q_conn,
+                            )
 
         tc.record_stage_latency("COMMIT", (time.monotonic() - t3) * 1000.0)
         tc.record_stage_latency("TOTAL_TURN", (time.monotonic() - t_start) * 1000.0)

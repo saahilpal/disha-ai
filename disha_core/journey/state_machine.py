@@ -58,7 +58,7 @@ async def sync_known_fields_from_db(patient_id: str, conn: asyncpg.Connection) -
             known["dietary_preference"] = p_row["dietary_preference"]
         if p_row["health_goals"]:
             known["primary_health_goal"] = p_row["health_goals"]
-        if p_row["health_conditions"]:
+        if p_row["health_conditions"] is not None:
             known["diagnosed_conditions"] = list(p_row["health_conditions"])
 
     # 2. patient_pep
@@ -70,7 +70,7 @@ async def sync_known_fields_from_db(patient_id: str, conn: asyncpg.Connection) -
         patient_id,
     )
     if pep_row:
-        if pep_row["diagnosed_conditions"] and not known.get("diagnosed_conditions"):
+        if pep_row["diagnosed_conditions"] is not None and "diagnosed_conditions" not in known:
             known["diagnosed_conditions"] = list(pep_row["diagnosed_conditions"])
         if pep_row["primary_focus"] and not known.get("primary_health_goal"):
             known["primary_health_goal"] = pep_row["primary_focus"]
@@ -433,22 +433,30 @@ async def record_field_answer(
                 val,
             )
         else:
-            default_name = (
-                val
-                if field_def.dest_column == "name"
-                else ("Aarav Sharma" if patient_id == "pt_test_01" else patient_id)
-            )
-            await conn.execute(
-                f"""INSERT INTO patient_profiles (patient_id, {field_def.dest_column}, name, email, password_hash, created_at)
-                    VALUES ($1, $2, $3, $4, 'pass_hash', $5)
-                    ON CONFLICT (patient_id) DO UPDATE SET
-                    {field_def.dest_column} = EXCLUDED.{field_def.dest_column}""",
-                patient_id,
-                val,
-                default_name,
-                email,
-                now,
-            )
+            if field_def.dest_column == "name":
+                await conn.execute(
+                    """INSERT INTO patient_profiles (patient_id, name, email, password_hash, created_at)
+                        VALUES ($1, $2, $3, 'pass_hash', $4)
+                        ON CONFLICT (patient_id) DO UPDATE SET
+                        name = EXCLUDED.name""",
+                    patient_id,
+                    val,
+                    email,
+                    now,
+                )
+            else:
+                default_name = "Aarav Sharma" if patient_id == "pt_test_01" else patient_id
+                await conn.execute(
+                    f"""INSERT INTO patient_profiles (patient_id, {field_def.dest_column}, name, email, password_hash, created_at)
+                        VALUES ($1, $2, $3, $4, 'pass_hash', $5)
+                        ON CONFLICT (patient_id) DO UPDATE SET
+                        {field_def.dest_column} = EXCLUDED.{field_def.dest_column}""",
+                    patient_id,
+                    val,
+                    default_name,
+                    email,
+                    now,
+                )
     elif dest == FieldDestination.PEP_CORE:
         if field_def.dest_column == "diagnosed_conditions":
             cond_list = val if isinstance(val, list) else [str(val)]

@@ -253,13 +253,14 @@ def extract_patient_disclosures(
         extracted["daily_movement_level"] = normalize_steps_target(steps_match.group(1), lang)
 
     # 12. Basic Profile (Height, Weight, Age, Name)
-    wt_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kilograms?)", lower)
-    if wt_match:
-        extracted["weight_kg"] = float(wt_match.group(1))
+    wt_matches = list(re.finditer(r"(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kilograms?)", lower))
+    if wt_matches:
+        # In corrections or multi-weight statements, the latter number represents the current/updated weight
+        extracted["weight_kg"] = float(wt_matches[-1].group(1))
 
-    ht_match = re.search(r"(\d{2,3})\s*(?:cm|centimeters?)", lower)
-    if ht_match:
-        extracted["height_cm"] = float(ht_match.group(1))
+    ht_matches = list(re.finditer(r"(\d{2,3})\s*(?:cm|centimeters?)", lower))
+    if ht_matches:
+        extracted["height_cm"] = float(ht_matches[-1].group(1))
 
     age_match = (
         re.search(r"\b(\d{1,2})\s*(?:years?(?:\s+old)?|yrs?(?:\s+old)?|yo\b|saal(?:\s+ka|\s+ki)?|varsh|sal)\b", lower)
