@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Disha: Personal Health Coach</title>
+  <meta name="description" content="Personal AI health coaching for nutrition, habits, and daily wellness.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-viewport">
+    <!-- Top Navigation Bar -->
+    <header class="app-header">
+      <div class="brand">
+        <a href="#/chat" class="brand-link" aria-label="Disha Health Coach">
+          <div class="brand-logo" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">Disha</span>
+            <span class="brand-badge">Health Coach</span>
+          </div>
+        </a>
+      </div>
+
+      <!-- Navigation Tabs (4 Core Destinations) -->
+      <nav class="main-nav" aria-label="Primary Navigation">
+        <a href="#/chat" class="nav-tab active" data-route="chat">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>Chat</span>
+        </a>
+        <a href="#/meals" class="nav-tab" data-route="meals">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M18 8h1a4 4 0 0 1 0 8h-1"></path>
+            <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path>
+            <line x1="6" y1="1" x2="6" y2="4"></line>
+            <line x1="10" y1="1" x2="10" y2="4"></line>
+            <line x1="14" y1="1" x2="14" y2="4"></line>
+          </svg>
+          <span>Meals</span>
+        </a>
+        <a href="#/profile" class="nav-tab" data-route="profile">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span>Profile</span>
+        </a>
+        <a href="#/settings" class="nav-tab" data-route="settings">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+          <span>Settings</span>
+        </a>
+      </nav>
+
+      <div class="header-actions">
+        <!-- Theme Toggle -->
+        <button id="theme-toggle" class="icon-btn" aria-label="Toggle theme" title="Toggle theme">
+          <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+        </button>
+
+        <!-- Emergency 112 Direct Access Shortcut -->
+        <a id="emergency-112-btn" href="tel:112" class="emergency-quick-btn" title="Call 112 Emergency" aria-label="Call 112 Emergency" style="display: inline-flex; align-items: center; justify-content: center; background: #C24137; color: #fff; padding: 0.25rem 0.5rem; border-radius: 9999px; font-weight: 700; font-size: 0.75rem; text-decoration: none;">112</a>
+
+        <!-- Authenticated Patient Pill / Sign In Link -->
+        <a href="#/signin" id="nav-signin-link" class="nav-signin-btn">Sign In</a>
+        <div id="patient-badge" class="patient-pill" style="display: none;">
+          <span class="patient-dot" aria-hidden="true"></span>
+          <span id="patient-display-name">Profile</span>
+          <button id="signout-btn" class="signout-link" title="Sign out">Sign out</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Global Notice Banner -->
+    <div id="global-alert" class="alert-banner" role="alert" style="display: none;">
+      <div id="alert-content" class="alert-text"></div>
+      <button class="alert-dismiss" aria-label="Dismiss">&times;</button>
+    </div>
+
+    <!-- VIEW 1: AUTHENTICATION & ONBOARDING -->
+    <main id="auth-view" class="view-container">
+      <div class="auth-wrapper">
+        <div class="auth-tabs" role="tablist">
+          <button type="button" class="auth-tab-btn active" id="tab-login" role="tab" aria-selected="true">Sign In</button>
+          <button type="button" class="auth-tab-btn" id="tab-onboard" role="tab" aria-selected="false">Create Profile</button>
+        </div>
+
+        <!-- 1A: Sign In Form -->
+        <div id="login-section" class="auth-panel" role="tabpanel">
+          <div class="auth-panel-head">
+            <h1 class="panel-title">Sign In</h1>
+            <p class="panel-desc">Access your health baseline, coaching history, and meal recommendations.</p>
+          </div>
+
+          <form id="login-form" class="auth-form" novalidate>
+            <div class="form-group">
+              <label for="email-input" class="form-label">Email Address</label>
+              <input type="email" id="email-input" name="email" class="form-input" placeholder="Email address" required autocomplete="email" />
+              <div id="email-error" class="field-feedback error" role="alert"></div>
+            </div>
+
+            <div class="form-group">
+              <label for="password-input" class="form-label">Password</label>
+              <div class="password-input-wrapper">
+                <input type="password" id="password-input" name="password" class="form-input" placeholder="Password" required autocomplete="current-password" />
+                <button type="button" id="toggle-login-password" class="password-toggle-btn" aria-label="Toggle password visibility">Show</button>
+              </div>
+              <div id="password-error" class="field-feedback error" role="alert"></div>
+            </div>
+
+            <button type="submit" id="login-submit-btn" class="primary-btn full-width">
+              <span>Sign In</span>
+            </button>
+          </form>
+
+          <p class="auth-switch-text">
+            New to Disha? <button type="button" class="auth-switch-link" id="switch-to-register">Create an account</button>
+          </p>
+        </div>
+
+        <!-- 1B: Clean 3-Step Profile Onboarding -->
+        <div id="onboard-section" class="auth-panel" role="tabpanel" style="display: none;">
+          <div class="auth-panel-head">
+            <h1 class="panel-title">Create Health Profile</h1>
+            <p class="panel-desc">Help Disha tailor nutrition, daily activity, and wellness advice to you.</p>
+          </div>
+
+          <!-- Step Indicator -->
+          <div class="onboard-steps-bar" role="progressbar" aria-valuenow="1" aria-valuemin="1" aria-valuemax="3">
+            <div class="step-indicator active" id="tracker-step-1" data-step="1">
+              <span class="step-num">1</span>
+              <span class="step-text">Basics</span>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step-indicator" id="tracker-step-2" data-step="2">
+              <span class="step-num">2</span>
+              <span class="step-text">Health &amp; Goals</span>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step-indicator" id="tracker-step-3" data-step="3">
+              <span class="step-num">3</span>
+              <span class="step-text">Account</span>
+            </div>
+          </div>
+
+          <form id="onboard-form" class="auth-form" novalidate>
+            <!-- Step 1: Personal Basics -->
+            <div class="step-panel active" id="onboard-step-panel-1">
+              <div class="form-group">
+                <label for="onboard-name" class="form-label">Full Name</label>
+                <input type="text" id="onboard-name" class="form-input" placeholder="Your name" required autocomplete="name" />
+                <div id="onboard-name-error" class="field-feedback error" role="alert"></div>
+              </div>
+
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="onboard-age" class="form-label">Age (years)</label>
+                  <input type="number" id="onboard-age" class="form-input" min="1" max="120" placeholder="32" required />
+                  <div id="onboard-age-error" class="field-feedback error" role="alert"></div>
+                </div>
+
+                <div class="form-group">
+                  <label for="onboard-gender" class="form-label">Gender</label>
+                  <select id="onboard-gender" class="form-select">
+                    <option value="Female">Female</option>
+                    <option value="Male" selected>Male</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="step-actions right-align">
+                <button type="button" class="primary-btn" id="step-1-next-btn">Continue</button>
+              </div>
+            </div>
+
+            <!-- Step 2: Body, Diet & Health Focus -->
+            <div class="step-panel" id="onboard-step-panel-2" style="display: none;">
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="onboard-height" class="form-label">Height (cm)</label>
+                  <input type="number" id="onboard-height" class="form-input" min="50" max="250" step="any" placeholder="172" required />
+                  <div id="onboard-height-error" class="field-feedback error" role="alert"></div>
+                </div>
+
+                <div class="form-group">
+                  <label for="onboard-weight" class="form-label">Weight (kg)</label>
+                  <input type="number" id="onboard-weight" class="form-input" min="20" max="300" step="any" placeholder="70" required />
+                  <div id="onboard-weight-error" class="field-feedback error" role="alert"></div>
+                </div>
+              </div>
+
+              <div class="form-row-2">
+                <div class="form-group">
+                  <label for="onboard-diet" class="form-label">Dietary Preference</label>
+                  <select id="onboard-diet" class="form-select">
+                    <option value="Vegetarian" selected>Vegetarian</option>
+                    <option value="Non-Vegetarian">Non-Vegetarian</option>
+                    <option value="Eggetarian">Eggetarian</option>
+                    <option value="Vegan">Vegan</option>
+                    <option value="Jain">Jain</option>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="onboard-focus" class="form-label">Primary Health Focus</label>
+                  <select id="onboard-focus" class="form-select">
+                    <option value="Fitness & General Wellness" selected>Fitness &amp; General Wellness</option>
+                    <option value="Blood Pressure Care">Blood Pressure Care</option>
+                    <option value="Blood Sugar Management">Blood Sugar Management</option>
+                    <option value="Healthy Weight Loss">Healthy Weight Loss</option>
+                    <option value="Digestive Health">Digestive Health</option>
+                    <option value="PCOS Care">PCOS Care</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="onboard-language" class="form-label">Preferred Language</label>
+                <select id="onboard-language" class="form-select">
+                  <option value="hinglish" selected>Hinglish</option>
+                  <option value="en">English</option>
+                  <option value="hi">Hindi (हिंदी)</option>
+                </select>
+                <p class="form-hint">Disha will use this language for your coaching conversations.</p>
+              </div>
+
+              <div class="step-actions split">
+                <button type="button" class="secondary-btn" id="step-2-back-btn">Back</button>
+                <button type="button" class="primary-btn" id="step-2-next-btn">Continue</button>
+              </div>
+            </div>
+
+            <!-- Step 3: Account Credentials -->
+            <div class="step-panel" id="onboard-step-panel-3" style="display: none;">
+              <div class="form-group">
+                <label for="onboard-email" class="form-label">Email Address</label>
+                <input type="email" id="onboard-email" class="form-input" placeholder="Email address" required autocomplete="email" />
+                <div id="onboard-email-error" class="field-feedback error" role="alert"></div>
+              </div>
+
+              <div class="form-group">
+                <label for="onboard-password" class="form-label">Password</label>
+                <div class="password-input-wrapper">
+                  <input type="password" id="onboard-password" class="form-input" placeholder="At least 6 characters" required autocomplete="new-password" />
+                  <button type="button" id="toggle-onboard-password" class="password-toggle-btn" aria-label="Toggle password visibility">Show</button>
+                </div>
+                <div id="onboard-password-error" class="field-feedback error" role="alert"></div>
+              </div>
+
+              <div class="step-actions split">
+                <button type="button" class="secondary-btn" id="step-3-back-btn">Back</button>
+                <button type="submit" id="onboard-submit-btn" class="primary-btn">Complete Setup</button>
+              </div>
+            </div>
+          </form>
+
+          <p class="auth-switch-text">
+            Already have an account? <button type="button" class="auth-switch-link" id="switch-to-login">Sign in here</button>
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <!-- VIEW 2: MAIN CHAT VIEW (Central Experience) -->
+    <main id="dashboard-view" class="view-container chat-layout-view" style="display: none;">
+      <div class="chat-container">
+        <!-- Chat Header -->
+        <div class="chat-header-bar">
+          <div class="coach-profile">
+            <div class="coach-avatar" aria-hidden="true">D</div>
+            <div class="coach-details">
+              <h1 class="coach-name">Disha</h1>
+              <span class="coach-status-sub">Health Coach</span>
+            </div>
+          </div>
+          <div class="chat-top-actions">
+            <div id="chat-offline-banner" class="chat-offline-pill" style="display: none;" role="status" aria-live="polite">
+              <span class="offline-dot" aria-hidden="true"></span>
+              <span>Offline — queued</span>
+            </div>
+            <button type="button" id="header-call-btn" class="voice-call-trigger-btn" title="Start voice session">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+              <span>Voice Call</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Clinical AI Health Coach Disclosure & Consent Modal -->
+        <div class="consent-modal" id="consent-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="consent-modal-title">
+          <div class="consent-modal-dialog">
+            <div class="consent-modal-header">
+              <h3 id="consent-modal-title" class="consent-title">Clinical AI Health Coach Disclosure &amp; Consent</h3>
+            </div>
+            <div class="consent-modal-body">
+              <div class="consent-disclosure-card">
+                <p class="disclosure-main">
+                  <strong>Disha AI</strong> is your personalized lifestyle, nutrition, and habit health coach.
+                </p>
+                <ul class="disclosure-points">
+                  <li><strong>AI Coach Disclosure:</strong> Disha is an artificial intelligence health coach, not a licensed medical doctor or clinical practitioner.</li>
+                  <li><strong>No Prescriptions:</strong> Disha cannot diagnose illnesses, alter doctor-prescribed medication dosages, or prescribe pharmaceuticals.</li>
+                  <li><strong>Emergency Protocol:</strong> If you or someone with you experiences chest pain, acute breathlessness, or severe trauma, call <strong>112</strong> or <strong>108</strong> immediately.</li>
+                  <li><strong>Voice Processing Consent:</strong> Audio is captured for speech-to-text processing solely to conduct this consultation session.</li>
+                </ul>
+              </div>
+              <label class="consent-checkbox-label" for="medical-consent-checkbox">
+                <input type="checkbox" id="medical-consent-checkbox" />
+                <span>I understand Disha is an AI health coach and consent to voice consultation processing.</span>
+              </label>
+            </div>
+            <div class="consent-modal-footer">
+              <button type="button" id="consent-cancel-btn" class="secondary-btn">Stay in Chat</button>
+              <button type="button" id="consent-accept-btn" class="primary-btn" disabled>Accept &amp; Start Call</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dedicated Voice Call Overlay Modal -->
+        <div class="call-overlay-modal" id="call-overlay-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="call-modal-title">
+          <div class="call-modal-dialog">
+            <div class="call-modal-head">
+              <div class="call-head-meta">
+                <h2 id="call-modal-title" class="call-modal-title">Live Voice Call</h2>
+                <div class="call-timer-display font-mono" id="call-duration">00:00</div>
+                <span id="recording-time" style="display:none">00:00</span>
+              </div>
+              <div class="telephony-status-pill" id="telephony-status-pill" role="status" aria-live="polite">
+                <span class="indicator-dot idle"></span>
+                <span class="status-label font-sans" id="telephony-status-text">Ready for consultation</span>
+              </div>
+              <button type="button" id="call-modal-close-btn" class="modal-close-icon" aria-label="Return to chat view" title="Return to chat">&times;</button>
+            </div>
+
+            <!-- Voice Sound Spectrum Animation -->
+            <div class="call-spectrum-wrapper" id="visualizer-box">
+              <div class="spectrum-bars" id="spectrum-bars" aria-hidden="true">
+                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+                <div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div><div class="spec-bar"></div>
+              </div>
+              <canvas id="waveform-canvas" height="1" width="1" style="display:none" aria-hidden="true"></canvas>
+            </div>
+
+            <!-- Responsive Microphone Audio Level Meter -->
+            <div class="call-mic-meter-wrapper" id="call-mic-meter-wrapper" aria-label="Microphone input level">
+              <div class="mic-meter-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+              </div>
+              <div class="mic-meter-track" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="mic-audio-meter">
+                <div class="mic-meter-fill" id="mic-meter-fill" style="width: 0%;"></div>
+              </div>
+              <span class="mic-meter-value font-mono" id="mic-meter-value" aria-hidden="true">0%</span>
+            </div>
+
+            <!-- Live Spoken Subtitles & Captions Box -->
+            <div class="voice-subtitles-box" id="voice-subtitles-card" role="region" aria-label="Live Call Captions" aria-live="polite">
+              <div class="subtitles-header">
+                <span class="captions-badge">LIVE CAPTIONS</span>
+                <span class="captions-speaker" id="voice-captions-speaker">Disha AI</span>
+              </div>
+              <p class="subtitles-text" id="voice-subtitles-text">Listening… speak naturally.</p>
+            </div>
+
+            <div class="call-actions-row">
+              <button type="button" id="mute-mic-btn" class="call-action-btn secondary" title="Mute/Unmute microphone" aria-label="Toggle mute microphone">
+                <span id="mic-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                    <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                    <line x1="12" y1="19" x2="12" y2="23"></line>
+                    <line x1="8" y1="23" x2="16" y2="23"></line>
+                  </svg>
+                </span>
+                <span id="mic-label">Mute</span>
+              </button>
+
+              <button type="button" id="call-btn" class="call-action-btn end-call" title="End Call" aria-label="End voice consultation and return to chat">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path>
+                  <line x1="23" y1="1" x2="1" y2="23"></line>
+                </svg>
+                <span id="call-btn-label">End Call</span>
+              </button>
+
+              <button type="button" id="switch-to-chat-btn" class="call-action-btn secondary" title="Switch to text view" aria-label="Return to chat preserving state">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span>To Chat</span>
+              </button>
+
+              <button id="mic-btn" style="display:none"></button>
+            </div>
+
+            <div class="call-disclaimer-notice font-sans">
+              <span>Disha AI Health Coach &bull; Lifestyle guidance only &bull; In an emergency, dial 112</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- In-Chat Onboarding 5-Stage Journey Progress Banner -->
+        <div class="chat-journey-banner" id="chat-journey-banner" role="status" aria-label="Onboarding 5-Stage Journey Progress">
+          <div class="journey-stage-indicator">
+            <span class="journey-stage-pill" id="chat-stage-pill">Stage 1 of 5</span>
+            <span class="journey-stage-name" id="chat-stage-name">Basic Profile &amp; Health Baseline</span>
+          </div>
+          <div class="journey-progress-dots" id="chat-progress-dots" aria-hidden="true">
+            <span class="journey-dot active"></span>
+            <span class="journey-dot"></span>
+            <span class="journey-dot"></span>
+            <span class="journey-dot"></span>
+            <span class="journey-dot"></span>
+          </div>
+        </div>
+
+        <!-- Chat Messages Stream -->
+        <div class="chat-messages-area" id="chat-messages-area">
+          <div id="chat-stream" class="chat-stream" role="log" aria-live="polite" aria-atomic="false">
+            <div class="chat-message assistant">
+              <div class="msg-avatar" aria-hidden="true">D</div>
+              <div class="msg-bubble">
+                <p class="msg-text">I’m Disha. What would you like help with today?</p>
+              </div>
+            </div>
+          </div>
+          <!-- Floating stick-to-bottom / Jump to latest pill -->
+          <button type="button" id="jump-to-latest-btn" class="jump-to-latest-pill" style="display: none;" aria-label="Jump to latest message">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span>Jump to latest</span>
+          </button>
+        </div>
+
+        <!-- Chat Input Form -->
+        <div class="chat-composer-bar">
+          <div class="chat-composer-inner">
+            <form id="text-turn-form" class="chat-form">
+              <textarea
+                id="user-text-input"
+                class="chat-input-field"
+                placeholder="Ask Disha about nutrition, meals, exercise, or health habits…"
+                rows="1"
+                autocomplete="off"
+                aria-label="Message Disha"
+              ></textarea>
+              <div class="composer-actions">
+                <button type="button" id="stop-stream-btn" class="chat-stop-btn" style="display: none;" aria-label="Stop generation">
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+                  </svg>
+                  <span>Stop</span>
+                </button>
+                <button type="submit" id="send-turn-btn" class="chat-submit-btn" aria-label="Send message">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                </button>
+              </div>
+            </form>
+            <div class="composer-hint" aria-hidden="true">
+              <span><kbd>Enter</kbd> sends &middot; <kbd>Shift+Enter</kbd> newline</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- VIEW 3: MEALS VIEW -->
+    <main id="view-meals" class="view-container content-page-view" style="display: none;">
+      <div class="content-container">
+        <div class="section-header-row">
+          <div>
+            <h1 class="page-title">Today’s Meal Guidelines</h1>
+            <p class="page-subtitle">Prescribed diet schedule tailored to your health baseline.</p>
+          </div>
+          <a href="#/chat" class="secondary-btn">Ask Disha about meals</a>
+        </div>
+
+        <div class="meals-grid">
+          <div class="meal-card" id="meal-card-breakfast">
+            <div class="meal-card-header">
+              <span class="meal-type-label">Breakfast</span>
+              <span class="meal-timing-tag">Morning</span>
+            </div>
+            <p class="meal-content-text" id="meals-page-breakfast">Loading schedule…</p>
+          </div>
+
+          <div class="meal-card" id="meal-card-lunch">
+            <div class="meal-card-header">
+              <span class="meal-type-label">Lunch</span>
+              <span class="meal-timing-tag">Midday</span>
+            </div>
+            <p class="meal-content-text" id="meals-page-lunch">Loading schedule…</p>
+          </div>
+
+          <div class="meal-card" id="meal-card-dinner">
+            <div class="meal-card-header">
+              <span class="meal-type-label">Dinner</span>
+              <span class="meal-timing-tag">Evening</span>
+            </div>
+            <p class="meal-content-text" id="meals-page-dinner">Loading schedule…</p>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- VIEW 4: PROFILE VIEW -->
+    <main id="view-profile" class="view-container content-page-view" style="display: none;">
+      <div class="content-container">
+        <div class="section-header-row">
+          <div>
+            <h1 class="page-title">Your Health Profile</h1>
+            <p class="page-subtitle">Personal baseline, habits, and exercise safety boundaries.</p>
+          </div>
+          <button type="button" id="profile-page-edit-btn" class="primary-btn">Edit Profile</button>
+        </div>
+
+        <div class="profile-grid">
+          <div class="info-block">
+            <h2 class="block-title">Vitals Baseline</h2>
+            <div class="vitals-list">
+              <div class="vital-item">
+                <span class="vital-label">Age &amp; Gender</span>
+                <span class="vital-value" id="profile-page-age-sex">--</span>
+              </div>
+              <div class="vital-item">
+                <span class="vital-label">Height &amp; Weight</span>
+                <span class="vital-value tabular-nums" id="profile-page-height-weight">--</span>
+              </div>
+              <div class="vital-item">
+                <span class="vital-label">BMI</span>
+                <span class="vital-value tabular-nums" id="profile-page-bmi">--</span>
+              </div>
+              <div class="vital-item">
+                <span class="vital-label">Dietary Preference</span>
+                <span class="vital-value" id="profile-page-diet">--</span>
+              </div>
+              <div class="vital-item">
+                <span class="vital-label">Main Focus</span>
+                <span class="vital-value" id="profile-page-focus">--</span>
+              </div>
+              <div class="vital-item">
+                <span class="vital-label">Language</span>
+                <span class="vital-value" id="profile-page-language">Hinglish</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="info-block">
+            <h2 class="block-title">Exercise &amp; Movement Safety</h2>
+            <div class="safety-detail-row">
+              <span class="safety-label">Permitted:</span>
+              <span class="safety-value" id="profile-page-allowed-modalities">--</span>
+            </div>
+            <div class="safety-detail-row">
+              <span class="safety-label">Restricted:</span>
+              <span class="safety-value warning-text" id="profile-page-restricted-modalities">--</span>
+            </div>
+            <div class="safety-detail-row">
+              <span class="safety-label">Hypertension Status:</span>
+              <span class="badge-mini" id="disp-htn-badge">Not assessed</span>
+            </div>
+          </div>
+
+          <!-- Onboarding Journey Progress Block -->
+          <div class="info-block span-2" id="profile-page-journey-block">
+            <h2 class="block-title">Health Journey Progress</h2>
+            <div class="safety-detail-row">
+              <span class="safety-label">Onboarding Stage:</span>
+              <span class="safety-badge" id="profile-journey-stage-badge">Stage 1 of 5</span>
+            </div>
+            <div class="safety-detail-row">
+              <span class="safety-label">Current Focus:</span>
+              <span class="safety-value" id="profile-journey-stage-title">Basic Profile &amp; Health Baseline</span>
+            </div>
+            <div class="safety-detail-row">
+              <span class="safety-label">Journey Status:</span>
+              <span class="safety-value" id="profile-journey-status">In progress — Disha collects your routine naturally across chat and voice calls.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- VIEW 5: SETTINGS VIEW -->
+    <main id="view-settings" class="view-container content-page-view" style="display: none;">
+      <div class="content-container">
+        <div class="section-header-row">
+          <div>
+            <h1 class="page-title">Hardware &amp; Preferences</h1>
+            <p class="page-subtitle">Configure audio devices and screen wake lock.</p>
+          </div>
+        </div>
+
+        <form id="settings-form" class="settings-form-block">
+          <div class="form-group">
+            <label for="audio-input-select" class="form-label">Microphone Input</label>
+            <select id="audio-input-select" class="form-select">
+              <option value="default">Default System Microphone</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="audio-output-select" class="form-label">Audio Output</label>
+            <select id="audio-output-select" class="form-select">
+              <option value="default">Default System Speaker</option>
+            </select>
+          </div>
+
+          <div class="form-toggle-row">
+            <div class="toggle-text-block">
+              <span class="toggle-label-text">Keep Display Awake During Voice Calls</span>
+              <span class="toggle-helper-text">Prevents screen timeout while talking with Disha.</span>
+            </div>
+            <label class="switch-toggle" aria-label="Keep screen awake toggle">
+              <input type="checkbox" id="wake-lock-toggle" checked>
+              <span class="slider-round" aria-hidden="true"></span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label for="theme-select" class="form-label">Theme Mode</label>
+            <select id="theme-select" class="form-select">
+              <option value="light">Light Mode</option>
+              <option value="dark">Dark Mode</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="language-select" class="form-label">Language Preference</label>
+            <select id="language-select" class="form-select">
+              <option value="hinglish" selected>Hinglish (Conversational)</option>
+              <option value="en">English</option>
+              <option value="hi">Hindi (हिंदी)</option>
+            </select>
+          </div>
+        </form>
+      </div>
+    </main>
+
+    <!-- VIEW 6: 404 NOT FOUND -->
+    <main id="view-404" class="view-container content-page-view" style="display: none;">
+      <div class="content-container notfound-box">
+        <h1 class="page-title">Page Not Found</h1>
+        <p class="page-subtitle">The requested section does not exist.</p>
+        <a href="#/chat" class="primary-btn">Return to Chat</a>
+      </div>
+    </main>
+
+    <!-- EDIT PROFILE MODAL -->
+    <div id="profile-edit-modal" class="modal-backdrop" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="profile-edit-title">
+      <div class="modal-dialog">
+        <div class="modal-head">
+          <h2 id="profile-edit-title" class="modal-heading">Edit Health Profile</h2>
+          <button type="button" id="profile-edit-close-btn" class="modal-close-icon" aria-label="Close modal">&times;</button>
+        </div>
+        <form id="edit-profile-form" class="modal-form-content" novalidate>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="edit-name" class="form-label">Full Name</label>
+              <input type="text" id="edit-name" class="form-input" placeholder="Your name" />
+            </div>
+            <div class="form-group">
+              <label for="edit-age" class="form-label">Age (years)</label>
+              <input type="number" id="edit-age" class="form-input" min="1" max="120" />
+            </div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="edit-height" class="form-label">Height (cm)</label>
+              <input type="number" id="edit-height" class="form-input" min="50" max="250" step="any" />
+            </div>
+            <div class="form-group">
+              <label for="edit-weight" class="form-label">Weight (kg)</label>
+              <input type="number" id="edit-weight" class="form-input" min="20" max="300" step="any" />
+            </div>
+          </div>
+          <div class="form-row-2">
+            <div class="form-group">
+              <label for="edit-gender" class="form-label">Gender</label>
+              <select id="edit-gender" class="form-select">
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="edit-language" class="form-label">Preferred Language</label>
+              <select id="edit-language" class="form-select">
+                <option value="hinglish">Hinglish</option>
+                <option value="en">English</option>
+                <option value="hi">Hindi</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="edit-diet" class="form-label">Dietary Preference</label>
+            <select id="edit-diet" class="form-select">
+              <option value="Vegetarian">Vegetarian</option>
+              <option value="Non-Vegetarian">Non-Vegetarian</option>
+              <option value="Eggetarian">Eggetarian</option>
+              <option value="Vegan">Vegan</option>
+              <option value="Jain">Jain</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="edit-goals" class="form-label">Primary Health Focus</label>
+            <input type="text" id="edit-goals" class="form-input" placeholder="e.g. Blood Sugar, Weight, Energy" />
+          </div>
+          <div id="profile-edit-status" class="field-feedback" style="margin-top: 0.5rem;"></div>
+          <div class="modal-actions-row">
+            <button type="button" id="profile-cancel-btn" class="secondary-btn">Cancel</button>
+            <button type="submit" id="profile-save-btn" class="primary-btn">Save Changes</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

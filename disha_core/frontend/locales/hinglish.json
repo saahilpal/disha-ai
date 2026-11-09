@@ -1,0 +1,49 @@
+{
+  "telephony": {
+    "status_idle": "Consultation ke liye ready",
+    "status_connecting": "Connecting to Disha Core...",
+    "status_listening": "Listening...",
+    "status_processing": "Processing...",
+    "status_speaking": "Disha speaking...",
+    "status_interrupted": "Interrupted...",
+    "status_muted": "Microphone muted hai",
+    "status_ended": "Call ended",
+    "btn_start_call": "Start Voice Consultation",
+    "btn_end_call": "End Call",
+    "btn_mute": "Mute",
+    "btn_unmute": "Unmute",
+    "btn_to_chat": "To Chat",
+    "captions_title": "LIVE CAPTIONS",
+    "captions_listening": "Listening… speak naturally.",
+    "captions_muted": "Microphone muted hai. Bolne ke liye Unmute karein.",
+    "captions_ended": "Voice consultation khatam ho gaya.",
+    "mic_level_label": "Microphone input level",
+    "call_disclaimer": "Disha ek AI health coach hai • Sirf lifestyle guidance • Emergency mein 112 dial karein"
+  },
+  "consent": {
+    "modal_title": "Clinical AI Health Coach Disclosure & Consent",
+    "intro": "Disha AI aapki personal lifestyle, nutrition, aur habit health coach hai.",
+    "not_doctor": "Disha ek artificial intelligence health coach hai, koi certified medical doctor ya practitioner nahi.",
+    "no_prescription": "Disha kisi bimari ko diagnose nahi karti aur na hi medicines prescribe ya change karti hai.",
+    "emergency": "Agar chest pain, breathlessness, ya koi acute emergency ho, toh turant 112 ya 108 par call karein.",
+    "voice_processing": "Audio ko speech-to-text processing ke liye use kiya jata hai taaki conversation smooth ho sake.",
+    "checkbox": "Main samajhta/samajhti hoon ki Disha ek AI health coach hai aur voice consultation ki consent deta/deti hoon.",
+    "btn_accept": "Accept & Start Call",
+    "btn_cancel": "Stay in Chat"
+  },
+  "onboarding": {
+    "stage_1_title": "Basic Profile & Health Baseline",
+    "stage_1_desc": "Disha calls aur chats ke dauran naturally aapka health baseline samajhti hai.",
+    "stage_2_title": "Health Background & Clinical Safety",
+    "stage_2_desc": "Health history, ongoing medicines, aur contraindications.",
+    "stage_3_title": "Lifestyle & Daily Routine",
+    "stage_3_desc": "Sleep timing, work schedule, water intake, aur movement.",
+    "stage_4_title": "Goals, Diet & Preferences",
+    "stage_4_desc": "Nutrition choices, target goals, aur food preferences.",
+    "stage_5_title": "Deep Personalisation & Sustained Coaching",
+    "stage_5_desc": "Verified coaching plan aur personalized guidance.",
+    "stage_pill": "Stage {current} of 5",
+    "complete_badge": "Onboarding Complete",
+    "welcome_message": "Namaste {name}! Main Disha hoon, aapki personal AI health coach. Main lifestyle, diet aur healthy habits mein aapko guide karti hoon. Main ek doctor nahi hoon aur emergency medical treatment nahi de sakti.\n\nAaj aap kaisa mehsoos kar rahe hain? Kya aap aaj ka nutrition plan dekhna chahenge ya wellness goals par baat karein?"
+  }
+}

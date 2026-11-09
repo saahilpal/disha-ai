@@ -1,0 +1,49 @@
+{
+  "telephony": {
+    "status_idle": "Ready for consultation",
+    "status_connecting": "Connecting to Disha Core...",
+    "status_listening": "Listening...",
+    "status_processing": "Processing...",
+    "status_speaking": "Disha speaking...",
+    "status_interrupted": "Interrupted...",
+    "status_muted": "Microphone muted",
+    "status_ended": "Call ended",
+    "btn_start_call": "Start Voice Consultation",
+    "btn_end_call": "End Call",
+    "btn_mute": "Mute",
+    "btn_unmute": "Unmute",
+    "btn_to_chat": "To Chat",
+    "captions_title": "LIVE CAPTIONS",
+    "captions_listening": "Listening… speak naturally.",
+    "captions_muted": "Microphone muted. Tap Unmute to speak.",
+    "captions_ended": "Voice consultation ended.",
+    "mic_level_label": "Microphone input level",
+    "call_disclaimer": "Disha is an AI health coach • Lifestyle guidance only • In emergency, dial 112"
+  },
+  "consent": {
+    "modal_title": "Clinical AI Health Coach Disclosure & Consent",
+    "intro": "Disha AI is your personalized lifestyle, nutrition, and habit health coach.",
+    "not_doctor": "Disha is an artificial intelligence health coach, not a licensed medical doctor or clinical practitioner.",
+    "no_prescription": "Disha cannot diagnose diseases, alter doctor-prescribed medication dosages, or prescribe pharmaceuticals.",
+    "emergency": "If you experience chest pain, shortness of breath, or an acute emergency, dial 112 or 108 immediately.",
+    "voice_processing": "Audio is captured for speech-to-text processing solely to conduct this consultation session.",
+    "checkbox": "I understand Disha is an AI health coach and consent to voice consultation processing.",
+    "btn_accept": "Accept & Start Call",
+    "btn_cancel": "Stay in Chat"
+  },
+  "onboarding": {
+    "stage_1_title": "Basic Profile & Health Baseline",
+    "stage_1_desc": "Disha collects your health baseline naturally across chat and voice calls.",
+    "stage_2_title": "Health Background & Clinical Safety",
+    "stage_2_desc": "Clinical history, medications, and contraindications.",
+    "stage_3_title": "Lifestyle & Daily Routine",
+    "stage_3_desc": "Sleep patterns, work schedule, hydration, and movement.",
+    "stage_4_title": "Goals, Diet & Preferences",
+    "stage_4_desc": "Nutrition preferences, target goals, and food habits.",
+    "stage_5_title": "Deep Personalisation & Sustained Coaching",
+    "stage_5_desc": "Validated coaching plan and tailored lifestyle adjustments.",
+    "stage_pill": "Stage {current} of 5",
+    "complete_badge": "Onboarding Complete",
+    "welcome_message": "Namaste {name}! I am Disha, your personal AI health coach. I provide grounded lifestyle, habit, and nutrition guidance. I am not a doctor and cannot diagnose medical emergencies.\n\nHow are you feeling today? Would you like to review today's nutrition plan or discuss your wellness goals?"
+  }
+}
