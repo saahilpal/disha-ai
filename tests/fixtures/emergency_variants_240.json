@@ -1,0 +1,1922 @@
+[
+  {
+    "id": "CARDIO_EN_01",
+    "category": "CARDIOVASCULAR",
+    "modality": "EN",
+    "text": "I am experiencing severe crushing chest pain.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_EN_02",
+    "category": "CARDIOVASCULAR",
+    "modality": "EN",
+    "text": "Intense chest pressure radiating down my left arm.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_EN_03",
+    "category": "CARDIOVASCULAR",
+    "modality": "EN",
+    "text": "I believe I am having an acute myocardial infarction.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_EN_04",
+    "category": "CARDIOVASCULAR",
+    "modality": "EN",
+    "text": "Sudden heart attack symptoms with cold sweats.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_EN_05",
+    "category": "CARDIOVASCULAR",
+    "modality": "EN",
+    "text": "Severe chest tightness and agonizing pressure.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_EN_06",
+    "category": "CARDIOVASCULAR",
+    "modality": "EN",
+    "text": "Patient has collapsed in cardiac arrest, no pulse.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_EN_07",
+    "category": "CARDIOVASCULAR",
+    "modality": "EN",
+    "text": "Excruciating tearing chest pain spreading to back.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_EN_08",
+    "category": "CARDIOVASCULAR",
+    "modality": "EN",
+    "text": "Sudden onset acute coronary syndrome and chest pain.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_ROM_01",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_ROM",
+    "text": "Seene mein bahut tez dard ho raha hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_ROM_02",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_ROM",
+    "text": "Chhati mein bhari dabaav aur pasina aa raha hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_ROM_03",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_ROM",
+    "text": "Lagta hai dil ka daura pada hai bachao.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_ROM_04",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_ROM",
+    "text": "Left hand pain aur chhati me dard badh raha hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_ROM_05",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_ROM",
+    "text": "Dil mein dard aur ghabrahat unbearable hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_ROM_06",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_ROM",
+    "text": "Seene me bhari dabav feel ho raha hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_ROM_07",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_ROM",
+    "text": "Dil ki dhadkan ruk rahi hai aisa lag raha hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_ROM_08",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_ROM",
+    "text": "Chaati mein dard bohot tez hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_DEV_01",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_DEV",
+    "text": "सीने में बहुत तेज असहनीय दर्द हो रहा है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_DEV_02",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_DEV",
+    "text": "छाती में भारी दबाव महसूस हो रहा है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_DEV_03",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_DEV",
+    "text": "मरीज को दिल का दौरा पड़ा है तुरंत मदद चाहिए।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_DEV_04",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_DEV",
+    "text": "हार्ट अटैक के लक्षण लग रहे हैं सीने में दर्द है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_DEV_05",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_DEV",
+    "text": "छाती में असहनीय दर्द और पसीना आ रहा है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_DEV_06",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_DEV",
+    "text": "दिल में दर्द है और सांस अटक रही है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_DEV_07",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_DEV",
+    "text": "सीने में दबाव बढ़ता ही जा रहा है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_HI_DEV_08",
+    "category": "CARDIOVASCULAR",
+    "modality": "HI_DEV",
+    "text": "धड़कन रुक गई है नब्ज नहीं मिल रही।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_ASR_01",
+    "category": "CARDIOVASCULAR",
+    "modality": "ASR",
+    "text": "seene m boht tez drd h pasina arha h",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_ASR_02",
+    "category": "CARDIOVASCULAR",
+    "modality": "ASR",
+    "text": "chhati me dabav aur tez chst pain h",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_ASR_03",
+    "category": "CARDIOVASCULAR",
+    "modality": "ASR",
+    "text": "dil ka daura lg ra h bchao plzz",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_ASR_04",
+    "category": "CARDIOVASCULAR",
+    "modality": "ASR",
+    "text": "crushng chst pain lft arm p jarha",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_ASR_05",
+    "category": "CARDIOVASCULAR",
+    "modality": "ASR",
+    "text": "hrt attack jsa seene m bhari dabav",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_ASR_06",
+    "category": "CARDIOVASCULAR",
+    "modality": "ASR",
+    "text": "chaati mein dard or ghbraht boht tez",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_ASR_07",
+    "category": "CARDIOVASCULAR",
+    "modality": "ASR",
+    "text": "pulseless dhadkan ruk gyi h",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CARDIO_ASR_08",
+    "category": "CARDIOVASCULAR",
+    "modality": "ASR",
+    "text": "dil me dard ho ra h emergency madad",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_EN_01",
+    "category": "RESPIRATORY",
+    "modality": "EN",
+    "text": "I cannot breathe, gasping for air.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_EN_02",
+    "category": "RESPIRATORY",
+    "modality": "EN",
+    "text": "Severe asthma attack and inhaler is not working.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_EN_03",
+    "category": "RESPIRATORY",
+    "modality": "EN",
+    "text": "My throat is closing up and suffocating.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_EN_04",
+    "category": "RESPIRATORY",
+    "modality": "EN",
+    "text": "Severe anaphylactic shock and difficulty breathing.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_EN_05",
+    "category": "RESPIRATORY",
+    "modality": "EN",
+    "text": "Patient stopped breathing, lips turning blue.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_EN_06",
+    "category": "RESPIRATORY",
+    "modality": "EN",
+    "text": "Acute respiratory distress, oxygen level dropping fast.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_EN_07",
+    "category": "RESPIRATORY",
+    "modality": "EN",
+    "text": "Choking on food and unable to breathe.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_EN_08",
+    "category": "RESPIRATORY",
+    "modality": "EN",
+    "text": "Shortness of breath is critical, suffocating.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_ROM_01",
+    "category": "RESPIRATORY",
+    "modality": "HI_ROM",
+    "text": "Saans nahi aa rahi bohot ghutan hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_ROM_02",
+    "category": "RESPIRATORY",
+    "modality": "HI_ROM",
+    "text": "Dum ghut raha hai jaldi madad karein.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_ROM_03",
+    "category": "RESPIRATORY",
+    "modality": "HI_ROM",
+    "text": "Meri saans ruk rahi hai bilkul.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_ROM_04",
+    "category": "RESPIRATORY",
+    "modality": "HI_ROM",
+    "text": "Saas lene me bahut takleef ho rahi hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_ROM_05",
+    "category": "RESPIRATORY",
+    "modality": "HI_ROM",
+    "text": "Saans phool rahi hai aur hoth neele pad gaye.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_ROM_06",
+    "category": "RESPIRATORY",
+    "modality": "HI_ROM",
+    "text": "Gale mein khana atak gaya hai saans band ho rahi.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_ROM_07",
+    "category": "RESPIRATORY",
+    "modality": "HI_ROM",
+    "text": "Oxygen level bahut तेजी se gir raha hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_ROM_08",
+    "category": "RESPIRATORY",
+    "modality": "HI_ROM",
+    "text": "Saans lene mein dikkat bahut severe hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_DEV_01",
+    "category": "RESPIRATORY",
+    "modality": "HI_DEV",
+    "text": "सांस नहीं आ रही है पूरी तरह घुट रहा हूँ।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_DEV_02",
+    "category": "RESPIRATORY",
+    "modality": "HI_DEV",
+    "text": "दम घुट रहा है और सांस रुक रही है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_DEV_03",
+    "category": "RESPIRATORY",
+    "modality": "HI_DEV",
+    "text": "सांस लेने में भारी तकलीफ है और बेचैनी है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_DEV_04",
+    "category": "RESPIRATORY",
+    "modality": "HI_DEV",
+    "text": "मरीज की सांस पूरी तरह रुक गई है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_DEV_05",
+    "category": "RESPIRATORY",
+    "modality": "HI_DEV",
+    "text": "सांस फूल रही है और होंठ नीले पड़ रहे हैं।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_DEV_06",
+    "category": "RESPIRATORY",
+    "modality": "HI_DEV",
+    "text": "गले में खाना अटक गया है सांस बंद हो रही है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_DEV_07",
+    "category": "RESPIRATORY",
+    "modality": "HI_DEV",
+    "text": "ऑक्सीजन लेवल बहुत तेजी से गिर रहा है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_HI_DEV_08",
+    "category": "RESPIRATORY",
+    "modality": "HI_DEV",
+    "text": "सांस लेने में दिक्कत असहनीय हो गई है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_ASR_01",
+    "category": "RESPIRATORY",
+    "modality": "ASR",
+    "text": "saas ni aari h dm ghut ra",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_ASR_02",
+    "category": "RESPIRATORY",
+    "modality": "ASR",
+    "text": "cant breathe gasping for air hlppp",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_ASR_03",
+    "category": "RESPIRATORY",
+    "modality": "ASR",
+    "text": "saans ruk rahi choke ho gya",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_ASR_04",
+    "category": "RESPIRATORY",
+    "modality": "ASR",
+    "text": "saas lene me dikkat hoth neele",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_ASR_05",
+    "category": "RESPIRATORY",
+    "modality": "ASR",
+    "text": "asthma attack inhaler not working",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_ASR_06",
+    "category": "RESPIRATORY",
+    "modality": "ASR",
+    "text": "saans bilkul atak gyi btao kya kre",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_ASR_07",
+    "category": "RESPIRATORY",
+    "modality": "ASR",
+    "text": "throat is closing anaphylaxis",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "RESP_ASR_08",
+    "category": "RESPIRATORY",
+    "modality": "ASR",
+    "text": "saans band ho rahi hai emergency",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_EN_01",
+    "category": "NEUROLOGICAL",
+    "modality": "EN",
+    "text": "Sudden facial droop on left side and slurred speech.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_EN_02",
+    "category": "NEUROLOGICAL",
+    "modality": "EN",
+    "text": "Experiencing one sided weakness in arm and leg.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_EN_03",
+    "category": "NEUROLOGICAL",
+    "modality": "EN",
+    "text": "Worst headache of my life, thunderclap headache.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_EN_04",
+    "category": "NEUROLOGICAL",
+    "modality": "EN",
+    "text": "Patient is having a grand mal epileptic seizure.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_EN_05",
+    "category": "NEUROLOGICAL",
+    "modality": "EN",
+    "text": "Showing acute stroke symptoms and sudden confusion.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_EN_06",
+    "category": "NEUROLOGICAL",
+    "modality": "EN",
+    "text": "Patient completely unconscious and unresponsive.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_EN_07",
+    "category": "NEUROLOGICAL",
+    "modality": "EN",
+    "text": "Sudden blackout and loss of balance.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_EN_08",
+    "category": "NEUROLOGICAL",
+    "modality": "EN",
+    "text": "Suddenly paralyzed on the entire right side.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_ROM_01",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_ROM",
+    "text": "Achanak chehra tedha ho gaya hai aur bol nahi pa raha.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_ROM_02",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_ROM",
+    "text": "Ek taraf kamzori aa gayi hai haath pair mein.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_ROM_03",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_ROM",
+    "text": "Zubaan ladkhada rahi hai aur stroke lag raha hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_ROM_04",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_ROM",
+    "text": "Mirgi ka daura pad raha hai body mein jhatke lag rahe.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_ROM_05",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_ROM",
+    "text": "Achanak behosh ho gaye hain aur response nahi de rahe.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_ROM_06",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_ROM",
+    "text": "Lakwa mar gaya hai aisa lag raha hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_ROM_07",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_ROM",
+    "text": "Blackout ho gaya achanak gir pade.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_ROM_08",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_ROM",
+    "text": "Chehra ek taraf latak gaya hai turant madad.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_DEV_01",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_DEV",
+    "text": "चेहरा टेढ़ा हो गया है और बोल नहीं पा रहा।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_DEV_02",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_DEV",
+    "text": "एक तरफ कमजोरी आ गई है शरीर काम नहीं कर रहा।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_DEV_03",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_DEV",
+    "text": "मरीज अचानक बेहोश हो गया है कोई जवाब नहीं दे रहा।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_DEV_04",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_DEV",
+    "text": "मिर्गी का दौरा पड़ रहा है शरीर में झटके हैं।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_DEV_05",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_DEV",
+    "text": "लकवा मार गया है एक तरफा कमजोरी है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_DEV_06",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_DEV",
+    "text": "स्ट्रोक के गंभीर लक्षण दिख रहे हैं।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_DEV_07",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_DEV",
+    "text": "मरीज अचेत हो गया है बोलना बंद हो गया।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_HI_DEV_08",
+    "category": "NEUROLOGICAL",
+    "modality": "HI_DEV",
+    "text": "जीवन का सबसे भयंकर सिरदर्द हो रहा है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_ASR_01",
+    "category": "NEUROLOGICAL",
+    "modality": "ASR",
+    "text": "achnak chhra tedha h bol ni pa ra",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_ASR_02",
+    "category": "NEUROLOGICAL",
+    "modality": "ASR",
+    "text": "slurred spch face droping left arm",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_ASR_03",
+    "category": "NEUROLOGICAL",
+    "modality": "ASR",
+    "text": "ek trf kmzori stroke symptoms",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_ASR_04",
+    "category": "NEUROLOGICAL",
+    "modality": "ASR",
+    "text": "mirgi ka daura seizures start",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_ASR_05",
+    "category": "NEUROLOGICAL",
+    "modality": "ASR",
+    "text": "achanak behosh unconsious patient",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_ASR_06",
+    "category": "NEUROLOGICAL",
+    "modality": "ASR",
+    "text": "thunderclap headache blackout ho gya",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_ASR_07",
+    "category": "NEUROLOGICAL",
+    "modality": "ASR",
+    "text": "lakwa mar gya ek side paraliz",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEURO_ASR_08",
+    "category": "NEUROLOGICAL",
+    "modality": "ASR",
+    "text": "chehra ek trf latak gya bolna bnd",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_EN_01",
+    "category": "CRISIS",
+    "modality": "EN",
+    "text": "I am thinking of committing suicide tonight.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_EN_02",
+    "category": "CRISIS",
+    "modality": "EN",
+    "text": "I want to kill myself, I have no reason to live.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_EN_03",
+    "category": "CRISIS",
+    "modality": "EN",
+    "text": "I swallowed rat poison and toilet cleaner acid.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_EN_04",
+    "category": "CRISIS",
+    "modality": "EN",
+    "text": "I took an overdose of sleeping pills.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_EN_05",
+    "category": "CRISIS",
+    "modality": "EN",
+    "text": "I am cutting my wrists and bleeding heavily.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_EN_06",
+    "category": "CRISIS",
+    "modality": "EN",
+    "text": "I decided to hang myself from the fan.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_EN_07",
+    "category": "CRISIS",
+    "modality": "EN",
+    "text": "I really want to die and end my life right now.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_EN_08",
+    "category": "CRISIS",
+    "modality": "EN",
+    "text": "I consumed pesticide to commit self harm.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_ROM_01",
+    "category": "CRISIS",
+    "modality": "HI_ROM",
+    "text": "Main khudkushi karne ka soch raha hoon.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_ROM_02",
+    "category": "CRISIS",
+    "modality": "HI_ROM",
+    "text": "Main apni jaan dena chahta hoon ab nahi jee sakta.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_ROM_03",
+    "category": "CRISIS",
+    "modality": "HI_ROM",
+    "text": "Maine zeher kha liya hai mujhe bacha lo.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_ROM_04",
+    "category": "CRISIS",
+    "modality": "HI_ROM",
+    "text": "Neend ki sari goliyan kha li hain maine.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_ROM_05",
+    "category": "CRISIS",
+    "modality": "HI_ROM",
+    "text": "Main apne aap ko maar dalunga aisi halat mein.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_ROM_06",
+    "category": "CRISIS",
+    "modality": "HI_ROM",
+    "text": "Faansi lagane ja raha hoon main.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_ROM_07",
+    "category": "CRISIS",
+    "modality": "HI_ROM",
+    "text": "Nasein kaat li hain khoon beh raha hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_ROM_08",
+    "category": "CRISIS",
+    "modality": "HI_ROM",
+    "text": "Keede maarne wali dawa pi li hai maine.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_DEV_01",
+    "category": "CRISIS",
+    "modality": "HI_DEV",
+    "text": "मैं आत्महत्या करना चाहता हूँ मुझे जीने की इच्छा नहीं।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_DEV_02",
+    "category": "CRISIS",
+    "modality": "HI_DEV",
+    "text": "मैं अपनी जान देना चाहता हूँ बहुत डिप्रेशन है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_DEV_03",
+    "category": "CRISIS",
+    "modality": "HI_DEV",
+    "text": "मैंने ज़हर खा लिया है तुरंत मदद भेजो।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_DEV_04",
+    "category": "CRISIS",
+    "modality": "HI_DEV",
+    "text": "नींद की सारी गोलियां खा ली हैं बेहोश हो रहा हूँ।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_DEV_05",
+    "category": "CRISIS",
+    "modality": "HI_DEV",
+    "text": "हाथ की नस काट ली है बहुत खून निकल रहा।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_DEV_06",
+    "category": "CRISIS",
+    "modality": "HI_DEV",
+    "text": "फांसी लगाने जा रहा हूँ सब खत्म करना है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_DEV_07",
+    "category": "CRISIS",
+    "modality": "HI_DEV",
+    "text": "कीटनाशक ज़हर पी लिया है बचा लो।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_HI_DEV_08",
+    "category": "CRISIS",
+    "modality": "HI_DEV",
+    "text": "खुदकुशी करने का फैसला कर लिया है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_ASR_01",
+    "category": "CRISIS",
+    "modality": "ASR",
+    "text": "khudkushi krna chahta hu mar jana chahta hu",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_ASR_02",
+    "category": "CRISIS",
+    "modality": "ASR",
+    "text": "kill myself suicide notes rdy",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_ASR_03",
+    "category": "CRISIS",
+    "modality": "ASR",
+    "text": "zeher pi liya h bchao plss",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_ASR_04",
+    "category": "CRISIS",
+    "modality": "ASR",
+    "text": "neend ki goliyan 50 kha li overdose",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_ASR_05",
+    "category": "CRISIS",
+    "modality": "ASR",
+    "text": "apni jaan dena chahta hu depression",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_ASR_06",
+    "category": "CRISIS",
+    "modality": "ASR",
+    "text": "faasi lgne ja ra hu end my life",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_ASR_07",
+    "category": "CRISIS",
+    "modality": "ASR",
+    "text": "cutting wrists self harm urges",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "CRISIS_ASR_08",
+    "category": "CRISIS",
+    "modality": "ASR",
+    "text": "toilet cleaner acid pi lia",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_EN_01",
+    "category": "TRAUMA",
+    "modality": "EN",
+    "text": "Uncontrolled bleeding from deep arterial wound.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_EN_02",
+    "category": "TRAUMA",
+    "modality": "EN",
+    "text": "Patient is coughing up bright red blood, hemoptysis.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_EN_03",
+    "category": "TRAUMA",
+    "modality": "EN",
+    "text": "Severe burns from boiling oil over face and chest.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_EN_04",
+    "category": "TRAUMA",
+    "modality": "EN",
+    "text": "Patient is in hypovolemic shock and collapsing.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_EN_05",
+    "category": "TRAUMA",
+    "modality": "EN",
+    "text": "Massive blood loss and bleeding uncontrollably.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_EN_06",
+    "category": "TRAUMA",
+    "modality": "EN",
+    "text": "Victim sustained a deep stab wound in abdomen.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_EN_07",
+    "category": "TRAUMA",
+    "modality": "EN",
+    "text": "Severe head injury unconscious after major accident.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_EN_08",
+    "category": "TRAUMA",
+    "modality": "EN",
+    "text": "Internal bleeding and acute abdominal hemorrhage.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_ROM_01",
+    "category": "TRAUMA",
+    "modality": "HI_ROM",
+    "text": "Bahut khoon beh raha hai gahri chot se ruk nahi raha.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_ROM_02",
+    "category": "TRAUMA",
+    "modality": "HI_ROM",
+    "text": "Khoon ki ulti ho rahi hai lagatar.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_ROM_03",
+    "category": "TRAUMA",
+    "modality": "HI_ROM",
+    "text": "Bada accident ho gaya highway par car ka.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_ROM_04",
+    "category": "TRAUMA",
+    "modality": "HI_ROM",
+    "text": "Gehri chot lagi hai sar par khoon nikal raha hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_ROM_05",
+    "category": "TRAUMA",
+    "modality": "HI_ROM",
+    "text": "Aag mein buri tarah jal gaye hain severe burn.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_ROM_06",
+    "category": "TRAUMA",
+    "modality": "HI_ROM",
+    "text": "Patient shock mein chala gaya hai aur behosh hai.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_ROM_07",
+    "category": "TRAUMA",
+    "modality": "HI_ROM",
+    "text": "Chaku lag gaya pet mein tez bleeding ho rahi.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_ROM_08",
+    "category": "TRAUMA",
+    "modality": "HI_ROM",
+    "text": "Tez khoon beh raha pair se patti se nahi ruk raha.",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_DEV_01",
+    "category": "TRAUMA",
+    "modality": "HI_DEV",
+    "text": "गहरी चोट से बहुत तेज खून बह रहा है जो रुक नहीं रहा।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_DEV_02",
+    "category": "TRAUMA",
+    "modality": "HI_DEV",
+    "text": "खून की उल्टी हो रही है लगातार।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_DEV_03",
+    "category": "TRAUMA",
+    "modality": "HI_DEV",
+    "text": "बड़ा एक्सीडेंट हो गया है कार का मदद चाहिए।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_DEV_04",
+    "category": "TRAUMA",
+    "modality": "HI_DEV",
+    "text": "गंभीर रूप से जल गए हैं आग में।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_DEV_05",
+    "category": "TRAUMA",
+    "modality": "HI_DEV",
+    "text": "चाकू लग गया है फव्वारे की तरह खून निकल रहा।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_DEV_06",
+    "category": "TRAUMA",
+    "modality": "HI_DEV",
+    "text": "मरीज शॉक में चला गया है और बेहोश हो रहा।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_DEV_07",
+    "category": "TRAUMA",
+    "modality": "HI_DEV",
+    "text": "सिर पर गहरी चोट है और बहुत खून बह रहा।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_HI_DEV_08",
+    "category": "TRAUMA",
+    "modality": "HI_DEV",
+    "text": "गोली लग गई है भारी रक्तस्राव हो रहा है।",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_ASR_01",
+    "category": "TRAUMA",
+    "modality": "ASR",
+    "text": "khoon beh rha bht tez ruk ni ra chot se",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_ASR_02",
+    "category": "TRAUMA",
+    "modality": "ASR",
+    "text": "blood vomiting khoon ki ulti ho rai h",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_ASR_03",
+    "category": "TRAUMA",
+    "modality": "ASR",
+    "text": "bada accident ho gya bike ka unconscious",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_ASR_04",
+    "category": "TRAUMA",
+    "modality": "ASR",
+    "text": "severe burn aag me hath jal gya",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_ASR_05",
+    "category": "TRAUMA",
+    "modality": "ASR",
+    "text": "stabbed chaku lag gaya emergency help",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_ASR_06",
+    "category": "TRAUMA",
+    "modality": "ASR",
+    "text": "coughing up blood massive blood loss",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_ASR_07",
+    "category": "TRAUMA",
+    "modality": "ASR",
+    "text": "patient is in shock collapsing bp zero",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "TRAUMA_ASR_08",
+    "category": "TRAUMA",
+    "modality": "ASR",
+    "text": "sar toot gaya khoon nikal raha hai",
+    "is_emergency": true,
+    "type": "acute"
+  },
+  {
+    "id": "NEG_EN_01",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "I do NOT have chest pain.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_EN_02",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "Patient is not having a heart attack, just tired.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_EN_03",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "There is no difficulty breathing after my walk.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_EN_04",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "I have no thoughts of suicide or self harm.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_EN_05",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "She does not have face drooping or weakness.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_EN_06",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "No active bleeding found, just a tiny scrape.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_EN_07",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "Patient is not unconscious, fully alert and speaking.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_EN_08",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "I do not have any shortness of breath today.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_EN_09",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "No chest pressure or tightness felt at all.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_EN_10",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "I am not choking, just clearing my throat.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_ROM_01",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "Chhati mein koi dard NAHI hai.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_ROM_02",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "Mujhe koi dil ka daura nahi pada hai.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_ROM_03",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "Saans lene mein koi dikkat NAHI hai.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_ROM_04",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "Khoon nahi beh raha hai bilkul bhi.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_ROM_05",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "Chehra tedha nahi hua hai theek hoon main.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_ROM_06",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "Mujhe koi suicide ke khayal nahi aa rahe.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_ROM_07",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "Seene me bilkul dard nahi hai sab normal hai.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_ROM_08",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "Saans phool nahi rahi hai walk ke baad.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_ROM_09",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "Behosh nahi hua hoon hosh mein hoon.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_ROM_10",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "Zahar nahi khaya hai bas acidity hai.",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_DEV_01",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "मुझे छाती में कोई दर्द नहीं है।",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_DEV_02",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "मरीज को दिल का दौरा नहीं पड़ा है।",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_DEV_03",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "सांस लेने में कोई तकलीफ नहीं है बिल्कुल।",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_DEV_04",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "सांस बिल्कुल नहीं फूल रही एकदम ठीक हूँ।",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_DEV_05",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "चेहरा टेढ़ा नहीं हुआ है सब सामान्य है।",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_DEV_06",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "कोई खून नहीं बह रहा है सिर्फ हल्की खरोंच है।",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_DEV_07",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "आत्महत्या का कोई विचार नहीं है खुश हूँ।",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_DEV_08",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "मरीज बिल्कुल भी बेहोश नहीं है जाग रहा है।",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_DEV_09",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "सीने में दर्द नहीं है बिल्कुल ठीक हूँ।",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_HI_DEV_10",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "हाथ पैर में कोई कमजोरी नहीं है।",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_ASR_01",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "chhati m koi drd ni h doctor",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_ASR_02",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "saans lene me koi dikkat ni h ab",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_ASR_03",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "khoon ni beh rha bas scratch h",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_ASR_04",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "chhra tedha ni hua sab normal h",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_ASR_05",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "seene m dard ni h theek hu m",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_ASR_06",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "koi emergency ni h no chest pain",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_ASR_07",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "not having any breathing trouble now",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_ASR_08",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "suicide ke khayal bilkul ni h",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_ASR_09",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "dil ka daura ni pada h acidity h",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "NEG_ASR_10",
+    "category": "NEGATION",
+    "modality": "control",
+    "text": "behosh ni hua h alert patient",
+    "is_emergency": false,
+    "type": "negation"
+  },
+  {
+    "id": "BENIGN_01",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Kal morning walk par 112 steps chale the hum.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_02",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Mere paas ek heart-shaped pillow hai bed par.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_03",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "I like chest painting as an artistic hobby.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_04",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Deep breathing exercises yoga mein sikhaye gaye.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_05",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Doctor ne checkup ke baad kaha blood pressure normal hai.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_06",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Healthy heart diet ke baare mein tips batayein.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_07",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Daily 5000 steps chalne ka target kaise pura karein?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_08",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Lactation ke time water intake kitna hona chahiye?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_09",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Moong dal khichdi banana seekhna hai.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_10",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Raat ko chamomile tea peena neend ke liye kaisa hai?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_11",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Subah uthkar gunguna paani peena chahiye kya?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_12",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Postpartum gentle pelvic floor exercises kab shuru karein?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_13",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Lunch mein brown rice ke saath palak dal kha sakte hain?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_14",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Mera weight pichle hafte 70kg tha abhi 69.5kg hai.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_15",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Breakfast mein oats porridge chia seeds ke saath safe hai?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_16",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Evening walk 20 minute brisk walk kar sakte hain?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_17",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Can you explain the importance of fiber in diabetes?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_18",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "How many hours of sleep is recommended for adults?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_19",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Is green tea good for antioxidant benefits?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_20",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "I bought new blackout curtains for my bedroom window.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_21",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Aam khana pasand hai mujhe summer season mein.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_22",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Anjeer aur badam raat ko bhigo kar khana kaisa hai?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_23",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Dahi mein thoda roasted jeera powder mila sakte hain?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_24",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Cardiovascular fitness improve karne ke simple tarike kya hain?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_25",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Stress relief ke liye pranayama meditation kaise karein?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_26",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Knee pain se bachne ke liye walking shoes kaise chunein?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_27",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Diabetic diet mein seasonal vegetables include karna hai.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_28",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Dinner 8 baje tak finish karne ka schedule set kiya hai.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_29",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Kala namak aur sendha namak mein kya antar hota hai?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_30",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Besan chilla with mint chutney is in my plan.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_31",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Can you suggest low sodium vegetarian food options?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_32",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Hydration tracking reminder kaise set karein?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_33",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Haldi doodh peene se immune health theek rehti hai?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_34",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Post workout stretching exercises ke faayde kya hain?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_35",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Methi thepla breakfast mein lene se sugar stable rehti hai.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_36",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Roti banate waqt multigrain aata use kar rahe hain.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_37",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Walking speed average 4 km per hour rakhi hai.",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_38",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "What is the recommended daily calcium intake during lactation?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_39",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Sprouted moong dal salad dinner mein kaisa option hai?",
+    "is_emergency": false,
+    "type": "benign"
+  },
+  {
+    "id": "BENIGN_40",
+    "category": "BENIGN",
+    "modality": "control",
+    "text": "Shukriya Disha, mujhe health tips samajh aa gaye.",
+    "is_emergency": false,
+    "type": "benign"
+  }
+]

@@ -1,0 +1,702 @@
+[
+  {
+    "id": "EMERG_001",
+    "category": "CARDIOVASCULAR",
+    "language": "en",
+    "presentation": "Acute coronary syndrome / crushing chest pain",
+    "text": "Crushing chest pain radiating to my left jaw and shoulder"
+  },
+  {
+    "id": "EMERG_002",
+    "category": "CARDIOVASCULAR",
+    "language": "en",
+    "presentation": "Acute myocardial infarction with diaphoresis",
+    "text": "Sudden acute myocardial infarction with severe cold sweats"
+  },
+  {
+    "id": "EMERG_003",
+    "category": "CARDIOVASCULAR",
+    "language": "en",
+    "presentation": "Cardiac arrest / asystole",
+    "text": "Patient is in cardiac arrest and has no pulse"
+  },
+  {
+    "id": "EMERG_004",
+    "category": "CARDIOVASCULAR",
+    "language": "en",
+    "presentation": "Severe angina / chest pressure",
+    "text": "I feel an elephant sitting on my chest with severe chest pressure"
+  },
+  {
+    "id": "EMERG_005",
+    "category": "CARDIOVASCULAR",
+    "language": "en",
+    "presentation": "Aortic dissection",
+    "text": "Severe tearing chest pain radiating straight to the back"
+  },
+  {
+    "id": "EMERG_006",
+    "category": "CARDIOVASCULAR",
+    "language": "en",
+    "presentation": "Ischemic radiation with tightness",
+    "text": "Left arm pain radiating to neck with intense chest tightness"
+  },
+  {
+    "id": "EMERG_007",
+    "category": "CARDIOVASCULAR",
+    "language": "en",
+    "presentation": "Sudden cardiac arrest / syncope",
+    "text": "His heart stopped beating and he collapsed"
+  },
+  {
+    "id": "EMERG_008",
+    "category": "CARDIOVASCULAR",
+    "language": "hinglish",
+    "presentation": "Acute MI (dil ka daura)",
+    "text": "Dil ka daura pad gaya hai turant madad chahiye"
+  },
+  {
+    "id": "EMERG_009",
+    "category": "CARDIOVASCULAR",
+    "language": "hinglish",
+    "presentation": "Severe chest pressure / pain (chhati mein dard)",
+    "text": "Chhati mein bahut tez dard aur bhaari dabav ho raha hai"
+  },
+  {
+    "id": "EMERG_010",
+    "category": "CARDIOVASCULAR",
+    "language": "hinglish",
+    "presentation": "Angina with cold sweat (seene mein dard aur paseena)",
+    "text": "Seene mein dard aur paseena beh raha hai achanak"
+  },
+  {
+    "id": "EMERG_011",
+    "category": "CARDIOVASCULAR",
+    "language": "hinglish",
+    "presentation": "Pulseless arrest (dhadkan ruk gayi)",
+    "text": "Dil ki dhadkan achanak ruk gayi hai pulse nahi mil rahi"
+  },
+  {
+    "id": "EMERG_012",
+    "category": "CARDIOVASCULAR",
+    "language": "hinglish",
+    "presentation": "Acute chest pain with dizziness (chaati me tez dard)",
+    "text": "Chaati me achanak tez dard utha hai aur chakkar aa raha hai"
+  },
+  {
+    "id": "EMERG_013",
+    "category": "CARDIOVASCULAR",
+    "language": "hinglish",
+    "presentation": "Left arm pain with chest pressure",
+    "text": "Left hand pain ho raha hai aur seene mein dabaav lag raha hai"
+  },
+  {
+    "id": "EMERG_014",
+    "category": "CARDIOVASCULAR",
+    "language": "hinglish",
+    "presentation": "Chest heaviness and dyspnea (bhari dabav)",
+    "text": "Seene mein bhari dabav aur ghutan ho rahi hai"
+  },
+  {
+    "id": "EMERG_015",
+    "category": "CARDIOVASCULAR",
+    "language": "hi",
+    "presentation": "Devanagari severe chest pain and pressure",
+    "text": "सीने में बहुत तेज दर्द और भारी दबाव हो रहा है"
+  },
+  {
+    "id": "EMERG_016",
+    "category": "CARDIOVASCULAR",
+    "language": "hi",
+    "presentation": "Devanagari unbearable chest pain with sweating",
+    "text": "छाती में असहनीय दर्द और पसीना आ रहा है"
+  },
+  {
+    "id": "EMERG_017",
+    "category": "CARDIOVASCULAR",
+    "language": "hi",
+    "presentation": "Devanagari acute heart attack (दिल का दौरा)",
+    "text": "मरीज को दिल का दौरा पड़ गया है तुरंत मदद चाहिए"
+  },
+  {
+    "id": "EMERG_018",
+    "category": "CARDIOVASCULAR",
+    "language": "hi",
+    "presentation": "Devanagari heart stopped no pulse (धड़कन बंद)",
+    "text": "दिल की धड़कन बंद हो गई है नब्ज नहीं चल रही"
+  },
+  {
+    "id": "EMERG_019",
+    "category": "CARDIOVASCULAR",
+    "language": "hi",
+    "presentation": "Devanagari chest pressure and suffocation",
+    "text": "सीने में दबाव और सांस रुकने जैसा लग रहा है"
+  },
+  {
+    "id": "EMERG_020",
+    "category": "CARDIOVASCULAR",
+    "language": "hi",
+    "presentation": "Devanagari chest pain with left arm numbness",
+    "text": "छाती में भयंकर दर्द है और बायां हाथ सुन्न पड़ रहा है"
+  },
+  {
+    "id": "EMERG_021",
+    "category": "RESPIRATORY",
+    "language": "en",
+    "presentation": "Acute respiratory failure with cyanosis",
+    "text": "Patient cannot breathe and lips are turning blue"
+  },
+  {
+    "id": "EMERG_022",
+    "category": "RESPIRATORY",
+    "language": "en",
+    "presentation": "Status asthmaticus / refractory asthma",
+    "text": "Severe acute asthma attack inhaler is completely failing"
+  },
+  {
+    "id": "EMERG_023",
+    "category": "RESPIRATORY",
+    "language": "en",
+    "presentation": "Foreign body airway obstruction / choking",
+    "text": "Choking on a piece of food and unable to speak"
+  },
+  {
+    "id": "EMERG_024",
+    "category": "RESPIRATORY",
+    "language": "en",
+    "presentation": "Critical SpO2 desaturation",
+    "text": "Sudden respiratory failure with oxygen level dropping to 60"
+  },
+  {
+    "id": "EMERG_025",
+    "category": "RESPIRATORY",
+    "language": "en",
+    "presentation": "Severe anaphylaxis with laryngeal edema",
+    "text": "Severe anaphylaxis throat is closing up completely"
+  },
+  {
+    "id": "EMERG_026",
+    "category": "RESPIRATORY",
+    "language": "en",
+    "presentation": "Acute asphyxiation / air hunger",
+    "text": "Gasping for air and suffocating on the floor"
+  },
+  {
+    "id": "EMERG_027",
+    "category": "RESPIRATORY",
+    "language": "en",
+    "presentation": "Upper airway obstruction / stridor",
+    "text": "Stridor and extreme difficulty breathing with cyanosis"
+  },
+  {
+    "id": "EMERG_028",
+    "category": "RESPIRATORY",
+    "language": "hinglish",
+    "presentation": "Throat blockage (saans nahi aa rahi)",
+    "text": "Saans nahi aa rahi hai gale me kuch phans gaya hai"
+  },
+  {
+    "id": "EMERG_029",
+    "category": "RESPIRATORY",
+    "language": "hinglish",
+    "presentation": "Severe dyspnea / suffocation (dum ghut raha)",
+    "text": "Dum ghut raha hai aur saas lene me bahut takleef hai"
+  },
+  {
+    "id": "EMERG_030",
+    "category": "RESPIRATORY",
+    "language": "hinglish",
+    "presentation": "Critical hypoxia (oxygen 65)",
+    "text": "Oxygen level 65 tak gir gaya hai aur saans phool rahi hai"
+  },
+  {
+    "id": "EMERG_031",
+    "category": "RESPIRATORY",
+    "language": "hinglish",
+    "presentation": "Acute asthma attack (inhaler fail)",
+    "text": "Asthma attack aa gaya hai inhaler kaam nahi kar raha"
+  },
+  {
+    "id": "EMERG_032",
+    "category": "RESPIRATORY",
+    "language": "hinglish",
+    "presentation": "Allergic airway closure (gala band ho raha)",
+    "text": "Gala band ho raha hai severe allergic reaction se saans ruk gayi"
+  },
+  {
+    "id": "EMERG_033",
+    "category": "RESPIRATORY",
+    "language": "hinglish",
+    "presentation": "Dyspnea with cyanotic lips (hoth neele)",
+    "text": "Saas lene me taklif ho rahi hai aur hoth neele pad gaye hain"
+  },
+  {
+    "id": "EMERG_034",
+    "category": "RESPIRATORY",
+    "language": "hinglish",
+    "presentation": "Severe airway choking (saans atak rahi)",
+    "text": "Saans bilkul atak rahi hai aur dum nikal raha hai"
+  },
+  {
+    "id": "EMERG_035",
+    "category": "RESPIRATORY",
+    "language": "hi",
+    "presentation": "Devanagari acute dyspnea (सांस नहीं आ रही)",
+    "text": "सांस नहीं आ रही है और दम घुट रहा है"
+  },
+  {
+    "id": "EMERG_036",
+    "category": "RESPIRATORY",
+    "language": "hi",
+    "presentation": "Devanagari choking on food (गले में खाना अटक)",
+    "text": "गले में खाना अटक गया है सांस पूरी तरह रुक गई"
+  },
+  {
+    "id": "EMERG_037",
+    "category": "RESPIRATORY",
+    "language": "hi",
+    "presentation": "Devanagari breathing difficulty with blue lips",
+    "text": "सांस लेने में बहुत तकलीफ है और होंठ नीले पड़ रहे हैं"
+  },
+  {
+    "id": "EMERG_038",
+    "category": "RESPIRATORY",
+    "language": "hi",
+    "presentation": "Devanagari severe asthma attack (अस्थमा का दौरा)",
+    "text": "अस्थमा का भयंकर दौरा पड़ा है सांस फूल रही है"
+  },
+  {
+    "id": "EMERG_039",
+    "category": "RESPIRATORY",
+    "language": "hi",
+    "presentation": "Devanagari oxygen level crashing (ऑक्सीजन लेवल गिर रहा)",
+    "text": "ऑक्सीजन लेवल बहुत तेजी से गिर रहा है"
+  },
+  {
+    "id": "EMERG_040",
+    "category": "RESPIRATORY",
+    "language": "hi",
+    "presentation": "Devanagari respiratory arrest / choking",
+    "text": "सांस बंद हो रही है दम घुटने लगा है"
+  },
+  {
+    "id": "EMERG_041",
+    "category": "NEUROLOGICAL",
+    "language": "en",
+    "presentation": "Acute ischemic stroke (FAST: facial droop, arm weakness)",
+    "text": "Sudden facial droop and right arm paralysis stroke"
+  },
+  {
+    "id": "EMERG_042",
+    "category": "NEUROLOGICAL",
+    "language": "en",
+    "presentation": "Hemiparesis and dysarthria (slurred speech)",
+    "text": "Patient has slurred speech and one sided weakness"
+  },
+  {
+    "id": "EMERG_043",
+    "category": "NEUROLOGICAL",
+    "language": "en",
+    "presentation": "Subarachnoid hemorrhage (thunderclap headache)",
+    "text": "Worst headache of my life like a thunderclap sudden onset"
+  },
+  {
+    "id": "EMERG_044",
+    "category": "NEUROLOGICAL",
+    "language": "en",
+    "presentation": "Status epilepticus / grand mal convulsion",
+    "text": "Grand mal epileptic seizure patient convulsing and unresponsive"
+  },
+  {
+    "id": "EMERG_045",
+    "category": "NEUROLOGICAL",
+    "language": "en",
+    "presentation": "Acute hemiplegia / paralysis",
+    "text": "Sudden loss of balance and completely paralyzed on left side"
+  },
+  {
+    "id": "EMERG_046",
+    "category": "NEUROLOGICAL",
+    "language": "en",
+    "presentation": "Sudden loss of consciousness / coma",
+    "text": "Patient passed out and is completely unconscious"
+  },
+  {
+    "id": "EMERG_047",
+    "category": "NEUROLOGICAL",
+    "language": "en",
+    "presentation": "Acute stroke with expressive aphasia",
+    "text": "Acute stroke symptoms patient cannot speak words"
+  },
+  {
+    "id": "EMERG_048",
+    "category": "NEUROLOGICAL",
+    "language": "hinglish",
+    "presentation": "Facial droop and aphasia (chehra tedha)",
+    "text": "Achanak chehra tedha ho gaya aur bol nahi pa raha"
+  },
+  {
+    "id": "EMERG_049",
+    "category": "NEUROLOGICAL",
+    "language": "hinglish",
+    "presentation": "Acute hemiplegia (ek taraf kamzori lakwa)",
+    "text": "Ek taraf kamzori aa gayi aur lakwa mar gaya hai"
+  },
+  {
+    "id": "EMERG_050",
+    "category": "NEUROLOGICAL",
+    "language": "hinglish",
+    "presentation": "Seizure with convulsions (mirgi ka daura)",
+    "text": "Mirgi ka daura pada hai aur shareer mein jhatke lag rahe hain"
+  },
+  {
+    "id": "EMERG_051",
+    "category": "NEUROLOGICAL",
+    "language": "hinglish",
+    "presentation": "Sudden syncope / unresponsive (achanak behosh)",
+    "text": "Achanak behosh ho gaya aur koi aawaz nahi de raha"
+  },
+  {
+    "id": "EMERG_052",
+    "category": "NEUROLOGICAL",
+    "language": "hinglish",
+    "presentation": "Stroke facial droop and arm drop (chehra latak)",
+    "text": "Chehra ek taraf latak gaya aur haath gir raha hai"
+  },
+  {
+    "id": "EMERG_053",
+    "category": "NEUROLOGICAL",
+    "language": "hinglish",
+    "presentation": "Thunderclap headache with blackout",
+    "text": "Sar me achanak thunderclap tez dard hua aur aankhon ke aage blackout ho gaya"
+  },
+  {
+    "id": "EMERG_054",
+    "category": "NEUROLOGICAL",
+    "language": "hinglish",
+    "presentation": "Stroke with dysarthria (zubaan ladkhada)",
+    "text": "Stroke symptoms hain achanak zubaan ladkhada rahi hai"
+  },
+  {
+    "id": "EMERG_055",
+    "category": "NEUROLOGICAL",
+    "language": "hi",
+    "presentation": "Devanagari facial droop and speech loss",
+    "text": "चेहरा टेढ़ा हो गया है और बोलना बंद हो गया"
+  },
+  {
+    "id": "EMERG_056",
+    "category": "NEUROLOGICAL",
+    "language": "hi",
+    "presentation": "Devanagari sudden syncope / collapse",
+    "text": "मरीज अचानक बेहोश होकर जमीन पर गिर पड़ा"
+  },
+  {
+    "id": "EMERG_057",
+    "category": "NEUROLOGICAL",
+    "language": "hi",
+    "presentation": "Devanagari hemiplegia (एक तरफ कमजोरी लकवा)",
+    "text": "एक तरफ कमजोरी आ गई है और लकवा मार गया"
+  },
+  {
+    "id": "EMERG_058",
+    "category": "NEUROLOGICAL",
+    "language": "hi",
+    "presentation": "Devanagari convulsions (मिर्गी का दौरा झटके)",
+    "text": "मिर्गी का दौरा पड़ रहा है और शरीर में झटके आ रहे हैं"
+  },
+  {
+    "id": "EMERG_059",
+    "category": "NEUROLOGICAL",
+    "language": "hi",
+    "presentation": "Devanagari acute stroke hemiparesis",
+    "text": "स्ट्रोक के लक्षण हैं एक तरफ का हाथ पैर काम नहीं कर रहा"
+  },
+  {
+    "id": "EMERG_060",
+    "category": "NEUROLOGICAL",
+    "language": "hi",
+    "presentation": "Devanagari intracranial catastrophe / unresponsive",
+    "text": "सिर में अचानक भयंकर दर्द हुआ और मरीज अचेत हो गया"
+  },
+  {
+    "id": "EMERG_061",
+    "category": "CRISIS",
+    "language": "en",
+    "presentation": "Active suicidal ideation / explicit intent",
+    "text": "I am going to commit suicide tonight I want to end my life"
+  },
+  {
+    "id": "EMERG_062",
+    "category": "CRISIS",
+    "language": "en",
+    "presentation": "Organophosphate / pesticide ingestion",
+    "text": "Drank a bottle of pesticide and organophosphate poison"
+  },
+  {
+    "id": "EMERG_063",
+    "category": "CRISIS",
+    "language": "en",
+    "presentation": "Acute sedative / hypnotic overdose",
+    "text": "Intentionally took a massive overdose of sleeping pills"
+  },
+  {
+    "id": "EMERG_064",
+    "category": "CRISIS",
+    "language": "en",
+    "presentation": "Acute self-harm / cutting wrists",
+    "text": "Actively cutting my wrists with heavy bleeding self harm"
+  },
+  {
+    "id": "EMERG_065",
+    "category": "CRISIS",
+    "language": "en",
+    "presentation": "Rodenticide ingestion / poisoning",
+    "text": "I swallowed rat poison and feel sick"
+  },
+  {
+    "id": "EMERG_066",
+    "category": "CRISIS",
+    "language": "en",
+    "presentation": "Asphyxial suicide plan / hanging",
+    "text": "I have a rope ready and I am going to hang myself"
+  },
+  {
+    "id": "EMERG_067",
+    "category": "CRISIS",
+    "language": "en",
+    "presentation": "Caustic acid ingestion suicide attempt",
+    "text": "I drank toilet cleaner acid to kill myself"
+  },
+  {
+    "id": "EMERG_068",
+    "category": "CRISIS",
+    "language": "hinglish",
+    "presentation": "Poison ingestion (zeher kha liya)",
+    "text": "Maine zeher kha liya hai mujhe bacha lo"
+  },
+  {
+    "id": "EMERG_069",
+    "category": "CRISIS",
+    "language": "hinglish",
+    "presentation": "Active suicide plan (khudkushi apni jaan)",
+    "text": "Khudkushi karne ja raha hoon apni jaan lena chahta hoon"
+  },
+  {
+    "id": "EMERG_070",
+    "category": "CRISIS",
+    "language": "hinglish",
+    "presentation": "Sleeping pill overdose (neend ki goliyan)",
+    "text": "Neend ki 50 goliyan kha li hain suicide karne ke liye"
+  },
+  {
+    "id": "EMERG_071",
+    "category": "CRISIS",
+    "language": "hinglish",
+    "presentation": "Self-harm radial artery cut (nasein kaat li)",
+    "text": "Nasein kaat li hain haath se bahut khoon nikal raha hai"
+  },
+  {
+    "id": "EMERG_072",
+    "category": "CRISIS",
+    "language": "hinglish",
+    "presentation": "Hanging attempt (faansi laga raha hoon)",
+    "text": "Ghar par faansi laga raha hoon ab jeena nahi chahta"
+  },
+  {
+    "id": "EMERG_073",
+    "category": "CRISIS",
+    "language": "hinglish",
+    "presentation": "Pesticide poison ingestion (keede maarne wali dawa)",
+    "text": "Khet ki keede maarne wali dawa pi li hai zeher"
+  },
+  {
+    "id": "EMERG_074",
+    "category": "CRISIS",
+    "language": "hinglish",
+    "presentation": "Lethal jump ideation (building se kood raha hoon)",
+    "text": "Apne aap ko maar daalunga main building se kood raha hoon"
+  },
+  {
+    "id": "EMERG_075",
+    "category": "CRISIS",
+    "language": "hi",
+    "presentation": "Devanagari acute poison ingestion (ज़हर खा लिया)",
+    "text": "मैंने ज़हर खा लिया है तुरंत एम्बुलेंस भेजो"
+  },
+  {
+    "id": "EMERG_076",
+    "category": "CRISIS",
+    "language": "hi",
+    "presentation": "Devanagari explicit suicide attempt (आत्महत्या)",
+    "text": "आत्महत्या करने जा रहा हूँ अपनी जान खत्म कर रहा हूँ"
+  },
+  {
+    "id": "EMERG_077",
+    "category": "CRISIS",
+    "language": "hi",
+    "presentation": "Devanagari overdose on sleeping pills",
+    "text": "खुदकुशी के लिए नींद की सारी गोलियां खा ली हैं"
+  },
+  {
+    "id": "EMERG_078",
+    "category": "CRISIS",
+    "language": "hi",
+    "presentation": "Devanagari cutting wrist self-harm (नस काट ली)",
+    "text": "हाथ की नस काट ली है बहुत खून बह रहा है"
+  },
+  {
+    "id": "EMERG_079",
+    "category": "CRISIS",
+    "language": "hi",
+    "presentation": "Devanagari hanging attempt (फांसी लगाने जा रहा हूँ)",
+    "text": "फांसी लगाने जा रहा हूँ अब और नहीं जीना"
+  },
+  {
+    "id": "EMERG_080",
+    "category": "CRISIS",
+    "language": "hi",
+    "presentation": "Devanagari pesticide poison ingestion",
+    "text": "कीटनाशक ज़हर पी लिया है पेट में जलन हो रही है"
+  },
+  {
+    "id": "EMERG_081",
+    "category": "TRAUMA",
+    "language": "en",
+    "presentation": "Pulsatile arterial spurt / exsanguination",
+    "text": "Profuse arterial bleeding from a deep laceration cannot stop it"
+  },
+  {
+    "id": "EMERG_082",
+    "category": "TRAUMA",
+    "language": "en",
+    "presentation": "Penetrating thoracic trauma / stab wound",
+    "text": "Stabbed in the chest with a knife severe active bleeding"
+  },
+  {
+    "id": "EMERG_083",
+    "category": "TRAUMA",
+    "language": "en",
+    "presentation": "Abdominal gunshot wound / hypovolemic shock",
+    "text": "Gunshot wound to abdomen with massive blood loss"
+  },
+  {
+    "id": "EMERG_084",
+    "category": "TRAUMA",
+    "language": "en",
+    "presentation": "Massive hemoptysis / coughing bright red blood",
+    "text": "Coughing up bright red blood profusely and hematemesis"
+  },
+  {
+    "id": "EMERG_085",
+    "category": "TRAUMA",
+    "language": "en",
+    "presentation": "High-velocity motor vehicle crash with severe TBI",
+    "text": "Major high speed car accident victim unconscious with severe head injury"
+  },
+  {
+    "id": "EMERG_086",
+    "category": "TRAUMA",
+    "language": "en",
+    "presentation": "Upper GI catastrophic bleed / massive hematemesis",
+    "text": "Vomiting large quantities of blood blood vomiting"
+  },
+  {
+    "id": "EMERG_087",
+    "category": "TRAUMA",
+    "language": "en",
+    "presentation": "Extensive major full thickness burns",
+    "text": "Severe full thickness extensive burn across torso and arms"
+  },
+  {
+    "id": "EMERG_088",
+    "category": "TRAUMA",
+    "language": "hinglish",
+    "presentation": "Uncontrollable hemorrhage (tez khoon beh raha)",
+    "text": "Bahut tez khoon beh raha hai patti lagane par bhi ruk nahi raha"
+  },
+  {
+    "id": "EMERG_089",
+    "category": "TRAUMA",
+    "language": "hinglish",
+    "presentation": "Penetrating abdominal stab wound (pet me chaku)",
+    "text": "Pet me chaku lag gaya hai bahut khoon nikal raha hai"
+  },
+  {
+    "id": "EMERG_090",
+    "category": "TRAUMA",
+    "language": "hinglish",
+    "presentation": "Hematemesis (khoon ki ulti)",
+    "text": "Khoon ki ulti ho rahi hai baar baar"
+  },
+  {
+    "id": "EMERG_091",
+    "category": "TRAUMA",
+    "language": "hinglish",
+    "presentation": "Severe head trauma in major accident (gehri chot)",
+    "text": "Bada accident ho gaya hai sar par gehri chot aayi hai"
+  },
+  {
+    "id": "EMERG_092",
+    "category": "TRAUMA",
+    "language": "hinglish",
+    "presentation": "Thoracic gunshot injury (goli lag gayi)",
+    "text": "Goli lag gayi hai seene ke paas aur bleeding ho rahi hai"
+  },
+  {
+    "id": "EMERG_093",
+    "category": "TRAUMA",
+    "language": "hinglish",
+    "presentation": "Extensive scald thermal burn (severe burn)",
+    "text": "Garam tel se poora shareer severe burn ho gaya hai"
+  },
+  {
+    "id": "EMERG_094",
+    "category": "TRAUMA",
+    "language": "hinglish",
+    "presentation": "Open skull fracture with hemorrhage (sar toot gaya)",
+    "text": "Sar toot gaya hai accident mein aur khoon beh raha hai"
+  },
+  {
+    "id": "EMERG_095",
+    "category": "TRAUMA",
+    "language": "hi",
+    "presentation": "Devanagari severe hematemesis (खून की उल्टी)",
+    "text": "खून की उल्टी हो रही है लगातार रुक नहीं रही"
+  },
+  {
+    "id": "EMERG_096",
+    "category": "TRAUMA",
+    "language": "hi",
+    "presentation": "Devanagari stab laceration (चाकू लग गया)",
+    "text": "चाकू लग गया है और बहुत खून बह रहा है"
+  },
+  {
+    "id": "EMERG_097",
+    "category": "TRAUMA",
+    "language": "hi",
+    "presentation": "Devanagari major accident with traumatic brain injury",
+    "text": "बड़ा एक्सीडेंट हो गया है सिर पर बहुत गहरी चोट है"
+  },
+  {
+    "id": "EMERG_098",
+    "category": "TRAUMA",
+    "language": "hi",
+    "presentation": "Devanagari gunshot trauma with active hemorrhage",
+    "text": "गोली लग गई है और बहुत ज्यादा खून निकल रहा है"
+  },
+  {
+    "id": "EMERG_099",
+    "category": "TRAUMA",
+    "language": "hi",
+    "presentation": "Devanagari severe thermal burn (गंभीर रूप से जल)",
+    "text": "आग में गंभीर रूप से जल गया है पूरा शरीर"
+  },
+  {
+    "id": "EMERG_100",
+    "category": "TRAUMA",
+    "language": "hi",
+    "presentation": "Devanagari traumatic amputation / spurting arterial bleeding",
+    "text": "हाथ कट गया है और फव्वारे की तरह खून बह रहा है रुक नहीं रहा"
+  }
+]

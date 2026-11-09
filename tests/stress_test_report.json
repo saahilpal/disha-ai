@@ -1,0 +1,26 @@
+{
+  "concurrency_stress": {
+    "total_sessions": 30,
+    "successful_sessions": 30,
+    "failed_sessions": 0,
+    "total_duration_ms": 7791.26,
+    "avg_latency_ms": 3442.34,
+    "peak_pg_connections": 33,
+    "initial_memory": {
+      "disha_core-backend-1": "57.55MiB / 7.75GiB",
+      "disha_core-proxy-1": "8.707MiB / 7.75GiB",
+      "disha_core-postgres-1": "77.8MiB / 7.75GiB"
+    },
+    "final_memory": {
+      "disha_core-backend-1": "98.82MiB / 7.75GiB",
+      "disha_core-proxy-1": "8.902MiB / 7.75GiB",
+      "disha_core-postgres-1": "135.6MiB / 7.75GiB"
+    }
+  },
+  "barge_in_interruption": {
+    "status": "PASS",
+    "interrupted_confirmed": true,
+    "latency_to_interrupted_ms": 5.24
+  },
+  "overall_status": "PASS"
+}
