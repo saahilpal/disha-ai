@@ -1,0 +1,119 @@
+# ==============================================================================
+# DISHA AI — GITIGNORE SPECIFICATION
+# Comprehensive protection against caches, OS debris, secrets, DBs, and logs
+# ==============================================================================
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+.venv-mlx-audio/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing, Linting & Coverage
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+htmlcov/
+.hypothesis/
+.cache
+
+# Sensitive Environment & Secrets
+.env
+.env.*
+!.env.example
+
+# SQLite Databases & WAL Sidecars
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+*audit_wal.db*
+audit_wal.db*
+**/audit_wal.db*
+review_queue.db*
+
+# OS Artifacts
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+
+# IDE & Editor Configurations
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.sublime-workspace
+*.sublime-project
+
+# Temporary, Logs & Transcripts
+*.tmp
+*.log
+*.out
+logs/
+**/logs/*.log
+**/logs/*.pid
+*transcript*.jsonl
+.system_generated/
+scratch/
+
+# Node & Vercel
+node_modules/
+.vercel/
+.vercel
+package-lock.json.bak
+
+# Synapse / Agent Context
+.synap/
+.synapse/
+.synapse/*-wal
+.synapse/*-shm
+
+# Large Binary Model Weights (Downloaded via scripts/ or model-bakeoff.md)
+models/
+*.onnx
+*.bin
+*.safetensors
+*.pt
+
+# Runtime Tunnel & Infra Logs
+agent/TUNNEL_URL.txt
+infra/logs/
+
+# Agent working files
+.agent/

@@ -1,0 +1,15 @@
+{
+  "name": "disha-ai",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Disha AI Health Coach — Full-Duplex Deterministic Telephony Platform",
+  "scripts": {
+    "sync": "bash scripts/sync-frontend.sh",
+    "build": "bash scripts/sync-frontend.sh",
+    "lint:duplication": "npx jscpd"
+  },
+  "devDependencies": {
+    "axe-core": "^4.14.0",
+    "playwright": "^1.65.0"
+  }
+}
