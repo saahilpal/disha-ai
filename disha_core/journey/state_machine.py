@@ -600,7 +600,7 @@ async def record_question_deferred(
     now = datetime.now(timezone.utc)
     await conn.execute(
         """UPDATE journey_question_history
-           SET skip_reason = $3, asked_at = $4
+           SET status = 'skipped', skip_reason = $3, asked_at = $4
            WHERE patient_id = $1 AND question_id = $2 AND status = 'asked'""",
         patient_id,
         question_id,

@@ -1244,8 +1244,9 @@
     navigate('chat');
     initSpectrumVisualizer();
     await fetchPatientProfile();
+    const hasHistory = await fetchChatHistory();
 
-    if (state.patientName) {
+    if (!hasHistory && state.patientName) {
       const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
       if (stream) {
         const streamText = stream.innerText || stream.textContent || '';
@@ -1254,6 +1255,33 @@
         }
       }
     }
+  }
+
+  async function fetchChatHistory() {
+    if (!state.token) return false;
+    try {
+      const config = getBackendConfig();
+      const res = await fetch(`${config.httpBase}/chat/history?limit=30`, {
+        headers: {
+          'Authorization': `Bearer ${state.token}`
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const history = data.history || [];
+        const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
+        if (stream && history.length > 0) {
+          stream.innerHTML = '';
+          for (const turn of history) {
+            appendChatMessage(turn.role === 'assistant' ? 'assistant' : 'user', turn.content);
+          }
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load chat history:', e);
+    }
+    return false;
   }
 
   async function fetchPatientProfile() {

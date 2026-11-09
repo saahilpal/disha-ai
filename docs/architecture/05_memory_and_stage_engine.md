@@ -41,10 +41,11 @@ flowchart TD
 
 ## Short-term context behavior
 
-- The context builder reads up to eight most recent messages from `patient_turn_journal`.
-- The prompt path uses at most eight history messages. The process-local cache is keyed by patient and retains up to sixteen messages (up to eight user/assistant pairs).
-- Completed generated turns are saved to the PostgreSQL journal. A process restart loses the cache but can rehydrate a recent window from the database.
-- The shared turn currently uses the default session unless a caller passes a session/call ID. Do not assume chat and voice have isolated histories.
-- The journal is not schema-enforced as immutable and no retention policy is documented here.
+- The context builder reads up to sixteen most recent messages from `patient_turn_journal`.
+- The prompt path uses chronological history messages (up to sixteen messages / eight user/assistant pairs) and injects `<CONVERSATION_STATE>` to handle references like "that", "same", "why", and "okay".
+- Older relevant exchanges outside the recent window are retrieved via conversation history RAG into `<RELEVANT_PAST_CONVERSATION>`.
+- All turns (normal generation, emergency/safety deflections, and provider errors) commit to `patient_turn_journal` and update in-memory cache.
+- Active pending onboarding questions are deferred (`status = 'skipped'`, `skip_reason = 'deferred: topic_shift'`) when the user switches topics.
+- The `/chat/history` endpoint provides full client hydration on page reload, preserving continuous conversation.
 
 The memory and journey schema is broader than the context loaded into a single prompt. Table existence does not imply that every value is used, current, clinically reviewed, or proven.

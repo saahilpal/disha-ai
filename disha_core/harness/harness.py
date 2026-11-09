@@ -53,6 +53,39 @@ def _get_app_main() -> Any:
     return sys.modules.get("disha_core.main")
 
 
+async def _commit_turn(
+    app_state: Any,
+    patient_id: str,
+    user_text: str,
+    assistant_text: str,
+    session_id: str = "default",
+    call_id: str | None = None,
+) -> None:
+    """Commit user and assistant utterances to in-memory state and PostgreSQL patient_turn_journal."""
+    if not hasattr(app_state, "conversation_history"):
+        app_state.conversation_history = {}
+    if patient_id not in app_state.conversation_history:
+        app_state.conversation_history[patient_id] = []
+
+    history = app_state.conversation_history[patient_id]
+    if not (
+        len(history) >= 2
+        and history[-2].get("content") == user_text
+        and history[-1].get("content") == assistant_text
+    ):
+        history.append({"role": "user", "content": user_text})
+        history.append({"role": "assistant", "content": assistant_text})
+        app_state.conversation_history[patient_id] = history[-24:]
+
+    if getattr(app_state, "pool", None) is not None:
+        with suppress(Exception):
+            from disha_core.services.chat_service import persist_patient_disclosure, store_conversation_turn
+
+            async with app_state.pool.acquire() as save_conn:
+                await store_conversation_turn(save_conn, patient_id, user_text, assistant_text, session_id, call_id)
+                await persist_patient_disclosure(save_conn, patient_id, user_text)
+
+
 class ResponseHarness:
     """Master response pipeline harness orchestrating PERCEIVE -> PLAN -> GENERATE -> VERIFY -> REPAIR -> COMMIT."""
 
@@ -92,6 +125,7 @@ class ResponseHarness:
             emergency_text = emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein."
             tc.validator.validated_sentences = [emergency_text]
             tc.validator.status = f"triggered:{emergency.category}"
+            await _commit_turn(app_state, patient_id, payload.text, emergency_text)
             yield emergency_text
             return
 
@@ -103,6 +137,7 @@ class ResponseHarness:
             tc.record_stage_latency("PERCEIVE", (time.monotonic() - t0) * 1000.0)
             tc.validator.validated_sentences = [UNSUPPORTED_LANGUAGE_REPLACEMENT]
             tc.validator.status = "deflected:unsupported_language"
+            await _commit_turn(app_state, patient_id, payload.text, UNSUPPORTED_LANGUAGE_REPLACEMENT)
             yield UNSUPPORTED_LANGUAGE_REPLACEMENT
             return
 
@@ -194,12 +229,14 @@ class ResponseHarness:
             state.validator_status = "deflected:meal_window_required"
             tc.validator.status = "deflected:meal_window_required"
             msg = "Aap apne prescribed plan mein kaunsa meal dekhna chahte hain: breakfast, lunch, ya dinner?"
+            await _commit_turn(app_state, patient_id, payload.text, msg)
             yield msg
             return
 
         if prescribed_meal_query and context.get("diet_status") == "NOT_FOUND":
             state.validator_status = "rewritten:meal_not_found"
             tc.validator.status = "rewritten:meal_not_found"
+            await _commit_turn(app_state, patient_id, payload.text, MEAL_NOT_FOUND_REPLACEMENT)
             yield MEAL_NOT_FOUND_REPLACEMENT
             return
 
@@ -207,6 +244,7 @@ class ResponseHarness:
             state.validator_status = "deflected:meal_plan_unavailable"
             tc.validator.status = "deflected:meal_plan_unavailable"
             msg = "Main abhi aapka saved meal plan access nahi kar paa rahi. Kripya thodi der baad phir koshish karein."
+            await _commit_turn(app_state, patient_id, payload.text, msg)
             yield msg
             return
 
@@ -221,6 +259,7 @@ class ResponseHarness:
         if pep_risk >= 2 and (restricted or has_cardiac_htn):
             state.validator_status = "rewritten:pep_restriction"
             tc.validator.status = "rewritten:pep_restriction"
+            await _commit_turn(app_state, patient_id, payload.text, PEP_REPLACEMENT)
             yield PEP_REPLACEMENT
             return
 
@@ -228,11 +267,14 @@ class ResponseHarness:
         if not hasattr(app_state, "conversation_history"):
             app_state.conversation_history = {}
         db_history = context.get("conversation_history") or []
-        if patient_id not in app_state.conversation_history or not app_state.conversation_history[patient_id]:
+        if db_history:
             app_state.conversation_history[patient_id] = list(db_history)
+        elif patient_id not in app_state.conversation_history:
+            app_state.conversation_history[patient_id] = []
 
-        history = app_state.conversation_history.get(patient_id, [])[-8:]
+        history = app_state.conversation_history.get(patient_id, [])[-16:]
         context["has_history"] = bool(history)
+        context["conversation_history"] = list(history)
         tc.memory_brief.has_history = bool(history)
         tc.memory_brief.history_turns = list(history)
 
@@ -283,6 +325,15 @@ class ResponseHarness:
                             or intent in {Intent.MEAL_QUERY, Intent.EXERCISE_QUERY, Intent.SYMPTOM_COMPLAINT}
                         )
                         is_off_topic = is_coaching_query and not disclosures
+                        if is_off_topic and pending_row:
+                            with suppress(Exception):
+                                await connection.execute(
+                                    """UPDATE journey_question_history
+                                       SET status = 'skipped', skip_reason = 'deferred: topic_shift'
+                                       WHERE patient_id = $1 AND question_id = $2 AND status = 'asked'""",
+                                    patient_id,
+                                    pending_row["question_id"],
+                                )
                         # Prioritize user's immediate question without forcing onboarding questionnaire (Bug 5)
                         suppress_question = is_coaching_query or is_off_topic
                         if not is_incomplete_thought and not suppress_question:
@@ -358,6 +409,19 @@ class ResponseHarness:
                             context["retrieved_evidence_ids"] = state.evidence_ids
                             tc.retrieval.evidence_ids = state.evidence_ids
                             tc.retrieval.chunk_count = len(chunks)
+
+                    with suppress(Exception):
+                        from disha_core.engine.retriever import retrieve_conversation_history
+
+                        exclude_texts = {m.get("content", "") for m in history}
+                        older_turns = await retrieve_conversation_history(
+                            connection,
+                            patient_id=patient_id,
+                            query=payload.text,
+                            exclude_texts=exclude_texts,
+                            limit=4,
+                        )
+                        context["retrieved_older_turns"] = older_turns
             except (asyncpg.PostgresError, ConnectionError, OSError, RuntimeError) as exc:
                 logger.warning("Database retrieval unavailable: %s", exc)
                 state.retrieval_status = "unavailable"
@@ -402,6 +466,7 @@ class ResponseHarness:
                     "aur jis activity ke baare mein pooch rahe hain woh batayein; zarurat par clinician se "
                     "suitability confirm karein."
                 )
+                await _commit_turn(app_state, patient_id, payload.text, msg)
                 yield msg
                 return
             if not has_recorded_safety_context:
@@ -412,6 +477,7 @@ class ResponseHarness:
                     "mobility difficulty, heart condition, ya exercise restriction hai ya nahi. Bina is context "
                     "ke main workout recommend nahi karungi."
                 )
+                await _commit_turn(app_state, patient_id, payload.text, msg)
                 yield msg
                 return
 
@@ -420,6 +486,7 @@ class ResponseHarness:
             tc.validator.status = "deflected:knowledge_unavailable"
             preferred_language = (context.get("pep") or {}).get("language")
             msg = knowledge_unavailable_response(preferred_language)
+            await _commit_turn(app_state, patient_id, payload.text, msg)
             yield msg
             return
 
@@ -485,6 +552,7 @@ class ResponseHarness:
             tc.validator.status = "provider_unavailable"
             if not emitted:
                 err_msg = format_system_error("LLM provider unavailable", "Kripya thodi der baad koshish karein.")
+                await _commit_turn(app_state, patient_id, payload.text, err_msg)
                 yield err_msg
                 return
 
@@ -501,19 +569,7 @@ class ResponseHarness:
 
         if generated_sentences:
             full_reply = " ".join(generated_sentences)
-            if patient_id not in app_state.conversation_history:
-                app_state.conversation_history[patient_id] = []
-            app_state.conversation_history[patient_id].append({"role": "user", "content": payload.text})
-            app_state.conversation_history[patient_id].append({"role": "assistant", "content": full_reply})
-            app_state.conversation_history[patient_id] = app_state.conversation_history[patient_id][-16:]
-
-            if getattr(app_state, "pool", None) is not None:
-                with suppress(Exception):
-                    from disha_core.services.chat_service import persist_patient_disclosure, store_conversation_turn
-
-                    async with app_state.pool.acquire() as save_conn:
-                        await store_conversation_turn(save_conn, patient_id, payload.text, full_reply)
-                        await persist_patient_disclosure(save_conn, patient_id, payload.text)
+            await _commit_turn(app_state, patient_id, payload.text, full_reply)
 
         tc.record_stage_latency("COMMIT", (time.monotonic() - t3) * 1000.0)
         tc.record_stage_latency("TOTAL_TURN", (time.monotonic() - t_start) * 1000.0)

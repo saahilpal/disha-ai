@@ -177,3 +177,59 @@ async def retrieve_chunks(
         _RETRIEVAL_CACHE[cache_key] = results
 
     return results
+
+
+CONVERSATION_HISTORY_RETRIEVE_SQL = """
+SELECT speaker, raw_utterance, timestamp_utc, turn_index
+FROM patient_turn_journal
+WHERE patient_id = $1
+  AND LENGTH(raw_utterance) > 6
+  AND raw_utterance ILIKE ANY($2)
+ORDER BY timestamp_utc DESC
+LIMIT $3
+"""
+
+
+async def retrieve_conversation_history(
+    connection: Any,
+    patient_id: str,
+    query: str,
+    exclude_texts: set[str] | None = None,
+    limit: int = 4,
+) -> list[dict[str, str]]:
+    """Retrieve older relevant conversation turns from patient_turn_journal via keyword matching.
+
+    Supplements recent message history without duplicating active turns or returning trivial noise.
+    """
+    if connection is None or not query:
+        return []
+
+    tokens = [re.sub(r"[^\w]", "", w).casefold() for w in query.split()]
+    clean_tokens = [w for w in tokens if len(w) > 3 and w not in STOP_WORDS]
+    if not clean_tokens:
+        return []
+
+    patterns = [f"%{tok}%" for tok in clean_tokens[:6]]
+    try:
+        rows = await connection.fetch(CONVERSATION_HISTORY_RETRIEVE_SQL, patient_id, patterns, limit * 3)
+    except Exception:
+        return []
+
+    results: list[dict[str, str]] = []
+    seen = {t.strip().casefold() for t in (exclude_texts or ())}
+    for r in rows:
+        utterance = str(r["raw_utterance"]).strip()
+        casefolded = utterance.casefold()
+        if casefolded in seen or any(casefolded in s for s in seen):
+            continue
+        seen.add(casefolded)
+        speaker = str(r["speaker"]).lower()
+        role = "assistant" if speaker in ("assistant", "coach") else "user"
+        results.append({"role": role, "content": utterance})
+        if len(results) >= limit:
+            break
+
+    # Return in chronological order
+    results.reverse()
+    return results
+

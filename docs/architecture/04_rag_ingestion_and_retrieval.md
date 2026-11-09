@@ -9,6 +9,7 @@ This describes the active chat/voice recommendation path. It supersedes earlier 
 | General food, nutrition, recipe, substitution, exercise, and lifestyle knowledge | Approved records in `clinical_knowledge_base`, exposed through `clinical_guideline_chunks` |
 | User's prescribed breakfast/lunch/dinner | The user's active, approved `patient_diet_schedules` row for the requested day and meal |
 | Preferences, dislikes, conditions, symptoms, limitations, and goals | User profile, `patient_pep`, and persisted user facts |
+| Past conversation exchanges & historical context | `patient_turn_journal` via recent chronological window (16 messages) + conversation-history keyword RAG |
 | Safety and eligibility decisions | Deterministic backend checks; the LLM is not the safety authority |
 | Natural-language response | LLM, supplied with retrieved evidence and user context |
 

@@ -197,12 +197,13 @@ async def build_patient_context(
                                 "sensitive_flag": False,
                             })
                             existing_keys.add(k)
+            hist_rows = []
             if call_id:
-                hist_rows = await connection.fetch(HISTORY_CALL_SQL, patient_id, call_id, 8)
+                hist_rows = await connection.fetch(HISTORY_CALL_SQL, patient_id, call_id, 16)
             elif session_id:
-                hist_rows = await connection.fetch(HISTORY_SESSION_SQL, patient_id, session_id, 8)
-            else:
-                hist_rows = await connection.fetch(HISTORY_SQL, patient_id, 8)
+                hist_rows = await connection.fetch(HISTORY_SESSION_SQL, patient_id, session_id, 16)
+            if not hist_rows:
+                hist_rows = await connection.fetch(HISTORY_SQL, patient_id, 16)
             for r in reversed(hist_rows):
                 speaker = str(r["speaker"]).lower()
                 role = "assistant" if speaker in ("assistant", "coach") else "user"
@@ -352,11 +353,12 @@ async def rehydrate_session_state(
                             })
                             existing_keys.add(k)
         with suppress(Exception):
+            hist_rows = []
             if call_id:
                 hist_rows = await connection.fetch(HISTORY_CALL_SQL, patient_id, call_id, limit)
             elif session_id:
                 hist_rows = await connection.fetch(HISTORY_SESSION_SQL, patient_id, session_id, limit)
-            else:
+            if not hist_rows:
                 hist_rows = await connection.fetch(HISTORY_SQL, patient_id, limit)
             for r in reversed(hist_rows):
                 speaker = str(r["speaker"]).lower()
@@ -554,9 +556,50 @@ def render_user_payload(user_input: str, context: dict[str, Any], chunks: Any = 
             f"</SCHEDULED_ONBOARDING_INQUIRY>"
         )
 
+    # Conversational state: identify follow-ups, short responses, and last assistant utterance
+    user_lower = user_input.strip().casefold()
+    is_followup = bool(
+        user_lower in {"same", "same thing", "that", "why", "okay", "ok", "haan", "nhi", "nah", "yes", "no", "kal se"}
+        or user_lower.startswith(("why", "kyun", "what about", "aur", "phir", "same", "that"))
+        or len(user_lower.split()) <= 3
+    )
+    history_turns = context.get("conversation_history") or []
+    last_assistant_turn = ""
+    for turn in reversed(history_turns):
+        if turn.get("role") in ("assistant", "coach"):
+            last_assistant_turn = str(turn.get("content", ""))
+            break
+
+    conversation_state_xml = ""
+    if last_assistant_turn or is_followup:
+        last_esc = html.escape(last_assistant_turn[:300]) if last_assistant_turn else "None"
+        conversation_state_xml = (
+            f'<CONVERSATION_STATE is_followup_or_short_reply="{str(is_followup).lower()}">'
+            f'<LAST_ASSISTANT_UTTERANCE>{last_esc}</LAST_ASSISTANT_UTTERANCE>'
+            f'<INSTRUCTION>Treat this conversation as an ongoing, continuous discussion. If user utterance refers to previous message (e.g. "that", "same", "why", "okay"), interpret it using the conversation history above.</INSTRUCTION>'
+            f'</CONVERSATION_STATE>'
+        )
+
+    older_turns = context.get("retrieved_older_turns") or []
+    older_turns_xml = ""
+    if older_turns:
+        parts = []
+        for turn in older_turns:
+            spk = html.escape(str(turn.get("role", "user")), quote=True)
+            txt = html.escape(str(turn.get("content", "")))
+            parts.append(f'<PAST_TURN speaker="{spk}">{txt}</PAST_TURN>')
+        older_turns_xml = (
+            f'<RELEVANT_PAST_CONVERSATION note="Older conversation context retrieved via search. '
+            f'Recent conversation in message history takes priority:">'
+            f"{''.join(parts)}"
+            f"</RELEVANT_PAST_CONVERSATION>"
+        )
+
     return (
         f"{render_context_xml(context, chunks)}"
         f"{discipline_xml}"
         f"{scheduled_xml}"
+        f"{conversation_state_xml}"
+        f"{older_turns_xml}"
         f"<USER_UTTERANCE>{html.escape(user_input)}</USER_UTTERANCE>"
     )
