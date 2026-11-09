@@ -58,6 +58,18 @@ SELECT speaker, raw_utterance FROM patient_turn_journal
 WHERE patient_id = $1 AND call_id = $2
 ORDER BY timestamp_utc DESC LIMIT $3
 """
+
+
+def normalize_preferred_language(language: Any) -> str:
+    """Map saved language codes and labels to the three supported response languages."""
+    normalized = str(language or "").strip().casefold()
+    return {
+        "en": "english",
+        "english": "english",
+        "hi": "hindi",
+        "hindi": "hindi",
+        "hinglish": "hinglish",
+    }.get(normalized, "hinglish")
 WEEKDAYS = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
 
 
@@ -314,8 +326,7 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
                 f'</PEP_RESTRICTION_RULES>'
             )
 
-        raw_lang = str(pep.get("language") or "hinglish").strip().lower()
-        valid_lang = raw_lang if raw_lang in {"english", "hindi", "hinglish"} else "hinglish"
+        valid_lang = normalize_preferred_language(pep.get("language"))
         lang_xml = f'<USER_LANGUAGE preferred="{html.escape(valid_lang, quote=True)}"/>'
         diet_pref = str(pep.get("dietary_preference") or "").strip()
         if diet_pref:

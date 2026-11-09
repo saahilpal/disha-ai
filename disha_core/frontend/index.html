@@ -118,7 +118,7 @@
           <form id="login-form" class="auth-form" novalidate>
             <div class="form-group">
               <label for="email-input" class="form-label">Email Address</label>
-              <input type="email" id="email-input" name="email" class="form-input" placeholder="name@example.com" required autocomplete="email" />
+              <input type="email" id="email-input" name="email" class="form-input" placeholder="Email address" required autocomplete="email" />
               <div id="email-error" class="field-feedback error" role="alert"></div>
             </div>
 
@@ -233,6 +233,16 @@
                 </div>
               </div>
 
+              <div class="form-group">
+                <label for="onboard-language" class="form-label">Preferred Language</label>
+                <select id="onboard-language" class="form-select">
+                  <option value="hinglish" selected>Hinglish</option>
+                  <option value="en">English</option>
+                  <option value="hi">Hindi (हिंदी)</option>
+                </select>
+                <p class="form-hint">Disha will use this language for your coaching conversations.</p>
+              </div>
+
               <div class="step-actions split">
                 <button type="button" class="secondary-btn" id="step-2-back-btn">Back</button>
                 <button type="button" class="primary-btn" id="step-2-next-btn">Continue</button>
@@ -243,7 +253,7 @@
             <div class="step-panel" id="onboard-step-panel-3" style="display: none;">
               <div class="form-group">
                 <label for="onboard-email" class="form-label">Email Address</label>
-                <input type="email" id="onboard-email" class="form-input" placeholder="name@example.com" required autocomplete="email" />
+                <input type="email" id="onboard-email" class="form-input" placeholder="Email address" required autocomplete="email" />
                 <div id="onboard-email-error" class="field-feedback error" role="alert"></div>
               </div>
 
@@ -354,7 +364,7 @@
             <div class="chat-message assistant">
               <div class="msg-avatar" aria-hidden="true">D</div>
               <div class="msg-bubble">
-                <p class="msg-text">Namaste! I am Disha, your personal health coach. How can I support your nutrition, daily routine, or wellness goals today?</p>
+                <p class="msg-text">I’m Disha. What would you like help with today?</p>
               </div>
             </div>
           </div>
@@ -544,7 +554,6 @@
               <option value="hinglish" selected>Hinglish (Conversational)</option>
               <option value="en">English</option>
               <option value="hi">Hindi (हिंदी)</option>
-              <option value="bn">Bengali (বাংলা)</option>
             </select>
           </div>
         </form>
@@ -603,7 +612,6 @@
                 <option value="hinglish">Hinglish</option>
                 <option value="en">English</option>
                 <option value="hi">Hindi</option>
-                <option value="bn">Bengali</option>
               </select>
             </div>
           </div>

@@ -15,11 +15,23 @@
   'use strict';
 
   // --- STATE ---
+  function normalizeLanguageCode(value) {
+    const language = String(value || '').trim().toLowerCase();
+    if (language === 'en' || language === 'english') return 'en';
+    if (language === 'hi' || language === 'hindi') return 'hi';
+    return 'hinglish';
+  }
+
   const state = {
     theme: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_theme')) || 'light',
     token: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_token')) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_token')) || null,
     patientId: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_patient_id')) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_id')) || null,
     patientName: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_patient_name')) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_name')) || null,
+    language: normalizeLanguageCode(
+      typeof localStorage !== 'undefined' && localStorage.getItem('disha_language')
+    ),
+    authRequestInFlight: false,
+    textTurnInFlight: false,
     capsLockOn: false,
     ws: null,
     wsReconnectAttempts: 0,
@@ -197,8 +209,8 @@
     eyeClosed: typeof document !== 'undefined' ? document.querySelector('.eye-closed') : null,
     capsLockWarning: typeof document !== 'undefined' ? document.getElementById('caps-lock-warning') : null,
     fillDemoBtn: typeof document !== 'undefined' ? document.getElementById('fill-demo-btn') : null,
-    submitBtn: typeof document !== 'undefined' ? document.getElementById('submit-btn') : null,
-    btnText: typeof document !== 'undefined' ? document.querySelector('.btn-text') : null,
+    submitBtn: typeof document !== 'undefined' ? document.getElementById('login-submit-btn') : null,
+    btnText: typeof document !== 'undefined' ? document.querySelector('#login-submit-btn span') : null,
     btnSpinner: typeof document !== 'undefined' ? document.querySelector('.btn-spinner') : null,
 
     // Strength elements for test suite compatibility
@@ -228,6 +240,7 @@
     onboardGender: typeof document !== 'undefined' ? document.getElementById('onboard-gender') : null,
     onboardHeight: typeof document !== 'undefined' ? document.getElementById('onboard-height') : null,
     onboardWeight: typeof document !== 'undefined' ? document.getElementById('onboard-weight') : null,
+    onboardLanguage: typeof document !== 'undefined' ? document.getElementById('onboard-language') : null,
     onboardActivity: typeof document !== 'undefined' ? document.getElementById('onboard-activity') : null,
     onboardRestrictions: typeof document !== 'undefined' ? document.getElementById('onboard-restrictions') : null,
     onboardSubmitBtn: typeof document !== 'undefined' ? document.getElementById('onboard-submit-btn') : null,
@@ -267,6 +280,7 @@
     chatStream: typeof document !== 'undefined' ? document.getElementById('chat-stream') : null,
     userTextInput: typeof document !== 'undefined' ? document.getElementById('user-text-input') : null,
     textTurnForm: typeof document !== 'undefined' ? document.getElementById('text-turn-form') : null,
+    sendTurnBtn: typeof document !== 'undefined' ? document.getElementById('send-turn-btn') : null,
     wsStatusDot: typeof document !== 'undefined' ? document.getElementById('ws-status-dot') : null,
     wsStatusText: typeof document !== 'undefined' ? document.getElementById('ws-status-text') : null,
 
@@ -383,20 +397,56 @@
   }
 
   // --- LANGUAGE INITIALIZATION & SYNCHRONIZATION ---
-  const savedLang = (typeof localStorage !== 'undefined' && localStorage.getItem('disha_language')) || state.language || 'hinglish';
+  const savedLang = state.language;
   state.language = savedLang;
-  if (dom.languageSelect) {
-    dom.languageSelect.value = savedLang;
-    dom.languageSelect.addEventListener('change', () => {
-      state.language = dom.languageSelect.value;
+  if (dom.onboardLanguage) {
+    dom.onboardLanguage.value = savedLang;
+    dom.onboardLanguage.addEventListener('change', () => {
+      state.language = dom.onboardLanguage.value;
       try {
         localStorage.setItem('disha_language', state.language);
       } catch (e) {}
-      const labels = { hinglish: 'Hinglish', en: 'English', hi: 'Hindi', bn: 'Bengali' };
-      if (dom.profilePageLanguage) {
-        dom.profilePageLanguage.textContent = labels[state.language] || state.language;
+    });
+  }
+  if (dom.languageSelect) {
+    dom.languageSelect.value = savedLang;
+    dom.languageSelect.addEventListener('change', async () => {
+      const previousLanguage = state.language;
+      const language = dom.languageSelect.value;
+      if (!['hinglish', 'en', 'hi'].includes(language)) {
+        dom.languageSelect.value = previousLanguage;
+        showAlert('Choose Hinglish, English, or Hindi.');
+        return;
       }
-      showAlert('Language preference set to ' + (dom.languageSelect.options[dom.languageSelect.selectedIndex]?.text || state.language));
+
+      try {
+        const config = getBackendConfig();
+        const response = await fetch(`${config.httpBase}/patient/profile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.token}`,
+          },
+          body: JSON.stringify({ language }),
+        });
+        if (!response.ok) {
+          const error = await response.json().catch(() => ({}));
+          throw new Error(error.detail || 'Could not save your language preference.');
+        }
+
+        state.language = language;
+        try {
+          localStorage.setItem('disha_language', language);
+        } catch (error) {
+          console.warn('Could not save language preference locally.', error);
+        }
+        const labels = { hinglish: 'Hinglish', en: 'English', hi: 'Hindi' };
+        if (dom.profilePageLanguage) dom.profilePageLanguage.textContent = labels[language];
+        showAlert('Language preference saved.');
+      } catch (error) {
+        dom.languageSelect.value = previousLanguage;
+        showAlert(error.message || 'Could not save your language preference.');
+      }
     });
   }
 
@@ -466,7 +516,7 @@
     if (dom.globalAlert) dom.globalAlert.style.display = 'none';
     if (dom.alertContent) dom.alertContent.textContent = '';
     if (dom.submitBtn) dom.submitBtn.disabled = false;
-    if (dom.btnText) dom.btnText.textContent = 'Authenticate to Consultation';
+    if (dom.btnText) dom.btnText.textContent = 'Sign In';
     if (dom.onboardSubmitBtn) dom.onboardSubmitBtn.disabled = false;
     if (dom.capsLockWarning) dom.capsLockWarning.style.display = 'none';
   }
@@ -892,12 +942,14 @@
   if (dom.loginForm) {
     dom.loginForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (state.authRequestInFlight) return;
       const isEmailValid = validateEmail(dom.emailInput.value);
       const isPassValid = evaluatePasswordStrength(dom.passwordInput.value);
       if (!isEmailValid || !isPassValid) return;
 
+      state.authRequestInFlight = true;
       if (dom.submitBtn) dom.submitBtn.disabled = true;
-      if (dom.btnText) dom.btnText.textContent = 'Authenticating...';
+      if (dom.btnText) dom.btnText.textContent = 'Signing in...';
 
       try {
         const config = getBackendConfig();
@@ -921,8 +973,9 @@
       } catch (err) {
         showAlert(err.message);
       } finally {
+        state.authRequestInFlight = false;
         if (dom.submitBtn) dom.submitBtn.disabled = false;
-        if (dom.btnText) dom.btnText.textContent = 'Authenticate to Consultation';
+        if (dom.btnText) dom.btnText.textContent = 'Sign In';
       }
     });
   }
@@ -931,6 +984,7 @@
   if (dom.onboardForm) {
     dom.onboardForm.addEventListener('submit', async (e) => {
       e.preventDefault();
+      if (state.authRequestInFlight) return;
       const name = (dom.onboardName ? dom.onboardName.value : '').trim();
       const email = (dom.onboardEmail ? dom.onboardEmail.value : '').trim();
       const password = (dom.onboardPassword ? dom.onboardPassword.value : '');
@@ -978,11 +1032,12 @@
       const activity = 'moderate';
       const gymClearance = true;
       const restrictions = [];
-      const language = 'hinglish';
+      const language = dom.onboardLanguage ? dom.onboardLanguage.value : state.language;
       const healthFocusOther = '';
       const htnStage = focusVal.toLowerCase().includes('pressure') ? 'stage 1' : 'normal';
 
       if (dom.onboardSubmitBtn) dom.onboardSubmitBtn.disabled = true;
+      state.authRequestInFlight = true;
 
       try {
         const config = getBackendConfig();
@@ -1035,37 +1090,13 @@
         }
 
         await transitionToDashboard();
-        triggerPersonalizedFirstConsultation(name, goals, htnStage);
       } catch (err) {
         showAlert(err.message);
       } finally {
+        state.authRequestInFlight = false;
         if (dom.onboardSubmitBtn) dom.onboardSubmitBtn.disabled = false;
       }
     });
-  }
-
-  function triggerPersonalizedFirstConsultation(name, goals, htnStage) {
-    const chatStream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
-    if (!chatStream) return;
-
-    const firstName = name ? name.split(' ')[0] : 'friend';
-    const goalsSummary = goals && goals.length ? goals.slice(0, 2).join(' and ') : 'daily wellness';
-
-    const welcomeMsg = `Namaste ${firstName}! I am Disha, your personal health coach. I have noted your health profile with a focus on ${goalsSummary}.\n\nHow are you feeling today? Would you like to review today’s nutrition plan or discuss your wellness goals?`;
-
-    // Add proactive message bubble
-    const msgEl = document.createElement('div');
-    msgEl.className = 'chat-message assistant';
-    msgEl.innerHTML = `
-      <div class="msg-avatar" aria-hidden="true">D</div>
-      <div class="msg-bubble">
-        <p class="msg-text">${escapeHtml(welcomeMsg).replace(/\n\n/g, '<br><br>')}</p>
-      </div>
-    `;
-
-    chatStream.appendChild(msgEl);
-    const wrapper = chatStream.closest('.chat-messages-area') || chatStream;
-    wrapper.scrollTop = wrapper.scrollHeight;
   }
 
   function saveSession(token, patientId, patientName) {
@@ -1126,6 +1157,14 @@
   function updateDrawerUI(data) {
     if (!data) return;
     state.patientProfile = data;
+    if (data.profile?.language) {
+      state.language = normalizeLanguageCode(data.profile.language);
+      if (dom.onboardLanguage) dom.onboardLanguage.value = state.language;
+      if (dom.languageSelect) dom.languageSelect.value = state.language;
+      try {
+        localStorage.setItem('disha_language', state.language);
+      } catch (e) {}
+    }
     if (dom.dispPatientId) dom.dispPatientId.textContent = data.patient_id || state.patientId || '--';
 
     const dispFocus = dom.dispHealthFocus || (typeof document !== 'undefined' ? document.getElementById('disp-health-focus') : null);
@@ -1335,6 +1374,7 @@
       };
 
       state.ws.onclose = (event) => {
+        setTextTurnPending(false);
         setConnectionState('disconnected');
         if (state.wsExplicitlyClosed || (event && (event.code === 1000 || event.code === 1008 || event.code === 4001))) {
           if (state.isInCall) endCall();
@@ -1410,6 +1450,7 @@
       appendChatMessage('assistant', data.text, 'Validated & Grounded');
       setTelephonyStatus('speaking');
     } else if (data.type === 'done') {
+      setTextTurnPending(false);
       applyMessageProvenance(state.lastAssistantMessageElement, state.lastAssistantHistoryEntry, data);
       if (data.merkle_hash && dom.latestMerkleHash) {
         const rawHash = String(data.merkle_hash).trim();
@@ -1423,6 +1464,7 @@
         setTelephonyStatus('listening');
       }
     } else if (data.type === 'error') {
+      setTextTurnPending(false);
       showAlert(data.message || 'Consultation error');
       setTelephonyStatus('listening');
     }
@@ -2116,6 +2158,7 @@
   if (dom.textTurnForm && dom.userTextInput) {
     dom.textTurnForm.addEventListener('submit', (e) => {
       e.preventDefault();
+      if (state.textTurnInFlight) return;
       const query = dom.userTextInput.value.trim();
       if (!query) return;
       dispatchTurn(query);
@@ -2124,6 +2167,10 @@
   }
 
   async function dispatchTurn(text) {
+    if (state.textTurnInFlight) return;
+    state.textTurnInFlight = true;
+    const sendButton = dom.sendTurnBtn || (typeof document !== 'undefined' ? document.getElementById('send-turn-btn') : null);
+    if (sendButton) sendButton.disabled = true;
     appendChatMessage('user', text);
     setTelephonyStatus('processing');
 
@@ -2131,7 +2178,12 @@
     const scrollContainer = chatStream ? (chatStream.closest('.chat-messages-area') || chatStream) : null;
 
     if (state.ws && state.ws.readyState === WebSocket.OPEN) {
-      state.ws.send(JSON.stringify({ type: 'text', text: text }));
+      try {
+        state.ws.send(JSON.stringify({ type: 'text', text: text }));
+      } catch (err) {
+        setTextTurnPending(false);
+        showAlert('Message could not be sent. Please try again.');
+      }
       return;
     }
 
@@ -2270,7 +2322,15 @@
       }
       showAlert('Query failed: ' + err.message);
       setTelephonyStatus('idle');
+    } finally {
+      setTextTurnPending(false);
     }
+  }
+
+  function setTextTurnPending(pending) {
+    state.textTurnInFlight = pending;
+    const sendButton = dom.sendTurnBtn || (typeof document !== 'undefined' ? document.getElementById('send-turn-btn') : null);
+    if (sendButton) sendButton.disabled = pending;
   }
 
   // Quick Chips
@@ -2476,8 +2536,9 @@
     const langEl = document.getElementById('profile-page-language');
     if (langEl) {
       const rawLang = (p && p.language) || (typeof localStorage !== 'undefined' && localStorage.getItem('disha_language')) || state.language || 'hinglish';
-      const labels = { hinglish: 'Hinglish', en: 'English', hi: 'Hindi', bn: 'Bengali' };
-      langEl.textContent = labels[rawLang.toLowerCase()] || capitalize(rawLang);
+      const language = normalizeLanguageCode(rawLang);
+      const labels = { hinglish: 'Hinglish', en: 'English', hi: 'Hindi' };
+      langEl.textContent = labels[language];
     }
 
     // Health Journey Progress

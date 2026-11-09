@@ -164,6 +164,7 @@ h1, h2, h3, h4 {
 .app-viewport {
   display: flex;
   flex-direction: column;
+  height: 100vh;
   min-height: 100vh;
   width: 100%;
   max-width: 100%;
@@ -509,6 +510,11 @@ h1, h2, h3, h4 {
   color: var(--ink-secondary);
 }
 
+.form-hint {
+  color: var(--ink-tertiary);
+  font-size: 0.8rem;
+}
+
 .form-input, .form-select {
   width: 100%;
   height: 40px;
@@ -720,6 +726,8 @@ h1, h2, h3, h4 {
   flex: 1;
   display: flex;
   justify-content: center;
+  align-items: center;
+  min-width: 0;
   padding: var(--space-md) var(--space-lg);
   height: calc(100vh - 60px);
 }
@@ -730,6 +738,7 @@ h1, h2, h3, h4 {
   display: flex;
   flex-direction: column;
   height: 100%;
+  margin-inline: auto;
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -813,6 +822,7 @@ h1, h2, h3, h4 {
 /* Chat Messages Stream Area */
 .chat-messages-area {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: var(--space-lg);
   display: flex;

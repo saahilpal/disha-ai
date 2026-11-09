@@ -53,13 +53,15 @@ function setupChatDom() {
     appendChild(child) { this.children.push(child); return child; },
     closest() { return this; },
   };
+  const sendButton = { disabled: false };
   const previousDocument = global.document;
   global.document = {
     createElement,
-    getElementById: id => id === 'chat-stream' ? stream : null,
+    getElementById: id => id === 'chat-stream' ? stream : (id === 'send-turn-btn' ? sendButton : null),
   };
   return {
     stream,
+    sendButton,
     restore() {
       if (previousDocument === undefined) delete global.document;
       else global.document = previousDocument;
@@ -71,6 +73,42 @@ function lastAssistantTrace(stream) {
   const message = [...stream.children].reverse().find(item => item.className === 'chat-message assistant');
   return message && message.messageBubble.querySelector('.source-trace');
 }
+
+test('ignores a second chat submit while the first turn is still pending', async () => {
+  const dom = setupChatDom();
+  const previousHistory = state.transcriptHistory;
+  const previousInFlight = state.textTurnInFlight;
+  const previousFetch = global.fetch;
+  let requestCount = 0;
+  let releaseRequest;
+  state.transcriptHistory = [];
+  state.textTurnInFlight = false;
+  global.fetch = () => {
+    requestCount += 1;
+    return new Promise(resolve => { releaseRequest = resolve; });
+  };
+
+  try {
+    const firstTurn = dispatchTurn('One message');
+    await Promise.resolve();
+    await dispatchTurn('One message');
+    assert.equal(requestCount, 1);
+    assert.equal(dom.stream.children.filter(item => item.className === 'chat-message user').length, 1);
+    assert.equal(dom.sendButton.disabled, true);
+
+    releaseRequest({
+      ok: true,
+      body: { getReader: () => ({ read: async () => ({ done: true }) }) },
+    });
+    await firstTurn;
+    assert.equal(dom.sendButton.disabled, false);
+  } finally {
+    state.transcriptHistory = previousHistory;
+    state.textTurnInFlight = previousInFlight;
+    global.fetch = previousFetch;
+    dom.restore();
+  }
+});
 
 test('renders voice done evidence IDs and retrieval status with the assistant message', () => {
   const dom = setupChatDom();

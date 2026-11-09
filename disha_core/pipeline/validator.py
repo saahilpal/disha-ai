@@ -122,7 +122,17 @@ MARKDOWN_RE = re.compile(r"[*_#~`\[\]{}<>]|\u200b")
 CHANNEL_REPLACEMENT = "Aap apna plan sirf app ke 'My Plan' tab mein dekh sakte hain."
 IDENTITY_REPLACEMENT = "Main Disha hoon, aapki AI health coach."
 MEAL_NOT_FOUND_REPLACEMENT = "Is meal ka prescribed plan abhi available nahi hai; app ke My Plan tab mein check karein."
-KNOWLEDGE_UNAVAILABLE_REPLACEMENT = "Mere paas is sawaal ke liye verified guidance abhi available nahi hai. Main bina verified information ke recommendation nahi dena chahti; apne clinician se salah lein."
+KNOWLEDGE_UNAVAILABLE_REPLACEMENT = "Is baat par pakki health guidance mere paas nahi hai, aur main andaaza laga kar salah nahi dena chahti. Apne clinician se confirm karna behtar rahega."
+
+
+def knowledge_unavailable_response(language: str | None) -> str:
+    """Return a brief, natural no-guess response in the user's supported language."""
+    normalized = str(language or "").strip().casefold()
+    if normalized in {"en", "english"}:
+        return "I don't have reliable guidance for this yet, and I don't want to guess about your health. Please check with your clinician."
+    if normalized in {"hi", "hindi"}:
+        return "इस बारे में मेरे पास भरोसेमंद स्वास्थ्य जानकारी नहीं है, इसलिए मैं अंदाज़ा लगाकर सलाह नहीं दूँगी। कृपया अपने डॉक्टर से इसकी पुष्टि करें।"
+    return KNOWLEDGE_UNAVAILABLE_REPLACEMENT
 PRICING_REPLACEMENT = DEFAULT_PRICING_REPLACEMENT
 PEP_REPLACEMENT = "Main aapke exercise permissions ke andar safe activity chunne mein madad kar sakti hoon."
 REMEDY_UNAVAILABLE = "Is symptom ke liye verified advice mere paas available nahi hai; apne clinician se poochhein."

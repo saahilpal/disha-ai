@@ -16,7 +16,7 @@ from disha_core.main import _turn_sentences
 from disha_core.models.schemas import TurnRequest, TurnState
 from disha_core.pipeline.breaker import BreakerResult
 from disha_core.pipeline.router import Intent
-from disha_core.pipeline.validator import SentenceValidator
+from disha_core.pipeline.validator import SentenceValidator, knowledge_unavailable_response
 from disha_core.voice import VoiceSession
 
 
@@ -152,6 +152,20 @@ def _knowledge_row(chunk_id: str, content: str, tag: str = "MEAL_GUIDANCE") -> d
 
 def test_general_knowledge_query_requires_approved_records():
     assert "WHERE approval_status = 'approved'" in RETRIEVE_SQL
+
+
+@pytest.mark.parametrize(
+    ("language", "expected"),
+    [
+        ("en", "I don't have reliable guidance"),
+        ("english", "I don't have reliable guidance"),
+        ("hi", "भरोसेमंद स्वास्थ्य जानकारी"),
+        ("hindi", "भरोसेमंद स्वास्थ्य जानकारी"),
+        ("hinglish", "pakki health guidance"),
+    ],
+)
+def test_knowledge_unavailable_response_uses_supported_language(language, expected):
+    assert expected in knowledge_unavailable_response(language)
 
 
 def test_chat_stream_and_voice_serialize_shared_turn_provenance():
@@ -303,7 +317,7 @@ async def test_missing_knowledge_abstains_without_calling_the_llm():
         connection, "user-a", "How much water should I drink?"
     )
 
-    assert "verified guidance" in response
+    assert "reliable guidance" in response
     assert state.validator_status == "deflected:knowledge_unavailable"
     assert state.evidence_ids == []
     assert llm.prompts == []

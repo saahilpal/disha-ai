@@ -80,6 +80,12 @@ class TestPEPIntegrationAndRejection(unittest.TestCase):
         self.assertNotIn('heavy weightlifting', xml)
         self.assertIn('brisk_walking, light_stretching', xml)
 
+    def test_short_language_codes_render_as_supported_languages(self) -> None:
+        for language, expected in (("en", "english"), ("hi", "hindi"), ("hinglish", "hinglish")):
+            with self.subTest(language=language):
+                xml = render_context_xml({"pep": {"language": language}})
+                self.assertIn(f'<USER_LANGUAGE preferred="{expected}"/>', xml)
+
     def test_diagnosis_does_not_inject_unrecorded_exercise_restrictions(self) -> None:
         context = {
             "pep": {

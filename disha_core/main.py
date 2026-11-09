@@ -35,6 +35,7 @@ from disha_core.engine.context_builder import (
     add_approved_remedy_constraints,
     build_patient_context,
     determine_length_policy,
+    normalize_preferred_language,
     render_user_payload,
 )
 from disha_core.engine.normalizer import (
@@ -60,10 +61,10 @@ from disha_core.models.schemas import (
 from disha_core.pep.exercise_safety import extract_patient_health_tags
 from disha_core.pipeline.router import Intent, IntentRouter, LayaIntentClassifier
 from disha_core.pipeline.validator import (
-    KNOWLEDGE_UNAVAILABLE_REPLACEMENT,
     MEAL_NOT_FOUND_REPLACEMENT,
     PEP_REPLACEMENT,
     SentenceValidator,
+    knowledge_unavailable_response,
 )
 from disha_core.security.rate_limiter import limiter
 from disha_core.services.auth_service import (
@@ -286,7 +287,10 @@ async def _turn_sentences(
                         record_field_answer,
                         select_next_question,
                     )
-                    lang = context.get("language") or "hinglish"
+                    lang = normalize_preferred_language(
+                        (context.get("pep") or {}).get("language")
+                    )
+                    lang = {"english": "en", "hindi": "hi"}.get(lang, "hinglish")
                     # 1. Multi-field extraction from user input
                     disclosures = extract_patient_disclosures(payload.text, lang=lang)
                     for f_id, f_val in disclosures.items():
@@ -416,7 +420,8 @@ async def _turn_sentences(
         requires_grounding = False
     if requires_grounding and not chunks:
         state.validator_status = "deflected:knowledge_unavailable"
-        yield KNOWLEDGE_UNAVAILABLE_REPLACEMENT
+        preferred_language = (context.get("pep") or {}).get("language")
+        yield knowledge_unavailable_response(preferred_language)
         return
 
     if normalized.is_exercise_query and normalized.is_recommendation_request:
