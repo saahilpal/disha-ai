@@ -1,0 +1,49 @@
+# ==============================================================================
+# DISHA AI — CODEOWNERS
+# Defines individuals and teams responsible for code review across repository domains.
+# Enforced by GitHub branch protection rules on all pull requests.
+# ==============================================================================
+
+# Global default owners for all repository files
+*                   @disha-ai/maintainers @disha-ai/core-team
+
+# CI/CD Workflows, Security Scanners, and GitHub Automation
+/.github/workflows/ @disha-ai/devops @disha-ai/security
+/scripts/repo-check @disha-ai/devops @disha-ai/security
+/scripts/hardcode-check @disha-ai/security
+/Makefile           @disha-ai/devops
+
+# Clinical Safety, Validator Invariants, and Emergency Breaker
+/disha_core/pipeline/ @disha-ai/clinical-safety @disha-ai/medical-directors
+/disha_core/data/     @disha-ai/clinical-safety @disha-ai/content-reviewers
+/disha_core/policies/ @disha-ai/clinical-safety @disha-ai/medical-directors
+
+# Real-Time Telephony, Web Audio, Streaming Voice & TTS
+/disha_core/voice.py  @disha-ai/voice-infrastructure @disha-ai/telephony-lead
+/disha_core/llm/sentence_buffer.py @disha-ai/voice-infrastructure
+
+# Core LLM Integrations & Classifier
+/disha_core/llm/        @disha-ai/ml-engineering
+/disha_core/classifier/ @disha-ai/ml-engineering
+
+# Patient Journey State Engine & Habit Tracker
+/disha_core/journey/  @disha-ai/journey-engine
+/disha_core/pep/      @disha-ai/clinical-safety @disha-ai/journey-engine
+
+# Database Schema, Alembic Migrations, and Ledger Outbox
+/migrations/          @disha-ai/data-infrastructure
+/disha_core/db/       @disha-ai/data-infrastructure
+/disha_core/adapters/ @disha-ai/data-infrastructure
+/disha_core/compliance/ledger.py @disha-ai/compliance-officer
+
+# Frontend Application, Audio Spectrum, and Clinical UI
+/disha_core/frontend/ @disha-ai/frontend-leads @disha-ai/ux-engineering
+
+# Canonical Test Suites & Verification Harness
+/tests/               @disha-ai/quality-assurance @disha-ai/core-team
+/audit/               @disha-ai/quality-assurance @disha-ai/security
+
+# Architecture & Clinical Documentation
+/docs/architecture/   @disha-ai/system-architects
+/docs/runbooks/       @disha-ai/devops
+/docs/                @disha-ai/documentation

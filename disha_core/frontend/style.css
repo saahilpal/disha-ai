@@ -1551,6 +1551,7 @@ h1, h2, h3, h4 {
 .indicator-dot.speaking { background-color: #6366f1; box-shadow: 0 0 8px rgba(99, 102, 241, 0.6); }
 .indicator-dot.interrupted, .indicator-dot.interrupting { background-color: #ef4444; }
 .indicator-dot.muted { background-color: #ef4444; }
+.indicator-dot.ended { background-color: #64748b; }
 
 /* Responsive Microphone Audio Level Meter */
 .call-mic-meter-wrapper {
@@ -1583,7 +1584,7 @@ h1, h2, h3, h4 {
 .mic-meter-fill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #10b981 0%, #34d399 70%, #f59e0b 90%, #ef4444 100%);
+  background: var(--accent);
   border-radius: var(--radius-full);
   transition: width 60ms ease-out;
 }
@@ -1688,8 +1689,7 @@ h1, h2, h3, h4 {
   position: fixed;
   inset: 0;
   z-index: 50;
-  background-color: rgba(18, 24, 21, 0.65);
-  backdrop-filter: blur(4px);
+  background-color: rgba(18, 24, 21, 0.75);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2166,6 +2166,80 @@ h1, h2, h3, h4 {
 
   .form-row-2 {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .brand-badge {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header {
+    padding: 0 var(--space-xs);
+    gap: var(--space-xs);
+  }
+
+  .brand-link {
+    gap: 4px;
+  }
+
+  .main-nav {
+    gap: 1px;
+    padding: 2px;
+  }
+
+  .nav-tab {
+    padding: 4px 6px;
+  }
+
+  .header-actions {
+    gap: 4px;
+  }
+
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+  }
+
+  .icon-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .patient-pill {
+    padding: 2px 6px;
+    font-size: var(--font-xs);
+  }
+
+  .patient-pill #patient-display-name {
+    display: none;
+  }
+}
+
+@media (max-width: 360px) {
+  .app-header {
+    padding: 0 4px;
+    gap: 2px;
+  }
+
+  .brand-name {
+    font-size: var(--font-sm);
+  }
+
+  .nav-tab {
+    padding: 3px 4px;
+  }
+
+  .nav-icon {
+    width: 14px;
+    height: 14px;
+  }
+
+  .emergency-quick-btn {
+    padding: 2px 4px !important;
+    font-size: 0.6875rem !important;
   }
 }
 

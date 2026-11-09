@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Validates architecture Mermaid diagrams against real codebase components.
+
+Enforces presence of all 7 core architecture diagrams and verifies that
+key components referenced in diagrams exist in the real codebase.
+"""
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
+ARCH_DIR = WORKSPACE_ROOT / "docs" / "architecture"
+
+REQUIRED_DIAGRAMS = [
+    "01_system_context.md",
+    "02_runtime_components.md",
+    "03_voice_turn_sequence.md",
+    "04_rag_ingestion_and_retrieval.md",
+    "05_memory_and_stage_engine.md",
+    "06_deployment_topology.md",
+    "07_agent_collaboration.md",
+]
+
+KEY_CODE_COMPONENTS = {
+    "TurnContext": "disha_core/models/turn_context.py",
+    "SentenceValidator": "disha_core/pipeline/validator.py",
+    "LayaIntentClassifier": "disha_core/pipeline/router.py",
+    "DualProviderClient": "disha_core/llm/client.py",
+    "AuditLedger": "disha_core/compliance/ledger.py",
+    "CANONICAL_SLOTS": "disha_core/models/slots.py",
+    "board.jsonl": "agent/board/board.jsonl",
+}
+
+
+def main() -> int:
+    errors: list[str] = []
+
+    if not ARCH_DIR.exists():
+        print(f"[FAIL] Architecture directory {ARCH_DIR} does not exist.")
+        return 1
+
+    print("[+] Checking architecture diagram existence...")
+    for diag in REQUIRED_DIAGRAMS:
+        diag_path = ARCH_DIR / diag
+        if not diag_path.exists():
+            errors.append(f"Missing required diagram: docs/architecture/{diag}")
+            continue
+
+        content = diag_path.read_text(encoding="utf-8")
+        if "```mermaid" not in content or "```" not in content.split("```mermaid", 1)[1]:
+            errors.append(f"Invalid or missing mermaid block in: docs/architecture/{diag}")
+
+    print("[+] Verifying diagram component references against real codebase...")
+    for comp, rel_file in KEY_CODE_COMPONENTS.items():
+        target_path = WORKSPACE_ROOT / rel_file
+        if not target_path.exists():
+            errors.append(f"Referenced code component source not found: {rel_file}")
+            continue
+        code_text = target_path.read_text(encoding="utf-8", errors="ignore")
+        if comp not in code_text and Path(rel_file).name != comp:
+            errors.append(f"Symbol '{comp}' declared in diagrams was not found in {rel_file}")
+
+    if errors:
+        print("[FAIL] Diagram validation failed:")
+        for err in errors:
+            print(f"  - {err}")
+        return 1
+
+    print(f"[PASS] All {len(REQUIRED_DIAGRAMS)} architecture diagrams verified against real codebase components.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,34 @@
+{
+  "session_name": "meera_live2",
+  "patient_id": "pt_707bae3fcb",
+  "token": "pt_live_8bfe1de788cb46b5aba308f439e09dda",
+  "user_name": "Meera Sen",
+  "profile": {
+    "name": "Meera Sen",
+    "email": "meera_live2.1794074141@disha.ai",
+    "password": "Password123!",
+    "age": 54,
+    "gender": "female",
+    "height_cm": 175.0,
+    "weight_kg": 72.0,
+    "conditions": [
+      "Type 2 Diabetes",
+      "Hypothyroidism"
+    ],
+    "hypertension_stage": "normal",
+    "gym_clearance": true,
+    "activity_level": "moderate",
+    "dietary_preference": "Vegetarian",
+    "health_goals": [
+      "Daily Health and Energy Optimization"
+    ],
+    "language": "english",
+    "health_focuses": [
+      "Diabetes management",
+      "Thyroid health"
+    ],
+    "health_focus_other": ""
+  },
+  "turn_count": 16,
+  "created_at": 1794074141.639254
+}

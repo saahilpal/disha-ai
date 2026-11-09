@@ -1393,6 +1393,9 @@
       }
     }
 
+    if (data.journey) {
+      updateInChatJourneyBanner(data.journey.current_stage || 1, data.journey.overall_status === 'completed');
+    }
     if (typeof populateMealsView === 'function') populateMealsView();
     if (typeof populateProfileView === 'function') populateProfileView();
   }
@@ -1565,13 +1568,18 @@
         return;
       }
       appendChatMessage('user', data.text);
+      updateLiveCaptions('user', data.text);
       setTelephonyStatus('processing');
     } else if (data.type === 'sentence') {
       appendChatMessage('assistant', data.text, 'Validated & Grounded');
+      updateLiveCaptions('assistant', data.text);
       setTelephonyStatus('speaking');
     } else if (data.type === 'done') {
       setTextTurnPending(false);
       applyMessageProvenance(state.lastAssistantMessageElement, state.lastAssistantHistoryEntry, data);
+      if (data.journey_stage || data.current_stage) {
+        updateInChatJourneyBanner(data.journey_stage || data.current_stage, data.overall_status === 'completed');
+      }
       if (data.merkle_hash && dom.latestMerkleHash) {
         const rawHash = String(data.merkle_hash).trim();
         const truncated = rawHash.length > 24
@@ -2203,8 +2211,10 @@
 
       const micFill = dom.micMeterFill || (typeof document !== 'undefined' ? document.getElementById('mic-meter-fill') : null);
       const micVal = dom.micMeterValue || (typeof document !== 'undefined' ? document.getElementById('mic-meter-value') : null);
+      const micMeter = dom.micAudioMeter || (typeof document !== 'undefined' ? document.getElementById('mic-audio-meter') : null);
       if (micFill) micFill.style.width = '0%';
       if (micVal) micVal.textContent = '0%';
+      if (micMeter) micMeter.setAttribute('aria-valuenow', '0');
       updateLiveCaptions('system', 'Call ended.');
       state.isMuted = false;
 
@@ -3785,6 +3795,15 @@
     switchToChatBtn.addEventListener('click', () => {
       const callModal = typeof document !== 'undefined' ? document.getElementById('call-overlay-modal') : null;
       if (callModal) callModal.style.display = 'none';
+      if (typeof switchView === 'function') {
+        switchView('chat');
+      } else if (typeof navigate === 'function') {
+        navigate('#/chat');
+      }
+      const inputEl = dom.userTextInput || (typeof document !== 'undefined' ? document.getElementById('user-text-input') : null);
+      if (inputEl && typeof inputEl.focus === 'function') {
+        setTimeout(() => inputEl.focus(), 50);
+      }
     });
   }
 
@@ -3977,6 +3996,11 @@
     scrollChatToBottom,
     stopActiveStream,
     flushOfflineQueue,
+    startCall,
+    setTelephonyStatus,
+    updateLiveCaptions,
+    updateInChatJourneyBanner,
+    triggerPersonalizedFirstConsultation,
   };
 
   if (typeof window !== 'undefined') {

@@ -1,0 +1,235 @@
+#!/usr/bin/env python3
+"""Disha AI Hardcode & Secret Hygiene Checker (scripts/hardcode-check).
+
+Enforces zero secrets, zero hardcoded API keys, and checks for disallowed raw
+credentials in production Python, JavaScript, and HTML code.
+Allowlists: disha_core/config.py, test fixtures/mocks under tests/ and disha_core/tests/.
+"""
+from __future__ import annotations
+
+import os
+import re
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+
+# Sensitive regex patterns that must NEVER appear in tracked non-test files
+SECRET_PATTERNS = [
+    (re.compile(r"gsk_[a-zA-Z0-9]{20,}", re.I), "Groq API Key pattern"),
+    (re.compile(r"AIza[0-9A-Za-z\-_]{35}", re.I), "Google/Gemini API Key pattern"),
+    (re.compile(r"sk-[a-zA-Z0-9]{20,}", re.I), "OpenAI/Claude API Key pattern"),
+    (re.compile(r"(?i)\bpassword\s*[:=]\s*['\"][A-Za-z0-9!@#$%^&*()_+]{8,}['\"]"), "Hardcoded password literal assignment"),
+    (re.compile(r"bearer\s+eyJ[a-zA-Z0-9\-_]{20,}", re.I), "Hardcoded JWT Token"),
+    (re.compile(r"(?i)data-pass=['\"]demo123['\"]"), "Exposed demo password in client markup"),
+]
+
+# Clinical and product strings that must be loaded dynamically, not hardcoded in business logic
+DENYLIST_IN_CORE = [
+    # Reminding that pricing/helpline constants must come from DB/config
+    (re.compile(r"₹\s*1[,.]?499"), "Hardcoded commercial price string ₹1,499 in core logic"),
+]
+
+EXCLUDE_DIRS = {
+    ".git", ".venv", ".venv-mlx-audio", "node_modules", ".ruff_cache",
+    ".pytest_cache", ".mypy_cache", ".synap", "audit_wal.db",
+    "review_queue.db", "models", "dist", "build", "baseline"
+}
+
+ALLOWLISTED_PATHS = {
+    Path("disha_core/config.py"),
+    Path(".env.example"),
+    Path("tests/test_audit_security_and_edge_cases.py"),
+    Path("tests/test_breaker_chaos.py"),
+    Path("tests/test_security_reliability.py"),
+    Path("tests/test_voice_pipeline.py"),
+    Path("tests/test_invariants.py"),
+    Path("disha_core/tests/test_security_reliability.py"),
+    Path("disha_core/tests/test_voice_pipeline.py"),
+    Path("disha_core/tests/test_invariants.py"),
+    Path("scripts/hardcode-check"),
+    Path("scripts/benchmark_gate_mutations.py"),
+}
+
+ALLOWED_TEST_PREFIXES = (
+    "tests/",
+    "disha_core/tests/",
+    "docs/architecture/",
+    "docs/screenshots/",
+    "docs/design/baseline/",
+    "docs/eval/",
+)
+
+# Files permitted to contain foundational pipeline/policy messages outside data/ and i18n
+ALLOWLISTED_I18N_LEGACY = {
+    Path("disha_core/config.py"),
+    Path("disha_core/pipeline/validator.py"),
+    Path("disha_core/engine/normalizer.py"),
+    Path("disha_core/journey/question_bank.py"),
+    Path("disha_core/llm/client.py"),
+}
+
+DEVANAGARI_REGEX = re.compile(r"[\u0900-\u097F]")
+CONVERSATIONAL_MARKERS = [
+    re.compile(r"\b(aap|kripya|apne|mera|meri|nahi|karte|sakte|hain|karo|batao)\b", re.I),
+    re.compile(r"\b(please consult|your doctor|clinician|prescribed|dosage|emergency)\b", re.I),
+    re.compile(r"\b(diet plan|breakfast|lunch|dinner|hydration|water intake)\b", re.I),
+]
+SQL_KEYWORDS = ("SELECT ", "INSERT ", "UPDATE ", "DELETE ", "CREATE ", "ALTER ", "DROP ", "WITH ")
+
+
+def is_exempt_from_i18n_check(rel: Path) -> bool:
+    """Check if file is exempt from natural language string literal check."""
+    parts = rel.parts
+    if "data" in parts or "i18n" in parts:
+        return True
+    if "tests" in parts or "migrations" in parts or "scripts" in parts or "docs" in parts or "audit" in parts:
+        return True
+    if rel in ALLOWLISTED_I18N_LEGACY:
+        return True
+    return False
+
+
+def extract_user_facing_strings(py_path: Path, content: str) -> list[tuple[int, str]]:
+    """AST scanner to detect user-facing natural language string literals outside data/ and i18n/."""
+    import ast
+
+    flagged: list[tuple[int, str]] = []
+    try:
+        tree = ast.parse(content, filename=str(py_path))
+    except Exception:
+        return flagged
+
+    docstring_nodes = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+            doc = ast.get_docstring(node, clean=False)
+            if doc and node.body and isinstance(node.body[0], ast.Expr) and isinstance(node.body[0].value, ast.Constant):
+                docstring_nodes.add(node.body[0].value)
+
+    class StringVisitor(ast.NodeVisitor):
+        def __init__(self):
+            self.in_logging = False
+            self.in_exception = False
+
+        def visit_Call(self, node: ast.Call):
+            func_name = ""
+            if isinstance(node.func, ast.Name):
+                func_name = node.func.id
+            elif isinstance(node.func, ast.Attribute):
+                func_name = node.func.attr
+
+            prev_logging = self.in_logging
+            prev_exception = self.in_exception
+            if func_name in {"debug", "info", "warning", "error", "critical", "exception", "log"}:
+                self.in_logging = True
+            elif func_name.endswith("Error") or func_name.endswith("Exception"):
+                self.in_exception = True
+
+            self.generic_visit(node)
+            self.in_logging = prev_logging
+            self.in_exception = prev_exception
+
+        def visit_Constant(self, node: ast.Constant):
+            if not isinstance(node.value, str):
+                return
+            if node in docstring_nodes:
+                return
+            if self.in_logging or self.in_exception:
+                return
+
+            val = node.value.strip()
+            if len(val) < 8 or "\n" in val or val.startswith(("/", "http://", "https://", "ws://", "wss://")):
+                return
+            if any(val.upper().startswith(sql) for sql in SQL_KEYWORDS):
+                return
+            if val.startswith(("^", "[", "(", "{")) and any(c in val for c in ("*", "+", "$", "?")):
+                return
+
+            if DEVANAGARI_REGEX.search(val):
+                flagged.append((node.lineno, val[:60]))
+                return
+
+            words = val.split()
+            if len(words) >= 4 and any(marker.search(val) for marker in CONVERSATIONAL_MARKERS):
+                flagged.append((node.lineno, val[:60]))
+
+    visitor = StringVisitor()
+    visitor.visit(tree)
+    return flagged
+
+
+def is_allowed_file(p: Path) -> bool:
+    rel = p.relative_to(ROOT)
+    if rel in ALLOWLISTED_PATHS:
+        return True
+    rel_str = str(rel)
+    if any(rel_str.startswith(pref) for pref in ALLOWED_TEST_PREFIXES):
+        return True
+    return False
+
+
+def main() -> int:
+    strict_i18n = "--strict-i18n" in sys.argv
+    violations: list[str] = []
+    i18n_flagged: list[str] = []
+    scanned_count = 0
+
+    for root, dirs, files in os.walk(ROOT):
+        dirs[:] = [d for d in dirs if d not in EXCLUDE_DIRS]
+        for f in files:
+            path = Path(root) / f
+            if path.suffix not in {".py", ".js", ".html", ".sh", ".sql", ".yml", ".yaml", ".json"}:
+                continue
+            if is_allowed_file(path):
+                continue
+
+            scanned_count += 1
+            try:
+                content = path.read_text(encoding="utf-8", errors="ignore")
+            except Exception:
+                continue
+
+            for pattern, desc in SECRET_PATTERNS:
+                matches = pattern.findall(content)
+                if matches:
+                    rel = path.relative_to(ROOT)
+                    violations.append(f"[{desc}] found in {rel}: {matches[0][:20]}...")
+
+            if str(path.relative_to(ROOT)).startswith("disha_core/pipeline/"):
+                for pattern, desc in DENYLIST_IN_CORE:
+                    if pattern.search(content):
+                        rel = path.relative_to(ROOT)
+                        violations.append(f"[{desc}] found in {rel}")
+
+            if path.suffix == ".py":
+                rel = path.relative_to(ROOT)
+                if not is_exempt_from_i18n_check(rel):
+                    user_strings = extract_user_facing_strings(rel, content)
+                    for line_no, sample in user_strings:
+                        i18n_flagged.append(f"{rel}:{line_no} -> \"{sample}\"")
+
+    print(f"[+] Scanned {scanned_count} production and config files.")
+
+    if i18n_flagged:
+        print(f"\n[!] Flagged {len(i18n_flagged)} user-facing natural language string literal(s) outside data/ and i18n/ files:")
+        for item in i18n_flagged[:10]:
+            print(f"    - {item}")
+        if len(i18n_flagged) > 10:
+            print(f"    ... and {len(i18n_flagged) - 10} more.")
+        print("    (Advisory: Externalize user-facing dialogue copy into data/ or i18n/ catalogs)")
+        if strict_i18n:
+            violations.extend([f"[Unexempted user-facing string] {x}" for x in i18n_flagged])
+
+    if violations:
+        print(f"\n❌ HARDCODE / SECRET CHECK FAILED ({len(violations)} violation(s)):", file=sys.stderr)
+        for v in violations:
+            print(f"  - {v}", file=sys.stderr)
+        return 1
+
+    print("✓ Zero hardcoded secrets, credentials, or disallowed business strings found.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

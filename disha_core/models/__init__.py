@@ -14,21 +14,6 @@ from disha_core.models.schemas import (
     TurnRequest,
     TurnState,
 )
-from disha_core.models.turn_context import (
-    TurnContext,
-    TranscriptSection,
-    LanguageSection,
-    SafetySection,
-    StageIntentSection,
-    PatientBriefSection,
-    MemoryBriefSection,
-    RetrievalSection,
-    RulesSection,
-    DraftSection,
-    ValidatorSection,
-    SpokenSection,
-    PlaybackSection,
-)
 from disha_core.models.slots import (
     CANONICAL_SLOTS,
     DEFAULT_SLOT_REGISTRY,
@@ -37,6 +22,21 @@ from disha_core.models.slots import (
     SlotDefinition,
     SlotRegistry,
     SourceAuthority,
+)
+from disha_core.models.turn_context import (
+    DraftSection,
+    LanguageSection,
+    MemoryBriefSection,
+    PatientBriefSection,
+    PlaybackSection,
+    RetrievalSection,
+    RulesSection,
+    SafetySection,
+    SpokenSection,
+    StageIntentSection,
+    TranscriptSection,
+    TurnContext,
+    ValidatorSection,
 )
 
 __all__ = [

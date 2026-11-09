@@ -11,6 +11,7 @@ Enforces 6 required verification checks:
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
@@ -38,6 +39,7 @@ from disha_core.pipeline.validator import (
     VEG_MEAT_RE,
     _allowed_price,
     _amount,
+    false_memory_replacement,
     get_team_confirmation_replacement,
 )
 
@@ -164,16 +166,27 @@ def check_ungrounded_numbers_and_facts(text: str, context: dict[str, Any]) -> li
 
 
 def check_false_memory_claims(text: str, context: dict[str, Any]) -> VerificationViolation | None:
-    """Check 4: Claims about past conversations when no such history exists."""
+    """Check 4: Claims about past conversations when no such history/memory exists."""
     has_history = context.get("has_history", False)
     history_turns = context.get("conversation_history") or []
-    if not has_history and not history_turns:
+    patient_slots = context.get("patient_slots") or {}
+    pep = context.get("pep") or {}
+    habits = pep.get("habits") or {}
+    if isinstance(habits, str):
+        try:
+            habits = json.loads(habits)
+        except Exception:
+            habits = {}
+    habits_slots = habits.get("slots") if isinstance(habits, dict) else {}
+    has_memory = bool(has_history or history_turns or patient_slots or habits_slots)
+    if not has_memory:
         if PAST_MEMORY_RE.search(text):
+            lang = context.get("preferred_language") or pep.get("language")
             return VerificationViolation(
                 check_name="false_memory_claims",
                 description="Response references past conversations when no conversation history exists",
                 specific_feedback="Do not claim to remember past conversations or statements that are not in the conversation history.",
-                replacement_text=None,
+                replacement_text=false_memory_replacement(lang),
             )
     return None
 
@@ -296,8 +309,10 @@ def check_pep_and_clinical_bounds(text: str, context: dict[str, Any]) -> list[Ve
         )
 
     # Clinical remedy assertion check
-    clinical_tags = context.get("clinical_tags") or ()
-    if clinical_tags:
+    clinical_tags = {str(t).upper() for t in (context.get("clinical_tags") or ())}
+    symptom_tags = {"GI_BLOATING", "GI_ACIDITY", "GI_SYMPTOM_ACUTE", "KNEE_PAIN", "FEVER", "COUGH_COLD"}
+    has_symptom = bool(clinical_tags & symptom_tags)
+    if has_symptom or context.get("protocol_approved"):
         tokens = tuple(
             str(token).casefold().strip() for token in context.get("required_remedy_tokens", ()) if str(token).strip()
         )

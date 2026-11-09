@@ -89,7 +89,7 @@ async function run() {
 
         // Verify readable column max-width ~44rem (704px)
         const chatColumnStyle = await page.evaluate(() => {
-          const col = document.querySelector('.chat-column');
+          const col = document.querySelector('.chat-container');
           if (!col) return null;
           const computed = window.getComputedStyle(col);
           const rect = col.getBoundingClientRect();
@@ -100,7 +100,7 @@ async function run() {
         });
 
         test(`[${vp.width}px ${theme}] Centred readable column within ~44rem`, () => {
-          assert(chatColumnStyle, 'chat-column found in DOM');
+          assert(chatColumnStyle, 'chat-container found in DOM');
           // 44rem at 16px font-size is 704px. On screens < 704px it should fit screen width.
           assert(chatColumnStyle.width <= 704 + 10, `Column width ${chatColumnStyle.width}px exceeds 44rem`);
         });

@@ -183,7 +183,12 @@ async def build_patient_context(
                     existing_keys = {s.get("slot_key") for s in patient_slots}
                     for k, v in slots_dict.items():
                         if k not in existing_keys:
-                            val = v.get("value_norm", v.get("val", "")) if isinstance(v, dict) else str(v)
+                            val = (
+                                v.get("value_norm")
+                                or v.get("value")
+                                or v.get("val")
+                                or ""
+                            ) if isinstance(v, dict) else str(v)
                             patient_slots.append({
                                 "slot_key": k,
                                 "slot_value": val,
@@ -325,6 +330,27 @@ async def rehydrate_session_state(
                         "sensitive_flag": False,
                     })
                     existing_keys.add(h["slot_key"])
+            if pep_dict and pep_dict.get("habits"):
+                raw_h = pep_dict["habits"]
+                habits_data = json.loads(raw_h) if isinstance(raw_h, str) else raw_h
+                if isinstance(habits_data, dict):
+                    slots_dict = habits_data.get("slots", {})
+                    for k, v in slots_dict.items():
+                        if k not in existing_keys:
+                            val = (
+                                v.get("value_norm")
+                                or v.get("value")
+                                or v.get("val")
+                                or ""
+                            ) if isinstance(v, dict) else str(v)
+                            patient_slots.append({
+                                "slot_key": k,
+                                "slot_value": val,
+                                "source_authority": "PATIENT_REPORTED",
+                                "category": "lifestyle",
+                                "sensitive_flag": False,
+                            })
+                            existing_keys.add(k)
         with suppress(Exception):
             if call_id:
                 hist_rows = await connection.fetch(HISTORY_CALL_SQL, patient_id, call_id, limit)

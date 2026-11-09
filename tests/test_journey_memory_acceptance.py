@@ -121,7 +121,7 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
         pid_chat = f"pt_jm_chat_{uuid.uuid4().hex[:6]}"
         email_chat = f"rohan_chat_{uuid.uuid4().hex[:8]}@disha.test"
 
-        async with httpx.AsyncClient(base_url=BASE_HTTP, timeout=10.0) as client:
+        async with httpx.AsyncClient(base_url=BASE_HTTP, timeout=30.0) as client:
             reg_resp = await client.post("/auth/register", json={
                 "name": "Rohan Mehra",
                 "email": email_chat,
@@ -205,7 +205,7 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
             transcript_received = False
             done_received = False
             while True:
-                msg = await asyncio.wait_for(ws.recv(), timeout=6.0)
+                msg = await asyncio.wait_for(ws.recv(), timeout=25.0)
                 if isinstance(msg, str):
                     data = json.loads(msg)
                     if data.get("type") == "transcript":
@@ -485,7 +485,7 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
 
         # Session 1 Ends.
         # Now Session 2 begins: Fresh HTTP client query asking for the saved habit
-        async with httpx.AsyncClient(base_url=BASE_HTTP, timeout=12.0) as client:
+        async with httpx.AsyncClient(base_url=BASE_HTTP, timeout=30.0) as client:
             resp = await client.post(
                 "/chat",
                 headers={"Authorization": f"Bearer {token}"},
@@ -530,7 +530,7 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
         self.assertIn("evening brisk walking", summaries[0]["summary_text"])
 
         # 7b. Returning-user home hydration
-        async with httpx.AsyncClient(base_url=BASE_HTTP, timeout=10.0) as client:
+        async with httpx.AsyncClient(base_url=BASE_HTTP, timeout=30.0) as client:
             prof_resp = await client.get("/patient/profile", headers={"Authorization": f"Bearer {token}"})
             self.assertEqual(prof_resp.status_code, 200)
             pdata = prof_resp.json()

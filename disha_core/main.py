@@ -36,6 +36,7 @@ from disha_core.engine.context_builder import (
     build_patient_context,
     render_user_payload,
 )
+from disha_core.engine.retriever import retrieve_chunks  # noqa: F401
 from disha_core.harness import ResponseHarness, format_system_error
 from disha_core.llm.client import DualProviderClient
 from disha_core.llm.sentence_buffer import validated_sentences

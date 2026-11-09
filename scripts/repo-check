@@ -1,0 +1,237 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# DISHA AI — REPOSITORY INTEGRITY & HEALTH CHECK (repo-check)
+# Enforces zero secrets, strict linting, zero dead/duplicate files, and green tests.
+# ==============================================================================
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${WORKSPACE_ROOT}"
+
+# ANSI Colors
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+BOLD='\033[1m'
+NC='\033[0m'
+
+FAILED_CHECKS=()
+
+log_step() {
+  echo -e "\n${BOLD}${BLUE}======================================================================${NC}"
+  echo -e "${BOLD}${BLUE}>>> [STEP $1] $2${NC}"
+  echo -e "${BOLD}${BLUE}======================================================================${NC}"
+}
+
+log_pass() {
+  echo -e "${GREEN}[✓ PASS] $1${NC}"
+}
+
+log_fail() {
+  echo -e "${RED}[✗ FAIL] $1${NC}"
+  FAILED_CHECKS+=("$1")
+}
+
+# ------------------------------------------------------------------------------
+# 1. SECRETS SCANNER (Gitleaks)
+# ------------------------------------------------------------------------------
+log_step "1/7" "Secrets Scan (Gitleaks)"
+
+GITLEAKS_BIN="$(command -v gitleaks || echo "/opt/homebrew/bin/gitleaks")"
+
+if [ ! -x "${GITLEAKS_BIN}" ]; then
+  log_fail "Gitleaks executable not found at ${GITLEAKS_BIN}"
+else
+  echo "[+] Running Gitleaks secret detection..."
+  SECRETS_PASSED=true
+  if [ -d ".git" ]; then
+    # Full git commit history + active uncommitted changes
+    if "${GITLEAKS_BIN}" detect --verbose && "${GITLEAKS_BIN}" protect --verbose; then
+      log_pass "Zero credentials or secrets detected across Git history and working tree."
+    else
+      SECRETS_PASSED=false
+    fi
+  else
+    # Fallback to directory scan
+    if "${GITLEAKS_BIN}" detect --no-git --source . --verbose; then
+      log_pass "Zero credentials or secrets detected in working tree."
+    else
+      SECRETS_PASSED=false
+    fi
+  fi
+
+  if [ "${SECRETS_PASSED}" = false ]; then
+    log_fail "Gitleaks detected secret leaks in codebase."
+  fi
+fi
+
+# ------------------------------------------------------------------------------
+# 2. HARDCODE & DISALLOWED STRING CHECK
+# ------------------------------------------------------------------------------
+log_step "2/7" "Hardcode & Secrets Hygiene (scripts/hardcode-check)"
+
+if [ -x "${WORKSPACE_ROOT}/scripts/hardcode-check" ]; then
+  echo "[+] Executing: ./scripts/hardcode-check"
+  if "${WORKSPACE_ROOT}/scripts/hardcode-check"; then
+    log_pass "Zero hardcoded secrets, credentials, or disallowed business strings found."
+  else
+    log_fail "scripts/hardcode-check reported violations."
+  fi
+else
+  log_fail "scripts/hardcode-check not found or not executable."
+fi
+
+# ------------------------------------------------------------------------------
+# 3. ARCHITECTURE DIAGRAM VERIFICATION
+# ------------------------------------------------------------------------------
+log_step "3/7" "Architecture Diagram Verification (scripts/diagram-check)"
+
+if [ -x "${WORKSPACE_ROOT}/scripts/diagram-check" ]; then
+  echo "[+] Executing: ./scripts/diagram-check"
+  if "${WORKSPACE_ROOT}/scripts/diagram-check"; then
+    log_pass "All 7 architecture Mermaid diagrams verified against real codebase components."
+  else
+    log_fail "scripts/diagram-check failed."
+  fi
+else
+  log_fail "scripts/diagram-check not found or not executable."
+fi
+
+# ------------------------------------------------------------------------------
+# 4. LIVING DOCS DRIFT CHECK
+# ------------------------------------------------------------------------------
+log_step "4/7" "Living Docs Drift Check (scripts/docs-drift)"
+
+if [ -x "${WORKSPACE_ROOT}/scripts/docs-drift" ]; then
+  echo "[+] Executing: ./scripts/docs-drift"
+  if "${WORKSPACE_ROOT}/scripts/docs-drift"; then
+    log_pass "Documentation ownership and drift requirements satisfied."
+  else
+    log_fail "scripts/docs-drift failed."
+  fi
+else
+  log_fail "scripts/docs-drift not found or not executable."
+fi
+
+# ------------------------------------------------------------------------------
+# 5. PYTHON FORMATTING & LINT CHECK (Ruff)
+# ------------------------------------------------------------------------------
+log_step "5/7" "Python Linting & Formatting Check (uv run ruff)"
+
+echo "[+] Executing: uv run ruff check ."
+if uv run ruff check .; then
+  log_pass "All Python files pass Ruff linting and formatting rules."
+else
+  log_fail "Ruff linting failed. Run 'uv run ruff check . --fix' or 'make format'."
+fi
+
+# ------------------------------------------------------------------------------
+# 6. DEAD FILE & DUPLICATE SCANNER
+# ------------------------------------------------------------------------------
+log_step "6/7" "Dead File & Duplicate Scanner"
+
+echo "[+] Scanning repository for dead files, broken symlinks, and duplicate assets..."
+DEAD_DUP_RESULT=$(python3 - << 'PYEOF'
+import os
+import sys
+import hashlib
+from collections import defaultdict
+from pathlib import Path
+
+ignore_dirs = {
+    ".git", ".venv", "node_modules", ".ruff_cache",
+    ".pytest_cache", ".mypy_cache", ".synap", "audit_wal.db",
+    "review_queue.db", "models", "baseline", "docs/screenshots"
+}
+allowed_identical = {
+    ".cursorrules", "AGENTS.md", "CLAUDE.md", "__init__.py"
+}
+dead_extensions = (".tmp", ".bak", ".orig", ".rej")
+dead_names = {".DS_Store", "Thumbs.db", "ehthumbs.db"}
+
+dead_files = []
+broken_symlinks = []
+hashes = defaultdict(list)
+
+for root, dirs, files in os.walk("."):
+    dirs[:] = [d for d in dirs if d not in ignore_dirs]
+    for f in files:
+        p = Path(root) / f
+        if p.is_symlink() and not p.exists():
+            broken_symlinks.append(str(p))
+            continue
+        if f in dead_names or any(f.endswith(ext) for ext in dead_extensions):
+            dead_files.append(str(p))
+            continue
+        if p.is_file() and not p.is_symlink():
+            if p.stat().st_size == 0 or p.suffix in (".pyc", ".db", ".db-wal", ".db-shm"):
+                continue
+            try:
+                h = hashlib.sha256(p.read_bytes()).hexdigest()
+                hashes[h].append(str(p))
+            except Exception:
+                pass
+
+errors = []
+if dead_files:
+    errors.append(f"Found {len(dead_files)} dead/temporary file(s): {', '.join(dead_files)}")
+if broken_symlinks:
+    errors.append(f"Found {len(broken_symlinks)} broken symlink(s): {', '.join(broken_symlinks)}")
+
+for h, paths in hashes.items():
+    if len(paths) > 1:
+        basenames = {Path(p).name for p in paths}
+        if basenames.issubset(allowed_identical):
+            continue
+        errors.append(f"Duplicate file content detected ({len(paths)} copies, sha256:{h[:8]}):\n  " + "\n  ".join(paths))
+
+if errors:
+    print("\n".join(errors))
+    sys.exit(1)
+else:
+    print("OK: 0 dead files, 0 broken symlinks, 0 unintended duplicates found.")
+    sys.exit(0)
+PYEOF
+)
+
+if [ $? -eq 0 ]; then
+  echo "${DEAD_DUP_RESULT}"
+  log_pass "Dead file and duplicate check passed clean."
+else
+  echo -e "${RED}${DEAD_DUP_RESULT}${NC}"
+  log_fail "Dead files or duplicate file trees detected."
+fi
+
+# ------------------------------------------------------------------------------
+# 7. TEST SUITE CHECK (Pytest Full Suites)
+# ------------------------------------------------------------------------------
+log_step "7/7" "Test Suite Check (uv run pytest tests/)"
+
+echo "[+] Executing: uv run pytest tests/ -k 'not manual'"
+if uv run pytest tests/ -k "not manual"; then
+  log_pass "All core unit, invariant, integration, and safety tests passed."
+else
+  log_fail "Test suite execution failed."
+fi
+
+# ------------------------------------------------------------------------------
+# SUMMARY & EXIT CODE
+# ------------------------------------------------------------------------------
+echo -e "\n${BOLD}======================================================================${NC}"
+echo -e "${BOLD}DISHA AI REPO-CHECK SUMMARY${NC}"
+echo -e "${BOLD}======================================================================${NC}"
+
+if [ ${#FAILED_CHECKS[@]} -eq 0 ]; then
+  echo -e "${GREEN}${BOLD}✓ ALL REPO-CHECK GATES PASSED (Secrets, Lint, Dead Files, Tests)${NC}\n"
+  exit 0
+else
+  echo -e "${RED}${BOLD}✗ REPO-CHECK FAILED ON ${#FAILED_CHECKS[@]} GATE(S):${NC}"
+  for fail in "${FAILED_CHECKS[@]}"; do
+    echo -e "  ${RED}- ${fail}${NC}"
+  done
+  echo ""
+  exit 1
+fi
+
