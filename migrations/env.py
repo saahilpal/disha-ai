@@ -21,8 +21,8 @@ def get_url() -> str:
         db_host = os.getenv("DB_HOST", "localhost")
         db_port = os.getenv("DB_PORT", "5432")
         db_name = os.getenv("DB_NAME", "disha")
-        db_user = os.getenv("DB_USER", "disha")
-        db_pass = os.getenv("DB_PASSWORD", "your_secure_password_here")
+        db_user = os.getenv("DB_USER", os.getenv("POSTGRES_USER", "disha"))
+        db_pass = os.getenv("POSTGRES_PASSWORD", os.getenv("DB_PASSWORD", "your_secure_password_here"))
         db_url = f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
     # Standardize driver to synchronous postgresql (psycopg2) for alembic
     if db_url.startswith("postgresql+asyncpg://"):

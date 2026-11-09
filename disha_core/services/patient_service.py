@@ -36,7 +36,9 @@ async def fetch_patient_profile(pool: Any, patient_id: str, day: str) -> dict[st
         )
         diet_rows = await conn.fetch(
             """SELECT meal_type, prescribed_items 
-               FROM patient_diet_schedules WHERE patient_id = $1 AND day_of_week = $2""",
+               FROM patient_diet_schedules
+               WHERE patient_id = $1 AND day_of_week = $2
+                 AND is_active = TRUE AND approval_status = 'approved'""",
             patient_id,
             day,
         )
@@ -51,7 +53,7 @@ async def fetch_patient_profile(pool: Any, patient_id: str, day: str) -> dict[st
     name = (
         profile_row["name"]
         if profile_row
-        else ("Aarav Sharma" if patient_id == "pt_test_01" else patient_id)
+        else patient_id
     )
 
     return {
@@ -60,16 +62,10 @@ async def fetch_patient_profile(pool: Any, patient_id: str, day: str) -> dict[st
         "day": day,
         "profile": dict(profile_row) if profile_row else None,
         "pep": {
-            "hypertension_stage": _pep_val(pep_row, "hypertension_stage", "normal"),
-            "gym_clearance": _pep_val(pep_row, "gym_clearance", False),
-            "allowed_modalities": (
-                list(_pep_val(pep_row, "allowed_modalities", []))
-                or ["Brisk walking", "Gentle yoga"]
-            ),
-            "restricted_modalities": (
-                list(_pep_val(pep_row, "restricted_modalities", []))
-                or ["Heavy deadlifts", "Max weight lifting"]
-            ),
+            "hypertension_stage": _pep_val(pep_row, "hypertension_stage", "unknown"),
+            "gym_clearance": _pep_val(pep_row, "gym_clearance"),
+            "allowed_modalities": list(_pep_val(pep_row, "allowed_modalities", [])),
+            "restricted_modalities": list(_pep_val(pep_row, "restricted_modalities", [])),
             "primary_focus": _pep_val(pep_row, "primary_focus", ""),
             "secondary_focuses": list(_pep_val(pep_row, "secondary_focuses", [])),
             "user_reported_concerns": _pep_val(pep_row, "user_reported_concerns", ""),
@@ -108,7 +104,7 @@ async def update_patient_profile(pool: Any, patient_id: str, updates: dict[str, 
                 query = f"UPDATE patient_profiles SET {', '.join(fields)} WHERE patient_id = ${idx}"
                 await conn.execute(query, *values)
         else:
-            name = updates.get("name") or ("Aarav Sharma" if patient_id == "pt_test_01" else patient_id)
+            name = updates.get("name") or patient_id
             email = updates.get("email") or f"{patient_id}@disha.internal"
             password_hash = "placeholder_preseeded_token_auth"
             await conn.execute(

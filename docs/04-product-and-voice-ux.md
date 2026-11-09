@@ -3,6 +3,8 @@
 **Role:** Lead Product Architect & Voice Interaction Design Team  
 **Focus:** Voice UX State Machine, Audio Visualizer, Barge-In Mechanics, Transcript Interface & Clinician Studio  
 
+> **Proposed UX specification, not runtime evidence:** The state machine, timing targets, integrations, and clinician-studio features below are design requirements unless independently implemented and verified. Current voice behavior is documented in [Voice Pipeline](VOICE_PIPELINE.md).
+
 ---
 
 ## 1. Executive Summary & Voice-First Philosophy

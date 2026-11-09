@@ -4,7 +4,7 @@ Enforces boundary integrity, payload size bounds, and deterministic normalizatio
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -15,6 +15,8 @@ class TurnState:
     """State tracking for a conversational turn across breaker and validator."""
     breaker_status: str = "clear"
     validator_status: str = "accepted"
+    retrieval_status: str = "not_requested"
+    evidence_ids: list[str] = field(default_factory=list)
 
 
 class TurnRequest(BaseModel):
@@ -37,7 +39,7 @@ class TurnRequest(BaseModel):
                     data["meal_type"] = "breakfast"
                 elif any(w in text for w in ("lunch", "dopahar", "dopehar")):
                     data["meal_type"] = "lunch"
-                elif any(w in text for w in ("dinner", "raat", "shaam", "khana", "khaane", "raat ka khana")):
+                elif any(w in text for w in ("dinner", "raat", "khana", "khaane", "raat ka khana")):
                     data["meal_type"] = "dinner"
                 else:
                     data["meal_type"] = None
@@ -73,16 +75,16 @@ class OnboardingRequest(BaseModel):
     name: str = Field(min_length=1, max_length=128, description="Patient full name")
     email: str = Field(min_length=3, max_length=255, description="Unique account email")
     password: str = Field(min_length=6, max_length=255, description="Account password (min 6 chars)")
-    age: int = Field(default=35, ge=1, le=120, description="Age in years")
-    gender: str = Field(default="male", max_length=32, description="Gender identity")
-    height_cm: float = Field(default=170.0, ge=40.0, le=280.0, description="Height in centimeters")
-    weight_kg: float = Field(default=70.0, ge=10.0, le=400.0, description="Weight in kilograms")
+    age: int | None = Field(default=None, ge=1, le=120, description="Age in years")
+    gender: str | None = Field(default=None, max_length=32, description="Gender identity")
+    height_cm: float | None = Field(default=None, ge=40.0, le=280.0, description="Height in centimeters")
+    weight_kg: float | None = Field(default=None, ge=10.0, le=400.0, description="Weight in kilograms")
     conditions: list[str] = Field(default_factory=list, max_length=50, description="Self-reported clinical conditions")
-    hypertension_stage: str = Field(default="normal", max_length=32, description="Hypertension grade or stage")
-    gym_clearance: bool = Field(default=False, description="Clinician clearance for gym exertion")
-    activity_level: str = Field(default="light", max_length=32, description="Baseline activity level")
+    hypertension_stage: str | None = Field(default=None, max_length=32, description="Patient-reported hypertension grade or stage")
+    gym_clearance: bool | None = Field(default=None, description="Deprecated; not treated as clinician verification")
+    activity_level: str | None = Field(default=None, max_length=32, description="Baseline activity level")
     movement_restrictions: list[str] = Field(default_factory=list, max_length=50, description="Physical movement limitations")
-    dietary_preference: str = Field(default="Vegetarian", max_length=64, description="Dietary pattern")
+    dietary_preference: str | None = Field(default=None, max_length=64, description="Dietary pattern")
     health_goals: list[str] = Field(default_factory=list, max_length=50, description="Primary health coaching objectives")
     language: str = Field(default="hinglish", max_length=32, description="Preferred language (english, hindi, hinglish)")
     health_focuses: list[str] = Field(default_factory=list, max_length=50, description="Selected health focus areas")
@@ -119,8 +121,8 @@ class PEPDetails(BaseModel):
     """Personal Experience Profile details."""
     model_config = ConfigDict(extra="ignore")
 
-    hypertension_stage: str = "normal"
-    gym_clearance: bool = False
+    hypertension_stage: str = "unknown"
+    gym_clearance: bool | None = None
     allowed_modalities: list[str] = Field(default_factory=list)
     restricted_modalities: list[str] = Field(default_factory=list)
     primary_focus: str = ""
@@ -158,6 +160,8 @@ class ChatResponse(BaseModel):
 
     response: str
     status: str
+    evidence_ids: list[str] = Field(default_factory=list)
+    retrieval_status: str = "not_requested"
 
 
 class ClientErrorPayload(BaseModel):
@@ -177,7 +181,7 @@ class ClientErrorResponse(BaseModel):
 
 class ProfileUpdateRequest(BaseModel):
     """Payload for updating patient personal and health details."""
-    model_config = ConfigDict(extra="ignore")
+    model_config = ConfigDict(extra="forbid")
 
     name: str | None = Field(default=None, max_length=128)
     age: int | None = Field(default=None, ge=1, le=120)

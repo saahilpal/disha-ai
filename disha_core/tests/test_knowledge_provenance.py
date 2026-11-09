@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 
 import asyncpg
 import pytest
@@ -96,54 +97,56 @@ async def test_product_facts_pricing_and_policies():
     """Verify that commercial pricing, channel policies, and clearance facts exist in product_facts."""
     conn = await asyncpg.connect(_get_db_url())
     try:
-        facts = await conn.fetch("SELECT fact_key, category, fact_value, verification_status FROM product_facts")
-        fact_dict = {f["fact_key"]: f for f in facts}
-
-        # Check all records marked provisional / owner-verify
-        for k, f in fact_dict.items():
-            assert f["verification_status"] == "provisional / owner-verify", f"{k} is not marked provisional / owner-verify"
-
-        # Pricing checks
-        assert "pricing_followup_consultations" in fact_dict
-        val_followup = _as_json(fact_dict["pricing_followup_consultations"]["fact_value"])
-        assert val_followup.get("amount") == 0
-        assert val_followup.get("currency") == "INR"
-
-        assert "pricing_dedicated_nutritionist" in fact_dict
-        val_nutritionist = _as_json(fact_dict["pricing_dedicated_nutritionist"]["fact_value"])
-        assert val_nutritionist.get("amount") == 1499
-        assert val_nutritionist.get("currency") == "INR"
-
-        # Channel policy
-        assert "channel_delivery_policy" in fact_dict
-        val_channel = _as_json(fact_dict["channel_delivery_policy"]["fact_value"])
-        assert val_channel.get("allowed_channel") == "app_my_plan_tab"
-        assert "whatsapp" in val_channel.get("forbidden_channels", [])
-
-        # Persona identity
-        assert "persona_identity" in fact_dict
-        val_id = _as_json(fact_dict["persona_identity"]["fact_value"])
-        assert val_id.get("is_doctor") is False
-        assert val_id.get("is_human") is False
-
-        # Helplines
-        assert "emergency_helpline_national" in fact_dict
-        val_112 = _as_json(fact_dict["emergency_helpline_national"]["fact_value"])
-        assert val_112.get("number") == "112"
-
-        assert "emergency_helpline_telemanas" in fact_dict
-        val_tele = _as_json(fact_dict["emergency_helpline_telemanas"]["fact_value"])
-        assert val_tele.get("number") == "14416"
-
-        # Exercise clearance
-        assert "pep_clearance_hypertension_stage1" in fact_dict
-        val_pep1 = _as_json(fact_dict["pep_clearance_hypertension_stage1"]["fact_value"])
-        assert "brisk walking" in val_pep1.get("allowed", [])
-        assert "heavy deadlifts" in val_pep1.get("restricted", [])
-
-        # Diet templates
-        assert "diet_template_jain" in fact_dict
-        assert "diet_template_vegetarian" in fact_dict
-        assert "diet_template_non_vegetarian" in fact_dict
+        transaction = conn.transaction()
+        await transaction.start()
+        try:
+            seed_sql = Path(__file__).parents[1] / "db" / "seed_product_facts.sql"
+            await conn.execute(seed_sql.read_text(encoding="utf-8"))
+            await _assert_product_facts(conn)
+        finally:
+            await transaction.rollback()
     finally:
         await conn.close()
+
+
+async def _assert_product_facts(conn):
+    facts = await conn.fetch("SELECT fact_key, category, fact_value, verification_status, is_verified, owner FROM product_facts")
+    fact_dict = {f["fact_key"]: f for f in facts}
+
+    # Check all unverified records marked unknown
+    for k, f in fact_dict.items():
+        assert f["verification_status"] == "unknown", f"{k} is not marked unknown"
+        assert f["is_verified"] is False, f"{k} is incorrectly marked verified"
+        assert f["owner"] == "product_team", f"{k} owner mismatch"
+
+    # Commercial information remains unknown until an authorized owner verifies it.
+    assert "pricing_followup_consultations" in fact_dict
+    val_followup = _as_json(fact_dict["pricing_followup_consultations"]["fact_value"])
+    assert val_followup == {"status": "unknown"}
+
+    assert "pricing_dedicated_nutritionist" in fact_dict
+    val_nutritionist = _as_json(fact_dict["pricing_dedicated_nutritionist"]["fact_value"])
+    assert val_nutritionist == {"status": "unknown"}
+
+    # Channel policy
+    assert "channel_delivery_policy" in fact_dict
+    val_channel = _as_json(fact_dict["channel_delivery_policy"]["fact_value"])
+    assert val_channel == {"status": "unknown"}
+
+    # Persona identity
+    assert "persona_identity" in fact_dict
+    val_id = _as_json(fact_dict["persona_identity"]["fact_value"])
+    assert val_id.get("is_doctor") is False
+    assert val_id.get("is_human") is False
+
+    # Verified national emergency resources are clinical safety references, not Disha support channels.
+    assert "emergency_helpline_national" in fact_dict
+    val_112 = _as_json(fact_dict["emergency_helpline_national"]["fact_value"])
+    assert val_112.get("number") == "112"
+
+    assert "emergency_helpline_telemanas" in fact_dict
+    val_tele = _as_json(fact_dict["emergency_helpline_telemanas"]["fact_value"])
+    assert val_tele.get("number") == "14416"
+
+    # Recommendation templates and clinical permissions are not product facts.
+    assert not any(key.startswith(("diet_template_", "pep_clearance_")) for key in fact_dict)

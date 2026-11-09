@@ -81,6 +81,9 @@
           </svg>
         </button>
 
+        <!-- Emergency 112 Direct Access Shortcut -->
+        <a id="emergency-112-btn" href="tel:112" class="emergency-quick-btn" title="Call 112 Emergency" aria-label="Call 112 Emergency" style="display: inline-flex; align-items: center; justify-content: center; background: #C24137; color: #fff; padding: 0.25rem 0.5rem; border-radius: 9999px; font-weight: 700; font-size: 0.75rem; text-decoration: none;">112</a>
+
         <!-- Authenticated Patient Pill / Sign In Link -->
         <a href="#/signin" id="nav-signin-link" class="nav-signin-btn">Sign In</a>
         <div id="patient-badge" class="patient-pill" style="display: none;">
@@ -130,14 +133,7 @@
             </button>
           </form>
 
-          <div class="demo-profiles-box">
-            <span class="demo-profiles-title">Quick Demo Profiles</span>
-            <div class="demo-buttons-row">
-              <button type="button" class="demo-btn" data-email="cardiac@disha.ai" data-pass="demo123">Vikram Malhotra</button>
-              <button type="button" class="demo-btn" data-email="diabetic@disha.ai" data-pass="demo123">Ramesh Gupta</button>
-              <button type="button" class="demo-btn" data-email="demo@disha.ai" data-pass="demo123">Aarav Sharma</button>
-            </div>
-          </div>
+
         </div>
 
         <!-- 1B: Clean 3-Step Profile Onboarding -->
@@ -275,7 +271,7 @@
           <div class="coach-profile">
             <div class="coach-avatar" aria-hidden="true">D</div>
             <div class="coach-details">
-              <span class="coach-name">Disha</span>
+              <h1 class="coach-name">Disha</h1>
               <span class="coach-status-sub">Health Coach</span>
             </div>
           </div>
@@ -290,11 +286,11 @@
         </div>
 
         <!-- Dedicated Voice Call Overlay Modal -->
-        <div class="call-overlay-modal" id="call-overlay-modal" style="display: none;" role="dialog" aria-modal="true" aria-label="Voice Session">
+        <div class="call-overlay-modal" id="call-overlay-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="call-modal-title">
           <div class="call-modal-dialog">
             <div class="call-modal-head">
               <div class="call-head-meta">
-                <span class="call-modal-title">Live Voice Call</span>
+                <h2 id="call-modal-title" class="call-modal-title">Live Voice Call</h2>
                 <div class="call-timer-display font-mono" id="call-duration">00:00</div>
                 <span id="recording-time" style="display:none">00:00</span>
               </div>
@@ -468,10 +464,6 @@
 
           <div class="info-block">
             <h2 class="block-title">Exercise &amp; Movement Safety</h2>
-            <div class="safety-detail-row">
-              <span class="safety-label">Gym Clearance:</span>
-              <span class="safety-badge" id="profile-page-gym-clearance">Checking…</span>
-            </div>
             <div class="safety-detail-row">
               <span class="safety-label">Permitted:</span>
               <span class="safety-value" id="profile-page-allowed-modalities">--</span>

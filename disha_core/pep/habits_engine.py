@@ -175,7 +175,7 @@ async def get_pep(
             "primary_focus": pep_row["primary_focus"] or "",
             "secondary_focuses": pep_row["secondary_focuses"] or [],
             "diagnosed_conditions": pep_row["diagnosed_conditions"] or [],
-            "dietary_preference": pep_row["dietary_preference"] or "Vegetarian",
+            "dietary_preference": pep_row["dietary_preference"],
             "language": pep_row["language"] or "hinglish",
         }
 

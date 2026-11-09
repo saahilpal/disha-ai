@@ -1,7 +1,9 @@
 # Disha AI — Outbound Network Calls & Fail-Closed Security Gates
 
-**Document Status:** Production Authoritative  
-**Source Code Baseline:** `disha_core/llm/client.py`, `disha_core/voice.py`, `disha_core/classifier/adapter.py`  
+**Document Status:** Historical generated snapshot — not current runtime authority
+**Source Code Baseline:** Earlier snapshot; revalidate against current adapters
+
+> Use [Deployment](../DEPLOYMENT.md) and [Voice Pipeline](../VOICE_PIPELINE.md) for current provider egress and gates. The inventory below is retained for historical context only.
 **Security Doctrine:** Fail-Closed Privacy Gates & Zero PHI Egress without Explicit Affirmation
 
 ---

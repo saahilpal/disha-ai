@@ -1,268 +1,64 @@
-# 🧬 Disha AI — Patient Memory, PEP & Dataset Retrieval Architecture
+# Memory, onboarding, and PEP
 
-**Document Path:** `docs/MEMORY_AND_PEP.md`  
-**Classification:** Authoritative Clinical Systems Engineering Specification  
-**Version:** 3.0.0 (Production Verified)  
-**Maintained by:** Agent C (Dataset, PEP & Memory Engineer)  
-**Last Updated:** 2026-11-08  
-**Verification:** 63/63 Core Automated Invariant & Memory Tests Passing  
+This is a description of the current code path and its limits, not a medical-record guarantee or a clinical-certification statement. Database names retain historical `patient_*` terminology.
 
----
+## Separate data responsibilities
 
-## 1. System Overview & Root-Cause Diagnosis
+| Information | Runtime source | Boundary |
+|---|---|---|
+| General food, nutrition, exercise, or lifestyle guidance | Approved `clinical_knowledge_base` rows, exposed as `clinical_guideline_chunks` | Retrieved only when approved; corpus quality and reviewer identity are not established by code alone. |
+| “What is my prescribed dinner?” | Active, approved `patient_diet_schedules` row for this user, weekday, and meal | Not interchangeable with general meal guidance. Missing/pending schedules are not filled with generated prescriptions. |
+| Preferences, goals, conditions, symptoms, and limitations | `patient_profiles`, `patient_pep`, active memory items and temporal facts | User disclosures remain user-reported unless separately verified; absent information is not proof of safety. |
+| Exercise suitability | Relevant approved knowledge plus selected deterministic checks | The checks do not calculate complete individual suitability or prescribe routines. |
+| Conversation continuity | `patient_turn_journal` plus a process-local history cache | This is conversational context, not a complete longitudinal medical record. |
 
-In longitudinal AI health coaching, maintaining reliable patient context across conversational turns and multi-day sessions while eliminating conversational amnesia and epistemic drift is an essential safety and clinical requirement.
+## Account registration and onboarding
 
-### 1.1 Why Context Was Previously Lost Across Turns
-Prior to this release, patient conversational context and lifestyle disclosures suffered from several systemic failures:
-1. **Ephemeral Process Memory:** Multi-turn conversational history was held only in an in-memory dictionary on `app_state.conversation_history[patient_id]`. Whenever the process restarted, worker threads cycled, or container instances migrated, conversation history reset to empty (`[]`).
-2. **Asynchronous Ledger Write Latency:** The system attempted a fallback read from `audit_claim_ledger`. However, `AuditLedger` writes asynchronously through a background queue with batching delays. When a user sent consecutive turns rapidly, previous turns were not yet committed to PostgreSQL, causing follow-up questions (e.g. *"uska kya ilaaj hai?"*) to fail due to lost antecedent context.
-3. **No Persistent Fact Graph:** When patients disclosed shift schedules (*"I work night shifts from 10 PM to 6 AM"*) or food dislikes (*"I hate bitter gourd / karela"*), the system had no structured persistence table to store these disclosures. Consequently, the next session or next turn repeatedly questioned the patient on baseline facts.
-4. **Disjoint Model Payload:** The LLM client providers (Groq, Gemini, Ollama) accepted `messages: list[dict]`, but `chat_service.py` was invoking `stream(prompt)` without passing conversation history.
+`POST /auth/register` and `POST /auth/onboarding` share the registration service. It writes the account/profile, a hashed bearer token, and a `patient_pep` row for focus, concern, language, and dietary-preference context. Registration accepts patient-reported conditions and goals; it does not verify them with a clinician. Passwords are stored as PBKDF2-SHA256 hashes and access tokens are stored by SHA-256 digest.
 
-### 1.2 The Solution
-Disha AI now implements a deterministic, multi-tiered persistence architecture anchored in PostgreSQL 16:
-- **Tier 1 (L1 Turn Journal):** Persistent chronological journal (`patient_turn_journal`) storing every user and coach utterance.
-- **Tier 2 (L2 Temporal Fact Graph):** Structured patient lifestyle disclosures and habits (`patient_temporal_facts`) with active/superseded state transitions.
-- **Tier 3 (L3 Clinical Safety Profile & PEP):** Clinician-governed boundaries (`patient_pep`), hypertension staging, and gym clearance.
-- **Hybrid RAG Retrieval:** Deduplicated, threshold-gated full-text and trigram retrieval from `clinical_guideline_chunks` (AYUSH, ICMR, and herbal remedies).
+The request schema also accepts fields such as `hypertension_stage`, `gym_clearance`, `activity_level`, and `movement_restrictions`; the registration function currently does not write those values into the corresponding safety fields. Do not assume those values have been captured or verified by account creation. The later journey extractor uses field mappings to persist disclosures, but its source is still the user's report.
 
----
+During chat/voice turns, `disha_core.journey` may extract multiple answers, update journey state, and write mapped values into profile, PEP, `memory_items`, `patient_temporal_facts`, or habit/episode tables. These mappings and database constraints do not create an authenticated clinician-review workflow.
 
-## 2. Database Schema (`disha_core/db/schema.sql` & Migration `0002_memory_and_pep`)
+## Short-term conversation context
 
-```mermaid
-erDiagram
-    PATIENT_PROFILES ||--o{ PATIENT_PEP : has
-    PATIENT_PROFILES ||--o{ PATIENT_TURN_JOURNAL : records
-    PATIENT_PROFILES ||--o{ PATIENT_TEMPORAL_FACTS : tracks
-    PATIENT_PROFILES ||--o{ PATIENT_DIET_SCHEDULES : prescribes
-    CLINICAL_KNOWLEDGE_BASE ||--o{ CLINICAL_GUIDELINE_CHUNKS : views
+`patient_turn_journal` stores user and assistant utterances in PostgreSQL. On a turn, `build_patient_context` loads up to the latest eight messages and the prompt path uses at most the latest eight messages. The per-process `app.state.conversation_history` cache is keyed by patient and capped at sixteen messages (up to eight user/assistant pairs). Completed generated turns are appended to the database journal and the in-memory cache.
 
-    PATIENT_TURN_JOURNAL {
-        UUID turn_id PK
-        VARCHAR patient_id FK
-        VARCHAR session_id
-        INT turn_index
-        VARCHAR speaker
-        TIMESTAMPTZ timestamp_utc
-        TEXT raw_utterance
-        TEXT normalized_utterance
-    }
+The current shared turn path uses the default session unless a caller supplies a `session_id` or `call_id`; chat and voice should therefore not be assumed to have separate conversation windows. The in-memory cache is not shared across workers and is lost on restart; the database journal is used to rehydrate a recent window. The journal is ordinary application storage, not a database-enforced immutable log, and the code shown here does not implement a retention or deletion policy.
 
-    PATIENT_TEMPORAL_FACTS {
-        UUID fact_id PK
-        VARCHAR patient_id FK
-        VARCHAR category
-        VARCHAR fact_key
-        TEXT fact_value
-        VARCHAR epistemic_status
-        TIMESTAMPTZ valid_from
-        TIMESTAMPTZ valid_to
-    }
+## Persistent context tables
 
-    PATIENT_PEP {
-        VARCHAR patient_id PK
-        VARCHAR hypertension_stage
-        BOOLEAN gym_clearance
-        TEXT_ARRAY allowed_modalities
-        TEXT_ARRAY restricted_modalities
-        TEXT_ARRAY diagnosed_conditions
-        VARCHAR dietary_preference
-    }
-```
+The current context builder reads:
 
-### 2.1 Persistent Conversation Turn Journal (`patient_turn_journal`)
-Captures all conversation turns across sessions to provide verbatim conversational history:
+- `patient_pep` for recorded preferences, focus, concern, and selected exercise-related fields.
+- Active `patient_temporal_facts` for structured disclosures.
+- Active `memory_items` for saved slots.
+- Recent `patient_turn_journal` rows for short-term dialogue.
+- `patient_diet_schedules` only for a requested prescribed meal.
 
-```sql
-CREATE TABLE IF NOT EXISTS patient_turn_journal (
-    turn_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id VARCHAR(64) NOT NULL,
-    session_id VARCHAR(64) NOT NULL DEFAULT 'default',
-    turn_index INT NOT NULL DEFAULT 0,
-    speaker VARCHAR(16) NOT NULL CHECK (speaker IN ('user', 'assistant', 'patient', 'coach', 'system')),
-    timestamp_utc TIMESTAMPTZ NOT NULL DEFAULT CLOCK_TIMESTAMP(),
-    raw_utterance TEXT NOT NULL CHECK (btrim(raw_utterance) <> ''),
-    normalized_utterance TEXT NOT NULL DEFAULT '',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+The schema also contains journey state/history and habit-state/episode tables. Their presence does not mean every field is loaded into every prompt or has been clinically validated. See [`disha_core/db/schema.sql`](../disha_core/db/schema.sql).
 
-CREATE INDEX IF NOT EXISTS idx_journal_patient_time 
-    ON patient_turn_journal(patient_id, timestamp_utc DESC);
-CREATE INDEX IF NOT EXISTS idx_journal_session_turn 
-    ON patient_turn_journal(session_id, turn_index ASC);
-```
+## Prescribed meals versus suggestions
 
-### 2.2 Structured Temporal Fact Graph (`patient_temporal_facts`)
-Tracks longitudinal disclosures with state transitions (`active`, `superseded`, `resolved`, `contradicted`):
+The prescribed-meal path queries an active approved row for the user's weekday and `breakfast`, `lunch`, or `dinner`. If the user does not specify a meal window, the turn asks which one; an unavailable or missing record is reported rather than replaced with a generic meal. The profile read uses the same approval/active filters.
 
-```sql
-CREATE TABLE IF NOT EXISTS patient_temporal_facts (
-    fact_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    patient_id VARCHAR(64) NOT NULL,
-    category VARCHAR(64) NOT NULL DEFAULT 'lifestyle',
-    fact_key VARCHAR(64) NOT NULL,
-    fact_value TEXT NOT NULL,
-    epistemic_status VARCHAR(24) NOT NULL DEFAULT 'active'
-        CHECK (epistemic_status IN ('active', 'superseded', 'resolved', 'contradicted')),
-    valid_from TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    valid_to TIMESTAMPTZ,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+General meal or recipe suggestions require relevant approved knowledge records. This repository does not establish a validated recipe-composition or food-composition service for constructing complete meal plans or calculating exact calories/macronutrients. Seed/import content being present is not evidence that it is reviewed or licensed.
 
-CREATE INDEX IF NOT EXISTS idx_facts_patient_key_active 
-    ON patient_temporal_facts(patient_id, fact_key)
-    WHERE epistemic_status = 'active';
-```
+## Knowledge retrieval and evidence
 
-### 2.3 Personalized Engagement Protocol (`patient_pep`)
-```sql
-CREATE TABLE IF NOT EXISTS patient_pep (
-    patient_id VARCHAR(64) PRIMARY KEY,
-    hypertension_stage VARCHAR(16),
-    gym_clearance BOOLEAN NOT NULL DEFAULT FALSE,
-    allowed_modalities TEXT[] NOT NULL DEFAULT '{}',
-    restricted_modalities TEXT[] NOT NULL DEFAULT '{}',
-    primary_focus VARCHAR(128) DEFAULT '',
-    secondary_focuses TEXT[] DEFAULT '{}',
-    user_reported_concerns TEXT DEFAULT '',
-    diagnosed_conditions TEXT[] DEFAULT '{}',
-    language VARCHAR(32) DEFAULT 'hinglish',
-    dietary_preference VARCHAR(64) DEFAULT 'Vegetarian',
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-```
+Chat/voice health retrieval is implemented in `disha_core.engine.retriever`: PostgreSQL full-text rank and `pg_trgm` similarity over approved rows, with bounded results and deduplication. No embeddings, pgvector, or reciprocal-rank fusion are used in this active path. Retrieved knowledge chunk IDs and retrieval status are carried through response metadata; prescribed meal rows are separate and have no knowledge chunk ID. A chunk ID indicates which row was supplied, not that every generated sentence is semantically entailed by it.
 
-### 2.4 Clinical Guideline Chunks View (`clinical_guideline_chunks`)
-```sql
-CREATE OR REPLACE VIEW clinical_guideline_chunks AS
-SELECT * FROM clinical_knowledge_base;
-```
+See [Knowledge inventory](knowledge/INVENTORY.md) and [retrieval details](architecture/04_rag_ingestion_and_retrieval.md).
 
----
+## Exercise safety
 
-## 3. Dataset & RAG Retrieval Quality Pipeline
+`disha_core.pep.exercise_safety` extracts selected risk tags, blocks an explicit recorded restriction that matches the requested exercise, and otherwise returns an insufficient-information result rather than choosing an exercise. The shared turn pipeline also withholds personalized exercise recommendations when it finds selected risk signals or lacks essential safety context. This is a conservative partial check—not a complete eligibility engine, medical clearance, or routine/alternative generator. A retrieved exercise passage is not proof of an individual's suitability.
 
-### 3.1 Retrieval Architecture (`disha_core/engine/retriever.py`)
-Disha AI performs hybrid RAG retrieval combining pg_trgm fuzzy trigram matching and PostgreSQL `tsvector` full-text search:
+## What this implementation does not prove
 
-```sql
-SELECT chunk_id, condition_tag, context_header, guideline_content, source_citation,
-       required_remedy_tokens,
-       GREATEST(similarity(trigger_terms, $1), similarity(guideline_content, $1)) AS trigram_score,
-       GREATEST(
-           ts_rank(tsv_content, plainto_tsquery('simple', $1)),
-           CASE WHEN $4 <> '' THEN ts_rank(tsv_content, to_tsquery('simple', $4)) ELSE 0.0 END
-       ) AS text_score
-FROM clinical_guideline_chunks
-WHERE approval_status = 'approved'
-  AND (
-       condition_tag = ANY($3)
-       OR trigger_terms % $1
-       OR tsv_content @@ plainto_tsquery('simple', $1)
-       OR ($4 <> '' AND tsv_content @@ to_tsquery('simple', $4))
-  )
-ORDER BY 
-    CASE WHEN condition_tag = ANY($3) THEN 1.0 ELSE 0.0 END DESC,
-    GREATEST(similarity(trigger_terms, $1),
-             ts_rank(tsv_content, plainto_tsquery('simple', $1)),
-             CASE WHEN $4 <> '' THEN ts_rank(tsv_content, to_tsquery('simple', $4)) ELSE 0.0 END) DESC
-LIMIT $2::bigint
-```
-
-### 3.2 Token Sanitation & Disjunctive tsquery
-Conversational Indian health queries (*"mujhe pet me bohot gas aur bloating ho rahi hai"*) contain stop-words that cause strict `plainto_tsquery` (`AND`) matches to evaluate to `FALSE`. `retriever.py` extracts non-stopword tokens (length > 2) and generates a disjunctive OR query (`gas | pet | phoolna | bloating`), ensuring high recall.
-
-### 3.3 Quality Gates & Deduplication
-- **Deduplication:** Retrieved rows are deduplicated by `chunk_id` and unique tuple `(condition_tag, guideline_content)`.
-- **Thresholding:** Chunks must have either an exact `condition_tag` match or achieve `trigram_score >= 0.18` or `text_score >= 0.03`. Random, low-scoring chunks are rejected to prevent polluting `<CLINICAL_GROUNDING>`.
-- **Symptom Coverage:** Curated institutional guidelines and AYUSH remedies for:
-  - **GI Bloating:** `GI_BLOATING` (warm jeera/saunf water, shatapadi walking).
-  - **Acidity & Reflux:** `GERD_ACID_REFLUX`, `GERD_COLD_MILK_BANANA`, `AYUSH_AMLA`.
-  - **Knee & Joint Pain:** `KNEE_PAIN_CARE` (quadriceps isometric exercises, avoiding deep squats), `AYUSH_SHALLAKI` (Boswellia serrata), `AYUSH_PRASARINI`.
-  - **Metabolic & Diabetes:** `T2D_METHI_FENUGREEK`, `T2D_MILLETS_GLYCEMIC`.
-
----
-
-## 4. PEP (Personalized Exercise Prescription) & Clinical Guardrails
-
-### 4.1 Profile Serialization (`disha_core/engine/context_builder.py`)
-`build_patient_context` serializes patient parameters into `<PATIENT_PROFILE>`:
-
-```xml
-<PATIENT_PROFILE>
-  <PEP_PERMISSIONS allowed="brisk walking, light yoga" gym_clearance="false" hypertension_stage="stage 2" restricted="heavy deadlifts, hiit" diagnosed="coronary_artery_disease"/>
-  <PEP_RESTRICTION_RULES gym_clearance="false" FORBIDDEN="heavy deadlifts, hiit, heavy weightlifting, valsalva maneuver, high intensity sprinting">
-    Vigorous exertion, heavy weightlifting, and restricted modalities are strictly disallowed. Only allowed safe modalities: brisk walking, light yoga.
-  </PEP_RESTRICTION_RULES>
-  <PEP_FOCUS primary="Heart Health" secondary="Cardiovascular Stamina" concerns="Chest tightness on stairs" diagnosed="coronary_artery_disease"/>
-  <USER_LANGUAGE preferred="hinglish"/>
-  <DIETARY_PREFERENCE preference="Vegetarian" FORBIDDEN="chicken, meat, poultry, fish, seafood, mutton, eggs"/>
-  <PATIENT_FACTS>
-    <FACT category="lifestyle" key="shift_schedule">Night shift (works at night, sleeps during daytime)</FACT>
-    <FACT category="dietary_preference" key="food_dislike_karela">Dislikes/avoids karela</FACT>
-  </PATIENT_FACTS>
-</PATIENT_PROFILE>
-```
-
-### 4.2 Deterministic Validator Enforcement (`disha_core/pipeline/validator.py`)
-1. **Cardiac & Stage 2 Hypertension Invariant:** If `diagnosed_conditions` contains cardiovascular conditions (`cardiac`, `heart`, `cad`, `angina`, `mi`) or `hypertension_stage` is `stage 2` / `crisis`:
-   - `restricted_modalities` automatically includes `heavy weightlifting`, `heavy deadlifts`, `hiit`, `high intensity sprints`, and `valsalva maneuver`.
-2. **Deterministic Interception:** If the model outputs or approves a restricted exercise (e.g. *"Aap gym mein 100kg deadlift kijiye"*), `SentenceValidator` intercepts and replaces the sentence with `PEP_REPLACEMENT`:
-   > *"Main aapke exercise permissions ke andar safe activity chunne mein madad kar sakti hoon."*
-   with validation status `status="rewritten"` and reason `reasons=("pep_restriction",)`.
-
----
-
-## 5. End-to-End Turn Execution Lifecycle
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Patient
-    participant API as FastAPI Router (/chat, /chat/stream)
-    participant Svc as ChatService (generate_turn_sentences)
-    participant DB as PostgreSQL 16
-    participant Retr as RAG Retriever
-    participant LLM as DualProviderClient (Groq/Gemini/Ollama)
-    participant Val as SentenceValidator
-
-    Patient->>API: POST /chat (User Utterance)
-    API->>Svc: generate_turn_sentences()
-    Svc->>DB: Single Connection Acquisition
-    DB-->>Svc: PEP, Diet Schedule, Temporal Facts, Recent 8 Turns
-    Svc->>Retr: retrieve_chunks(normalized_text)
-    Retr->>DB: Trigram & tsvector Search
-    DB-->>Retr: Approved Clinical Chunks
-    Retr-->>Svc: Top Deduplicated Chunks
-    Svc->>LLM: stream(prompt, messages=history)
-    LLM-->>Val: Raw Tokens
-    Val->>Val: SentenceBuffer Boundaries & PEP / Clinical Gate
-    Val-->>API: Validated Sentence Stream
-    API-->>Patient: SSE / JSON Output
-    Svc->>DB: store_conversation_turn() & persist_patient_disclosure()
-```
-
----
-
-## 6. Automated Verification Results
-
-All tests are verified via pytest:
-```bash
-.venv/bin/pytest disha_core/tests/test_memory_pep_retrieval.py \
-                 disha_core/tests/test_invariants.py \
-                 tests/test_long_term_memory_suite.py -v
-```
-
-### Test Matrix Summary
-| Test File | Test Case | Target Metric | Status |
-|---|---|---|---|
-| `test_memory_pep_retrieval.py` | `test_live_multi_turn_consecutive_flow` | Consecutive turn recall in PostgreSQL | **PASSED** |
-| `test_memory_pep_retrieval.py` | `test_cross_session_memory_and_disclosure_recall` | Cross-session facts in `<PATIENT_FACTS>` | **PASSED** |
-| `test_memory_pep_retrieval.py` | `test_pep_xml_rendering_with_cardiac_and_htn_constraints` | Explicit PEP restriction XML rules | **PASSED** |
-| `test_memory_pep_retrieval.py` | `test_cardiac_patient_forbidden_exercise_rejected` | Interception of forbidden exercises | **PASSED** |
-| `test_memory_pep_retrieval.py` | `test_allowed_modalities_accepted_without_rejection` | Safe allowed exercise pass-through | **PASSED** |
-| `test_memory_pep_retrieval.py` | `test_retrieval_for_symptoms_bloating_acidity_knee_pain` | High precision retrieval & deduplication | **PASSED** |
-| `test_invariants.py` | 48 Pipeline Invariant Tests | Core clinical safety invariants | **PASSED** |
-| `test_long_term_memory_suite.py` | 8 Longitudinal Memory Suite Tests | 7-day patient trajectory evaluation | **PASSED** |
+- That deployed knowledge has accurate source provenance, licensing, qualified review, or fresh clinical approval.
+- That every user-reported condition, symptom, injury, or limitation was persisted or verified.
+- That a recommendation is clinically appropriate or effective.
+- That memory has complete temporal arbitration, guaranteed durability, or a clinical audit trail.
+- That a model response is fully supported by the retrieved records.
+- That behavior has been validated against a live deployment or database beyond the checks explicitly reported in [`DEPLOYMENT.md`](DEPLOYMENT.md).

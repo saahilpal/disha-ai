@@ -13,12 +13,14 @@ import asyncio
 import json
 import logging
 import os
+import re
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime
 from pathlib import Path
 from typing import Any, AsyncIterator
 from zoneinfo import ZoneInfo
 
+import asyncpg
 from fastapi import FastAPI, Header, HTTPException, Request, Response, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
@@ -37,6 +39,7 @@ from disha_core.engine.context_builder import (
 )
 from disha_core.engine.normalizer import (
     UNSUPPORTED_LANGUAGE_REPLACEMENT,
+    is_prescribed_meal_query,
     is_unsupported_language,
     normalize,
 )
@@ -54,8 +57,10 @@ from disha_core.models.schemas import (
     TurnRequest,
     TurnState,
 )
+from disha_core.pep.exercise_safety import extract_patient_health_tags
 from disha_core.pipeline.router import Intent, IntentRouter, LayaIntentClassifier
 from disha_core.pipeline.validator import (
+    KNOWLEDGE_UNAVAILABLE_REPLACEMENT,
     MEAL_NOT_FOUND_REPLACEMENT,
     PEP_REPLACEMENT,
     SentenceValidator,
@@ -71,6 +76,12 @@ from disha_core.voice import VoiceSession, execute_voice_turn, transcribe_groq
 
 MAX_VOICE_TURN_BYTES = 10 * 1024 * 1024  # 10 MB limit for voice turns
 logger = logging.getLogger(__name__)
+EXPLICIT_NO_EXERCISE_LIMITATION_RE = re.compile(
+    r"\b(?:no|without|don't have|do not have)\s+(?:any\s+)?"
+    r"(?:known\s+)?(?:pain|injuries|injury|physical limitations?|mobility issues?|"
+    r"exercise restrictions?)\b",
+    re.I,
+)
 
 # Re-export public symbols for backward compatibility with existing tests
 __all__ = [
@@ -95,6 +106,19 @@ def _enqueue_audit(ledger: AuditLedger | None, record: AuditRecord) -> None:
         logger.warning("Audit queue overflow; event not recorded")
 
 
+def _response_metadata(
+    state: TurnState,
+    *,
+    status: str | None = None,
+) -> dict[str, Any]:
+    """Return bounded provenance metadata shared by all turn response channels."""
+    return {
+        "status": status or state.validator_status,
+        "evidence_ids": list(state.evidence_ids),
+        "retrieval_status": state.retrieval_status,
+    }
+
+
 async def _authenticated_patient(request: Request | WebSocket, authorization: str | None) -> str:
     """Resolve patient ID from bearer authorization token."""
     scheme, _, token = (authorization or "").partition(" ")
@@ -111,7 +135,7 @@ async def _authenticated_patient(request: Request | WebSocket, authorization: st
                      AND (expires_at IS NULL OR expires_at > NOW())""",
                 access_token_hash(token.strip()),
             )
-    except (ConnectionError, OSError, RuntimeError) as exc:
+    except (asyncpg.PostgresError, ConnectionError, OSError, RuntimeError) as exc:
         logger.warning("Database unavailable during token auth: %s", exc)
         raise HTTPException(status_code=503, detail="Database temporarily unavailable; please retry shortly")
     if row is None:
@@ -164,13 +188,32 @@ async def _turn_sentences(
         return
 
     day = app_state.today_ist()
+    prescribed_meal_query = is_prescribed_meal_query(payload.text)
+    pool = getattr(app_state, "pool", None)
     try:
-        context = await build_patient_context(
-            app_state.pool, patient_id, day, payload.meal_type
-        )
-    except (ConnectionError, OSError, RuntimeError) as exc:
+        if pool is None:
+            context = await build_patient_context(
+                None,
+                patient_id,
+                day,
+                payload.meal_type if prescribed_meal_query else None,
+                user_input=payload.text,
+                intent=intent.value if intent else None,
+            )
+        else:
+            async with pool.acquire() as connection:
+                context = await build_patient_context(
+                    connection,
+                    patient_id,
+                    day,
+                    payload.meal_type if prescribed_meal_query else None,
+                    user_input=payload.text,
+                    intent=intent.value if intent else None,
+                )
+    except (asyncpg.PostgresError, ConnectionError, OSError, RuntimeError) as exc:
         logger.warning("Database unavailable in _turn_sentences: %s", exc)
         state.validator_status = "deflected:db_unavailable"
+        state.retrieval_status = "unavailable"
         deflection_msg = "Disha abhi technical samasya ke kaaran database se connect nahi kar paa rahi. Kripya thodi der baad koshish karein."
         generated_sentences.append(deflection_msg)
         yield deflection_msg
@@ -188,16 +231,29 @@ async def _turn_sentences(
         is_emergency=emergency.triggered,
     )
 
-    if intent == Intent.MEAL_QUERY and context["diet_status"] == "NOT_FOUND":
+    if prescribed_meal_query and payload.meal_type is None:
+        state.validator_status = "deflected:meal_window_required"
+        yield "Aap apne prescribed plan mein kaunsa meal dekhna chahte hain: breakfast, lunch, ya dinner?"
+        return
+
+    if prescribed_meal_query and context.get("diet_status") == "NOT_FOUND":
         state.validator_status = "rewritten:meal_not_found"
         generated_sentences.append(MEAL_NOT_FOUND_REPLACEMENT)
         yield MEAL_NOT_FOUND_REPLACEMENT
+        return
+    if prescribed_meal_query and context.get("diet_status") != "FOUND":
+        state.validator_status = "deflected:meal_plan_unavailable"
+        yield "Main abhi aapka saved meal plan access nahi kar paa rahi. Kripya thodi der baad phir koshish karein."
         return
 
     # Early PEP Risk Triage via Laya System 1:
     pep = context.get("pep") or {}
     restricted = {str(item).replace("_", " ").casefold() for item in pep.get("restricted_modalities") or ()}
-    has_cardiac_htn = bool(pep.get("hypertension_stage")) or not pep.get("gym_clearance", True)
+    hypertension_stage = str(pep.get("hypertension_stage") or "").casefold().replace("_", " ")
+    diagnosed = " ".join(str(item) for item in pep.get("diagnosed_conditions") or ()).casefold()
+    has_cardiac_htn = hypertension_stage in {"stage 1", "stage 2", "crisis"} or any(
+        condition in diagnosed for condition in ("cardiac", "heart", "coronary", "arrhythmia")
+    )
     if pep_risk >= 2 and (restricted or has_cardiac_htn):
         state.validator_status = "rewritten:pep_restriction"
         generated_sentences.append(PEP_REPLACEMENT)
@@ -270,20 +326,63 @@ async def _turn_sentences(
                         context["scheduled_question"] = scheduled_q.text
 
                 # Retrieval Routing:
-                # If Laya classifies intent as pure greeting, general coaching, or app meta,
-                # SKIP pgvector database retrieval, saving DB connection latency & context window.
-                if not (skip_retrieval or intent in {Intent.GENERAL_COACHING, Intent.APP_META, Intent.GREETING}):
-                    target_tags = list(normalized.tags)
-                    if intent == Intent.SYMPTOM_COMPLAINT and not target_tags:
-                        target_tags = ["GI_BLOATING"]
-                    elif intent == Intent.MEAL_QUERY and not target_tags:
-                        target_tags = ["FRUIT_MODERATION"]
-                    elif intent == Intent.EXERCISE_QUERY and not target_tags:
-                        target_tags = ["EXERCISE_GUIDELINES"]
-
-                    chunks = await retrieve_chunks(
-                        connection, normalized.normalized, patient_id=patient_id, tags=target_tags
+                # Health-domain questions retrieve even when the intent router calls them general coaching.
+                should_retrieve = not prescribed_meal_query and (
+                    bool(normalized.tags)
+                    or normalized.is_meal_query
+                    or normalized.is_exercise_query
+                    or normalized.is_recommendation_request
+                    or (
+                        not skip_retrieval
+                        and intent not in {Intent.GENERAL_COACHING, Intent.APP_META, Intent.GREETING}
                     )
+                )
+                if should_retrieve:
+                    pep_context = context.get("pep") or {}
+                    contextual_terms: list[str] = []
+                    if normalized.is_meal_query:
+                        contextual_terms.extend(
+                            str(value)
+                            for value in (
+                                pep_context.get("dietary_preference"),
+                                pep_context.get("primary_focus"),
+                                *(pep_context.get("diagnosed_conditions") or ()),
+                            )
+                            if value
+                        )
+                    if normalized.is_exercise_query:
+                        contextual_terms.extend(
+                            str(value)
+                            for value in (
+                                pep_context.get("user_reported_concerns"),
+                                *(pep_context.get("restricted_modalities") or ()),
+                                *(pep_context.get("diagnosed_conditions") or ()),
+                            )
+                            if value
+                        )
+                    retrieval_query = " ".join((normalized.normalized, *contextual_terms))
+                    profile_tags = normalize(" ".join(contextual_terms)).tags
+                    target_tags = list(dict.fromkeys((*normalized.tags, *profile_tags)))
+                    chunks = await retrieve_chunks(
+                        connection, retrieval_query, patient_id=patient_id, tags=target_tags
+                    )
+                    state.retrieval_status = "retrieved" if chunks else "no_results"
+                    state.evidence_ids = [
+                        str(getter("chunk_id"))
+                        for chunk in chunks
+                        if (getter := (
+                            chunk.get
+                            if hasattr(chunk, "get")
+                            else lambda key, default=None: getattr(chunk, key, default)
+                        ))("chunk_id", None) is not None
+                    ]
+                    if len(state.evidence_ids) != len(chunks):
+                        logger.error("Retrieved health guidance without complete chunk provenance")
+                        state.retrieval_status = "invalid_provenance"
+                        chunks = ()
+                        state.evidence_ids = []
+                    else:
+                        context["retrieved_evidence_ids"] = state.evidence_ids
                     if getattr(app_state, "sync_history", False) and not app_state.conversation_history[patient_id]:
                         with suppress(Exception):
                             from disha_core.services.chat_service import load_conversation_history
@@ -291,9 +390,87 @@ async def _turn_sentences(
                             if loaded:
                                 app_state.conversation_history[patient_id] = loaded
                                 history = loaded[-8:]
-        except (ConnectionError, OSError, RuntimeError) as exc:
+        except (asyncpg.PostgresError, ConnectionError, OSError, RuntimeError) as exc:
             logger.warning("Database retrieval unavailable: %s", exc)
+            state.retrieval_status = "unavailable"
             chunks = ()
+    elif normalized.tags or intent in {
+        Intent.MEAL_QUERY,
+        Intent.EXERCISE_QUERY,
+        Intent.SYMPTOM_COMPLAINT,
+    }:
+        state.retrieval_status = "unavailable"
+
+    requires_grounding = (
+        bool(normalized.tags)
+        or normalized.is_meal_query
+        or normalized.is_exercise_query
+        or normalized.is_recommendation_request
+        or intent in {
+        Intent.MEAL_QUERY,
+        Intent.EXERCISE_QUERY,
+        Intent.SYMPTOM_COMPLAINT,
+        }
+    )
+    if prescribed_meal_query and context.get("diet_status") == "FOUND":
+        requires_grounding = False
+    if requires_grounding and not chunks:
+        state.validator_status = "deflected:knowledge_unavailable"
+        yield KNOWLEDGE_UNAVAILABLE_REPLACEMENT
+        return
+
+    if normalized.is_exercise_query and normalized.is_recommendation_request:
+        pep_context = context.get("pep") or {}
+        slot_values = [
+            str(slot.get("slot_value", ""))
+            for slot in context.get("patient_slots") or ()
+            if isinstance(slot, dict)
+        ]
+        safety_text = " ".join(
+            str(value)
+            for value in (
+                payload.text,
+                pep_context.get("user_reported_concerns"),
+                *(pep_context.get("restricted_modalities") or ()),
+                *(pep_context.get("diagnosed_conditions") or ()),
+                *slot_values,
+            )
+            if value
+        )
+        safety_tags = extract_patient_health_tags(
+            pep_data=pep_context,
+            reported_symptoms=[
+                payload.text,
+                str(pep_context.get("user_reported_concerns") or ""),
+            ],
+            physical_limitations=pep_context.get("restricted_modalities") or (),
+            diagnosed_conditions=pep_context.get("diagnosed_conditions") or (),
+        )
+        has_recorded_safety_context = bool(
+            pep_context.get("user_reported_concerns")
+            or pep_context.get("restricted_modalities")
+            or pep_context.get("diagnosed_conditions")
+            or (pep_context.get("hypertension_stage") or "").casefold()
+            not in {"", "unknown", "none"}
+            or EXPLICIT_NO_EXERCISE_LIMITATION_RE.search(safety_text)
+        )
+        if safety_tags:
+            state.validator_status = "deflected:exercise_suitability_uncertain"
+            yield (
+                "Aapke bataye hue ya saved health context ke saath main abhi workout ya alternate movement "
+                "recommend nahi karungi, kyunki uski suitability establish nahi hui. Aap apni limitation "
+                "aur jis activity ke baare mein pooch rahe hain woh batayein; zarurat par clinician se "
+                "suitability confirm karein."
+            )
+            return
+        if not has_recorded_safety_context:
+            state.validator_status = "deflected:exercise_context_required"
+            yield (
+                "Personalized exercise suggestion se pehle batayein ki aapko pain, injury, recent surgery, "
+                "mobility difficulty, heart condition, ya exercise restriction hai ya nahi. Bina is context "
+                "ke main workout recommend nahi karungi."
+            )
+            return
 
     add_approved_remedy_constraints(context, chunks)
     prompt = render_user_payload(normalized.normalized, context, chunks)
@@ -508,6 +685,18 @@ def create_app() -> FastAPI:
         day = request.app.state.today_ist()
         return await fetch_patient_profile(pool, patient_id, day)
 
+    @app.get("/patient/journey")
+    async def get_patient_journey(request: Request, authorization: str | None = Header(default=None)) -> dict[str, Any]:
+        """Retrieve persistent patient onboarding journey state."""
+        from disha_core.journey import load_or_create_journey
+
+        patient_id = await _authenticated_patient(request, authorization)
+        pool = getattr(request.app.state, "pool", None)
+        if not pool:
+            return {"current_stage": 1, "overall_status": "in_progress", "last_completed_stage": 0}
+        async with pool.acquire() as conn:
+            return await load_or_create_journey(patient_id, conn)
+
     @app.put("/patient/profile")
     async def update_patient_profile_endpoint(
         payload: ProfileUpdateRequest,
@@ -525,7 +714,7 @@ def create_app() -> FastAPI:
         payload: TurnRequest,
         request: Request,
         authorization: str | None = Header(default=None),
-    ) -> dict[str, str]:
+    ) -> dict[str, Any]:
         client_key = authorization.removeprefix("Bearer ").strip() if authorization else (request.client.host if request.client else "127.0.0.1")
         allowed, _, retry_after = limiter.is_allowed(f"chat_{client_key[:16]}", "chat", limit=60, window_seconds=60.0)
         if not allowed:
@@ -539,7 +728,10 @@ def create_app() -> FastAPI:
         if emergency.triggered:
             return {
                 "response": emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein.",
-                "status": f"triggered:{emergency.category}",
+                **_response_metadata(
+                    TurnState(),
+                    status=f"triggered:{emergency.category}",
+                ),
             }
 
         try:
@@ -548,7 +740,10 @@ def create_app() -> FastAPI:
             if he.status_code == 503:
                 return {
                     "response": "Disha abhi technical samasya ke kaaran database se connect nahi kar paa rahi. Kripya thodi der baad koshish karein.",
-                    "status": "deflected:db_unavailable",
+                    **_response_metadata(
+                        TurnState(retrieval_status="unavailable"),
+                        status="deflected:db_unavailable",
+                    ),
                 }
             raise
         state = TurnState()
@@ -559,7 +754,10 @@ def create_app() -> FastAPI:
             request.app.state.ledger,
             AuditRecord(patient_id, payload.text, output, state.breaker_status, state.validator_status),
         )
-        return {"response": output, "status": state.validator_status}
+        return {
+            "response": output,
+            **_response_metadata(state),
+        }
 
     @app.post("/chat/stream")
     async def chat_stream(
@@ -579,10 +777,14 @@ def create_app() -> FastAPI:
         emergency = request.app.state.router.breaker.check(payload.text)
         if emergency.triggered:
             text = emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein."
+            metadata = _response_metadata(
+                TurnState(),
+                status=f"triggered:{emergency.category}",
+            )
 
             async def emergency_event() -> AsyncIterator[str]:
                 yield f"data: {json.dumps({'sentence': text}, ensure_ascii=False)}\n\n"
-                yield f"event: done\ndata: {json.dumps({'status': f'triggered:{emergency.category}'})}\n\n"
+                yield f"event: done\ndata: {json.dumps(metadata)}\n\n"
 
             return StreamingResponse(
                 emergency_event(),
@@ -598,10 +800,25 @@ def create_app() -> FastAPI:
             patient_id = await _authenticated_patient(request, authorization)
         except HTTPException as he:
             if he.status_code == 503:
-                return {
-                    "response": "Disha abhi technical samasya ke kaaran database se connect nahi kar paa rahi. Kripya thodi der baad koshish karein.",
-                    "status": "deflected:db_unavailable",
-                }
+                text = "Disha abhi technical samasya ke kaaran database se connect nahi kar paa rahi. Kripya thodi der baad koshish karein."
+                metadata = _response_metadata(
+                    TurnState(retrieval_status="unavailable"),
+                    status="deflected:db_unavailable",
+                )
+
+                async def unavailable_event() -> AsyncIterator[str]:
+                    yield f"data: {json.dumps({'sentence': text}, ensure_ascii=False)}\n\n"
+                    yield f"event: done\ndata: {json.dumps(metadata)}\n\n"
+
+                return StreamingResponse(
+                    unavailable_event(),
+                    media_type="text/event-stream",
+                    headers={
+                        "Cache-Control": "no-cache",
+                        "Connection": "keep-alive",
+                        "X-Accel-Buffering": "no",
+                    },
+                )
             raise
         state = TurnState()
 
@@ -613,7 +830,7 @@ def create_app() -> FastAPI:
                     yield f"data: {json.dumps({'sentence': sentence}, ensure_ascii=False)}\n\n"
                     if await request.is_disconnected():
                         break
-                yield f"event: done\ndata: {json.dumps({'status': state.validator_status})}\n\n"
+                yield f"event: done\ndata: {json.dumps(_response_metadata(state))}\n\n"
             except (asyncio.CancelledError, GeneratorExit):
                 pass
             finally:

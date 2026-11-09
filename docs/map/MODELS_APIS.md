@@ -1,7 +1,9 @@
 # Disha AI — Models, APIs & Token Quota Cartography
 
-**Document Status:** Production Authoritative  
-**Source Code Baseline:** `disha_core/llm/client.py`, `disha_core/voice.py`, `disha_core/classifier/adapter.py`  
+**Document Status:** Historical generated snapshot — not current runtime authority
+**Source Code Baseline:** Earlier snapshot; revalidate against current adapters
+
+> Use [Deployment](../DEPLOYMENT.md) and [Voice Pipeline](../VOICE_PIPELINE.md) for current provider/configuration behavior. The inventory below is retained for historical context only.
 **Cost Target:** Sustainable $0 Free-Tier Stack with Enterprise Fallbacks
 
 ---

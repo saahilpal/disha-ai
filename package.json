@@ -10,5 +10,9 @@
     "test:ux": "node tests/test_playwright_ux.js",
     "test:vercel": ".venv/bin/pytest tests/test_vercel_packaging.py",
     "lint:duplication": "npx jscpd"
+  },
+  "devDependencies": {
+    "axe-core": "^4.14.0",
+    "playwright": "^1.65.0"
   }
 }

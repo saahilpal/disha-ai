@@ -20,7 +20,7 @@
   
   --ink: #14201c;
   --ink-secondary: #4d6059;
-  --ink-tertiary: #788f86;
+  --ink-tertiary: #546e65;
   --ink-inverse: #fbfdfc;
 
   --accent: #167a57;
@@ -45,7 +45,7 @@
   --success-border: #bbf7d0;
 
   /* Typography */
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-sans: 'Inter', 'Noto Sans Devanagari', 'Kohinoor Devanagari', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Spacing Scale (Exact 4px multiple scale) */
@@ -87,7 +87,7 @@
 
   --ink: #eef5f2;
   --ink-secondary: #9cb1a9;
-  --ink-tertiary: #6a8279;
+  --ink-tertiary: #8ea59c;
   --ink-inverse: #0e1613;
 
   --accent: #2ec491;
@@ -96,7 +96,7 @@
   --accent-subtle: #14352b;
   --accent-border: #205745;
 
-  --danger: #ef4444;
+  --danger: #f87171;
   --danger-hover: #dc2626;
   --danger-subtle: #2d1616;
   --danger-border: #522222;
@@ -879,6 +879,15 @@ h1, h2, h3, h4 {
   white-space: pre-wrap;
   word-break: break-word;
   overflow-wrap: break-word;
+}
+
+.source-trace {
+  display: block;
+  margin-top: var(--space-2xs);
+  color: var(--ink-secondary);
+  font-size: 0.72rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .msg-text.streaming-cursor::after {

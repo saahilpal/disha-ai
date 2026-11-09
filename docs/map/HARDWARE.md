@@ -1,5 +1,8 @@
 # Disha AI — Host Hardware Discovery (HARDWARE.md)
 
+> **Historical host snapshot:** Hardware and benchmark observations are machine/date-specific and do not describe the current runtime unless rechecked. See [Deployment](../DEPLOYMENT.md) for the scope of current host checks.
+
+
 **Generated:** 2026-11-07  
 **Host Environment:** Apple Silicon macOS Workstation
 

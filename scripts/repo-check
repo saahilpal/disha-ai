@@ -37,7 +37,7 @@ log_fail() {
 # ------------------------------------------------------------------------------
 # 1. SECRETS SCANNER (Gitleaks)
 # ------------------------------------------------------------------------------
-log_step "1/4" "Secrets Scan (Gitleaks)"
+log_step "1/7" "Secrets Scan (Gitleaks)"
 
 GITLEAKS_BIN="$(command -v gitleaks || echo "/opt/homebrew/bin/gitleaks")"
 
@@ -68,9 +68,57 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# 2. PYTHON FORMATTING & LINT CHECK (Ruff)
+# 2. HARDCODE & DISALLOWED STRING CHECK
 # ------------------------------------------------------------------------------
-log_step "2/4" "Python Linting & Formatting Check (uv run ruff)"
+log_step "2/7" "Hardcode & Secrets Hygiene (scripts/hardcode-check)"
+
+if [ -x "${WORKSPACE_ROOT}/scripts/hardcode-check" ]; then
+  echo "[+] Executing: ./scripts/hardcode-check"
+  if "${WORKSPACE_ROOT}/scripts/hardcode-check"; then
+    log_pass "Zero hardcoded secrets, credentials, or disallowed business strings found."
+  else
+    log_fail "scripts/hardcode-check reported violations."
+  fi
+else
+  log_fail "scripts/hardcode-check not found or not executable."
+fi
+
+# ------------------------------------------------------------------------------
+# 3. ARCHITECTURE DIAGRAM VERIFICATION
+# ------------------------------------------------------------------------------
+log_step "3/7" "Architecture Diagram Verification (scripts/diagram-check)"
+
+if [ -x "${WORKSPACE_ROOT}/scripts/diagram-check" ]; then
+  echo "[+] Executing: ./scripts/diagram-check"
+  if "${WORKSPACE_ROOT}/scripts/diagram-check"; then
+    log_pass "All 7 architecture Mermaid diagrams verified against real codebase components."
+  else
+    log_fail "scripts/diagram-check failed."
+  fi
+else
+  log_fail "scripts/diagram-check not found or not executable."
+fi
+
+# ------------------------------------------------------------------------------
+# 4. LIVING DOCS DRIFT CHECK
+# ------------------------------------------------------------------------------
+log_step "4/7" "Living Docs Drift Check (scripts/docs-drift)"
+
+if [ -x "${WORKSPACE_ROOT}/scripts/docs-drift" ]; then
+  echo "[+] Executing: ./scripts/docs-drift"
+  if "${WORKSPACE_ROOT}/scripts/docs-drift"; then
+    log_pass "Documentation ownership and drift requirements satisfied."
+  else
+    log_fail "scripts/docs-drift failed."
+  fi
+else
+  log_fail "scripts/docs-drift not found or not executable."
+fi
+
+# ------------------------------------------------------------------------------
+# 5. PYTHON FORMATTING & LINT CHECK (Ruff)
+# ------------------------------------------------------------------------------
+log_step "5/7" "Python Linting & Formatting Check (uv run ruff)"
 
 echo "[+] Executing: uv run ruff check ."
 if uv run ruff check .; then
@@ -80,9 +128,9 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# 3. DEAD FILE & DUPLICATE SCANNER
+# 6. DEAD FILE & DUPLICATE SCANNER
 # ------------------------------------------------------------------------------
-log_step "3/4" "Dead File & Duplicate Scanner"
+log_step "6/7" "Dead File & Duplicate Scanner"
 
 echo "[+] Scanning repository for dead files, broken symlinks, and duplicate assets..."
 DEAD_DUP_RESULT=$(python3 - << 'PYEOF'
@@ -95,7 +143,7 @@ from pathlib import Path
 ignore_dirs = {
     ".git", ".venv", "node_modules", ".ruff_cache",
     ".pytest_cache", ".mypy_cache", ".synap", "audit_wal.db",
-    "review_queue.db", "models"
+    "review_queue.db", "models", "baseline", "docs/screenshots"
 }
 allowed_identical = {
     ".cursorrules", "AGENTS.md", "CLAUDE.md", "__init__.py"
@@ -157,13 +205,13 @@ else
 fi
 
 # ------------------------------------------------------------------------------
-# 4. TEST SUITE CHECK (Pytest Core Suites)
+# 7. TEST SUITE CHECK (Pytest Full Suites)
 # ------------------------------------------------------------------------------
-log_step "4/4" "Test Suite Check (uv run pytest disha_core/tests/)"
+log_step "7/7" "Test Suite Check (uv run pytest disha_core/tests/ & tests/)"
 
-echo "[+] Executing: uv run pytest disha_core/tests/"
-if uv run pytest disha_core/tests/; then
-  log_pass "All core unit, invariant, and safety tests passed."
+echo "[+] Executing: uv run pytest disha_core/tests/ tests/ -k 'not manual'"
+if uv run pytest disha_core/tests/ tests/ -k "not manual"; then
+  log_pass "All core unit, invariant, integration, and safety tests passed."
 else
   log_fail "Test suite execution failed."
 fi

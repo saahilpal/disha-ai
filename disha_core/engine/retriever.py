@@ -39,6 +39,7 @@ SELECT chunk_id, condition_tag, context_header, guideline_content, source_citati
 FROM clinical_guideline_chunks
 WHERE approval_status = 'approved'
   AND (
+       -- Exact condition-tag metadata hit; lexical branches below preserve recall.
        condition_tag = ANY($3)
        OR trigger_terms % $1
        OR tsv_content @@ plainto_tsquery('simple', $1)
@@ -72,7 +73,7 @@ async def retrieve_chunks(
     patient_id: str = "shared",
     threshold: float = 0.18,
     limit: int = 5,
-    use_cache: bool = True,
+    use_cache: bool = False,
     tags: Sequence[str] | None = None,
 ) -> Sequence[Any]:
     if not isinstance(query, str):
@@ -138,5 +139,4 @@ async def retrieve_chunks(
         _RETRIEVAL_CACHE[cache_key] = results
 
     return results
-
 

@@ -49,6 +49,8 @@
     analyserNode: null,
     turnCount: 0,
     transcriptHistory: [],
+    lastAssistantMessageElement: null,
+    lastAssistantHistoryEntry: null,
     lastDetectedIntent: 'General Wellness',
     wakeLock: null,
     selectedAudioInputId: (typeof localStorage !== 'undefined' ? localStorage.getItem('disha_selected_audio_input') : null) || 'default',
@@ -226,8 +228,6 @@
     onboardGender: typeof document !== 'undefined' ? document.getElementById('onboard-gender') : null,
     onboardHeight: typeof document !== 'undefined' ? document.getElementById('onboard-height') : null,
     onboardWeight: typeof document !== 'undefined' ? document.getElementById('onboard-weight') : null,
-    calculatedBmi: typeof document !== 'undefined' ? document.getElementById('calculated-bmi') : null,
-    bmiStatus: typeof document !== 'undefined' ? document.getElementById('bmi-status') : null,
     onboardActivity: typeof document !== 'undefined' ? document.getElementById('onboard-activity') : null,
     onboardRestrictions: typeof document !== 'undefined' ? document.getElementById('onboard-restrictions') : null,
     onboardSubmitBtn: typeof document !== 'undefined' ? document.getElementById('onboard-submit-btn') : null,
@@ -238,7 +238,6 @@
     dispHeightWeight: typeof document !== 'undefined' ? document.getElementById('disp-height-weight') : null,
     dispBmi: typeof document !== 'undefined' ? document.getElementById('disp-bmi') : null,
     dispHtnBadge: typeof document !== 'undefined' ? document.getElementById('disp-htn-badge') : null,
-    dispGymClearance: typeof document !== 'undefined' ? document.getElementById('disp-gym-clearance') : null,
     dispAllowedModalities: typeof document !== 'undefined' ? document.getElementById('disp-allowed-modalities') : null,
     dispRestrictedModalities: typeof document !== 'undefined' ? document.getElementById('disp-restricted-modalities') : null,
     dispDietBreakfast: typeof document !== 'undefined' ? document.getElementById('disp-diet-breakfast') : null,
@@ -519,145 +518,21 @@
     });
   }
 
-  // --- LIVE BMI CALCULATION & INTERACTIVE VITALS ---
-  function updateBmi() {
-    if (!dom.onboardHeight || !dom.onboardWeight || !dom.calculatedBmi || !dom.bmiStatus) return;
-    const h = parseFloat(dom.onboardHeight.value);
-    const w = parseFloat(dom.onboardWeight.value);
-    if (!Number.isFinite(h) || !Number.isFinite(w) || h < 50 || h > 250 || w < 20 || w > 300) {
-      dom.calculatedBmi.textContent = '--';
-      dom.bmiStatus.textContent = 'Enter valid height (50-250 cm) & weight (20-300 kg)';
-      dom.bmiStatus.className = 'badge-mini warning';
-      return;
+  function formatProfileBmi(profile) {
+    if (!profile) return '--';
+    const heightCm = parseFloat(profile.height_cm);
+    const weightKg = parseFloat(profile.weight_kg);
+    if (!Number.isFinite(heightCm) || !Number.isFinite(weightKg)
+      || heightCm < 50 || heightCm > 250 || weightKg < 20 || weightKg > 300) {
+      return '--';
     }
 
-    const bmi = w / Math.pow(h / 100, 2);
-    if (!Number.isFinite(bmi) || bmi <= 0) {
-      dom.calculatedBmi.textContent = '--';
-      dom.bmiStatus.textContent = 'Invalid BMI';
-      dom.bmiStatus.className = 'badge-mini warning';
-      return;
-    }
-
-    dom.calculatedBmi.textContent = bmi.toFixed(1);
-
-    if (bmi < 18.5) {
-      dom.bmiStatus.textContent = 'Underweight (Nutritional support indicated)';
-      dom.bmiStatus.className = 'badge-mini warning';
-    } else if (bmi < 23) {
-      dom.bmiStatus.textContent = 'Normal (Healthy weight for Asian population)';
-      dom.bmiStatus.className = 'badge-mini pass';
-    } else if (bmi < 27.5) {
-      dom.bmiStatus.textContent = 'Overweight (Pre-hypertensive risk)';
-      dom.bmiStatus.className = 'badge-mini warning';
-    } else {
-      dom.bmiStatus.textContent = 'Obese (Cardiometabolic risk)';
-      dom.bmiStatus.className = 'badge-mini danger';
-    }
-
-    // Dynamic conversions and UI synchronization
-    if (typeof document !== 'undefined') {
-      const heightSlider = document.getElementById('onboard-height-slider');
-      if (heightSlider && parseFloat(heightSlider.value) !== h) {
-        heightSlider.value = h;
-      }
-      const weightSlider = document.getElementById('onboard-weight-slider');
-      if (weightSlider && parseFloat(weightSlider.value) !== w) {
-        weightSlider.value = w;
-      }
-
-      const hConversion = document.getElementById('height-conversion-text');
-      if (hConversion && Number.isFinite(h)) {
-        const totalInches = h / 2.54;
-        const feet = Math.floor(totalInches / 12);
-        const inches = Math.round(totalInches % 12);
-        hConversion.textContent = `${feet} ft ${inches} in`;
-      }
-      const wConversion = document.getElementById('weight-conversion-text');
-      if (wConversion && Number.isFinite(w)) {
-        const lbs = (w * 2.20462).toFixed(1);
-        wConversion.textContent = `${lbs} lbs`;
-      }
-
-      // Visual gauge pointer (maps BMI 15–35 to 4%–96% width)
-      const pointer = document.getElementById('bmi-gauge-pointer');
-      if (pointer) {
-        const pct = Math.min(Math.max(((bmi - 15) / 20) * 100, 4), 96);
-        pointer.style.left = `${pct}%`;
-      }
-
-      // Empathetic, empowering medical context
-      const encouragement = document.getElementById('bmi-encouragement-text');
-      if (encouragement) {
-        if (bmi < 18.5) {
-          encouragement.innerHTML = '<strong>Nutritional Vitality:</strong> We will curate wholesome, nutrient-dense vitality meals to nourish your natural stamina.';
-        } else if (bmi < 23) {
-          encouragement.innerHTML = '<strong>Optimal Balance:</strong> You are in a healthy metabolic sweet spot for longevity, cardio resilience, and daily vitality.';
-        } else if (bmi < 27.5) {
-          encouragement.innerHTML = '<strong>Metabolic Optimization:</strong> Gentle daily lifestyle shifts will yield rapid dividends for cardiovascular resilience.';
-        } else {
-          encouragement.innerHTML = '<strong>Cardiometabolic Care:</strong> We will prioritize low-impact, joint-safe movement and steady, restorative habit shifts.';
-        }
-      }
-    }
-  }
-
-  if (dom.onboardHeight && dom.onboardWeight) {
-    dom.onboardHeight.addEventListener('input', updateBmi);
-    dom.onboardWeight.addEventListener('input', updateBmi);
-    updateBmi();
+    const bmi = weightKg / Math.pow(heightCm / 100, 2);
+    return Number.isFinite(bmi) && bmi > 0 ? `${bmi.toFixed(1)} kg/m²` : '--';
   }
 
   // --- INTERACTIVE ONBOARDING CONTROLS INITIALIZATION ---
   if (typeof document !== 'undefined') {
-    const heightSlider = document.getElementById('onboard-height-slider');
-    const weightSlider = document.getElementById('onboard-weight-slider');
-    const heightDown = document.getElementById('height-step-down');
-    const heightUp = document.getElementById('height-step-up');
-    const weightDown = document.getElementById('weight-step-down');
-    const weightUp = document.getElementById('weight-step-up');
-
-    if (heightSlider && dom.onboardHeight) {
-      heightSlider.addEventListener('input', () => {
-        dom.onboardHeight.value = heightSlider.value;
-        updateBmi();
-      });
-    }
-    if (weightSlider && dom.onboardWeight) {
-      weightSlider.addEventListener('input', () => {
-        dom.onboardWeight.value = weightSlider.value;
-        updateBmi();
-      });
-    }
-    if (heightDown && dom.onboardHeight) {
-      heightDown.addEventListener('click', () => {
-        const cur = parseFloat(dom.onboardHeight.value) || 165;
-        dom.onboardHeight.value = Math.max(50, cur - 1);
-        updateBmi();
-      });
-    }
-    if (heightUp && dom.onboardHeight) {
-      heightUp.addEventListener('click', () => {
-        const cur = parseFloat(dom.onboardHeight.value) || 165;
-        dom.onboardHeight.value = Math.min(250, cur + 1);
-        updateBmi();
-      });
-    }
-    if (weightDown && dom.onboardWeight) {
-      weightDown.addEventListener('click', () => {
-        const cur = parseFloat(dom.onboardWeight.value) || 68;
-        dom.onboardWeight.value = Math.max(20, cur - 0.5);
-        updateBmi();
-      });
-    }
-    if (weightUp && dom.onboardWeight) {
-      weightUp.addEventListener('click', () => {
-        const cur = parseFloat(dom.onboardWeight.value) || 68;
-        dom.onboardWeight.value = Math.min(300, cur + 0.5);
-        updateBmi();
-      });
-    }
-
     // Gender Quick Chips
     const genderChips = document.querySelectorAll('.gender-chip');
     genderChips.forEach(chip => {
@@ -744,16 +619,6 @@
           if (stage1Cb) stage1Cb.checked = false;
           if (stage2Cb) stage2Cb.checked = false;
         }
-      });
-    });
-
-    // Clearance Radio Cards
-    const clearanceRadios = document.querySelectorAll('input[name="gym_clearance"]');
-    clearanceRadios.forEach(radio => {
-      radio.addEventListener('change', () => {
-        document.querySelectorAll('.clearance-card').forEach(card => {
-          card.classList.toggle('active', card.querySelector('input').checked);
-        });
       });
     });
 
@@ -1267,7 +1132,7 @@
     if (dispFocus) {
       const prim = data.pep?.primary_focus || (data.profile?.health_focuses && data.profile.health_focuses[0]) || '';
       const concerns = data.pep?.user_reported_concerns || data.profile?.health_focus_other || '';
-      const display = concerns ? `${prim} (${concerns})` : (prim || 'Fitness & general wellness');
+      const display = concerns ? `${prim} (${concerns})` : (prim || 'Not recorded');
       dispFocus.textContent = display;
     }
 
@@ -1281,28 +1146,17 @@
       const p = data.profile;
       if (dom.dispAgeSex) dom.dispAgeSex.textContent = `${p.age || '--'} / ${capitalize(p.gender || '--')}`;
       if (dom.dispHeightWeight) dom.dispHeightWeight.textContent = `${p.height_cm || '--'} cm / ${p.weight_kg || '--'} kg`;
-      if (p.height_cm && p.weight_kg) {
-        const h = parseFloat(p.height_cm);
-        const w = parseFloat(p.weight_kg);
-        if (Number.isFinite(h) && Number.isFinite(w) && h >= 50 && h <= 250 && w >= 20 && w <= 300) {
-          const bmi = (w / Math.pow(h / 100, 2)).toFixed(1);
-          if (dom.dispBmi) dom.dispBmi.textContent = `${bmi} kg/m²`;
-        } else if (dom.dispBmi) {
-          dom.dispBmi.textContent = '--';
-        }
-      } else if (dom.dispBmi) {
-        dom.dispBmi.textContent = '--';
-      }
+      if (dom.dispBmi) dom.dispBmi.textContent = formatProfileBmi(p);
     } else {
-      if (dom.dispAgeSex) dom.dispAgeSex.textContent = '35 / Male';
-      if (dom.dispHeightWeight) dom.dispHeightWeight.textContent = '172 cm / 74 kg';
-      if (dom.dispBmi) dom.dispBmi.textContent = '25.0 kg/m²';
+      if (dom.dispAgeSex) dom.dispAgeSex.textContent = '--';
+      if (dom.dispHeightWeight) dom.dispHeightWeight.textContent = '--';
+      if (dom.dispBmi) dom.dispBmi.textContent = '--';
     }
 
     if (data.pep) {
       const pep = data.pep;
       if (dom.dispHtnBadge) {
-        const stage = pep.hypertension_stage ? String(pep.hypertension_stage).toLowerCase() : 'normal';
+        const stage = pep.hypertension_stage ? String(pep.hypertension_stage).toLowerCase() : 'unknown';
         if (stage.includes('stage 2') || stage.includes('2')) {
           dom.dispHtnBadge.textContent = 'HTN Stage 2';
           dom.dispHtnBadge.className = 'badge-mini danger';
@@ -1310,20 +1164,20 @@
           dom.dispHtnBadge.textContent = 'HTN Stage 1';
           dom.dispHtnBadge.className = 'badge-mini warning';
         } else {
-          dom.dispHtnBadge.textContent = 'Normal BP';
-          dom.dispHtnBadge.className = 'badge-mini pass';
+          dom.dispHtnBadge.textContent = stage === 'normal' ? 'No hypertension recorded' : 'Not assessed';
+          dom.dispHtnBadge.className = 'badge-mini';
         }
       }
-      if (dom.dispGymClearance) {
-        dom.dispGymClearance.textContent = pep.gym_clearance ? 'CLEARED' : 'BLOCKED (Restricted)';
-        dom.dispGymClearance.className = pep.gym_clearance ? 'pep-status-tag cleared' : 'pep-status-tag restricted';
-      }
       if (dom.dispAllowedModalities) {
-        dom.dispAllowedModalities.textContent = (pep.allowed_modalities || []).join(', ') || 'Brisk walking, gentle yoga';
+        dom.dispAllowedModalities.textContent = (pep.allowed_modalities || []).join(', ') || 'Not recorded';
       }
       if (dom.dispRestrictedModalities) {
-        dom.dispRestrictedModalities.textContent = (pep.restricted_modalities || []).join(', ') || 'Heavy deadlifts, max weights';
+        dom.dispRestrictedModalities.textContent = (pep.restricted_modalities || []).join(', ') || 'Not recorded';
       }
+    } else {
+      if (dom.dispHtnBadge) dom.dispHtnBadge.textContent = 'Not assessed';
+      if (dom.dispAllowedModalities) dom.dispAllowedModalities.textContent = 'Not recorded';
+      if (dom.dispRestrictedModalities) dom.dispRestrictedModalities.textContent = 'Not recorded';
     }
 
     // Determine current prescribed meal slot from time of day
@@ -1359,13 +1213,17 @@
       const d = data.today_diet;
       const getMeal = (type) => {
         const val = d[type] || d[type.toLowerCase()] || d[capitalize(type)];
-        if (!val) return 'None prescribed for today';
+        if (!val) return 'No meal saved for today';
         if (Array.isArray(val)) return val.join(', ');
         return String(val);
       };
       if (dom.dispDietBreakfast) dom.dispDietBreakfast.textContent = getMeal('breakfast');
       if (dom.dispDietLunch) dom.dispDietLunch.textContent = getMeal('lunch');
       if (dom.dispDietDinner) dom.dispDietDinner.textContent = getMeal('dinner');
+    } else {
+      if (dom.dispDietBreakfast) dom.dispDietBreakfast.textContent = 'Schedule unavailable';
+      if (dom.dispDietLunch) dom.dispDietLunch.textContent = 'Schedule unavailable';
+      if (dom.dispDietDinner) dom.dispDietDinner.textContent = 'Schedule unavailable';
     }
 
     // Merkle audit chip displaying verified truncated SHA-256 hash
@@ -1552,6 +1410,7 @@
       appendChatMessage('assistant', data.text, 'Validated & Grounded');
       setTelephonyStatus('speaking');
     } else if (data.type === 'done') {
+      applyMessageProvenance(state.lastAssistantMessageElement, state.lastAssistantHistoryEntry, data);
       if (data.merkle_hash && dom.latestMerkleHash) {
         const rawHash = String(data.merkle_hash).trim();
         const truncated = rawHash.length > 24
@@ -1569,13 +1428,70 @@
     }
   }
 
+  function getMessageProvenance(payload) {
+    if (!payload || typeof payload !== 'object') return null;
+    const provenance = {};
+    if (Array.isArray(payload.evidence_ids)) {
+      provenance.evidence_ids = payload.evidence_ids
+        .filter(id => typeof id === 'string' || typeof id === 'number')
+        .map(id => String(id).trim())
+        .filter(Boolean);
+    } else if (typeof payload.evidence_ids === 'string') {
+      provenance.evidence_ids = payload.evidence_ids.trim() ? [payload.evidence_ids.trim()] : [];
+    }
+    if (typeof payload.retrieval_status === 'string' && payload.retrieval_status.trim()) {
+      provenance.retrieval_status = payload.retrieval_status.trim();
+    }
+    return Object.keys(provenance).length ? provenance : null;
+  }
+
+  function mergeMessageProvenance(current, payload) {
+    const incoming = getMessageProvenance(payload);
+    return incoming ? { ...(current || {}), ...incoming } : (current || {});
+  }
+
+  function renderMessageProvenance(messageElement, provenance) {
+    if (!messageElement || !provenance) return;
+    const evidenceIds = provenance.evidence_ids || [];
+    const retrievalStatus = provenance.retrieval_status || '';
+    if (!evidenceIds.length && !retrievalStatus) return;
+
+    const bubble = messageElement.querySelector('.msg-bubble');
+    if (!bubble) return;
+    let trace = bubble.querySelector('.source-trace');
+    if (!trace) {
+      trace = document.createElement('small');
+      trace.className = 'source-trace';
+      trace.setAttribute('aria-label', 'Response source trace');
+      bubble.appendChild(trace);
+    }
+    const parts = [];
+    if (evidenceIds.length) parts.push(`Sources: ${evidenceIds.join(', ')}`);
+    if (retrievalStatus) parts.push(`Retrieval: ${retrievalStatus}`);
+    trace.textContent = parts.join(' · ');
+  }
+
+  function applyMessageProvenance(messageElement, historyEntry, payload) {
+    const provenance = mergeMessageProvenance(historyEntry || {}, payload);
+    if (historyEntry) Object.assign(historyEntry, provenance);
+    renderMessageProvenance(messageElement, provenance);
+    return provenance;
+  }
+
   function appendChatMessage(role, text, meta = '') {
     if (!state.transcriptHistory) state.transcriptHistory = [];
-    state.transcriptHistory.push({ role, text, meta, timestamp: Date.now() });
+    const historyEntry = { role, text, meta, timestamp: Date.now() };
+    state.transcriptHistory.push(historyEntry);
     state.turnCount = (state.turnCount || 0) + 1;
+    if (role === 'assistant') {
+      state.lastAssistantHistoryEntry = historyEntry;
+    } else {
+      state.lastAssistantMessageElement = null;
+      state.lastAssistantHistoryEntry = null;
+    }
 
     const chatStream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
-    if (!chatStream) return;
+    if (!chatStream) return null;
     const safeRole = role === 'assistant' ? 'assistant' : 'user';
     const msgEl = document.createElement('div');
     msgEl.className = `chat-message ${safeRole}`;
@@ -1586,8 +1502,10 @@
       </div>
     `;
     chatStream.appendChild(msgEl);
+    if (role === 'assistant') state.lastAssistantMessageElement = msgEl;
     const scrollContainer = chatStream.closest('.chat-messages-area') || chatStream;
     scrollContainer.scrollTop = scrollContainer.scrollHeight;
+    return msgEl;
   }
 
   function escapeHtml(str) {
@@ -2223,6 +2141,8 @@
     let assistantMsgEl = null;
     let assistantTextP = null;
     let accumulatedText = '';
+    let assistantProvenance = {};
+    let assistantHistoryEntry = null;
 
     if (chatStream) {
       assistantMsgEl = document.createElement('div');
@@ -2235,6 +2155,8 @@
       `;
       chatStream.appendChild(assistantMsgEl);
       assistantTextP = assistantMsgEl.querySelector('.msg-text');
+      state.lastAssistantMessageElement = assistantMsgEl;
+      state.lastAssistantHistoryEntry = null;
       if (scrollContainer) {
         scrollContainer.scrollTop = scrollContainer.scrollHeight;
       }
@@ -2269,8 +2191,17 @@
           assistantTextP.textContent = accumulatedText;
           assistantTextP.classList.remove('streaming-cursor');
         }
+        assistantProvenance = applyMessageProvenance(assistantMsgEl, null, fallbackData);
         if (!state.transcriptHistory) state.transcriptHistory = [];
-        state.transcriptHistory.push({ role: 'assistant', text: accumulatedText, meta: 'Grounded Response', timestamp: Date.now() });
+        assistantHistoryEntry = {
+          role: 'assistant',
+          text: accumulatedText,
+          meta: 'Grounded Response',
+          timestamp: Date.now(),
+          ...assistantProvenance,
+        };
+        state.transcriptHistory.push(assistantHistoryEntry);
+        state.lastAssistantHistoryEntry = assistantHistoryEntry;
         state.turnCount = (state.turnCount || 0) + 1;
         setTelephonyStatus('idle');
         if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
@@ -2280,54 +2211,53 @@
       const reader = res.body.getReader();
       const decoder = new TextDecoder('utf-8');
       let buffer = '';
+      const processSseBlock = (block) => {
+        const lines = block.split('\n');
+        const dataLines = [];
+        for (const line of lines) {
+          if (line.startsWith('data:')) dataLines.push(line.slice(5).trimStart());
+        }
+        if (!dataLines.length) return;
+        try {
+          const parsed = JSON.parse(dataLines.join('\n'));
+          if (parsed.sentence) {
+            accumulatedText = accumulatedText ? `${accumulatedText} ${parsed.sentence}` : parsed.sentence;
+            if (assistantTextP) assistantTextP.textContent = accumulatedText;
+            if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+          }
+          assistantProvenance = mergeMessageProvenance(assistantProvenance, parsed);
+          renderMessageProvenance(assistantMsgEl, assistantProvenance);
+        } catch (e) {}
+      };
 
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
-
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (trimmed.startsWith('data: ')) {
-            const jsonStr = trimmed.slice(6).trim();
-            if (jsonStr) {
-              try {
-                const parsed = JSON.parse(jsonStr);
-                if (parsed.sentence) {
-                  accumulatedText = accumulatedText ? `${accumulatedText} ${parsed.sentence}` : parsed.sentence;
-                  if (assistantTextP) {
-                    assistantTextP.textContent = accumulatedText;
-                  }
-                  if (scrollContainer) {
-                    scrollContainer.scrollTop = scrollContainer.scrollHeight;
-                  }
-                }
-              } catch (e) {}
-            }
-          }
+        buffer = (buffer + decoder.decode(value, { stream: true })).replace(/\r\n/g, '\n');
+        const blocks = buffer.split('\n\n');
+        buffer = blocks.pop() || '';
+        for (const block of blocks) {
+          processSseBlock(block);
         }
       }
 
-      if (buffer.trim().startsWith('data: ')) {
-        try {
-          const parsed = JSON.parse(buffer.trim().slice(6).trim());
-          if (parsed.sentence) {
-            accumulatedText = accumulatedText ? `${accumulatedText} ${parsed.sentence}` : parsed.sentence;
-            if (assistantTextP) {
-              assistantTextP.textContent = accumulatedText;
-            }
-          }
-        } catch (e) {}
-      }
+      buffer = (buffer + decoder.decode()).replace(/\r\n/g, '\n');
+      if (buffer.trim()) processSseBlock(buffer);
 
       if (assistantTextP) {
         assistantTextP.classList.remove('streaming-cursor');
       }
 
       if (!state.transcriptHistory) state.transcriptHistory = [];
-      state.transcriptHistory.push({ role: 'assistant', text: accumulatedText, meta: 'Grounded Stream', timestamp: Date.now() });
+      assistantHistoryEntry = {
+        role: 'assistant',
+        text: accumulatedText,
+        meta: 'Grounded Stream',
+        timestamp: Date.now(),
+        ...assistantProvenance,
+      };
+      state.transcriptHistory.push(assistantHistoryEntry);
+      state.lastAssistantHistoryEntry = assistantHistoryEntry;
       state.turnCount = (state.turnCount || 0) + 1;
       setTelephonyStatus('idle');
       if (scrollContainer) {
@@ -2485,9 +2415,9 @@
       if (l) l.textContent = getMeal('lunch');
       if (din) din.textContent = getMeal('dinner');
     } else {
-      if (b) b.textContent = 'Oats porridge with almonds, chia seeds, and fresh berries.';
-      if (l) l.textContent = 'Whole grain roti, yellow dal tadka, sautéed palak, and mixed cucumber salad.';
-      if (din) din.textContent = 'Grilled vegetables with paneer or moong dal chilla, cumin-infused clear broth.';
+      if (b) b.textContent = 'Schedule unavailable';
+      if (l) l.textContent = 'Schedule unavailable';
+      if (din) din.textContent = 'Schedule unavailable';
     }
   }
 
@@ -2505,49 +2435,42 @@
     const restrictedEl = document.getElementById('profile-page-restricted-modalities');
 
     if (p) {
-      if (ageSexEl) ageSexEl.textContent = `${p.age || '52'} / ${capitalize(p.gender || 'Male')}`;
-      if (hwEl) hwEl.textContent = `${p.height_cm || '175'} cm / ${p.weight_kg || '82'} kg`;
-      if (p.height_cm && p.weight_kg) {
-        const h = parseFloat(p.height_cm);
-        const w = parseFloat(p.weight_kg);
-        if (h >= 50 && w >= 20) {
-          const bmi = (w / Math.pow(h / 100, 2)).toFixed(1);
-          if (bmiEl) bmiEl.textContent = `${bmi} kg/m²`;
-        }
-      } else if (bmiEl) {
-        bmiEl.textContent = '26.8 kg/m²';
-      }
-      if (dietEl) dietEl.textContent = p.dietary_preference || 'Vegetarian';
+      if (ageSexEl) ageSexEl.textContent = `${p.age || '--'} / ${capitalize(p.gender || '--')}`;
+      if (hwEl) hwEl.textContent = `${p.height_cm || '--'} cm / ${p.weight_kg || '--'} kg`;
+      if (bmiEl) bmiEl.textContent = formatProfileBmi(p);
+      if (dietEl) dietEl.textContent = p.dietary_preference || 'Not recorded';
       if (focusEl) {
-        const goals = (p.health_goals && p.health_goals.length) ? p.health_goals.join(', ') : (p.health_focuses ? p.health_focuses.join(', ') : 'Cardiovascular Health & Recovery');
-        focusEl.textContent = goals;
+        const goals = (p.health_goals && p.health_goals.length) ? p.health_goals.join(', ') : (p.health_focuses || []).join(', ');
+        focusEl.textContent = goals || 'Not recorded';
       }
     } else {
-      if (ageSexEl) ageSexEl.textContent = '52 / Male';
-      if (hwEl) hwEl.textContent = '175 cm / 82 kg';
-      if (bmiEl) bmiEl.textContent = '26.8 kg/m²';
-      if (dietEl) dietEl.textContent = 'Vegetarian';
-      if (focusEl) focusEl.textContent = 'Cardiovascular Health & Recovery';
+      if (ageSexEl) ageSexEl.textContent = '--';
+      if (hwEl) hwEl.textContent = '--';
+      if (bmiEl) bmiEl.textContent = '--';
+      if (dietEl) dietEl.textContent = 'Not recorded';
+      if (focusEl) focusEl.textContent = 'Not recorded';
     }
 
     if (pep) {
       if (clearanceEl) {
-        clearanceEl.textContent = pep.gym_clearance ? 'Cleared for Gym' : 'Exercise Caution';
-        clearanceEl.className = pep.gym_clearance ? 'safety-badge' : 'safety-badge restricted';
+        clearanceEl.textContent = (pep.restricted_modalities || []).length
+          ? 'Recorded exercise restrictions apply'
+          : 'No exercise restrictions recorded';
+        clearanceEl.className = 'safety-badge';
       }
       if (allowedEl) {
-        allowedEl.textContent = (pep.allowed_modalities || []).join(', ') || 'Brisk walking, bodyweight squats, gentle yoga';
+        allowedEl.textContent = (pep.allowed_modalities || []).join(', ') || 'Not recorded';
       }
       if (restrictedEl) {
-        restrictedEl.textContent = (pep.restricted_modalities || []).join(', ') || 'Heavy deadlifts, max exertion cardio';
+        restrictedEl.textContent = (pep.restricted_modalities || []).join(', ') || 'Not recorded';
       }
     } else {
       if (clearanceEl) {
-        clearanceEl.textContent = 'Cleared for General Fitness';
-        clearanceEl.className = 'safety-badge';
+        clearanceEl.textContent = 'Exercise restrictions are not recorded';
+        clearanceEl.className = 'safety-badge restricted';
       }
-      if (allowedEl) allowedEl.textContent = 'Brisk walking, stretching, light resistance';
-      if (restrictedEl) restrictedEl.textContent = 'High intensity interval training without warm-up';
+      if (allowedEl) allowedEl.textContent = 'Not recorded';
+      if (restrictedEl) restrictedEl.textContent = 'Not recorded';
     }
 
     const langEl = document.getElementById('profile-page-language');
@@ -2916,41 +2839,32 @@
 
   function extractClinicalHighlights(history) {
     if (!history || history.length === 0) {
-      return [
-        'Vitals and routine clinical symptoms reviewed within target baseline limits.',
-        'Dietary schedule and portion control aligned with metabolic goals.',
-        'Exercise tolerance evaluated with strict adherence to cardiovascular clearance boundaries.',
-      ];
+      return ['No conversation history is available for this summary.'];
     }
     const combined = history.map(h => (h.text || '').toLowerCase()).join(' ');
     const points = [];
 
     if (combined.includes('bp') || combined.includes('blood pressure') || combined.includes('hypertension')) {
-      points.push('Blood pressure stability and low-sodium dietary considerations discussed.');
+      points.push('Blood pressure was discussed in the conversation.');
     }
     if (combined.includes('diet') || combined.includes('breakfast') || combined.includes('lunch') || combined.includes('dinner') || combined.includes('food') || combined.includes('meal')) {
-      points.push('Meal timing and macro nutrient distribution confirmed for optimal glycemic stability.');
+      points.push('Meals or food were discussed in the conversation.');
     }
     if (combined.includes('gym') || combined.includes('exercise') || combined.includes('walk') || combined.includes('running') || combined.includes('cardio')) {
-      points.push('Cardiorespiratory physical activity cleared within safe exertion thresholds.');
+      points.push('Physical activity was discussed in the conversation.');
     }
     if (combined.includes('headache') || combined.includes('pain') || combined.includes('tired') || combined.includes('sleep')) {
-      points.push('Symptom progression reviewed with no red-flag clinical contraindications.');
+      points.push('Symptoms or sleep were discussed in the conversation.');
     }
 
     if (points.length === 0) {
-      points.push('Comprehensive verbal lifestyle assessment completed with patient.');
-      points.push('Routine biometric progression logged into cryptographic patient ledger.');
+      points.push('No health topics were identified in the available conversation history.');
     }
     return points;
   }
 
-  function extractRecommendedNextSteps(history) {
-    return [
-      'Record next post-meal blood pressure or glucose reading in telemetry log.',
-      'Maintain adequate hydration (2.5L daily) and adhere to low-sodium slot guidelines.',
-      'Notify coach or seek urgent care immediately if red-flag symptoms arise.',
-    ];
+  function extractRecommendedNextSteps() {
+    return ['No recommendations are recorded for this conversation.'];
   }
 
   function generatePlainTextClinicalSummary(summaryData, highlights, actionItems) {
@@ -3061,19 +2975,7 @@
     });
   }
 
-  // Demo Accounts Click Handlers
-  const demoButtons = typeof document !== 'undefined' ? document.querySelectorAll('.demo-btn') : [];
-  demoButtons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const email = btn.getAttribute('data-email');
-      const pass = btn.getAttribute('data-pass');
-      if (dom.emailInput) dom.emailInput.value = email;
-      if (dom.passwordInput) dom.passwordInput.value = pass;
-      if (dom.loginForm) {
-        dom.loginForm.dispatchEvent(new Event('submit', { cancelable: true }));
-      }
-    });
-  });
+
 
   // Settings Handlers
   if (dom.saveBackendUrlBtn && dom.backendUrlInput) {
@@ -3415,7 +3317,6 @@
     dispatchTurn,
     validateEmail,
     evaluatePasswordStrength,
-    updateBmi,
     clearAuthErrorsAndState,
     escapeHtml,
     endCall,
@@ -3428,6 +3329,7 @@
     releaseWakeLock,
     drawStethoscopeVisualizer,
     populateSummaryView,
+    populateProfileView,
     goToOnboardingStep,
     toggleClinicalDrawer,
     openProfileEditModal,

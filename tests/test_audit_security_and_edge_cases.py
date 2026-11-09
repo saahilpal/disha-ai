@@ -25,6 +25,7 @@ from disha_core.main import (
     TurnRequest,
     create_app,
 )
+from disha_core.services.auth_service import _hash_password, _verify_password
 
 # ==============================================================================
 # SECTION 1: SQL Injection & Query Parameterization
@@ -134,16 +135,18 @@ async def test_auth_login_credential_bypass_to_demo_account():
             assert "Invalid email or password" in res.json().get("detail", "")
 
 
-def test_password_storage_insecure_hashing():
-    """Vulnerability Proof: Password hashing uses static-salt single-iteration SHA-256."""
+def test_password_storage_uses_unique_salted_pbkdf2_and_upgrades_legacy_hashes():
+    """New passwords use salted PBKDF2; legacy hashes remain verifiable for migration."""
     raw_pwd = "MySecretPassword123"
-    # Current main.py implementation:
-    hash_v1 = hashlib.sha256((raw_pwd + "disha_salt_v1").encode()).hexdigest()
-    # Identical for any user with the same password (no unique per-user salt)
-    hash_v2 = hashlib.sha256((raw_pwd + "disha_salt_v1").encode()).hexdigest()
-    assert hash_v1 == hash_v2
-    # 64-character un-stretched SHA256 hex string
-    assert len(hash_v1) == 64
+    hash_v1 = _hash_password(raw_pwd)
+    hash_v2 = _hash_password(raw_pwd)
+    assert hash_v1 != hash_v2
+    assert hash_v1.startswith("pbkdf2_sha256$310000$")
+    assert _verify_password(raw_pwd, hash_v1) == (True, False)
+    assert _verify_password("wrong password", hash_v1) == (False, False)
+
+    legacy_hash = hashlib.sha256((raw_pwd + "disha_salt_v1").encode()).hexdigest()
+    assert _verify_password(raw_pwd, legacy_hash) == (True, True)
 
 
 # ==============================================================================

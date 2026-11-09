@@ -496,3 +496,110 @@ async def record_question_skipped(
         now,
         channel,
     )
+
+
+async def record_question_deferred(
+    patient_id: str,
+    question_id: str,
+    reason: str,
+    channel: str,
+    conn: asyncpg.Connection,
+) -> dict[str, Any]:
+    """Mark a question as deferred (postponed for later session) without permanently skipping."""
+    now = datetime.now(timezone.utc)
+    await conn.execute(
+        """UPDATE journey_question_history
+           SET skip_reason = $3, asked_at = $4
+           WHERE patient_id = $1 AND question_id = $2 AND status = 'asked'""",
+        patient_id,
+        question_id,
+        f"deferred: {reason}",
+        now,
+    )
+    await conn.execute(
+        """UPDATE patient_journey_state
+           SET last_interaction_ts = $2, last_interaction_channel = $3
+           WHERE patient_id = $1""",
+        patient_id,
+        now,
+        channel,
+    )
+    return await load_or_create_journey(patient_id, conn, channel=channel)
+
+
+async def record_slot_undo(
+    patient_id: str,
+    field_id: str,
+    channel: str,
+    conn: asyncpg.Connection,
+) -> dict[str, Any]:
+    """Revert the latest answer for a journey field and restore prior state."""
+    field_def = JOURNEY_FIELDS.get(field_id)
+    now = datetime.now(timezone.utc)
+
+    # 1. Update history record to superseded
+    q_def = QUESTION_BY_FIELD.get(field_id)
+    if q_def:
+        await conn.execute(
+            """UPDATE journey_question_history
+               SET status = 'superseded'
+               WHERE patient_id = $1 AND question_id = $2 AND status = 'answered'""",
+            patient_id,
+            q_def.question_id,
+        )
+
+    # 2. Revert stored value depending on destination
+    if field_def:
+        dest = field_def.destination
+        if dest == FieldDestination.PROFILE:
+            await conn.execute(
+                f"UPDATE patient_profiles SET {field_def.dest_column} = NULL WHERE patient_id = $1",
+                patient_id,
+            )
+        elif dest == FieldDestination.PEP_CORE:
+            if field_def.dest_column == "dietary_preference":
+                await conn.execute(
+                    "UPDATE patient_pep SET dietary_preference = NULL, updated_at = $2 WHERE patient_id = $1",
+                    patient_id,
+                    now,
+                )
+            elif field_def.dest_column == "primary_focus":
+                await conn.execute(
+                    "UPDATE patient_pep SET primary_focus = NULL, updated_at = $2 WHERE patient_id = $1",
+                    patient_id,
+                    now,
+                )
+        elif dest == FieldDestination.HABIT_SLOT:
+            slot_key = field_def.dest_column
+            active_row = await conn.fetchrow(
+                "SELECT id, supersedes FROM habit_current_state WHERE patient_id = $1 AND slot_key = $2 AND valid_to IS NULL",
+                patient_id,
+                slot_key,
+            )
+            if active_row:
+                await conn.execute(
+                    "UPDATE habit_current_state SET valid_to = $2 WHERE id = $1",
+                    active_row["id"],
+                    now,
+                )
+                if active_row["supersedes"]:
+                    await conn.execute(
+                        "UPDATE habit_current_state SET valid_to = NULL WHERE id = $1",
+                        active_row["supersedes"],
+                    )
+                await conn.execute("UPDATE patient_pep SET is_dirty = TRUE WHERE patient_id = $1", patient_id)
+        elif dest == FieldDestination.TEMPORAL_FACT:
+            await conn.execute(
+                "DELETE FROM patient_temporal_facts WHERE patient_id = $1 AND fact_key = $2",
+                patient_id,
+                field_def.dest_column,
+            )
+
+    # 3. Reload journey state with recomputed completed/missing fields
+    updated_journey = await load_or_create_journey(patient_id, conn, channel=channel)
+    return {
+        "status": "success",
+        "action": "undo",
+        "field_id": field_id,
+        "journey": updated_journey,
+    }

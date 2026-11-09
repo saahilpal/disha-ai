@@ -59,7 +59,7 @@ class MockQwenClient:
         status_code: int = 200,
         should_fail: bool = False,
     ) -> None:
-        self.chunks = chunks or [b"\xff\xfb\x90\x44audio1", b"\xff\xfb\x90\x44audio2"]
+        self.chunks = [b"\xff\xfb\x90\x44audio1", b"\xff\xfb\x90\x44audio2"] if chunks is None else chunks
         self.status_code = status_code
         self.should_fail = should_fail
         self.last_request: dict | None = None
@@ -127,6 +127,42 @@ class VoicePipelineTests(IsolatedAsyncioTestCase):
                 chunks.append(chunk)
 
             self.assertEqual(chunks, [b"edge_audio_chunk"])
+
+    async def test_qwen3_tts_empty_successful_response_falls_back(self) -> None:
+        client = MockQwenClient(chunks=[])
+
+        async def fake_edge_tts(text: str, voice: str):
+            yield b"edge_audio_chunk"
+
+        with patch.dict("os.environ", {"LOCAL_ONLY": "false"}), patch(
+            "disha_core.voice.stream_edge_tts", side_effect=fake_edge_tts
+        ):
+            chunks = [
+                chunk async for chunk in synthesize_speech_stream(
+                    "Aap aaram karein.",
+                    client_factory=lambda **_: client,
+                )
+            ]
+
+        self.assertEqual(chunks, [b"edge_audio_chunk"])
+
+    async def test_local_only_empty_tts_response_fails_without_external_fallback(self) -> None:
+        client = MockQwenClient(chunks=[])
+
+        with patch.dict("os.environ", {
+            "LOCAL_ONLY": "true",
+            "QWEN3_TTS_URL": "http://127.0.0.1:8880/v1/audio/speech",
+            "QWEN3_TTS_HEALTH_DATA_PROCESSING_APPROVED": "false",
+            "TTS_HEALTH_DATA_PROCESSING_APPROVED": "false",
+        }), patch("disha_core.voice.stream_edge_tts") as edge_fallback:
+            with self.assertRaisesRegex(RuntimeError, "returned no audio"):
+                async for _ in synthesize_speech_stream(
+                    "Aap aaram karein.",
+                    client_factory=lambda **_: client,
+                ):
+                    pass
+
+        edge_fallback.assert_not_called()
 
     def test_hinglish_phonetic_normalization(self) -> None:
         """Verify Hinglish phonetic normalizer handles Indian remedy words and clinical homographs."""
@@ -339,6 +375,9 @@ class VoicePipelineTests(IsolatedAsyncioTestCase):
             "BP 140/90 hai, kya dawai loon?",
             "Khichdi khane ke baad vomiting jaisa lag raha hai",
             "112 par call kab karni chahiye?",
+            "पेट में हलका दर्द हो रहा है",
+            "मुझे सीने में भारी दर्द हो रहा है",
+            "शुगर के मरीज को सुबह नाश्ते में क्या खाना चाहिए?",
         ]
         for query in valid_queries:
             self.assertFalse(
@@ -387,6 +426,19 @@ class VoicePipelineTests(IsolatedAsyncioTestCase):
                 ws.send_bytes(b"\x00" * 512)
                 resp = ws.receive_json()
                 self.assertEqual(resp, {"type": "silence", "message": "Silence detected"})
+
+    def test_websocket_voice_authenticates_with_received_token(self) -> None:
+        from fastapi.testclient import TestClient
+        app = app_main.create_app()
+        auth = AsyncMock(return_value="pt_voice_auth")
+
+        with patch.object(app_main, "_authenticated_patient", auth):
+            client = TestClient(app)
+            with client.websocket_connect("/voice?token=valid_tok"):
+                pass
+
+        auth.assert_awaited_once()
+        self.assertEqual(auth.await_args.args[1], "Bearer valid_tok")
 
     def test_websocket_voice_text_turn_and_context_persistence(self) -> None:
         """Verify WebSocket voice turns are processed and persisted in shared conversation history."""

@@ -3,6 +3,8 @@
 **Role:** Lead Systems Architect, Clinical Safety Director & Regulatory Compliance Officer  
 **Focus:** Functional/Non-Functional Requirements, Latency Budget, Pre-Publishing Simulation Gate & Indian Healthcare Compliance  
 
+> **Historical requirements/plan, not compliance evidence:** The targets and controls below are not verified claims about the current code or regulatory status. See [Current Architecture](ARCHITECTURE.md), [Knowledge Inventory](knowledge/INVENTORY.md), and [Deployment](DEPLOYMENT.md) for implementation limits.
+
 ---
 
 ## 1. Functional & Non-Functional Requirements

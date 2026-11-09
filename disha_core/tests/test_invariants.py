@@ -73,11 +73,65 @@ class InvariantTests(unittest.TestCase):
         ):
             result = self.validator.validate_sentence(text)
             self.assertIn("price", result.reasons)
-            self.assertIn("₹1,499", result.text)
+            self.assertEqual(result.text, PRICING_REPLACEMENT)
 
-    def test_allowed_prices_pass(self) -> None:
+    def test_all_prices_are_rejected_and_rewritten_since_no_pricing_exists(self) -> None:
         result = self.validator.validate_sentence("Follow-up ₹0 hai aur plan ₹1,499 per month hai.")
-        self.assertEqual(result.status, "accepted")
+        self.assertIn("price", result.reasons)
+        self.assertEqual(result.text, PRICING_REPLACEMENT)
+
+    def test_benign_currency_in_food_grocery_context_is_not_rewritten(self) -> None:
+        """Verify that benign currency use (food/grocery prices) does NOT trigger pricing rewrite."""
+        for text in (
+            "Aap market se seb ₹50 kilo le sakte hain.",
+            "Dal lagbhag 100 rupaye kilo milti hai.",
+            "500 ml doodh 30 rs ka aata hai.",
+            "Palak 20 rupaye mein mil jayegi.",
+        ):
+            result = self.validator.validate_sentence(text)
+            self.assertNotIn("price", result.reasons)
+            self.assertEqual(result.text, text)
+
+    def test_multilingual_team_confirmation_replacements(self) -> None:
+        """Verify that unverified pricing claims produce team confirmation in the matching language/script."""
+        # Devanagari Hindi
+        res_hi = self.validator.validate_sentence(
+            "प्लान की फीस ₹500 है।",
+            context={"script": "deva", "user_input": "प्लान की फीस कितनी है?"}
+        )
+        self.assertIn("price", res_hi.reasons)
+        self.assertEqual(res_hi.text, "मैं इस बारे में टीम से पुष्टि करके आपको बताऊँगी।")
+
+        # English
+        res_en = self.validator.validate_sentence(
+            "The subscription is $20 per month.",
+            context={"language": "en", "user_input": "What is the plan price?"}
+        )
+        self.assertIn("price", res_en.reasons)
+        self.assertEqual(res_en.text, "I will confirm the plan and pricing details with the team and get back to you.")
+
+        # Hinglish / Latin
+        res_hing = self.validator.validate_sentence(
+            "Dedicated plan ₹1,499 hai.",
+            context={"language": "hinglish", "user_input": "Plan fees kitni hai?"}
+        )
+        self.assertIn("price", res_hing.reasons)
+        self.assertEqual(res_hing.text, "Main is baare mein team se confirm karke aapko bataungi.")
+
+    def test_verified_product_facts_pricing_is_allowed(self) -> None:
+        """Verify that an explicitly verified pricing record in product_facts allows that exact price."""
+        verified_ctx = {
+            "verified_product_facts": {
+                "pricing_verified_consult": {
+                    "is_verified": True,
+                    "category": "pricing",
+                    "fact_value": {"amount": 0, "currency": "INR"}
+                }
+            }
+        }
+        res = self.validator.validate_sentence("Follow-up consultation ₹0 hai.", context=verified_ctx)
+        self.assertNotIn("price", res.reasons)
+        self.assertEqual(res.text, "Follow-up consultation ₹0 hai.")
 
     def test_non_inr_zero_price_is_rewritten_to_catalog_pricing(self) -> None:
         result = self.validator.validate_sentence("Follow-up is $0.")
@@ -157,7 +211,7 @@ class InvariantTests(unittest.TestCase):
         self.assertIn("FRUIT_MODERATION", normalize("Weight loss mein aam khana mana hai?").tags)
 
     def test_only_matching_clinical_chunk_supplies_remedy_constraints(self) -> None:
-        context = {}
+        context = {"clinical_tags": ["GI_BLOATING"]}
         chunks = [
             {"condition_tag": "GENERAL", "guideline_content": "Rest.", "required_remedy_tokens": ["rest"]},
             {
@@ -368,6 +422,9 @@ class AsyncPipelineTests(unittest.IsolatedAsyncioTestCase):
                 self.transaction_calls += 1
                 return Transaction()
 
+            async def fetchrow(self, query, *args):
+                return None
+
             async def fetchval(self, query, *args):
                 self.fetchval_calls.append((query, args))
 
@@ -407,7 +464,7 @@ class AsyncPipelineTests(unittest.IsolatedAsyncioTestCase):
         )
         request = SimpleNamespace(app=SimpleNamespace(state=state))
 
-        async def patient_context(*_args):
+        async def patient_context(*_args, **_kwargs):
             return {}
 
         with (
@@ -423,7 +480,8 @@ class AsyncPipelineTests(unittest.IsolatedAsyncioTestCase):
             ]
 
         self.assertEqual(output, [])
-        self.assertEqual(pool.acquire_calls, 1)
+        # Context loading and retrieval each acquire a connection scope.
+        self.assertEqual(pool.acquire_calls, 2)
         self.assertEqual(pool.connection.transaction_calls, 1)
         self.assertGreaterEqual(len(pool.connection.fetchval_calls), 1)
         self.assertGreaterEqual(len(pool.connection.fetch_calls), 1)

@@ -228,17 +228,19 @@ function recordTest(domain, name, passed, details) {
     'EMAIL_REGEX matches user@example.com. which violates RFC 5322.');
 
   // Check 4.3: Extreme BMI Calculation with zero height
-  const hasZeroHeightBmiGuard = /h\s*>=\s*50/i.test(appSource) && /Number\.isFinite\(h\)/i.test(appSource);
+  const hasZeroHeightBmiGuard = /(?:h|heightCm)\s*<\s*50/i.test(appSource)
+    && /Number\.isFinite\((?:h|heightCm)\)/i.test(appSource);
   recordTest(domain, 'Zero height BMI calculation guard against Infinity', hasZeroHeightBmiGuard,
     'height_cm = "0" causes division by zero, yielding Infinity kg/m² in clinical drawer UI.');
 
   // Check 4.4: Non-numeric height in updateDrawerUI
-  const hasNonNumericHeightGuard = /Number\.isFinite\(h\)/i.test(appSource) && /Number\.isFinite\(w\)/i.test(appSource);
+  const hasNonNumericHeightGuard = /Number\.isFinite\((?:h|heightCm)\)/i.test(appSource)
+    && /Number\.isFinite\((?:w|weightKg)\)/i.test(appSource);
   recordTest(domain, 'Non-numeric height BMI calculation guard against NaN', hasNonNumericHeightGuard,
     'height_cm = "abc" produces NaN kg/m² in clinical drawer UI.');
 
   // Check 4.5: Negative height rejection in BMI calculation
-  const hasNegativeHeightGuard = /h\s*<\s*50/i.test(appSource) || /h\s*>=\s*50/i.test(appSource);
+  const hasNegativeHeightGuard = /(?:h|heightCm)\s*<\s*50/i.test(appSource);
   recordTest(domain, 'Negative height rejection in BMI calculation', hasNegativeHeightGuard,
     'Negative height is not rejected before BMI calculation.');
 
@@ -336,11 +338,15 @@ function recordTest(domain, name, passed, details) {
   // Check 6.9: Dedicated Patient Profile & Clinical Safety Surface
   const hasProfileView = htmlSource.includes('id="view-profile"');
   const hasMealsView = htmlSource.includes('id="view-meals"');
-  const hasGymClearance = htmlSource.includes('id="profile-page-gym-clearance"');
+  const hasNoGymClearance = !htmlSource.includes('Gym Clearance') && !htmlSource.includes('profile-page-gym-clearance');
   const hasDietDisplay = htmlSource.includes('id="profile-page-diet"');
-  recordTest(domain, 'Patient Clinical Safety Surface: Dedicated Profile & Meals views with Live HTN & Gym Clearance',
-    hasProfileView && hasMealsView && hasGymClearance && hasDietDisplay,
-    'Patient clinical profile elements missing in DOM.');
+  recordTest(domain, 'Patient Clinical Safety Surface: Dedicated Profile & Meals views without unsupported gym clearance claim',
+    hasProfileView && hasMealsView && hasNoGymClearance && hasDietDisplay,
+    'Patient clinical profile elements missing in DOM or gym clearance claim still present.');
+
+  recordTest(domain, 'Shared demo credentials are not exposed in the sign-in page',
+    !htmlSource.includes('demo123') && !appSource.includes("querySelectorAll('.demo-btn')"),
+    'The frontend still exposes shared demo credentials.');
 
   // DOMAIN 7: Progressive Onboarding, Navigation Architecture & Profile Customization
   const domain7 = '7. Progressive Onboarding & Profile Customization';

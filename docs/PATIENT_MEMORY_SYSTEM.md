@@ -1,12 +1,14 @@
-# Disha AI: Long-Term Patient Memory System — Living Architecture Specification
+# Disha AI: Long-Term User Memory System — Historical Architecture Notes
 
-Document Version: 1.0.0-rc1  
-Status: Authoritative Engineering Living Documentation  
-System Classification: Clinical AI State Persistence & Temporal Fact Arbitration  
+Document Version: Historical design draft
+Status: Not an authoritative description of the current runtime
+System Classification: Health-Coaching User State Persistence & Temporal Fact Arbitration
 Compliance: Digital Personal Data Protection (DPDP) Act 2023, Indian Council of Medical Research (ICMR) Ethical Guidelines  
 Style Standard: Technical Rigor, Zero Emojis  
 
 ---
+
+> **Current-runtime notice:** This document contains historical design proposals and unverified claims. For active user context, prescribed schedules, approved knowledge retrieval, and known limitations, use [`docs/MEMORY_AND_PEP.md`](./MEMORY_AND_PEP.md) and [`docs/architecture/04_rag_ingestion_and_retrieval.md`](./architecture/04_rag_ingestion_and_retrieval.md). In particular, current health retrieval uses PostgreSQL full-text and trigram search, not vector search; performance, approval, clinical, and test claims in this document are not current verification evidence.
 
 ## 1. System Overview and Guiding Philosophy
 

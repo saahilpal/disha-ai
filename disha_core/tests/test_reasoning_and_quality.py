@@ -139,21 +139,21 @@ class StreamingSentenceBufferQualityTests(unittest.IsolatedAsyncioTestCase):
     async def test_factual_query_streaming_enforces_max_length(self) -> None:
         async def mock_stream() -> AsyncIterator[str]:
             # Emits 4 sentences
-            yield "Follow-up consultations ₹0 hain. "
-            yield "Dedicated plan ₹1,499 per month hai. "
+            yield "Follow-up check-in kal subah karenge. "
+            yield "Aap daily walk 20 minute rakhein. "
             yield "Aap My Plan tab mein check karein. "
             yield "Mujhe batayein agar koi sawaal ho."
 
         policy = LengthPolicy(category="factual", min_sentences=1, max_sentences=2)
         context = {
             "length_policy": policy,
-            "user_input": "Plan fees kitni hai?",
+            "user_input": "Next check-in kab hai?",
         }
         validator = SentenceValidator()
         emitted = [s async for s in validated_sentences(mock_stream(), validator, context)]
         # Must enforce max_sentences <= 2
         self.assertLessEqual(len(emitted), 2)
-        self.assertIn("₹0", emitted[0])
+        self.assertIn("Follow-up check-in", emitted[0])
 
     async def test_anti_echo_in_stream_skips_filler_and_answers_immediately(self) -> None:
         async def mock_stream() -> AsyncIterator[str]:

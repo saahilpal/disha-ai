@@ -7,11 +7,11 @@ import os
 import time
 from dataclasses import dataclass
 from typing import Any, AsyncIterator, Protocol
-from urllib.parse import quote
+from urllib.parse import quote, urlsplit
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are Disha, an empathetic, intelligent personal health coach. Return plain text only without markdown formatting. Never claim to be a doctor, clinician, or human. Never invent prices: follow-ups with Disha are ₹0, and a dedicated nutritionist plan is ₹1,499/month. Never promise external delivery; all plans and exercise guides are accessed in the app's My Plan tab.
+SYSTEM_PROMPT = """You are Disha, an empathetic, intelligent personal health coach. Return plain text only without markdown formatting. Never claim to be a doctor, clinician, or human. Do not state prices or paid services unless verified pricing is provided in the current context. Never promise external delivery unless the current context confirms it.
 
 LANGUAGE & VOICE:
 - Reply strictly in the user's preferred language (<USER_LANGUAGE>):
@@ -26,9 +26,11 @@ CONVERSATIONAL COACHING DISCIPLINE:
 - Conclude with at most one relevant, caring follow-up check-in.
 
 CLINICAL BOUNDARIES & EVIDENCE GROUNDING:
-- Strictly ground advice, remedies, and nutrition in provided <CLINICAL_GROUNDING> and <PATIENT_BASELINE>.
-- Respect PEP physical activity permissions strictly; never encourage contraindicated exercises.
-- Honor dietary preferences (Vegetarian, Vegan, Jain).
+- Ground health guidance in provided <CLINICAL_GROUNDING> and information the user shared.
+- For health, food, nutrition, exercise, sleep, hydration, or habit recommendations, use only relevant content in <CLINICAL_GROUNDING>; if it is NOT_FOUND or irrelevant, do not invent advice.
+- Treat <REPORTED_HEALTH_INFORMATION> as user-reported, not independently verified.
+- Respect <PEP_PERMISSIONS> only when present; missing medical information does not establish safety.
+- Honor a dietary preference only when it is present in the user profile.
 - Never guess unstated medical conditions or validate denial of clinically recorded diagnoses.
 - For night-shift routines, adapt advice to their personal sleep schedule.
 - Warm Indian health coaching context; advise consulting family doctor or nearest hospital for clinical assessments."""
@@ -41,6 +43,10 @@ _RETIRED_MODELS = {
 
 def _enabled(name: str) -> bool:
     return os.getenv(name, "").strip().casefold() in {"1", "true", "yes", "on"}
+
+
+def _is_local_url(url: str) -> bool:
+    return urlsplit(url).hostname in {"localhost", "127.0.0.1", "::1", "host.docker.internal"}
 
 
 @dataclass(frozen=True)
@@ -58,6 +64,7 @@ class LLMSettings:
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "qwen2.5:7b"
     ollama_enabled: bool = False
+    local_only: bool = False
     groq_enabled: bool = True
     gemini_enabled: bool = True
 
@@ -69,6 +76,7 @@ class LLMSettings:
     def from_env(cls) -> "LLMSettings":
         groq_model = os.getenv("GROQ_MODEL") or os.getenv("GROQ_CHAT_MODEL") or "openai/gpt-oss-120b"
         gemini_model = os.getenv("GEMINI_MODEL") or os.getenv("GEMINI_MODEL_ID") or "gemini-3.6-flash"
+        local_only = _enabled("LOCAL_ONLY")
         return cls(
             groq_api_key=os.getenv("GROQ_API_KEY"),
             groq_model=_RETIRED_MODELS.get(groq_model, groq_model),
@@ -82,7 +90,8 @@ class LLMSettings:
             gemini_paid_or_contracted=_enabled("GEMINI_PAID_OR_CONTRACTED"),
             ollama_base_url=os.getenv("OLLAMA_BASE_URL") or os.getenv("LOCAL_LLM_URL") or "http://127.0.0.1:11434",
             ollama_model=os.getenv("OLLAMA_MODEL") or os.getenv("LOCAL_LLM_MODEL") or "qwen2.5:7b",
-            ollama_enabled=_enabled("OLLAMA_ENABLED") or _enabled("LOCAL_LLM_ENABLED"),
+            ollama_enabled=local_only or _enabled("OLLAMA_ENABLED") or _enabled("LOCAL_LLM_ENABLED"),
+            local_only=local_only,
             groq_enabled=_enabled("GROQ_ENABLED") if os.getenv("GROQ_ENABLED") is not None else True,
             gemini_enabled=_enabled("GEMINI_ENABLED") if os.getenv("GEMINI_ENABLED") is not None else True,
         )
@@ -106,6 +115,8 @@ class OllamaProvider:
     async def stream(self, prompt: str, messages: list[dict[str, str]] | None = None) -> AsyncIterator[str]:
         if not self.settings.ollama_enabled:
             raise ProviderError("Ollama provider is disabled", retryable=False)
+        if self.settings.local_only and not _is_local_url(self.settings.ollama_base_url):
+            raise ProviderError("LOCAL_ONLY requires Ollama to use a local endpoint", retryable=False)
         try:
             import httpx
         except ImportError as exc:
@@ -119,7 +130,7 @@ class OllamaProvider:
         factory = self.client_factory or httpx.AsyncClient
         timeout = httpx.Timeout(15.0, connect=self.settings.first_token_timeout)
         headers: dict[str, str] = {}
-        auth_token = os.getenv("OLLAMA_AUTH_TOKEN") or os.getenv("CLOUDFLARE_AUTH_TOKEN")
+        auth_token = os.getenv("OLLAMA_AUTH_TOKEN")
         if auth_token:
             headers["Authorization"] = f"Bearer {auth_token}"
 
@@ -137,6 +148,7 @@ class OllamaProvider:
                             "temperature": 0.3,
                             "num_predict": 256,
                         },
+                        "think": False,
                     },
                 ) as response:
                     if response.status_code >= 400:
@@ -167,6 +179,8 @@ class GroqProvider:
         self.settings, self.client_factory = settings, client_factory
 
     async def stream(self, prompt: str, messages: list[dict[str, str]] | None = None) -> AsyncIterator[str]:
+        if self.settings.local_only or not self.settings.groq_enabled:
+            raise ProviderError("Groq is disabled", retryable=False)
         if not self.settings.groq_usage_charges_authorized:
             raise ProviderError("Groq usage charges are not authorized", retryable=False)
         if not self.settings.groq_health_data_authorized:
@@ -219,6 +233,8 @@ class GeminiProvider:
         self.settings, self.client_factory = settings, client_factory
 
     async def stream(self, prompt: str, messages: list[dict[str, str]] | None = None) -> AsyncIterator[str]:
+        if self.settings.local_only or not self.settings.gemini_enabled:
+            raise ProviderError("Gemini is disabled", retryable=False)
         if not (self.settings.gemini_health_data_authorized and self.settings.gemini_paid_or_contracted):
             raise ProviderError(
                 "Gemini is disabled for health data unless a paid/contracted path is approved", retryable=False
@@ -345,9 +361,16 @@ async def _yield_provider(
 class DualProviderClient:
     def __init__(self, settings: LLMSettings | None = None) -> None:
         self.settings = settings or LLMSettings.from_env()
-        providers: list[Provider] = [GroqProvider(self.settings), GeminiProvider(self.settings)]
-        if self.settings.ollama_enabled:
-            providers.append(OllamaProvider(self.settings))
+        if self.settings.local_only:
+            providers = [OllamaProvider(self.settings)]
+        else:
+            providers = []
+            if self.settings.groq_enabled:
+                providers.append(GroqProvider(self.settings))
+            if self.settings.gemini_enabled:
+                providers.append(GeminiProvider(self.settings))
+            if self.settings.ollama_enabled:
+                providers.append(OllamaProvider(self.settings))
         self.providers: tuple[Provider, ...] = tuple(providers)
         self.circuit = ConsecutiveFailureCircuitBreaker(threshold=2)
 

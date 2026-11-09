@@ -1,5 +1,7 @@
 # Low-Level Design (LLD) — Disha AI Component & Interface Specifications
 
+> **Historical schema/design draft:** SQL and interfaces below are not the current runtime contract. Use [`disha_core/db/schema.sql`](../disha_core/db/schema.sql), [Architecture](ARCHITECTURE.md), and [Memory and PEP](MEMORY_AND_PEP.md) for the code-backed description.
+
 ## 1. Database Schema & Data Dictionary (`db/schema.sql`)
 
 PostgreSQL 16 relational DDL enforcing data integrity, trigram matching, and word count constraints:
@@ -143,4 +145,3 @@ The automated judge at `/audit/judge.py` evaluates 16 constraints across 9 dimen
 | **C16** | NON-GOAL| Prohibit autonomous clinical prescribing | Companion scope enforced | **PASS** |
 
 *Hard Constraint Rule:* Failure of any hard constraint (C1–C12) hard-caps the overall score at **60/100**. The engine currently scores **100.0/100.0** (`PASSED_UNCONSTRAINED`).
-

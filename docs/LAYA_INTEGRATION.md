@@ -2,7 +2,7 @@
 
 **Document Path:** `docs/LAYA_INTEGRATION.md`  
 **Classification:** Core Machine Learning Systems Specification  
-**Version:** 2.1.0 (Deepened Production Architecture)  
+**Status:** Historical integration notes; see `docs/architecture/04_rag_ingestion_and_retrieval.md` for current knowledge and recommendation behavior.
 **Maintained by:** Agent B (Laya Integration Specialist) & Agent H (Learning Tracker)  
 **Last Updated:** 2026-11-08  
 
@@ -18,7 +18,7 @@ Unlike generative LLMs that require 1–3 seconds and high token costs to unders
 3. **PEP Cardiovascular Strain & Risk Score** (`pep_risk`: 0=low, 1=moderate, 2=high).
 
 By executing System 1 ahead of prompt generation, Disha AI achieves:
-- **Zero-Latency Database Short-Circuiting:** Pure greetings, general coaching, and app meta queries bypass pgvector knowledge base retrieval, saving DB connection acquisition overhead and hundreds of context tokens.
+- **Retrieval routing:** Pure greetings and app-meta questions can bypass health retrieval. Health-related coaching (including meals, exercise, hydration, sleep, and habits) requires approved knowledge retrieval even when classified as general coaching. The active search is PostgreSQL full-text and trigram, not pgvector.
 - **Early PEP Safety Bounds:** High-risk exercise queries (e.g., deadlifts, sprinting) from restricted patients trigger safety bounds early, eliminating unsafe LLM exercise recommendations.
 - **Continuous Clinical Audit:** Sub-threshold (<0.70) or ambiguous intent turns are asynchronously enqueued into a zero-PHI review queue.
 
@@ -32,7 +32,7 @@ Defined in `disha_core/classifier/schemas.py` (`SCHEMA_VERSION = "2026-11-08.v2"
 CLINICAL_QUESTIONS: dict[str, dict[str, Any]] = {
     "intent": {
         "type": "choice",
-        "instructions": "What is the primary category of the patient statement?",
+        "instructions": "What is the primary category of the user's statement?",
         "criteria": {
             "meal_query": "food, eating, meals, what to eat, dinner, lunch, breakfast, recipes, diet plan, calories, prescribed food",
             "symptom_complaint": "illness, stomach ache, pain, gas, bloating, fever, acidity, nausea, vomiting, discomfort",
@@ -63,7 +63,7 @@ CLINICAL_QUESTIONS: dict[str, dict[str, Any]] = {
 | `meal_query` | Prescribed diet, recipes, nutritional queries, food timing | *"What should I eat for dinner?"*, *"Aaj khane mein kya hai?"* | Route to Diet Schedule + Dietary Knowledge Retrieval |
 | `symptom_complaint` | Functional gastrointestinal issues, pain, reflux, acidity | *"Pet mein bohot gas aur bloating hai"*, *"Mild nausea"* | Route to Clinical KB with Approved ICMR Remedy Tokens |
 | `exercise_query` | Workouts, gym activities, weightlifting, deadlifts, cardio | *"Can I do heavy deadlifts at gym?"*, *"Aaj workout karun?"* | PEP Cardiovascular Exertion Check + Exercise Guidelines |
-| `general_coaching` | Daily habits, walking steps, sleep hygiene, hydration, motivation | *"How many steps should I walk?"*, *"Tips for deep sleep"* | **SKIP DB Retrieval**; Stream empathetic coaching |
+| `general_coaching` | Daily habits, walking, sleep, hydration, motivation | *"How many steps should I walk?"*, *"Tips for deep sleep"* | Retrieve approved guidance for health recommendations; non-health conversation may skip |
 | `app_meta` | App features, navigation, subscription fees, profile settings | *"How much is subscription fee?"*, *"Where is My Plan tab?"* | **SKIP DB Retrieval**; Stream app guidance |
 | `emergency_escalation` | Acute chest pain, shortness of breath, collapse, stroke | *"Chhati mein tez dard hai"*, *"Crushing chest tightness"* | **HALT Pipeline**; Immediate 112 emergency escalation |
 
@@ -87,8 +87,8 @@ flowchart TD
     
     PEPCheck -->|No| IntentBranch{"Intent Classification"}
     
-    IntentBranch -->|Greeting / General Coaching / App Meta| SkipRetrieval["SKIP pgvector Retrieval\n(chunks = (), 0 DB pool connections)"]
-    IntentBranch -->|Symptom / Meal / Exercise| DomainRetrieval["Targeted Domain Retrieval\n(tags: GI_BLOATING, FRUIT_MODERATION, etc.)"]
+    IntentBranch -->|Greeting / App Meta / Non-health chat| SkipRetrieval["Health retrieval may be skipped"]
+    IntentBranch -->|Health / Meal / Exercise| DomainRetrieval["Approved PostgreSQL FTS + trigram retrieval"]
     
     SkipRetrieval --> LLM["LLM Sentence Buffer & Validator"]
     DomainRetrieval --> LLM
@@ -100,11 +100,7 @@ flowchart TD
 
 ### 3.1 Retrieval Short-Circuiting Mechanics
 
-When Laya classifies a turn into `general_coaching`, `app_meta`, or `greeting`:
-1. `RouteDecision.skip_retrieval` is set to `True`.
-2. Database pool connection acquisition is completely bypassed for knowledge base lookup.
-3. `retrieve_chunks` is not called, eliminating trigram index scans and query latency.
-4. Prompt context is spared irrelevant knowledge chunks, saving context tokens and preventing distracting information.
+Pure greetings and app-meta turns may skip health retrieval. Classification as `general_coaching` alone does not skip it: meal and exercise domains and other grounded health advice still query the approved knowledgebase. The runtime can avoid irrelevant chunks through bounded lexical retrieval and thresholds.
 
 When the turn is a `symptom_complaint`, `meal_query`, or `exercise_query`, the pipeline targets domain-specific tags:
 - `SYMPTOM_COMPLAINT`: targets `["GI_BLOATING"]` or clinical tags.

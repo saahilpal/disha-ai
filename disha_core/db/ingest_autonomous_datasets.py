@@ -1,18 +1,15 @@
-"""Autonomous Dataset Discovery & Container Ingestion Pipeline.
+"""Import candidate Indian health content into PostgreSQL as unreviewed drafts.
 
-Ingests verified Indian healthcare, dietary guidelines, and clinical consultation datasets
-directly into PostgreSQL 16 (disha_core-postgres-1).
+The script does not verify clinical accuracy, licensing, or human approval.
 
-Guarantees:
+Import constraints:
 - Every micro-chunk is strictly under 50 words (database check constraint).
 - Context headers specify clinical scope and institutional authority.
-- Rich English and Hinglish trigger terms for <2ms pg_trgm and tsvector retrieval.
-- Multi-tenant patient profiles (PEP and diet schedules) seeded for testing.
+- English and Hinglish trigger terms are stored for PostgreSQL text/trigram retrieval.
 """
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import os
 import re
@@ -298,61 +295,6 @@ def _extract_pcos_clinical_nutrition() -> list[dict[str, Any]]:
     return records
 
 
-TEST_PATIENT_PROFILES = [
-    {
-        "patient_id": "pt_test_01",
-        "hypertension_stage": "Stage 1",
-        "gym_clearance": True,
-        "allowed_modalities": ["gym", "walking"],
-        "restricted_modalities": ["heavy_deadlifts", "valsalva_maneuver"],
-        "token": "pt_test_01_valid_bearer_token",
-        "schedules": [
-            (day, "dinner", "150g paneer bhurji, 2 multigrain rotis, cucumber salad (approx 420 kcal)")
-            for day in ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-        ],
-    },
-    {
-        "patient_id": "pt_test_diabetic",
-        "hypertension_stage": "Normal",
-        "gym_clearance": True,
-        "allowed_modalities": ["walking", "yoga", "swimming"],
-        "restricted_modalities": ["heavy_deadlifts"],
-        "token": "pt_test_diabetic_bearer_token",
-        "schedules": [
-            (day, "breakfast", "2 ragi idlis with sambar and flaxseed chutney (approx 280 kcal)")
-            for day in ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-        ] + [
-            (day, "dinner", "1 cup yellow moong dal, 1 jowar roti, palak sabzi (approx 360 kcal)")
-            for day in ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-        ],
-    },
-    {
-        "patient_id": "pt_test_cardiac",
-        "hypertension_stage": "Stage 2",
-        "gym_clearance": False,
-        "allowed_modalities": ["brisk_walking"],
-        "restricted_modalities": ["gym", "heavy_deadlifts", "high_intensity_sprints", "running"],
-        "token": "pt_test_cardiac_bearer_token",
-        "schedules": [
-            (day, "dinner", "Low-salt mixed veg khichdi with roasted curd and steamed carrots (approx 340 kcal)")
-            for day in ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-        ],
-    },
-    {
-        "patient_id": "pt_test_pcod",
-        "hypertension_stage": "Normal",
-        "gym_clearance": True,
-        "allowed_modalities": ["gym", "light_strength", "yoga", "walking"],
-        "restricted_modalities": [],
-        "token": "pt_test_pcod_bearer_token",
-        "schedules": [
-            (day, "dinner", "Grilled tofu with sauteed broccoli, bell peppers, and half cup brown rice (approx 380 kcal)")
-            for day in ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
-        ],
-    },
-]
-
-
 async def run_autonomous_ingestion() -> dict[str, Any]:
     password = os.getenv("POSTGRES_PASSWORD", "postgres")
     db_url = f"postgresql://disha:{password}@127.0.0.1:5432/disha"
@@ -393,7 +335,7 @@ async def run_autonomous_ingestion() -> dict[str, Any]:
         approval_status,
         clinician_id,
         approved_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, 'approved', 'clin_lead_icmr', NOW())
+    ) VALUES ($1, $2, $3, $4, $5, $6, 'draft', NULL, NULL)
     """
 
     inserted_count = 0
@@ -438,56 +380,7 @@ async def run_autonomous_ingestion() -> dict[str, Any]:
     print(f"[INGESTION] Successfully inserted {inserted_count} new clinical micro-chunks.")
 
     # 4. Ingest Patient Profiles, Diet Schedules, and Bearer Tokens
-    print("[INGESTION] Ingesting multi-tenant test patient profiles and PEP boundaries...")
-    for p in TEST_PATIENT_PROFILES:
-        await conn.execute(
-            """
-            INSERT INTO patient_pep (
-                patient_id, hypertension_stage, gym_clearance, allowed_modalities, restricted_modalities, updated_at
-            ) VALUES ($1, $2, $3, $4, $5, NOW())
-            ON CONFLICT (patient_id) DO UPDATE SET
-                hypertension_stage = EXCLUDED.hypertension_stage,
-                gym_clearance = EXCLUDED.gym_clearance,
-                allowed_modalities = EXCLUDED.allowed_modalities,
-                restricted_modalities = EXCLUDED.restricted_modalities,
-                updated_at = NOW()
-            """,
-            p["patient_id"],
-            p["hypertension_stage"],
-            p["gym_clearance"],
-            p["allowed_modalities"],
-            p["restricted_modalities"],
-        )
-
-        # Schedules
-        for day, meal, items in p["schedules"]:
-            await conn.execute(
-                """
-                INSERT INTO patient_diet_schedules (patient_id, day_of_week, meal_type, prescribed_items, is_active)
-                VALUES ($1, $2, $3, $4, TRUE)
-                ON CONFLICT (patient_id, day_of_week, meal_type) DO UPDATE SET
-                    prescribed_items = EXCLUDED.prescribed_items,
-                    is_active = EXCLUDED.is_active
-                """,
-                p["patient_id"],
-                day,
-                meal,
-                items,
-            )
-
-        # Token
-        token_hash = hashlib.sha256(p["token"].encode("utf-8")).hexdigest()
-        await conn.execute(
-            """
-            INSERT INTO patient_access_tokens (token_hash, patient_id, created_at, expires_at)
-            VALUES ($1, $2, NOW(), NOW() + INTERVAL '1 year')
-            ON CONFLICT (token_hash) DO NOTHING
-            """,
-            token_hash,
-            p["patient_id"],
-        )
-
-    # 5. Database Verification Queries
+    # 4. Database Verification Queries
     total_chunks = await conn.fetchval("SELECT COUNT(*) FROM clinical_knowledge_base")
     total_approved = await conn.fetchval("SELECT COUNT(*) FROM clinical_knowledge_base WHERE approval_status = 'approved'")
     over_50_count = await conn.fetchval(
@@ -544,4 +437,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

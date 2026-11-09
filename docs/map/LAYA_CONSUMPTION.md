@@ -1,5 +1,8 @@
 # Disha AI — Laya Consumption Map (LAYA_CONSUMPTION.md)
 
+> **Historical dependency snapshot:** Package-version and model availability claims below are not current verification. See [`disha_core/requirements.txt`](../../disha_core/requirements.txt) and the configured runtime adapter before relying on them.
+
+
 **Generated:** 2026-11-07  
 **Installed Version:** `laya==0.4.27`  
 **Latest PyPI Version:** `0.4.27` (Current / Up to date)  

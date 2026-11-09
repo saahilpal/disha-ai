@@ -28,6 +28,7 @@ share/python-wheels/
 
 # Virtual environments
 .venv/
+.venv-mlx-audio/
 venv/
 env/
 ENV/
@@ -110,3 +111,6 @@ models/
 *.safetensors
 *.pt
 
+# Runtime Tunnel & Infra Logs
+agent/TUNNEL_URL.txt
+infra/logs/

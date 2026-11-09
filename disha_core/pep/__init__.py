@@ -1,7 +1,7 @@
-"""PEP Habits Scale Architecture and Personalised Exercise Engine."""
+"""User habit context and fail-closed exercise safety helpers."""
 from __future__ import annotations
 
-from disha_core.pep.exercise_engine import (
+from disha_core.pep.exercise_safety import (
     ExerciseEvaluation,
     SuitabilityCategory,
     evaluate_exercise_suitability,

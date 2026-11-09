@@ -38,7 +38,11 @@ async def chat(
         request.app.state.ledger,
         AuditRecord(patient_id, payload.text, output, state.breaker_status, state.validator_status),
     )
-    return {"response": output, "status": state.validator_status}
+    return {
+        "response": output,
+        "status": state.validator_status,
+        "evidence_ids": state.evidence_ids,
+    }
 
 
 @router.post("/chat/stream")
@@ -69,7 +73,7 @@ async def chat_stream(
             async for sentence in app_main._turn_sentences(request, patient_id, payload, state):
                 output.append(sentence)
                 yield f"data: {json.dumps({'sentence': sentence}, ensure_ascii=False)}\n\n"
-            yield f"event: done\ndata: {json.dumps({'status': state.validator_status})}\n\n"
+            yield f"event: done\ndata: {json.dumps({'status': state.validator_status, 'evidence_ids': state.evidence_ids})}\n\n"
         finally:
             app_main._enqueue_audit(
                 request.app.state.ledger,

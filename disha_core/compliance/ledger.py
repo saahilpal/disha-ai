@@ -32,7 +32,7 @@ _SENSITIVE_AUDIT_PATTERNS = [
     (re.compile(r"\b\d{4}[\s\-]\d{4}[\s\-]\d{4}\b"), "[AADHAAR_REDACTED]"),
     (re.compile(r"(?:\+91[\-\s]?)?[6789]\d{9}\b|\b\d{5}[\-\s]?\d{5}\b"), "[PHONE_REDACTED]"),
     (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"), "[EMAIL_REDACTED]"),
-    (re.compile(r"\b(?:MRN|UHID|PATIENT|IPD|OPD)[#:\-\s]*[A-Za-z0-9]{4,15}\b", re.IGNORECASE), "[MRN_REDACTED]"),
+    (re.compile(r"\b(?:MRN|UHID|PATIENT[_\s-]?ID|PATIENT#|IPD|OPD)[#:\-\s]*[A-Za-z0-9_\-]{4,20}\b", re.IGNORECASE), "[MRN_REDACTED]"),
 ]
 
 

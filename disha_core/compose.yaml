@@ -10,6 +10,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./db/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+      - ./db/seed_product_facts.sql:/docker-entrypoint-initdb.d/002-product-facts.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U disha -d disha"]
       interval: 5s

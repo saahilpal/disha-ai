@@ -1,8 +1,10 @@
 # Disha AI — Frame-by-Frame WebSocket Protocol Specification
 
-**Document Status:** Production Authoritative  
+**Document Status:** Historical generated snapshot — not current runtime authority
 **Target Endpoints:** `/ws/conversation` and `/voice`  
 **Source Code Baseline:** `disha_core/main.py:546-688`, `disha_core/voice.py:96-135`, `frontend/app.js:1054-1248`
+
+> The protocol and streaming claims below are not current runtime guarantees. Use [Voice Pipeline](../VOICE_PIPELINE.md) for the implemented message contract.
 
 ---
 

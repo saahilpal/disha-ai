@@ -1,9 +1,11 @@
 # Document 02: Technology Comparison & Trade-off Evaluation
 **Project:** Disha AI Health Coach  
 **Role:** Lead Architect & Technology Evaluation Taskforce  
-**Focus:** Native Speech-to-Speech vs. Cascaded Pipeline, Deep Evaluation of Google Gemini Live, STT/TTS Benchmarks, Vector vs. BM25 Retrieval & ₹0 Quotas  
+**Focus:** Historical speech/retrieval technology comparisons; current retrieval facts are restated in Section 6.1
 
 ---
+
+> **Evidence notice:** This document contains historical design comparisons and measurements that have not been independently revalidated. Section 6.1 describes the current retrieval implementation; other cost, latency, privacy, and performance claims are not current verification evidence.
 
 ## 1. Executive Summary of Architectural Decisions
 
@@ -126,45 +128,27 @@ Despite its impressive technology, Gemini Live was **decisively rejected** for t
 
 ---
 
-## 6. Knowledge Retrieval: In-Process SQLite FTS5 (BM25) vs. Vector Databases
+## 6. Knowledge Retrieval: Current PostgreSQL Search
 
 A foundational decision in Disha's design is **how vetted clinical knowledge reaches the model mid-call without stuffing the system prompt** [1].
 
 ```mermaid
 flowchart LR
-    subgraph VectorDB [Cloud / Embedded Vector Search]
-        Q1["Hinglish Query: 'pet dard ho raha hai'"] --> E1[Embedding API: 65ms]
-        E1 --> V1[Cosine Similarity Calculation: 25ms]
-        V1 --> D1["Semantic Drift Error: Matches 'chest pain' (similarity > 0.82)"]
-    end
-
-    subgraph FTS5 [In-Process SQLite FTS5 BM25 Engine]
-        Q2["Hinglish Query: 'pet dard ho raha hai'"] --> M2["Exact Lexical Trigram Match: 0.8ms"]
-        M2 --> D2["100% Deterministic: Matches 'GI / Abdominal Protocol' ONLY"]
+    subgraph ActiveRetrieval [Current PostgreSQL Knowledge Retrieval]
+        Q["Health query + relevant user context"] --> Search["Full-text rank + trigram similarity"]
+        Search --> Approval{"Approved record and relevance threshold?"}
+        Approval -->|Yes| E["Evidence chunk IDs"]
+        Approval -->|No| Abstain["Abstain; no hidden recommendation fallback"]
     end
 ```
 
-### 6.1 Detailed Comparison Matrix
+### 6.1 Current retrieval implementation
 
-| Criterion | SQLite FTS5 (BM25 + Trigram) [9] | Vector Databases (Pinecone / Qdrant) | Embedded Vector DB (ChromaDB) |
-|:---|:---|:---|:---|
-| **Query Latency** | **0.5 ms – 1.8 ms** (in-process C call) [9] | 65 ms – 120 ms (Network call + embedding API) | 20 ms – 45 ms (Local CPU embedding model) |
-| **Monthly Cost** | **₹0.00** (Standard library `sqlite3`) [9] | $20 – $70/month (Free tiers sleep or expire) | ₹0.00 (High RAM/CPU consumption) |
-| **Hinglish Precision** | **100% Deterministic.** Exact match on clinical symptom terms. | **High Risk of Semantic Drift.** Cosine distance blurs distinction between symptom types. | **High Risk of Semantic Drift.** |
-| **Memory Footprint** | **<15 MB RAM** [9] | 0 MB (Remote) | 350 MB – 600 MB (Transformer model in RAM) |
-| **ACID Consistency** | Instantaneous sync via SQLite SQL Triggers [9] | Eventual consistency (Background ETL required) | Application-level sync required |
+The active chat/voice recommendation path uses PostgreSQL full-text search and trigram similarity over approved knowledge records. It does not use SQLite FTS5, BM25, embeddings, vector similarity, or reciprocal-rank fusion. Retrieval thresholds and bounded result selection reduce irrelevant context, but do not guarantee clinical relevance or claim-level entailment.
 
-### 6.2 The Semantic Drift Problem in Hinglish Healthcare
-In casual Indian voice conversations, patients describe symptoms with short, colloquial expressions:
-- *"Pet me ajeeb jalan aur dard lag raha hai"* (Abdominal pain / Gastric acidity)
-- *"Seene me jalan aur dard lag raha hai"* (Thoracic pain / Cardiac ischemia)
+No latency, precision, memory-footprint, cost, or cross-condition error-rate comparison is claimed here. Such comparisons require reproducible measurements against the actual deployed corpus and service configuration.
 
-Dense vector models project semantic tokens into high-dimensional geometric space where all "pain" and "burning" tokens cluster together. In empirical tests, the cosine similarity between `"pet dard"` and `"chest pain"` exceeds **0.82**, causing vector databases to retrieve cardiac emergency protocols for indigestion, or worse, antacid home remedies for genuine myocardial infarction.
-
-**In contrast, SQLite FTS5 with BM25 ranking**:
-1. Strictly evaluates lexical terms. The token `pet` hits the gastrointestinal index with zero cross-contamination to `seena` (chest) [9].
-2. Executes in **0.8 milliseconds**—a 100x speedup over remote vector databases [9].
-3. Requires zero third-party cloud infrastructure or API keys [9].
+For data-source separation, approval caveats, prescribed meal lookup, and test scope, see [RAG ingestion and retrieval](./architecture/04_rag_ingestion_and_retrieval.md).
 
 ---
 
@@ -207,6 +191,6 @@ Dense vector models project semantic tokens into high-dimensional geometric spac
 | **[6]** | Gemini API and Google AI Studio Additional Terms of Service | Google | [https://ai.google.dev/gemini-api/terms](https://ai.google.dev/gemini-api/terms) | Dec 2024 | 5 Nov 2026 | Unpaid Services terms, prompt logging, human review, model improvement policies | Privacy and regulatory audit disqualifying Google AI Studio free tier for healthcare conversations |
 | **[7]** | Groq Services Agreement, Data Processing Addendum & Zero Data Retention Policy | Groq Inc. | [https://groq.com/privacy-policy/](https://groq.com/privacy-policy/) | 2025 | 5 Nov 2026 | Contractual prohibition on training, inference logging, Zero Data Retention (ZDR) | Verification of Groq Developer Free Tier quotas and enterprise data privacy compliance |
 | **[8]** | The Digital Personal Data Protection Act, 2023 (Act No. 22 of 2023) | Ministry of Electronics and IT (MeitY), Government of India | [https://www.meity.gov.in/content/digital-personal-data-protection-act-2023](https://www.meity.gov.in/content/digital-personal-data-protection-act-2023) | Aug 2023 | 5 Nov 2026 | Section 5/6 (Notice/Consent), Section 8 (Security Safeguards), Section 12 (Erasure) | Legal requirement for Upstream PHI De-identification Proxy and 30-day audio purge lifecycle |
-| **[9]** | SQLite FTS5 Extension Documentation | SQLite Development Team | [https://www.sqlite.org/fts5.html](https://www.sqlite.org/fts5.html) | SQLite 3.45+ (2024-2026) | 5 Nov 2026 | Full-text search, external content tables, triggers for ACID synchronization, BM25 | Justification for SQLite FTS5 BM25 retrieval over vector databases for Hinglish clinical queries |
+| **[9]** | SQLite FTS5 Extension Documentation | SQLite Development Team | [https://www.sqlite.org/fts5.html](https://www.sqlite.org/fts5.html) | SQLite 3.45+ (2024-2026) | 5 Nov 2026 | Full-text search, external content tables, triggers for ACID synchronization, BM25 | Historical comparison reference; SQLite FTS5 is not the active runtime retriever |
 | **[10]** | Cloudflare for Teams / Cloudflare Tunnel Documentation | Cloudflare Inc. | [https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) | 2025-2026 | 5 Nov 2026 | `cloudflared` outbound QUIC daemon, zero inbound ports, edge TLS, native WebSockets | Ingress architecture providing 0ms cold starts, permanent disk storage, and zero hosting cost |
 | **[11]** | Telemedicine Practice Guidelines | National Medical Commission (NMC), Government of India | [https://www.nmc.org.in/rules-regulations/telemedicine-practice-guidelines/](https://www.nmc.org.in/rules-regulations/telemedicine-practice-guidelines/) | March 2020 | 5 Nov 2026 | Permitted lifestyle/wellness coaching vs. prohibited unlicensed diagnosis and prescription | Legal boundary definition restricting Disha to wellness coaching and domestic remedies |

@@ -148,11 +148,13 @@ class MockAsyncpgConnection:
 
     async def fetch(self, query: str, *args: Any) -> list[dict[str, Any]]:
         self.executed_queries.append((query, args))
-        return [
-            {"meal_type": "breakfast", "prescribed_items": "Oats with chia seeds (280 kcal)"},
-            {"meal_type": "lunch", "prescribed_items": "Yellow moong dal and 2 phulkas (420 kcal)"},
-            {"meal_type": "dinner", "prescribed_items": "Steamed seasonal vegetables (350 kcal)"},
-        ]
+        if "from patient_diet_schedules" in query.casefold():
+            return [
+                {"meal_type": "breakfast", "prescribed_items": "Oats with chia seeds (280 kcal)"},
+                {"meal_type": "lunch", "prescribed_items": "Yellow moong dal and 2 phulkas (420 kcal)"},
+                {"meal_type": "dinner", "prescribed_items": "Steamed seasonal vegetables (350 kcal)"},
+            ]
+        return []
 
     async def fetchval(self, query: str, *args: Any) -> Any:
         self.executed_queries.append((query, args))
@@ -1169,7 +1171,7 @@ class TestDatabaseDowntimeResilienceCircuitBreaker:
         assert context["patient_id"] == "pt_test_01"
         assert context["pep"] is None
         assert context["patient_facts"] == []
-        assert context["diet_status"] in ("NOT_FOUND", "NOT_REQUESTED")
+        assert context["diet_status"] == "UNAVAILABLE"
 
 
 # ==============================================================================
@@ -1371,4 +1373,3 @@ class TestEightCoreFailureScenariosBenchmark:
         assert overall_pass_rate >= 90.0, f"Failure benchmark below 90%: {overall_pass_rate}%"
         for sc_name, r in results.items():
             assert r["passed"], f"Failure scenario failed: {sc_name} (Details: {r})"
-

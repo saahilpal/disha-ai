@@ -1,15 +1,15 @@
-"""Ingest Open Source Indian Healthcare & AYUSH Datasets into PostgreSQL.
+"""Import candidate Indian health content into PostgreSQL as unreviewed drafts.
 
 Sources:
-1. AYUSH & Indian Herbs / Home Remedies (360 canonical records from sciencewithsaucee-sudo/herb-database)
-2. MoHFW / National Health Portal Indian Traditional Home Remedies
-3. ICMR-NIN 2024 Dietary & Lifestyle Guidelines
+1. AYUSH and Indian herb/home-remedy data
+2. MoHFW / National Health Portal material
+3. ICMR-NIN dietary/lifestyle material
 
-Ensures:
+The script does not establish source accuracy, licensing, clinical review, or approval.
+Import constraints:
 - Every guideline_content is strictly < 50 words (database constraint).
 - Clean required_remedy_tokens.
-- Trigger terms with rich Hinglish and Hindi vocabulary for pg_trgm & tsvector search.
-- Approved status with clinician_id and timestamp.
+- Trigger terms are stored for PostgreSQL trigram and text search.
 """
 from __future__ import annotations
 
@@ -224,7 +224,7 @@ async def run_ingestion() -> dict[str, Any]:
         approval_status,
         clinician_id,
         approved_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, 'approved', 'clin_lead_ayush', NOW())
+    ) VALUES ($1, $2, $3, $4, $5, $6, 'draft', NULL, NULL)
     """
 
     inserted = 0

@@ -23,7 +23,7 @@ BLUE   := $(shell printf '\033[34m')
 BOLD   := $(shell printf '\033[1m')
 RESET  := $(shell printf '\033[0m')
 
-.PHONY: help doctor dev test audit qa tunnel lint typecheck format clean status repo-check
+.PHONY: help doctor dev test audit qa tunnel tunnel-local lint typecheck format clean status repo-check demo demo-reset
 
 help: ## Show this help message
 	@echo "$(BOLD)DISHA AI — COMMAND REFERENCE$(RESET)"
@@ -141,6 +141,10 @@ tunnel: ## Start Cloudflare tunnel watchdog
 	@echo "$(BOLD)[+] Starting Cloudflare Tunnel Watchdog...$(RESET)"
 	@bash scripts/tunnel-watchdog.sh
 
+tunnel-local: ## Tunnel the local-only app on port 8010
+	@echo "$(BOLD)[+] Starting Cloudflare Tunnel for the local-only app...$(RESET)"
+	@TARGET_URL=http://127.0.0.1:8010 bash scripts/tunnel-watchdog.sh
+
 lint: ## Lint codebase with ruff
 	@echo "$(BOLD)[+] Running ruff linter...$(RESET)"
 	@$(RUFF) check disha_core audit tests
@@ -169,3 +173,43 @@ status: ## Show Docker container and service status
 	@echo ""
 	@echo "$(BOLD)[+] Edge Endpoint Health:$(RESET)"
 	@curl -s -w "\nHTTP Status: %{http_code}\n" http://127.0.0.1:8080/health || echo "$(RED)Unreachable$(RESET)"
+
+demo: ## Launch show-ready Disha AI stack, seed demo personas, and print ingress URLs
+	@echo "$(BOLD)======================================================================$(RESET)"
+	@echo "$(BOLD)DISHA AI — SHOW-READINESS DEMO LAUNCHER$(RESET)"
+	@echo "$(BOLD)======================================================================$(RESET)"
+	@if [ ! -f ".env" ]; then \
+		echo "$(YELLOW)[!] No .env found. Copying .env.example -> .env$(RESET)"; \
+		cp .env.example .env; \
+	fi
+	@echo "[+] Starting Docker services (PostgreSQL, Backend, Proxy)..."
+	@docker compose up -d postgres backend proxy
+	@echo "[+] Seeding synthetic demo patients (Cardiac Stage 2, Type-2 Diabetic, Wellness)..."
+	@$(PYTHON) scripts/demo_seed.py
+	@echo "[+] Checking service health..."
+	@sleep 2
+	@curl -s -f http://127.0.0.1:8080/health >/dev/null && echo "$(GREEN)[✓] Healthcheck OK: Stack is ready.$(RESET)" || echo "$(YELLOW)[!] Health probe pending, check http://127.0.0.1:8080/health$(RESET)"
+	@echo ""
+	@echo "$(GREEN)$(BOLD)🎬 DISHA AI DEMO IS LIVE$(RESET)"
+	@echo "   Local Web UI:     http://127.0.0.1:8080"
+	@echo "   Direct Backend:   http://127.0.0.1:8000"
+	@echo "   WebSocket Route:  ws://127.0.0.1:8080/ws/conversation"
+	@if [ -f "agent/TUNNEL_URL.txt" ]; then \
+		echo "   Public Tunnel:    $$(cat agent/TUNNEL_URL.txt)"; \
+	elif [ -f ".env.local" ] && grep -q "PUBLIC_TUNNEL_URL" .env.local; then \
+		echo "   Public Tunnel:    $$(grep PUBLIC_TUNNEL_URL .env.local | cut -d'=' -f2 | tr -d '\"')"; \
+	else \
+		echo "   Public Tunnel:    Run 'make tunnel' in a separate tab to publish public HTTPS URL."; \
+	fi
+	@echo ""
+	@echo "$(BOLD)Show-Readiness Documentation Kit:$(RESET)"
+	@echo "   Demo Script:      docs/demo/SCRIPT.md"
+	@echo "   Design Map:       docs/demo/DESIGN_MAP.md"
+	@echo "   Acceptance QA:    docs/demo/ACCEPTANCE.md"
+	@echo "   Fallback Q&A:     docs/demo/QA_FALLBACK.md"
+	@echo "$(BOLD)======================================================================$(RESET)"
+
+demo-reset: ## Wipe transient demo conversations and restore pristine seed state
+	@echo "$(BOLD)[+] Resetting Disha AI Demo Environment to Pristine Seed State...$(RESET)"
+	@$(PYTHON) scripts/demo_reset.py
+	@echo "$(GREEN)$(BOLD)✓ Demo environment reset complete. Zero state leakage.$(RESET)"

@@ -1,5 +1,7 @@
 # High-Level Design (HLD) — Disha AI System Architecture
 
+> **Historical design sketch:** The topology and guarantees below are proposals, not evidence of current implementation. For current behavior see [Architecture](ARCHITECTURE.md), [Voice Pipeline](VOICE_PIPELINE.md), and [Deployment](DEPLOYMENT.md).
+
 ## 1. The Core Architectural Philosophy
 Disha AI enforces the **"Thick Deterministic Spine with a Thin Probabilistic Leaf"**.
 
@@ -130,4 +132,3 @@ Voice interactivity requires total turnaround under 1,100ms.
 | **5** | **Missed Clinical Remedy** | LLM gives generic conversational comfort instead of protocol remedy | `pipeline/validator.py` (Token Assertion) | Detects clinical condition (e.g., *period bloating*); asserts that doctor-approved remedy tokens (e.g., *jeera*, *saunf*, *warm water*) exist in output before dispatch. |
 | **6** | **False Capability Promise** | LLM promises delivery over unsupported channels (WhatsApp/SMS) | `pipeline/validator.py` (Channel Regex Gate) | Scans for external channel keywords (`whatsapp`, `sms`, `email`). Rewrites response to point users strictly to the in-app **'My Plan'** tab. |
 | **7** | **Persona Violation** | LLM claims to be a human doctor or clinician | `pipeline/validator.py` (Identity Assertion) | Prompt invariant mandates *"I am Disha, an AI health coach"*. Validator blocks first-person medical authority claims ("I am your doctor"). |
-

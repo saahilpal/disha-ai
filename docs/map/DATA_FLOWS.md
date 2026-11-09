@@ -1,7 +1,9 @@
 # Disha AI — Turn Processing & Data Flow Cartography
 
-**Document Status:** Production Authoritative  
-**Source Code Baseline:** `disha_core/` (Commit `458caf1` / `db200a7`)  
+**Document Status:** Historical generated snapshot — not current runtime authority
+**Source Code Baseline:** Earlier snapshot; must be revalidated against current `disha_core/`
+
+> Use [current runtime architecture](../ARCHITECTURE.md), [voice pipeline](../VOICE_PIPELINE.md), and [RAG flow](../architecture/04_rag_ingestion_and_retrieval.md) for current behavior. The claims and diagrams below are retained for historical context only.
 **Design Pattern:** State Machine Dataflow & Fail-Closed Gateways
 
 ---

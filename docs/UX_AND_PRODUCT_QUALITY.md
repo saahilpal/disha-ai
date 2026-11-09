@@ -38,16 +38,13 @@ Fallback routing handles `#/signin` (`#auth-view`), root redirection, and `#/404
 
 ## 3. Core User Flows & Component Architecture
 
-### A. Authentication & Pre-Seeded Demo Quick-Fill
+### A. Authentication
 - **Route:** `#/signin`
 - **Component:** `#auth-view` -> `#login-section`
 - **Features:**
   - Standard RFC 5322 email and password inputs with inline validation and caps-lock detection.
-  - Three pre-seeded clinical scenario profiles for instant one-click evaluator login:
-    - **Vikram Malhotra** (`cardiac@disha.ai`) — Post-angioplasty recovery & sodium management.
-    - **Ramesh Gupta** (`diabetic@disha.ai`) — Type 2 diabetes & glycemic management.
-    - **Aarav Sharma** (`demo@disha.ai`) — Baseline wellness & preventative fitness.
-  - Immediate token issuance (`pt_live_...`), local session persistence (`disha_token`), and transition to `#/chat`.
+  - Login verifies the supplied email and password against the local PostgreSQL account store; no demo accounts are seeded.
+  - Successful login issues a session token, persists it locally (`disha_token`), and transitions to `#/chat`.
 
 ### B. Multi-Step Conversational Onboarding (3 Focused Steps)
 - **Route:** `#/signin` (Tab: "Create Profile")

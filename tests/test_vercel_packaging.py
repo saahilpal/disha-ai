@@ -77,6 +77,17 @@ def test_vercel_json_security_and_routing() -> None:
         assert any(r.get("destination") == "/index.html" for r in rewrites)
 
 
+def test_vercel_authentication_fails_closed_without_backend() -> None:
+    """A static preview must not issue demo identities or claim backend readiness."""
+    login_source = (FRONTEND_DIR / "api" / "auth" / "login.js").read_text()
+    ready_source = (FRONTEND_DIR / "api" / "ready.js").read_text()
+
+    assert "status(503)" in login_source
+    assert "pt_test_" not in login_source
+    assert "status(503)" in ready_source
+    assert "available: true" not in ready_source
+
+
 def test_client_runtime_node_validation() -> None:
     """Execute Node.js assertions directly against frontend/app.js exports."""
     test_script = """

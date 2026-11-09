@@ -70,15 +70,29 @@ class TestPEPIntegrationAndRejection(unittest.TestCase):
 
         # 1. PEP Permissions must reflect explicit values
         self.assertIn('<PEP_PERMISSIONS', xml)
-        self.assertIn('gym_clearance="false"', xml)
+        self.assertNotIn('gym_clearance="false"', xml)
         self.assertIn('hypertension_stage="stage 2"', xml)
         self.assertIn('coronary_artery_disease', xml)
 
         # 2. PEP Restriction Rules must be explicitly present and list forbidden modalities
         self.assertIn('<PEP_RESTRICTION_RULES', xml)
-        self.assertIn('FORBIDDEN="heavy_deadlifts, hiit', xml)
-        self.assertIn('heavy weightlifting', xml)
+        self.assertIn('FORBIDDEN="heavy_deadlifts, hiit"', xml)
+        self.assertNotIn('heavy weightlifting', xml)
         self.assertIn('brisk_walking, light_stretching', xml)
+
+    def test_diagnosis_does_not_inject_unrecorded_exercise_restrictions(self) -> None:
+        context = {
+            "pep": {
+                "hypertension_stage": "stage 2",
+                "restricted_modalities": [],
+                "diagnosed_conditions": ["coronary_artery_disease"],
+            }
+        }
+
+        xml = render_context_xml(context)
+
+        self.assertNotIn("<PEP_RESTRICTION_RULES", xml)
+        self.assertIn('diagnosed="coronary_artery_disease"', xml)
 
     def test_cardiac_patient_forbidden_exercise_rejected(self) -> None:
         context = {

@@ -10,6 +10,7 @@ import unicodedata
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import suppress
 from typing import Any
+from urllib.parse import urlsplit
 
 logger = logging.getLogger("disha_core.voice")
 
@@ -216,21 +217,28 @@ def is_silence_hallucination(text: str) -> bool:
     """Detect typical Whisper hallucinations triggered by silence or low-energy background noise."""
     if not text:
         return True
-    cleaned = re.sub(r"\[.*?\]|\(.*?\)", "", text)
-    cleaned = unicodedata.normalize("NFKD", cleaned).encode("ascii", "ignore").decode("ascii")
-    cleaned = re.sub(r"[^\w\s]", "", cleaned).strip().lower()
-    cleaned = re.sub(r"\s+", " ", cleaned)
-    if not cleaned or len(cleaned) <= 1:
+    cleaned_full = re.sub(r"\[.*?\]|\(.*?\)", "", text).strip()
+    if not cleaned_full:
         return True
-    if cleaned in WHISPER_SILENCE_HALLUCINATIONS:
+    # Strip non-word characters while preserving unicode letters (including Devanagari)
+    cleaned_words = re.sub(r"[^\w\s]", "", cleaned_full).strip().lower()
+    cleaned_words = re.sub(r"\s+", " ", cleaned_words)
+    if not cleaned_words or len(cleaned_words) <= 1:
         return True
-    if HALLUCINATION_PATTERN.match(cleaned):
+
+    # For checking English/Latin hallucination dictionaries, produce an ASCII normalized version
+    cleaned_ascii = unicodedata.normalize("NFKD", cleaned_words).encode("ascii", "ignore").decode("ascii").strip()
+    cleaned_ascii = re.sub(r"\s+", " ", cleaned_ascii)
+
+    if cleaned_words in WHISPER_SILENCE_HALLUCINATIONS or (cleaned_ascii and cleaned_ascii in WHISPER_SILENCE_HALLUCINATIONS):
         return True
-    if any(phrase in cleaned for phrase in (
+    if HALLUCINATION_PATTERN.match(cleaned_words) or (cleaned_ascii and HALLUCINATION_PATTERN.match(cleaned_ascii)):
+        return True
+    if any(phrase in cleaned_words or (cleaned_ascii and phrase in cleaned_ascii) for phrase in (
         "amara org", "subtitles by", "opensubtitles", "transcribed by", "captioned by", "closed captions"
     )):
         return True
-    words = cleaned.split()
+    words = cleaned_words.split()
     if len(words) >= 3 and len(set(words)) == 1:
         return True
     return False
@@ -321,6 +329,12 @@ def route_tts(
     lang = detect_turn_language(text, language)
     engine_pref = (preferred_engine or os.getenv("TTS_ENGINE", "auto")).casefold().strip()
 
+    if _local_only() or engine_pref in {"mlx", "local", "local-mlx"}:
+        voice = os.getenv("LOCAL_TTS_HINDI_VOICE", "Hindi (Female)") if lang == "hi" else os.getenv(
+            "LOCAL_TTS_ENGLISH_VOICE", "English (Indian) (Female)"
+        )
+        return ("mlx", voice)
+
     if engine_pref in {"edge-tts", "edge"}:
         return ("edge-tts", HINDI_VOICE if lang == "hi" else ENGLISH_VOICE)
 
@@ -343,6 +357,17 @@ def _allowed(variable: str) -> bool:
     return val.casefold() in {"1", "true", "yes"}
 
 
+def _local_only() -> bool:
+    return os.getenv("LOCAL_ONLY", "").strip().casefold() in {"1", "true", "yes", "on"}
+
+
+def _is_local_url(url: str) -> bool:
+    parsed = urlsplit(url)
+    return parsed.scheme in {"http", "https"} and parsed.hostname in {
+        "localhost", "127.0.0.1", "::1", "host.docker.internal"
+    }
+
+
 async def transcribe_groq(
     audio: bytes,
     *,
@@ -353,37 +378,53 @@ async def transcribe_groq(
     """Transcribe a completed utterance; live audio must be buffered by the caller."""
     if not audio:
         raise ValueError("audio must not be empty")
-    if not _allowed("GROQ_HEALTH_DATA_PROCESSING_APPROVED"):
-        raise VoicePrivacyError("Groq audio egress is disabled until health-data processing is approved")
-    key = os.getenv("GROQ_API_KEY")
-    if not key:
-        raise RuntimeError("GROQ_API_KEY is not configured")
+    local_only = _local_only()
+    backend = "Local" if local_only else "Groq"
+
+    if local_only:
+        url = os.getenv("LOCAL_STT_URL", "http://127.0.0.1:8880/v1/audio/transcriptions")
+        if not _is_local_url(url):
+            raise VoicePrivacyError("LOCAL_ONLY requires speech recognition to use a local endpoint")
+        key = None
+        model = os.getenv("LOCAL_STT_MODEL", "mlx-community/whisper-large-v3-turbo-asr-fp16")
+        timeout = float(os.getenv("VOICE_TRANSCRIBE_TIMEOUT", "30.0"))
+    else:
+        if not _allowed("GROQ_HEALTH_DATA_PROCESSING_APPROVED"):
+            raise VoicePrivacyError("Groq audio egress is disabled until health-data processing is approved")
+        key = os.getenv("GROQ_API_KEY")
+        if not key:
+            raise RuntimeError("GROQ_API_KEY is not configured")
+        url = "https://api.groq.com/openai/v1/audio/transcriptions"
+        model = os.getenv("GROQ_STT_MODEL", "whisper-large-v3-turbo")
+        timeout = float(os.getenv("VOICE_TRANSCRIBE_TIMEOUT", "8.0"))
+
     if is_silent_audio(audio):
-        raise RuntimeError("Groq Whisper returned an empty transcript (empty or silent audio frame filtered)")
+        raise RuntimeError(f"{backend} Whisper returned an empty transcript (empty or silent audio frame filtered)")
+
     try:
         import httpx
     except ImportError as exc:
-        raise RuntimeError("Install httpx to use Groq Whisper") from exc
+        raise RuntimeError("Install httpx to transcribe audio") from exc
     factory = client_factory or httpx.AsyncClient
-    timeout = float(os.getenv("VOICE_TRANSCRIBE_TIMEOUT", "8.0"))
+    headers = {"Authorization": f"Bearer {key}"} if key else {}
     async with factory(timeout=timeout) as client:
         response = await client.post(
-            "https://api.groq.com/openai/v1/audio/transcriptions",
-            headers={"Authorization": f"Bearer {key}"},
+            url,
+            headers=headers,
             files={"file": (filename, audio, content_type)},
-            data={"model": os.getenv("GROQ_STT_MODEL", "whisper-large-v3-turbo"), "response_format": "json"},
+            data={"model": model, "response_format": "json"},
         )
     if response.status_code >= 400:
-        raise RuntimeError(f"Groq Whisper returned HTTP {response.status_code}")
+        raise RuntimeError(f"{backend} Whisper returned HTTP {response.status_code}")
     try:
         text = response.json()["text"]
     except (ValueError, KeyError, TypeError) as exc:
-        raise RuntimeError("Groq Whisper returned an invalid transcription response") from exc
+        raise RuntimeError(f"{backend} Whisper returned an invalid transcription response") from exc
     if not isinstance(text, str) or not text.strip():
-        raise RuntimeError("Groq Whisper returned an empty transcript")
+        raise RuntimeError(f"{backend} Whisper returned an empty transcript")
     cleaned_transcript = text.strip()
     if is_silence_hallucination(cleaned_transcript):
-        raise RuntimeError("Groq Whisper returned an empty transcript (filtered silence hallucination)")
+        raise RuntimeError(f"{backend} Whisper returned an empty transcript (filtered silence hallucination)")
     return cleaned_transcript
 
 
@@ -404,7 +445,9 @@ async def stream_qwen3_tts(
     if not text or not text.strip():
         raise ValueError("text must not be empty")
 
-    if not (_allowed("QWEN3_TTS_HEALTH_DATA_PROCESSING_APPROVED") or _allowed("TTS_HEALTH_DATA_PROCESSING_APPROVED")):
+    if not _local_only() and not (
+        _allowed("QWEN3_TTS_HEALTH_DATA_PROCESSING_APPROVED") or _allowed("TTS_HEALTH_DATA_PROCESSING_APPROVED")
+    ):
         raise VoicePrivacyError("Qwen3-TTS egress is disabled until health-data processing is approved")
 
     try:
@@ -413,6 +456,8 @@ async def stream_qwen3_tts(
         raise RuntimeError("Install httpx to use Qwen3-TTS") from exc
 
     url = endpoint_url or os.getenv("QWEN3_TTS_URL", "http://localhost:8880/v1/audio/speech")
+    if _local_only() and not _is_local_url(url):
+        raise VoicePrivacyError("LOCAL_ONLY requires speech synthesis to use a local endpoint")
     req_model = model or os.getenv("QWEN3_TTS_MODEL", QWEN3_DEFAULT_MODEL)
     req_voice = voice or os.getenv("QWEN3_TTS_VOICE", QWEN3_DEFAULT_VOICE)
     req_timeout = timeout if timeout is not None else float(os.getenv("QWEN3_TTS_TIMEOUT", "5.0"))
@@ -437,6 +482,7 @@ async def stream_qwen3_tts(
     }
 
     factory = client_factory or httpx.AsyncClient
+    yielded_audio = False
     async with factory(timeout=req_timeout) as client:
         if hasattr(client, "stream"):
             async with client.stream("POST", url, headers=headers, json=payload) as response:
@@ -444,6 +490,7 @@ async def stream_qwen3_tts(
                     raise RuntimeError(f"Qwen3-TTS returned HTTP {response.status_code}")
                 async for chunk in response.aiter_bytes():
                     if chunk:
+                        yielded_audio = True
                         yield chunk
         else:
             response = await client.post(url, headers=headers, json=payload)
@@ -451,17 +498,23 @@ async def stream_qwen3_tts(
                 raise RuntimeError(f"Qwen3-TTS returned HTTP {response.status_code}")
             content = getattr(response, "content", None)
             if content:
+                yielded_audio = True
                 yield content
             elif hasattr(response, "aiter_bytes"):
                 async for chunk in response.aiter_bytes():
                     if chunk:
+                        yielded_audio = True
                         yield chunk
+    if not yielded_audio:
+        raise RuntimeError("Qwen3-TTS returned no audio")
 
 
 async def stream_edge_tts(text: str, voice: str) -> AsyncIterator[bytes]:
     """Synthesize speech using Microsoft Edge-TTS neural engine."""
     if not text.strip():
         raise ValueError("text must not be empty")
+    if _local_only():
+        raise VoicePrivacyError("Edge TTS is disabled in local-only mode")
     if not _allowed("EDGE_TTS_HEALTH_DATA_PROCESSING_APPROVED"):
         raise VoicePrivacyError("Edge TTS egress is disabled until health-data processing is approved")
     try:
@@ -470,12 +523,9 @@ async def stream_edge_tts(text: str, voice: str) -> AsyncIterator[bytes]:
         raise RuntimeError("Install edge-tts to synthesize speech") from exc
 
     phonetic_text = normalize_hinglish_phonetics(text, engine="edge-tts")
-    full_audio = bytearray()
     async for item in edge_tts.Communicate(phonetic_text, voice=voice).stream():
         if item.get("type") == "audio" and item.get("data"):
-            full_audio.extend(item["data"])
-    if full_audio:
-        yield bytes(full_audio)
+            yield item["data"]
 
 
 async def synthesize_speech_stream(
@@ -494,15 +544,17 @@ async def synthesize_speech_stream(
     if not text or not text.strip():
         raise ValueError("text must not be empty")
 
-    routed_engine, routed_voice = route_tts(text, language=language, preferred_engine=engine)
+    routed_engine, routed_voice = route_tts(
+        text, language=language, preferred_engine="mlx" if _local_only() else engine
+    )
     selected_voice = voice or routed_voice
-    target_engine = engine.casefold().strip() if engine else routed_engine
+    target_engine = "mlx" if _local_only() else (engine.casefold().strip() if engine else routed_engine)
 
     # If client_factory is explicitly passed without explicit engine, caller is testing Qwen3
     if client_factory is not None and engine is None:
         target_engine = "qwen3"
 
-    if target_engine in {"qwen3", "qwen", "qwen3-tts"}:
+    if target_engine in {"qwen3", "qwen", "qwen3-tts", "mlx", "local", "local-mlx"}:
         qwen_failed = False
         try:
             chunks_yielded = False
@@ -515,6 +567,8 @@ async def synthesize_speech_stream(
         except VoicePrivacyError:
             raise
         except Exception as exc:
+            if _local_only() or target_engine in {"mlx", "local", "local-mlx"}:
+                raise
             logger.warning("Qwen3-TTS unavailable or failed (%s); falling back to Edge-TTS neural engine", exc)
             qwen_failed = True
 
@@ -631,6 +685,11 @@ async def execute_voice_turn(
             await session.speak(sentence, send_audio, language=sent_lang)
 
     if send_json is not None:
-        await send_json({"type": "done", "status": turn_state.validator_status})
+        await send_json({
+            "type": "done",
+            "status": turn_state.validator_status,
+            "evidence_ids": turn_state.evidence_ids,
+            "retrieval_status": turn_state.retrieval_status,
+        })
 
     return output

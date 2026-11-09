@@ -1,13 +1,9 @@
-/**
- * Vercel Serverless Function: GET /health
- */
-export default function handler(req, res) {
+/** Reports only that this static-preview function is reachable. */
+export default function handler(_req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   return res.status(200).json({
     status: 'ok',
-    mode: 'serverless-edge',
-    service: 'disha-telephony-core',
+    service: 'static-preview',
     timestamp: new Date().toISOString(),
   });
 }
-

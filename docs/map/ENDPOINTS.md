@@ -1,7 +1,9 @@
 # Disha AI — Endpoint Catalog & Interface Cartography
 
-**Document Status:** Production Authoritative  
-**Source Code Baseline:** `disha_core/main.py`, `frontend/api/*`  
+**Document Status:** Historical generated snapshot — not current runtime authority
+**Source Code Baseline:** Earlier snapshot; validate against `disha_core/main.py` and `disha_core/routers/`
+
+> For current chat, voice, and auth routes use [Runtime Components](../architecture/02_runtime_components.md). The route claims below are retained for historical context only.
 **Authentication Standard:** Cryptographic SHA-256 Token Hashes (`patient_access_tokens`)
 
 ---
@@ -282,22 +284,21 @@
 
 ---
 
-## 3. Vercel Serverless Function Endpoints (`frontend/api/`)
+## 3. Vercel Static-Preview Endpoints (`frontend/api/`)
 
-Deployed on `https://disha-ai-gray.vercel.app` for high-availability edge routing and zero-downtime client authentication:
+These handlers do not connect to the Disha backend or its database. The static preview is not an authenticated application deployment:
 
 ### 3.1 `POST /api/auth/login` (`frontend/api/auth/login.js`)
 * **Method:** `POST`, `OPTIONS`
-* **Auth:** None (Public)
-* **Response 200 OK:** Returns mock-seeded credentials matching cardiac, diabetic, and general test patients.
+* **Response:** `503 Service Unavailable`; the handler does not issue demo tokens.
 
 ### 3.2 `GET /api/patient/profile` (`frontend/api/patient/profile.js`)
 * **Method:** `GET`, `OPTIONS`
 * **Auth:** Bearer Token Header
-* **Response 200 OK:** Returns demographic profile, stage-specific PEP limits, and 3-meal daily diet schedule.
+* **Response:** `503 Service Unavailable`; configure the authenticated backend API for profile access.
 
 ### 3.3 `GET /api/health` (`frontend/api/health.js`)
-* **Response 200 OK:** `{"status": "ok", "mode": "serverless-edge", "service": "disha-telephony-core"}`
+* **Response:** `200 OK` means only that the static-preview function is reachable; it does not check backend or database health.
 
 ### 3.4 `GET /api/ready` (`frontend/api/ready.js`)
-* **Response 200 OK:** `{"status": "ready", "laya": {"available": true, "classifier": "laya-multilingual", "mode": "edge-hybrid"}}`
+* **Response:** `503 Service Unavailable`; backend/model readiness is not available in the static preview.

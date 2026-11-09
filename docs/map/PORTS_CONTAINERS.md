@@ -1,6 +1,8 @@
 # Disha AI — Ports, Containers & Networking Cartography
 
-**Document Status:** Production Authoritative  
+**Document Status:** Historical generated snapshot — not current runtime authority
+
+> Port and container details vary by Compose file. Use [Deployment](../DEPLOYMENT.md) for the checked-in configurations and the timestamped host snapshot.
 **Target Environments:** Local Docker Engine & Cloud Linux VMs (`deploy-vm.sh`)  
 **Base Configurations:** `docker-compose.yml`, `docker-compose.prod.yml`, `disha_core/compose.yaml`
 

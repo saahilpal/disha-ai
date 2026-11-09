@@ -526,13 +526,13 @@ class SlotRegistry:
         # 2. Sleep time
         sleep_patterns = [
             r"(?:sleep|sleeping|sota|soti|sote|सोता|सोती|सोते|sleep\s*time)\s*(?:at|pe|around|ko|बजे)?\s*([0-9०-९a-zA-Z:\s]+?(?:pm|बजे|raat|night|रात))",
-            r"(?:रात|raat)\s*([0-9०-९:\s]+?(?:pm|बजे)?)\s*(?:सोता|sota|sleep)",
+            r"(?:रात|raat)\s*(?:ko|mein)?\s*([0-9०-९:\s]+?(?:pm|बजे)?)\s*(?:सोता|sota|sleep)",
             r"([0-9०-९]{1,2}(?::[0-9०-९]{2})?\s*(?:am|pm)?)\s*(?:baje\s+sota|बजे\s+सोना)",
         ]
         for pat in sleep_patterns:
             m = re.search(pat, s)
             if m:
-                extracted["sleep_time"] = self.normalize("sleep_time", m.group(1), lang)
+                extracted["sleep_time"] = self.normalize("sleep_time", m.group(0), lang)
                 break
 
         # 3. Water intake target

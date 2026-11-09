@@ -1,6 +1,8 @@
 # Disha AI — PostgreSQL 16 Relational Schema & Merkle Ledger Cartography
 
-**Document Status:** Production Authoritative  
+**Document Status:** Historical generated snapshot — not current runtime authority
+
+> The DDL and data-flow claims below may not match the deployed schema. The checked-in schema is [`disha_core/db/schema.sql`](../../disha_core/db/schema.sql); memory behavior is documented in [Memory and PEP](../MEMORY_AND_PEP.md).
 **Target RDBMS:** PostgreSQL 16 (Alpine) with `pg_trgm` Extension  
 **Source DDL:** `disha_core/db/schema.sql`, `disha_core/compliance/ledger.py`
 

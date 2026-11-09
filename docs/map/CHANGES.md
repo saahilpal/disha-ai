@@ -4,6 +4,8 @@
 **Branch:** `v2/remap` (branched from `pre-agent-audit` tag at commit `458caf1`)  
 **Base:** `db200a7` (origin/main)
 
+> **Historical audit snapshot:** This file records an earlier branch/repository state. It is not a current git-status or deployment report.
+
 ---
 
 ## 1. Commit and Reflog Trajectory

@@ -203,9 +203,9 @@ async def test_pipeline_skips_database_retrieval_on_coaching_and_meta():
     )
     request = SimpleNamespace(state=app_state)
 
-    with patch("disha_core.services.chat_service.retrieve_chunks") as mock_retrieve:
+    with patch("disha_core.main.retrieve_chunks") as mock_retrieve:
         # 1. Turn with General Coaching -> retrieval must be skipped!
-        payload = TurnRequest(text="Tips for improving my deep sleep")
+        payload = TurnRequest(text="Help me stay motivated today")
         state = TurnState()
         sentences = [s async for s in generate_turn_sentences(request, "pt_test_01", payload, state)]
         assert len(sentences) > 0

@@ -1,185 +1,104 @@
-# 🚀 Disha AI — Deployment, Infrastructure & Operations Guide
+# Deployment and Local Services
 
-**Document Path:** `docs/DEPLOYMENT.md`  
-**Classification:** Core Infrastructure & Operations Specification  
-**Version:** 2.0.0 (Production Verified)  
-**Maintained by:** Agent A (Backend Lead), Agent E (Telephony Engineer) & Agent H (Learning Tracker)  
-**Last Updated:** 2026-11-08  
+This guide distinguishes configuration in the repository from a point-in-time check of the working host. It does not certify the deployment as production-ready.
 
----
-
-## 1. Executive Summary
-
-Disha AI is designed for containerized deployment across local development, edge appliances, and production cloud infrastructure. It requires:
-1. **FastAPI Backend (`disha_core`):** Python 3.12+ ASGI application running via Uvicorn.
-2. **PostgreSQL 16 Database:** Containerized PostgreSQL with `pg_trgm` extension for sub-2.0ms lexical retrieval.
-3. **Cloudflare Tunnel Ingress:** TLS 1.3 reverse proxy satisfying browser W3C Secure Context requirements for `getUserMedia()`.
-4. **NGINX Reverse Proxy:** High-performance static asset server and WebSocket proxy.
-5. **Vercel Serverless (Optional Edge Static Host):** Static frontend deployment with serverless Node.js API bridges.
-
----
-
-## 2. Infrastructure Architecture & Container Topology
+## Host-to-tunnel topology
 
 ```mermaid
-flowchart TD
-    subgraph Internet ["Public Edge Ingress"]
-        ClientBrowser["Mobile / Desktop Web Browser"]
-        CFTunnel["Cloudflare Tunnel (TLS 1.3 Edge)\n*.trycloudflare.com / custom domain"]
-    end
+flowchart LR
+    Browser["Browser"]
+    Edge["Cloudflare Quick Tunnel\nHTTPS / WSS edge"]
+    Cloudflared["Host cloudflared process\noutbound tunnel"]
+    LocalAPI["Local-only FastAPI\n127.0.0.1:8010"]
+    DB[("PostgreSQL 16\n127.0.0.1:5432")]
+    Ollama["Local Ollama\n127.0.0.1:11434"]
+    MLX["Local MLX Audio\n127.0.0.1:8880"]
+    Nginx["Optional Compose NGINX\n127.0.0.1:8080"]
+    API["Optional Compose FastAPI\n127.0.0.1:8000"]
+    CloudAI["Cloud providers\nCompose mode only when configured"]
 
-    subgraph HostContainerNetwork ["Docker Host Network (compose.yaml)"]
-        Nginx["NGINX Reverse Proxy (Port 80)\nStatic Assets + WebSocket Buffering"]
-        
-        subgraph BackendService ["FastAPI App (disha_core:8080)"]
-            Uvicorn["Uvicorn ASGI Server"]
-            LayaEngine["In-Process Laya Decision Head\n(PyTorch / MPS / CPU)"]
-            VoicePipeline["Voice Session Handler\n(Groq STT + Edge-TTS)"]
-        end
-
-        subgraph DatabaseService ["PostgreSQL 16 Alpine (Port 5432)"]
-            PG["PostgreSQL 16 Engine"]
-            PGTRGM["pg_trgm Trigram Extension"]
-            PGData[("postgres_data Managed Volume")]
-        end
-    end
-
-    ClientBrowser -->|HTTPS / WSS| CFTunnel
-    CFTunnel -->|HTTP / WS| Nginx
-    Nginx -->|Static HTML/CSS/JS| ClientBrowser
-    Nginx -->|Proxy Pass /chat, /ws, /auth| Uvicorn
-    Uvicorn --> LayaEngine
-    Uvicorn --> VoicePipeline
-    Uvicorn -->|asyncpg Pool (Port 5432)| PG
-    PG --> PGTRGM
-    PG --> PGData
+    Browser -->|"public HTTPS / WSS"| Edge
+    Edge -->|"existing outbound tunnel"| Cloudflared
+    Cloudflared -->|"current TARGET_URL :8010"| LocalAPI
+    LocalAPI --> DB
+    LocalAPI --> Ollama
+    LocalAPI --> MLX
+    Cloudflared -.->|"default TARGET_URL :8080"| Nginx
+    Nginx --> API
+    API --> DB
+    API -.->|"Compose config"| CloudAI
 ```
 
----
+The tunnel is ingress only. The browser reaches Cloudflare over HTTPS/WSS; `cloudflared` makes the outbound connection and forwards traffic to the configured local target. The current running tunnel targets the local-only API on port `8010`. PostgreSQL and inference remain outside Cloudflare. The root Compose/Nginx mode remains available on port `8080`; the watchdog's generic default remains that port, so use `make tunnel-local` for the local-only runner. The emergency breaker can return advice to contact 112; the repository does not dial 112 or dispatch an emergency webhook.
 
-## 3. Environment Configuration Matrix
+## Compose configurations
 
-Configuration is dynamically read from shell environment variables in `disha_core/config.py`:
+There are multiple Compose files with different purposes; they are not interchangeable:
 
-| Variable Name | Default Value | Description / Required Format |
+| Configuration | Services and host ports | Notes |
 |---|---|---|
-| `DATABASE_URL` | `None` | Full PostgreSQL connection URL (e.g. `postgresql://disha:password@localhost:5432/disha`) |
-| `DB_HOST` | `"localhost"` | PostgreSQL hostname or container service name (`postgres` in compose) |
-| `DB_PORT` | `5432` | PostgreSQL TCP port |
-| `DB_NAME` | `"disha"` | Database name |
-| `DB_USER` | `"disha"` | Database user account |
-| `DB_PASSWORD` | `""` | Database password |
-| `DB_POOL_MIN` | `2` | Minimum asyncpg connections in pool |
-| `DB_POOL_MAX` | `30` | Maximum asyncpg connections in pool |
-| `GROQ_API_KEY` | `""` | Groq Cloud API key for Whisper STT and Llama-3.3 LLM |
-| `GROQ_MODEL` | `"openai/gpt-oss-120b"` | Groq LLM model identifier |
-| `GROQ_HEALTH_DATA_AUTHORIZED` | `"true"` | Explicit compliance flag for health data processing |
-| `GEMINI_API_KEY` | `""` | Google Gemini API key for secondary LLM failover |
-| `GEMINI_MODEL` | `"gemini-3.6-flash"` | Gemini model identifier |
-| `GEMINI_HEALTH_DATA_AUTHORIZED`| `"true"` | Explicit compliance flag for Gemini health processing |
-| `ADMIN_API_KEY` | `""` | Secret key required to query `/internal/classifier` and admin routes |
-| `PASSWORD_SALT` | `"disha_salt_v1"` | Cryptographic salt for password hashing |
-| `CORS_ALLOWED_ORIGINS` | `""` | Comma-delimited list of allowed CORS origins (e.g. `https://example.com`) |
-| `MAX_VOICE_TURN_BYTES` | `10485760` | Maximum byte size for a single audio turn frame (10MB) |
-| `VOICE_TRANSCRIBE_TIMEOUT` | `8.0` | Timeout in seconds for Groq Whisper transcription |
+| Root [`docker-compose.yml`](../docker-compose.yml) | `postgres` 5432, `backend` 8000, `proxy` 8080, bound to loopback | This is the root stack observed running during the 2026-11-09 review. It enables provider authorization flags in its backend environment and enables Ollama integration; actual provider calls still depend on keys, network access, and code checks. |
+| [`disha_core/compose.yaml`](../disha_core/compose.yaml) | `postgres` 5432 and `nginx` 8080 bound to loopback; API is private to the Compose network | Constrained local stack described in [`disha_core/README.md`](../disha_core/README.md). Provider authorization defaults are false. |
+| [`docker-compose.prod.yml`](../docker-compose.prod.yml) | PostgreSQL, Laya, backend, and proxy; proxy publishes host ports 80/443 | A deployment sketch, not a production security baseline: it contains a default password fallback and wildcard CORS and does not by itself configure production secrets, TLS termination, identity, clinical review, or tested cloud controls. |
 
----
+Each Compose setup has its own volumes and settings. Do not remove persistent database volumes as a schema-upgrade method. PostgreSQL executes `disha_core/db/schema.sql` only when its data directory is first initialized; later schema changes need reviewed migrations.
 
-## 4. Local Development Deployment (Docker Compose)
+## Cloudflare TryCloudflare watchdog
 
-### 4.1 Starting the Services
-From the repository root:
-```bash
-# 1. Ensure .env is populated with valid API keys
-cp .env.example .env
-# Edit .env to add your GROQ_API_KEY
+`scripts/tunnel-watchdog.sh` checks the local `/health` endpoint, starts `cloudflared`, extracts the generated `*.trycloudflare.com` hostname for a Quick Tunnel, and writes the current URL to `agent/TUNNEL_URL.txt` and `.env.local`. It defaults to `TARGET_URL=http://127.0.0.1:8080`; use `make tunnel-local` (or set `TARGET_URL=http://127.0.0.1:8010`) for the local-only runner. Environment settings can instead select a named tunnel or custom domain. Quick Tunnel URLs are temporary and can change after restart. The URL is public, not a credential.
 
-# 2. Start PostgreSQL and Disha Core
-docker compose up -d
-
-# 3. Check container status
-docker compose ps
-```
-
-### 4.2 Running Database Migrations
-Migrations are managed via Alembic:
-```bash
-# Run latest database migrations
-.venv/bin/alembic upgrade head
-
-# Seed initial ICMR guidelines and demo patient records
-.venv/bin/python3 disha_core/db/ingest_open_datasets.py
-```
-
-### 4.3 Verifying Health Probes
-```bash
-# General health probe
-curl -sS http://localhost:8080/health | jq .
-
-# System readiness (database + classifier)
-curl -sS http://localhost:8080/ready | jq .
-
-# In-process Laya classifier telemetry
-curl -sS -H "Authorization: Bearer dev-admin-secret" http://localhost:8080/internal/classifier | jq .
-```
-
----
-
-## 5. Cloudflare Tunnel Ingress (Web Audio Secure Context)
-
-### 5.1 Why Cloudflare Tunnel is Mandatory
-Modern browsers (iOS Safari, Android Chrome, desktop browsers) enforce the **Secure Context Invariant**. Access to the device microphone via `navigator.mediaDevices.getUserMedia()` is permanently blocked on non-secure origins (`http://192.168.x.x`).
-
-Cloudflare Tunnel provides an authenticated, zero-config public HTTPS ingress with TLS 1.3 certificates, satisfying the Secure Context Invariant.
-
-### 5.2 Starting the Tunnel Watchdog Daemon
-```bash
-# Start Cloudflare tunnel watchdog daemon
-./scripts/tunnel-watchdog.sh --start
-
-# Check tunnel status and retrieve active public URL
+```sh
+./scripts/tunnel-watchdog.sh
+make tunnel-local
 ./scripts/tunnel-watchdog.sh --status
-
-# Stop tunnel daemon
 ./scripts/tunnel-watchdog.sh --stop
 ```
-The public ingress URL is logged to `agent/TUNNEL_URL.txt` (e.g., `https://cached-developed-collectors-kerry.trycloudflare.com`).
 
----
+`make tunnel` is also available. A public HTTPS URL can make browser microphone APIs available in secure contexts, but it does not add authentication, privacy review, or production hardening. Do not expose a stack until its authentication, provider data egress, CORS, secrets, and clinical-data handling have been reviewed.
 
-## 6. Vercel Static Frontend Deployment (`vercel.json`)
+## Local model and audio options
 
-Disha AI can deploy its frontend statically to Vercel for high-speed CDN delivery:
+`scripts/local-models.sh` is a separate optional runner for Apple Silicon macOS. Its `start|stop|status` commands manage Ollama on loopback `11434`, an MLX Audio server on loopback `8880`, the root Compose PostgreSQL service, and a standalone FastAPI process on loopback `8010` by default. It sets `LOCAL_ONLY=true`, directs transcription/synthesis to local endpoints, and disables cloud LLM authorization for that local process. It requires the tools and environment listed by the script and may download models on first use.
 
-- **Configuration:** [`vercel.json`](file:///Users/nitrousoxide/Code/disha%20ai/disha_core/frontend/vercel.json)
-- **Static Assets:** Serves `frontend/index.html`, `style.css`, `app.js`.
-- **Serverless API Bridges:** [`api/`](file:///Users/nitrousoxide/Code/disha%20ai/disha_core/frontend/api/) contains Node.js serverless functions (`auth/login.js`, `patient/profile.js`, `health.js`, `ready.js`) enabling authentication on the static preview.
-- **WebSocket Backend Requirement:** Note that Vercel serverless functions cannot host persistent WebSockets. For live voice consultations, the frontend automatically routes WebSocket connections to the configured backend host or Cloudflare Tunnel URL.
+This runner is not the same topology as the root Compose stack: the tunnel watchdog still defaults to port `8080`, not the local model runner's API port `8010`. Port 8880 and local transcription are used only when that local service and configuration are active. Do not infer the local MLX service is running because the launcher exists. In local-only mode the process has `LOCAL_ONLY=true` and unsets Groq/Gemini API keys; its LLM provider set contains only local Ollama. A local-only failure does not fall back to a cloud provider.
 
----
+In the non-local configuration:
 
-## 7. Frontend Byte Synchronization (`scripts/sync-frontend.sh`)
+- The LLM adapter can use configured Ollama, Groq, or Gemini paths subject to provider flags, credentials, and internal fallback rules. This guide does not change or override that behavior.
+- Voice transcription uses Groq Whisper only when the health-data processing flag and API key are present; in `LOCAL_ONLY` mode it requires a local STT endpoint.
+- Qwen3-TTS uses `QWEN3_TTS_URL`; Edge-TTS is a separate externally hosted path requiring its own authorization flag. In local-only mode the Qwen endpoint must resolve locally and cloud TTS fallback is disabled.
 
-To eliminate code drift between `frontend/` (root) and `disha_core/frontend/` (container package):
+See [`disha_core/config.py`](../disha_core/config.py), [`disha_core/llm/client.py`](../disha_core/llm/client.py), and [`disha_core/voice.py`](../disha_core/voice.py) for current settings and checks.
 
-```bash
-# Run automated byte sync
-./scripts/sync-frontend.sh
+## Configuration and security notes
+
+- Database credentials are `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` (or `DATABASE_URL`). The container uses `POSTGRES_*` initialization variables.
+- LLM access is configured with `GROQ_API_KEY`, `GROQ_MODEL`, `GEMINI_API_KEY`, `GEMINI_MODEL`, and `OLLAMA_*`. Authorization/usage settings default false in `disha_core/config.py`; the root Compose file explicitly overrides several flags to true.
+- Audio egress has separate flags: `GROQ_HEALTH_DATA_PROCESSING_APPROVED`, `EDGE_TTS_HEALTH_DATA_PROCESSING_APPROVED`, and `QWEN3_TTS_HEALTH_DATA_PROCESSING_APPROVED`.
+- `CORS_ALLOWED_ORIGINS` is environment-defined. CORS is not authentication; the root Compose value is `*`, so that setting should not be mistaken for an access-control boundary.
+- `docker-compose.prod.yml` contains a sample default password and wildcard CORS. Do not expose those defaults as a production boundary.
+- `agent/TUNNEL_URL.txt` is generated runtime state and is ignored by Git. Vercel's static-preview login and readiness routes fail closed because they do not connect to the authenticated Disha backend; the supported live path described here is the host-local application behind the tunnel.
+
+## Point-in-time runtime check
+
+On 2026-11-09, the host was checked before and after starting the local-only runner:
+
+- The root Compose PostgreSQL, backend, and proxy were running. The local-only runner uses the existing PostgreSQL service and named data volume; no database volume was deleted or recreated.
+- The local-only FastAPI process on `127.0.0.1:8010` returned healthy `/health` and `/ready` responses. The public browser root returned HTTP 200, and the public `/health` and `/ready` endpoints returned success through the active TryCloudflare URL in `agent/TUNNEL_URL.txt`.
+- Ollama on `127.0.0.1:11434` completed direct generation, and Disha's `DualProviderClient` in `LOCAL_ONLY` mode generated a response with exactly one provider (local Ollama).
+- MLX Audio on `127.0.0.1:8880` loaded the Whisper-large-v3 Turbo and Svara TTS models. A synthetic speech sample was transcribed locally as `Dish a local audio test.` The inference endpoints are bound to loopback; the public tunnel routed `/v1/models` and `/api/tags` to the Disha API and returned 404.
+- Svara TTS **is not verified through the HTTP service**: a synthetic `/v1/audio/speech` request returned HTTP 200 with no audio, and the server raised `RuntimeError: There is no Stream(gpu, 0) in current thread.` The same Svara model generated a WAV successfully through the `mlx_audio.tts.generate` CLI. Trying MLX Audio 0.6.4 produced the same server-side failure as 0.6.2, so the startup script's 0.6.2 pin was retained. Treat server-mode TTS and the full voice path as blocked until the MLX worker/model stream issue is resolved.
+
+These are connectivity and synthetic-model checks, not a real authenticated chat/voice session or proof of conversation continuity/persistence across restart. The DB was not restarted to avoid interrupting or risking existing user data. The URL and process state are transient; repeat the checks before relying on them. Do not claim production security or clinical validation from these checks.
+
+## Useful checks
+
+```sh
+docker compose ps
+curl -fsS http://127.0.0.1:8080/health
+curl -fsS http://127.0.0.1:8000/health
+./scripts/tunnel-watchdog.sh --status
+scripts/local-models.sh status
 ```
-This script runs `rsync` with checksum verification, ensuring 100% byte-for-byte SHA-256 parity across both directories.
 
----
-
-## 8. Operational Runbook & Troubleshooting
-
-### Issue 1: `TypeError: navigator.mediaDevices is undefined`
-- **Cause:** User is accessing the app over plain `http://` on a LAN IP.
-- **Fix:** Connect via the HTTPS Cloudflare Tunnel URL or `http://localhost`.
-
-### Issue 2: `The AudioContext was not allowed to start`
-- **Cause:** Audio was initialized without a direct physical click gesture on the DOM.
-- **Fix:** Ensure the user clicks the `#start-call-btn` or `#consent-accept-btn` directly.
-
-### Issue 3: Classifier Latency Variance in Tests
-- **Cause:** In-process PyTorch classifier running concurrently on multi-threaded CPU.
-- **Fix:** For production, configure `LAYA_SERVER_URL` to point to a dedicated container or ensure Metal GPU (`mps:0`) acceleration is active.
+`/health` checks application-to-database connectivity. `/ready` also checks classifier readiness and can fail even when `/health` succeeds. Neither endpoint proves that external LLM/audio providers are reachable or that a user interaction is safe.

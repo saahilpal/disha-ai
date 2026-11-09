@@ -1,7 +1,9 @@
 # Disha AI — System Architecture & Component Cartography
 
-**Document Status:** Production Authoritative  
-**Source Code Baseline:** `disha_core/` (Commit `458caf1` / `db200a7`)  
+**Document Status:** Historical generated snapshot — not current runtime authority
+**Source Code Baseline:** Earlier snapshot; must be revalidated against current `disha_core/`
+
+> Use [current runtime architecture](../ARCHITECTURE.md) and [deployment topology](../DEPLOYMENT.md) for current behavior. The claims and diagrams below are retained for historical context only.
 **Architecture Doctrine:** Thick Deterministic Spine vs. Untrusted Probabilistic Leaf (`senior-ai-systems-engineer`)
 
 ---
@@ -118,7 +120,6 @@ graph TD
     Router -->|Audit Record| LocalWAL
     LocalWAL --> MerkleWorker
     MerkleWorker -->|SHA-256 Merkle Chain| Postgres
-```
 ```
 
 ---

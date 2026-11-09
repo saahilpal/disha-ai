@@ -1,7 +1,7 @@
 -- Disha AI Core: ICMR Clinical Stances & Reference Micro-Chunks (<50 words)
 -- Authority: Institutional Clinical Protocols & Dietary Guidelines
 
--- 1. Condition 1: GI Bloating Remedy (Approved Micro-Chunk)
+-- 1. Condition 1: unreviewed GI bloating draft
 INSERT INTO clinical_knowledge_base (
     condition_tag,
     trigger_terms,
@@ -19,12 +19,12 @@ INSERT INTO clinical_knowledge_base (
     'Suggest warm jeera or saunf water and light walking post meals. Avoid raw salads, carbonated beverages, and heavy legumes after 7 PM.',
     ARRAY['jeera', 'saunf'],
     'Institutional Clinical Protocol',
-    'approved',
-    'clin_lead_01',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 );
 
--- 2. Condition 2: Seasonal Fruit Allowance (Approved Micro-Chunk)
+-- 2. Condition 2: unreviewed seasonal fruit draft
 INSERT INTO clinical_knowledge_base (
     condition_tag,
     trigger_terms,
@@ -42,12 +42,12 @@ INSERT INTO clinical_knowledge_base (
     'Fresh seasonal mango is permitted in moderation up to 100g daily during afternoon hours. Avoid mango shakes, added sugar, or consuming post dinner.',
     ARRAY['moderation', '100g'],
     'Institutional Dietary Protocol',
-    'approved',
-    'clin_lead_02',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 );
 
--- 3. Condition 3: Knee & Joint Pain Care (Approved Micro-Chunk)
+-- 3. Condition 3: unreviewed knee and joint care draft
 INSERT INTO clinical_knowledge_base (
     condition_tag,
     trigger_terms,
@@ -65,9 +65,9 @@ INSERT INTO clinical_knowledge_base (
     'For knee discomfort or joint stiffness, prefer low-impact walking on flat surfaces, quad isometrics, and warm compresses. Avoid deep squats, high jumping, and twisting loads.',
     ARRAY['walking', 'quad'],
     'Institutional Clinical Protocol',
-    'approved',
-    'clin_lead_01',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 );
 
 -- 3. Seed Test Profile: pt_test_01

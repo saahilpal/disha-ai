@@ -18,6 +18,7 @@ import uuid
 from collections import OrderedDict
 from dataclasses import dataclass, field
 from typing import Any, Optional
+from urllib.parse import urlsplit
 
 import httpx
 
@@ -43,7 +44,7 @@ HIGH_RISK_PEP_RE = re.compile(
 MEAL_QUERY_RE = re.compile(
     r"\b(?:dinner|lunch|breakfast|meal|meals|diet|diet\s+plan|diet\s+chart|recipes?|calories?|"
     r"khana|khaana|nashta|phulkas?|rotis?|paneer|chilla|aam|fruits?|bhindi|sabzi|chawal|rice)\b|"
-    r"नाश्ता|खाना|भोजन|डाइट|रोटी|सब्जी|फल",
+    r"नाश्ता|खाना|भोजन|डाइट|रोटी|सब्जी|फल|आम|खा\s+सकते",
     re.I,
 )
 
@@ -162,6 +163,10 @@ class LayaClassifierAdapter:
     ) -> None:
         self.server_url = server_url or os.getenv("LAYA_SERVER_URL", "")
         self.api_key = api_key or os.getenv("LAYA_API_KEY", "")
+        if os.getenv("LOCAL_ONLY", "").strip().casefold() in {"1", "true", "yes", "on"}:
+            host = urlsplit(self.server_url).hostname if self.server_url else None
+            if host and host not in {"localhost", "127.0.0.1", "::1", "host.docker.internal", "laya"}:
+                raise ValueError("LOCAL_ONLY requires the classifier endpoint to be local")
         self.min_confidence = float(os.getenv("LAYA_MIN_CONFIDENCE", str(min_confidence)))
         self.model_name = os.getenv("LAYA_MODEL", model_name)
         self.timeout_seconds = float(os.getenv("LAYA_TIMEOUT_SECONDS", "2.0"))

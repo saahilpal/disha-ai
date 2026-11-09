@@ -70,34 +70,17 @@ async function runTestSuite() {
 
   try {
     // -------------------------------------------------------------------------
-    // TEST 1: Sign in & Demo Quick-Fill
+    // TEST 1: Sign-in form does not expose shared demo credentials
     // -------------------------------------------------------------------------
-    console.log('--- Executing Test 1: Sign In & Demo Quick-Fill ---');
+    console.log('--- Executing Test 1: Sign In & Demo Credential Exposure ---');
     await page.goto(`${BASE_URL}/#/signin`, { waitUntil: 'networkidle' });
     await page.waitForTimeout(300);
 
     const demoBtns = await page.$$('.demo-btn');
-    assert(demoBtns.length >= 3, `Expected at least 3 demo buttons, found ${demoBtns.length}`);
-
-    // Click demo button for Vikram Malhotra (cardiac@disha.ai)
-    await demoBtns[0].click();
-    await page.waitForTimeout(1000);
-
-    const currentUrlAfterLogin = page.url();
-    assert(currentUrlAfterLogin.includes('#/chat'), `Expected URL to include #/chat, got ${currentUrlAfterLogin}`);
-
-    const patientNameEl = await page.$('#patient-display-name');
-    const patientNameText = patientNameEl ? (await patientNameEl.textContent()).trim() : '';
-    assert(patientNameText.includes('Vikram'), `Expected patient name to contain Vikram, got: "${patientNameText}"`);
-
-    const dashboardViewDisplay = await page.evaluate(() => {
-      const el = document.getElementById('dashboard-view');
-      return window.getComputedStyle(el).display;
-    });
-    assert(dashboardViewDisplay === 'flex', `Dashboard view display should be flex, got: ${dashboardViewDisplay}`);
-
-    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '01_demo_login.png') });
-    recordResult('1. Sign In & Demo Quick-Fill', true, `Authenticated as "${patientNameText}" -> #/chat view active`);
+    assert.strictEqual(demoBtns.length, 0, 'Sign-in must not expose shared demo credentials');
+    assert(await page.$('#login-submit-btn'), 'Sign-in form should be present');
+    await page.screenshot({ path: path.join(SCREENSHOTS_DIR, '01_sign_in.png') });
+    recordResult('1. Sign In & Credential Privacy', true, 'Sign-in form is available without shared demo passwords');
 
     // -------------------------------------------------------------------------
     // TEST 2: Multi-step Onboarding Flow (3 Steps)
@@ -167,6 +150,11 @@ async function runTestSuite() {
     assert(newPatientName && newPatientName.includes('Ananya'), `Expected Ananya in patient pill, got: ${newPatientName}`);
 
     // Verify proactive companion welcome message
+    await page.waitForFunction(() => {
+      const stream = document.getElementById('chat-stream');
+      return stream && stream.innerText.includes('Namaste Ananya');
+    }, { timeout: 5000 });
+
     const welcomeMsg = await page.evaluate(() => {
       const stream = document.getElementById('chat-stream');
       return stream ? stream.innerText : '';

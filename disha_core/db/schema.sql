@@ -23,6 +23,7 @@ CREATE INDEX IF NOT EXISTS idx_clinical_tsv ON clinical_knowledge_base USING GIN
 CREATE INDEX IF NOT EXISTS idx_clinical_trgm ON clinical_knowledge_base USING GIN(trigger_terms gin_trgm_ops);
 CREATE INDEX IF NOT EXISTS idx_clinical_tsv_approved ON clinical_knowledge_base USING GIN(tsv_content) WHERE approval_status = 'approved';
 CREATE INDEX IF NOT EXISTS idx_clinical_trgm_approved ON clinical_knowledge_base USING GIN(trigger_terms gin_trgm_ops) WHERE approval_status = 'approved';
+CREATE INDEX IF NOT EXISTS idx_clinical_condition_approved ON clinical_knowledge_base(condition_tag) WHERE approval_status = 'approved';
 
 CREATE TABLE IF NOT EXISTS patient_profiles (
     patient_id VARCHAR(64) PRIMARY KEY,
@@ -53,7 +54,7 @@ CREATE TABLE IF NOT EXISTS patient_pep (
     user_reported_concerns TEXT DEFAULT '',
     diagnosed_conditions TEXT[] DEFAULT '{}',
     language VARCHAR(32) DEFAULT 'hinglish',
-    dietary_preference VARCHAR(64) DEFAULT 'Vegetarian',
+    dietary_preference VARCHAR(64),
     habits JSONB DEFAULT '{}'::jsonb NOT NULL,
     habits_version INT DEFAULT 1 NOT NULL,
     is_dirty BOOLEAN DEFAULT FALSE NOT NULL,
@@ -90,6 +91,32 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_habit_current_active
     WHERE valid_to IS NULL;
 CREATE INDEX IF NOT EXISTS idx_habit_current_patient_slot 
     ON habit_current_state (patient_id, slot_key);
+
+-- View: patient_habits with explicit provenance mapping
+CREATE OR REPLACE VIEW patient_habits AS
+SELECT
+    id,
+    patient_id,
+    slot_key,
+    value_norm,
+    value_raw,
+    raw_lang,
+    source,
+    CASE
+        WHEN source IN ('user_reported', 'chat', 'voice', 'call') THEN 'user_reported'
+        ELSE source
+    END AS provenance,
+    first_seen_at,
+    last_confirmed_at,
+    confirm_count,
+    confidence,
+    evidence_ref,
+    valid_from,
+    valid_to,
+    supersedes,
+    version,
+    created_at
+FROM habit_current_state;
 
 -- 2. Append-only habit observations partitioned by month with BRIN index
 CREATE TABLE IF NOT EXISTS habit_observations (
@@ -146,7 +173,8 @@ CREATE TABLE IF NOT EXISTS habit_episodes (
     due_at TIMESTAMPTZ,
     expires_at TIMESTAMPTZ,
     resolved_at TIMESTAMPTZ,
-    evidence_ref TEXT
+    evidence_ref TEXT,
+    clinician_verified_at TIMESTAMPTZ
 );
 CREATE INDEX IF NOT EXISTS idx_habit_episodes_pt_status 
     ON habit_episodes (patient_id, status);
@@ -163,6 +191,8 @@ CREATE TABLE IF NOT EXISTS patient_diet_schedules (
     meal_type VARCHAR(16) NOT NULL CHECK (meal_type IN ('breakfast', 'lunch', 'dinner')),
     prescribed_items TEXT NOT NULL CHECK (btrim(prescribed_items) <> ''),
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    approval_status VARCHAR(24) NOT NULL DEFAULT 'pending_review'
+        CHECK (approval_status IN ('pending_review', 'approved', 'rejected')),
     UNIQUE(patient_id, day_of_week, meal_type)
 );
 
@@ -228,6 +258,7 @@ CREATE TABLE IF NOT EXISTS patient_temporal_facts (
     category VARCHAR(64) NOT NULL DEFAULT 'lifestyle',
     fact_key VARCHAR(64) NOT NULL,
     fact_value TEXT NOT NULL,
+    source VARCHAR(16) NOT NULL DEFAULT 'unknown' CHECK (source IN ('chat', 'voice', 'unknown')),
     epistemic_status VARCHAR(24) NOT NULL DEFAULT 'active'
         CHECK (epistemic_status IN ('active', 'superseded', 'resolved', 'contradicted', 'flagged_review')),
     valid_from TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -332,7 +363,9 @@ CREATE TABLE IF NOT EXISTS product_facts (
     title VARCHAR(128) NOT NULL,
     fact_value JSONB NOT NULL,
     description TEXT,
-    verification_status VARCHAR(64) NOT NULL DEFAULT 'provisional / owner-verify',
+    owner VARCHAR(64) NOT NULL DEFAULT 'product_team',
+    is_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    verification_status VARCHAR(64) NOT NULL DEFAULT 'unknown',
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

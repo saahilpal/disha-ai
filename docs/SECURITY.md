@@ -1,12 +1,25 @@
-# 🔒 Disha AI — Security, Compliance & Cryptographic Integrity
+# Security Notes: Current Implementation and Historical Proposal
 
 **Document Path:** `docs/SECURITY.md`  
-**Classification:** Authoritative Security, Isolation & Reliability Architecture Specification  
-**Version:** 3.0.0 (Hardened Edge & Multi-Tenant Verified)  
-**Maintained by:** Agent F (Backend, Security and Reliability Engineer)  
-**Last Updated:** 2026-11-08  
+**Status:** Code-grounded observations followed by retained, unverified historical design material.
 
 ---
+
+## Current code-grounded notes
+
+These are implementation observations, not a penetration test, security certification, or compliance determination. See [Deployment](DEPLOYMENT.md) for the current host and Compose configuration.
+
+- Passwords are stored as PBKDF2-HMAC-SHA256 hashes with per-password random salts and 310,000 iterations. Login retains a legacy fixed-salt SHA-256 verification path that upgrades a successful legacy login.
+- Patient bearer tokens are stored as SHA-256 digests and registration sets a 365-day expiry. The chat emergency-text shortcut runs before patient-token authentication; regular chat and voice paths authenticate.
+- The application has in-process sliding-window limits: the auth helper allows 20 requests/minute per client IP and chat allows 60/minute per token-prefix or client-IP key. These counters are not shared across worker processes and can be disabled with `RATE_LIMIT_ENABLED=false`.
+- The HTTP request middleware rejects requests whose `Content-Length` exceeds the configured limit (2 MiB by default); it does not count streaming bodies without that header. Voice processing also rejects an individual audio payload over 10 MiB. These limits are not a complete denial-of-service defense.
+- Audit text passes through a finite set of regex redactions. Records are queued, written to a local SQLite WAL, and persisted in a PostgreSQL SHA-256 hash chain. Pattern redaction is not guaranteed de-identification; a hash chain is not proof of immutability, complete durability, or regulatory compliance.
+- The root and production-sketch Compose files set wildcard CORS and contain default database-password fallbacks. CORS is not authentication; do not expose these defaults as a production security boundary. The deployment guide describes these configuration caveats.
+- No assertion of HIPAA, DPDP, ICMR, or other regulatory compliance is made. Provider authorization, secret management, network exposure, operational monitoring, and clinical safety need deployment-specific review.
+
+## Historical design material (unverified)
+
+The remainder of this document is retained for context only. Its claims and test results have not been independently validated against the current code; statements about guaranteed isolation, zero-PHI handling, cryptographic immutability, reliability, compliance, and test-suite status must not be relied on as current evidence.
 
 ## 1. Security Architecture & Threat Model
 

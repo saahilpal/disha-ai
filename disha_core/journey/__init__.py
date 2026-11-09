@@ -20,7 +20,9 @@ from disha_core.journey.state_machine import (
     load_or_create_journey,
     record_field_answer,
     record_question_asked,
+    record_question_deferred,
     record_question_skipped,
+    record_slot_undo,
     sync_known_fields_from_db,
 )
 
@@ -39,7 +41,9 @@ __all__ = [
     "load_or_create_journey",
     "record_field_answer",
     "record_question_asked",
+    "record_question_deferred",
     "record_question_skipped",
+    "record_slot_undo",
     "select_next_question",
     "sync_known_fields_from_db",
 ]

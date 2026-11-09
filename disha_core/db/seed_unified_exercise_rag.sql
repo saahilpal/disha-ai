@@ -62,9 +62,9 @@ SELECT * FROM (VALUES
     'Perform 30 to 45 minutes of brisk walking daily at a conversational pace. A 10-15 minute walk after meals effectively blunts postprandial glucose spikes without joint strain.',
     ARRAY['brisk walk', 'walking'],
     'Fit India Protocols 18-64 Years & ICMR-NIN 2024 Guideline 2',
-    'approved',
-    'dr_fit_india_ayush',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 ),
 (
     'EXERCISE_SQUATS_FUNCTIONAL',
@@ -73,9 +73,9 @@ SELECT * FROM (VALUES
     'Practice bodyweight squats to build leg endurance. For knee sensitivity, perform chair-supported squats limiting knee bend to 45 degrees, keeping knees tracking behind toes.',
     ARRAY['squats', 'chair squats'],
     'Fit India Age-Appropriate Protocols, Section 4.2',
-    'approved',
-    'dr_fit_india_ayush',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 ),
 (
     'EXERCISE_HTN_CONTRAINDICATION',
@@ -84,9 +84,9 @@ SELECT * FROM (VALUES
     'High-load maximal deadlifts and breath-holding Valsalva maneuvers are strictly contraindicated in unmanaged hypertension due to acute systolic pressure spikes. Maintain light resistance with continuous breathing.',
     ARRAY['contraindicated', 'continuous breathing'],
     'WHO Guidelines on Physical Activity 2020: Hypertension',
-    'approved',
-    'dr_fit_india_ayush',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 ),
 (
     'EXERCISE_JUMPING_HIGH_IMPACT',
@@ -95,9 +95,9 @@ SELECT * FROM (VALUES
     'High-impact jumping exercises create 3 to 4 times bodyweight impact on joints. Replace jumping jacks with low-impact step-jacks or steady brisk walking when knee or ankle pain is present.',
     ARRAY['step-jacks', 'low impact'],
     'Fit India Assessment Protocols, Section 3.3',
-    'approved',
-    'dr_fit_india_ayush',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 ),
 (
     'EXERCISE_OVERHEAD_PRESS',
@@ -106,9 +106,9 @@ SELECT * FROM (VALUES
     'Avoid heavy overhead presses if rotator cuff pain or stage 2 hypertension is present. Substitute with resistance band pull-aparts or neutral-grip chest presses below shoulder height.',
     ARRAY['neutral grip', 'resistance bands'],
     'WHO Clinical Exercise Guidelines 2020',
-    'approved',
-    'dr_fit_india_ayush',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 ),
 (
     'EXERCISE_CRUNCHES_LUMBAR',
@@ -117,9 +117,9 @@ SELECT * FROM (VALUES
     'Repetitive spinal flexion in crunches aggravates lumbar disc herniation. Substitute with isometric core stabilizers like bird-dog on all fours or gentle knee planks on a soft mat.',
     ARRAY['bird-dog', 'isometric core'],
     'Fit India Protocols 18-64 Years, Section 4.3',
-    'approved',
-    'dr_fit_india_ayush',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 ),
 (
     'EXERCISE_RUNNING_AEROBIC',
@@ -128,9 +128,9 @@ SELECT * FROM (VALUES
     'Running offers high cardiovascular benefits but exerts substantial repetitive strike forces. For active knee pain or joint inflammation, substitute with flat brisk walking or stationary cycling.',
     ARRAY['brisk walking', 'cycling'],
     'Fit India Protocols 18-64 Years, Section 4.1',
-    'approved',
-    'dr_fit_india_ayush',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 ),
 (
     'EXERCISE_YOGA_GENTLE',
@@ -139,9 +139,9 @@ SELECT * FROM (VALUES
     'Begin with gentle loosening practices (Sadilaja) and restorative yoga asanas to improve joint flexibility and circulation. Maintain rhythmic breathing and avoid straining into painful ranges.',
     ARRAY['yoga', 'loosening practices'],
     'Common Yoga Protocol (CYP), Ministry of AYUSH & MDNIY, Chapter 3',
-    'approved',
-    'dr_fit_india_ayush',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 ),
 (
     'EXERCISE_YOGA_VAJRASANA',
@@ -150,9 +150,9 @@ SELECT * FROM (VALUES
     'Vajrasana is the only asana safe to practice immediately after meals to support digestive fire. Use a folded towel beneath ankles; avoid in acute knee joint inflammation.',
     ARRAY['vajrasana', 'digestion'],
     'Common Yoga Protocol, Ministry of AYUSH, Section 3.7',
-    'approved',
-    'dr_fit_india_ayush',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 ),
 (
     'EXERCISE_YOGA_BHUJANGASANA',
@@ -161,9 +161,9 @@ SELECT * FROM (VALUES
     'Bhujangasana strengthens deep back extensors and enhances respiratory volume. Keep elbows gently bent with forearms supported (Sphinx variation) to avoid lumbar compression; avoid in acute hernia.',
     ARRAY['bhujangasana', 'cobra pose'],
     'Common Yoga Protocol, Ministry of AYUSH, Section 3.11',
-    'approved',
-    'dr_fit_india_ayush',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 ),
 (
     'EXERCISE_PRANAYAMA_ANULOM',
@@ -172,9 +172,9 @@ SELECT * FROM (VALUES
     'Practice Nadi Shodhana (Alternate Nostril Breathing) for 5-10 minutes. It balances the autonomic nervous system, enhances vagal tone, and safely reduces elevated systolic blood pressure.',
     ARRAY['anulom vilom', 'nadi shodhana'],
     'Common Yoga Protocol, Ministry of AYUSH, Section 4.1',
-    'approved',
-    'dr_fit_india_ayush',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 ),
 (
     'EXERCISE_PRANAYAMA_BHRAMARI',
@@ -183,9 +183,9 @@ SELECT * FROM (VALUES
     'Bhramari pranayama stimulates endogenous nitric oxide release in paranasal sinuses. It soothes neural agitation, relieves anxiety, and aids restful sleep without any contraindications.',
     ARRAY['bhramari', 'humming breath'],
     'Common Yoga Protocol, Ministry of AYUSH, Section 4.2',
-    'approved',
-    'dr_fit_india_ayush',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 ),
 (
     'EXERCISE_PLANK_CORE',
@@ -194,9 +194,9 @@ SELECT * FROM (VALUES
     'Perform isometric planks from knees or against an incline to protect the spine. Maintain continuous regular breathing; strictly avoid breath-holding in patients with hypertension.',
     ARRAY['knee plank', 'continuous breathing'],
     'Fit India Protocols 18-64 Years, Section 4.3',
-    'approved',
-    'dr_fit_india_ayush',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 ),
 (
     'EXERCISE_PUSHUPS_STRENGTH',
@@ -205,9 +205,9 @@ SELECT * FROM (VALUES
     'Build chest and shoulder endurance using push-ups. Regress to standing wall push-ups or knee push-ups to minimize joint loading if shoulder impingement or wrist discomfort is present.',
     ARRAY['wall push-ups', 'knee push-ups'],
     'Fit India Protocols 18-64 Years, Section 4.2',
-    'approved',
-    'dr_fit_india_ayush',
-    NOW()
+    'draft',
+    NULL,
+    NULL
 )
 ) AS v(condition_tag, trigger_terms, context_header, guideline_content, required_remedy_tokens, source_citation, approval_status, clinician_id, approved_at)
 WHERE NOT EXISTS (

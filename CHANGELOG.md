@@ -9,6 +9,38 @@ Style Standard: Strict technical precision, zero emojis.
 
 ---
 
+## [1.1.0] - 2026-11-09
+
+### Added
+- **Final Fix Order v5 Execution Framework**:
+  - Expanded 16-specialist strike team roster in `agent/ROSTER.md` with owned globs, assigned skills, and step budgets.
+  - Asynchronous agent coordination board in `agent/board/board.jsonl`, `scripts/board`, and auto-updating `agent/BOARD.md`.
+  - Unified typed Pydantic v2 `TurnContext` in `disha_core/models/turn_context.py` with sectioned pipeline contract in `docs/contracts.md`.
+  - PHI-safe per-turn telemetry traces (`to_phi_safe_dict()`) with SHA-256 utterance prefix hashing.
+  - Living architecture Mermaid diagrams (01 through 07) in `docs/architecture/` verified by automated `scripts/diagram-check`.
+  - Comprehensive documentation drift mapping in `docs/OWNERS.yaml` and change logs in `docs/changes/WHY.md` and `docs/DELETIONS.md`.
+  - Turnkey local models script `scripts/local-models.sh` for Apple Silicon MLX audio and local Ollama inference.
+
+### Changed
+- **Zero-Pricing and Commercial Claims Invariant**:
+  - Eradicated all hardcoded pricing assumptions (₹1,499 subscriptions and ₹0 consults) across configs, prompt builders, and validators.
+  - Enforced strict replacement rule `Disha AI ke paas koi paid plans ya pricing nahi hai` on any detected currency or pricing claims.
+- **Gym Clearance Terminology Purge**:
+  - Completely purged invented `#profile-page-gym-clearance` elements and claims from the user interface.
+- **Hardcode and Secrets Hygiene**:
+  - Implemented `scripts/hardcode-check` detecting credentials, passwords, and commercial strings across 180 files.
+  - Integrated hardcode-check into `scripts/repo-check` pre-commit and CI gates with zero violations.
+
+### Fixed
+- **Synapse MCP SQLite Parser Bug**:
+  - Fixed syntax error in SQLite queries caused by Python comment strings inside multi-line SQL literals in `synapse/src/synap_git/storage/sqlite.py:894`.
+- **Alembic Version Identifier Truncation**:
+  - Widened `alembic_version.version_num` column from `VARCHAR(32)` to `VARCHAR(64)` in PostgreSQL, enabling successful application of migration revisions `0004` and `0005`.
+- **Voice Privacy Consent Evaluation Order**:
+  - Enforced `GROQ_HEALTH_DATA_PROCESSING_APPROVED` consent evaluation before calculating audio amplitude in `disha_core/voice.py`.
+
+---
+
 ## [1.0.0-rc1] - 2026-11-08
 
 ### Added

@@ -30,17 +30,17 @@ class Settings:
     # LLM Providers
     groq_api_key: str = ""
     groq_model: str = "openai/gpt-oss-120b"
-    groq_health_data_authorized: bool = True
-    groq_usage_charges_authorized: bool = True
-    groq_health_data_processing_approved: bool = True
+    groq_health_data_authorized: bool = False
+    groq_usage_charges_authorized: bool = False
+    groq_health_data_processing_approved: bool = False
 
     gemini_api_key: str = ""
     gemini_model: str = "gemini-3.6-flash"
-    gemini_health_data_authorized: bool = True
-    gemini_paid_or_contracted: bool = True
+    gemini_health_data_authorized: bool = False
+    gemini_paid_or_contracted: bool = False
 
-    edge_tts_health_data_processing_approved: bool = True
-    qwen3_tts_health_data_processing_approved: bool = True
+    edge_tts_health_data_processing_approved: bool = False
+    qwen3_tts_health_data_processing_approved: bool = False
     qwen3_tts_url: str = "http://localhost:8880/v1/audio/speech"
     qwen3_tts_model: str = "qwen3-tts"
     qwen3_tts_voice: str = "disha-warm-hinglish"
@@ -72,15 +72,15 @@ class Settings:
             db_pool_timeout=float(os.getenv("DB_POOL_TIMEOUT", "5.0")),
             groq_api_key=os.getenv("GROQ_API_KEY", ""),
             groq_model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
-            groq_health_data_authorized=os.getenv("GROQ_HEALTH_DATA_AUTHORIZED", "true").casefold() == "true",
-            groq_usage_charges_authorized=os.getenv("GROQ_USAGE_CHARGES_AUTHORIZED", "true").casefold() == "true",
-            groq_health_data_processing_approved=os.getenv("GROQ_HEALTH_DATA_PROCESSING_APPROVED", "true").casefold() == "true",
+            groq_health_data_authorized=os.getenv("GROQ_HEALTH_DATA_AUTHORIZED", "false").casefold() == "true",
+            groq_usage_charges_authorized=os.getenv("GROQ_USAGE_CHARGES_AUTHORIZED", "false").casefold() == "true",
+            groq_health_data_processing_approved=os.getenv("GROQ_HEALTH_DATA_PROCESSING_APPROVED", "false").casefold() == "true",
             gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
             gemini_model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
-            gemini_health_data_authorized=os.getenv("GEMINI_HEALTH_DATA_AUTHORIZED", "true").casefold() == "true",
-            gemini_paid_or_contracted=os.getenv("GEMINI_PAID_OR_CONTRACTED", "true").casefold() == "true",
-            edge_tts_health_data_processing_approved=os.getenv("EDGE_TTS_HEALTH_DATA_PROCESSING_APPROVED", "true").casefold() == "true",
-            qwen3_tts_health_data_processing_approved=os.getenv("QWEN3_TTS_HEALTH_DATA_PROCESSING_APPROVED", "true").casefold() == "true",
+            gemini_health_data_authorized=os.getenv("GEMINI_HEALTH_DATA_AUTHORIZED", "false").casefold() == "true",
+            gemini_paid_or_contracted=os.getenv("GEMINI_PAID_OR_CONTRACTED", "false").casefold() == "true",
+            edge_tts_health_data_processing_approved=os.getenv("EDGE_TTS_HEALTH_DATA_PROCESSING_APPROVED", "false").casefold() == "true",
+            qwen3_tts_health_data_processing_approved=os.getenv("QWEN3_TTS_HEALTH_DATA_PROCESSING_APPROVED", "false").casefold() == "true",
             qwen3_tts_url=os.getenv("QWEN3_TTS_URL", "http://localhost:8880/v1/audio/speech"),
             qwen3_tts_model=os.getenv("QWEN3_TTS_MODEL", "qwen3-tts"),
             qwen3_tts_voice=os.getenv("QWEN3_TTS_VOICE", "disha-warm-hinglish"),
@@ -97,3 +97,15 @@ class Settings:
 def get_settings() -> Settings:
     """Convenience getter returning fresh settings evaluated from os.environ."""
     return Settings.from_env()
+
+
+TEAM_CONFIRMATION_REPLACEMENTS = {
+    "hinglish": "Main is baare mein team se confirm karke aapko bataungi.",
+    "hi_deva": "मैं इस बारे में टीम से पुष्टि करके आपको बताऊँगी।",
+    "en": "I will confirm the plan and pricing details with the team and get back to you.",
+}
+
+DEFAULT_PRICING_REPLACEMENT = os.getenv(
+    "PRICING_REPLACEMENT",
+    TEAM_CONFIRMATION_REPLACEMENTS["hinglish"],
+)

@@ -210,12 +210,13 @@ def run_design_conformance() -> dict[str, Any]:
     }
 
     # C8: Authorized Commercial Pricing (Hard)
-    c8_valid1 = validator.validate_sentence("Follow-up consultations ₹0 hain.", {})
-    c8_valid2 = validator.validate_sentence("Dedicated nutritionist plan ₹1,499 per month hai.", {})
+    c8_benign = validator.validate_sentence("Seb ₹50 kilo milta hai market mein.", {})
+    c8_unverified = validator.validate_sentence("Dedicated nutritionist plan ₹1,499 per month hai.", {})
     c8_invalid = validator.validate_sentence("Yeh package ₹499 per month mein mil jayega.", {})
     c8_passed = (
-        c8_valid1.status == "accepted"
-        and c8_valid2.status == "accepted"
+        c8_benign.status == "accepted"
+        and c8_unverified.status == "rewritten"
+        and c8_unverified.text == PRICING_REPLACEMENT
         and c8_invalid.status == "rewritten"
         and c8_invalid.text == PRICING_REPLACEMENT
     )
@@ -223,7 +224,7 @@ def run_design_conformance() -> dict[str, Any]:
         "name": "Authorized Commercial Pricing",
         "passed": c8_passed,
         "type": "HARD",
-        "evidence": f"₹0 status={c8_valid1.status}, ₹1,499 status={c8_valid2.status}, ₹499 rewritten={c8_invalid.status == 'rewritten'}",
+        "evidence": f"Benign ₹50 status={c8_benign.status}, ₹1,499 rewritten={c8_unverified.status == 'rewritten'}, ₹499 rewritten={c8_invalid.status == 'rewritten'}",
     }
 
     # C9: Persona Invariant (Hard)
@@ -312,7 +313,10 @@ def run_design_conformance() -> dict[str, Any]:
     }
 
     # C16: No Autonomous Clinical Prescriptions (Non-Goal)
-    c16_passed = "Never claim to be a clinician" in SYSTEM_PROMPT and "Never invent prices" in SYSTEM_PROMPT
+    c16_passed = (
+        ("Never claim to be a doctor, clinician, or human" in SYSTEM_PROMPT or "Never claim to be a clinician" in SYSTEM_PROMPT)
+        and ("Do not state prices" in SYSTEM_PROMPT or "Never invent prices" in SYSTEM_PROMPT)
+    )
     results["C16"] = {
         "name": "No Autonomous Clinical Prescriptions (Scope Bound)",
         "passed": c16_passed,

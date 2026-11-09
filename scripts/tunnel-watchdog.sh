@@ -121,7 +121,15 @@ save_tunnel_url() {
   local tmp_file="${target_file}.tmp.$$"
   echo "${url}" > "${tmp_file}"
   mv -f "${tmp_file}" "${target_file}"
-  log "INFO" "Persisted live public tunnel URL -> ${target_file}: ${url}"
+
+  # Also persist to .env.local for local runtime consumption
+  local env_local="${REPO_ROOT}/.env.local"
+  if [ -f "${env_local}" ]; then
+    sed -i '' '/^PUBLIC_TUNNEL_URL=/d' "${env_local}" 2>/dev/null || true
+  fi
+  echo "PUBLIC_TUNNEL_URL=\"${url}\"" >> "${env_local}"
+
+  log "INFO" "Persisted live public tunnel URL -> ${target_file} & .env.local: ${url}"
 }
 
 # ------------------------------------------------------------------------------
@@ -398,6 +406,15 @@ verify_telephony() {
 
 # CLI Argument parsing
 case "${1:-}" in
+  --save-url|--persist-url)
+    shift
+    if [ -z "${1:-}" ]; then
+      echo "Error: URL argument required" >&2
+      exit 1
+    fi
+    save_tunnel_url "$1"
+    exit 0
+    ;;
   --status|status)
     show_status
     exit 0
