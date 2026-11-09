@@ -1,0 +1,424 @@
+[
+  {
+    "id": "fit_india_brisk_walking",
+    "name": "brisk_walking",
+    "aliases": ["walking", "walk", "tehalna", "morning walk", "evening walk", "brisk walk", "tez chalna", "step count", "tahalna"],
+    "source_authority": "Fit India Movement (MoHFW & MYAS, Govt of India)",
+    "category": "aerobic",
+    "stress_tags": ["low_impact", "aerobic", "joint_friendly", "metabolic_conditioning"],
+    "contraindicated_tags": ["acute_severe_gout_foot", "acute_chest_pain", "acute_severe_pain"],
+    "modifications": [
+      "Short 10-15 minute bouts after meals to assist glucose blunting (ICMR-NIN 2024)",
+      "Wear supportive footwear with cushioned insoles on even flat ground",
+      "Maintain conversational pace (able to speak without breathlessness)"
+    ],
+    "alternatives": [
+      "Seated arm ergometer or gentle seated marching",
+      "Gentle stretching and mobility flow",
+      "Stationary recumbent cycling"
+    ],
+    "default_level": "all",
+    "required_equipment": "none",
+    "default_location": "outdoor",
+    "guideline_notes": "Fit India standard cardio protocol: 30-45 minutes daily moderate aerobic activity ('Fitness Ki Dose, Aadha Ghanta Roz'). Ideal for glycemic and hypertension management.",
+    "citation": "Fit India Age-Appropriate Fitness Protocols 18-64 Years, Ministry of Youth Affairs and Sports & MoHFW, Govt of India, Section 4.1"
+  },
+  {
+    "id": "fit_india_squats",
+    "name": "squats",
+    "aliases": ["squat", "deep squats", "air squats", "bodyweight squats", "baithak", "dand baithak", "chair squat"],
+    "source_authority": "Fit India Movement (MoHFW & MYAS, Govt of India)",
+    "category": "muscular_strength",
+    "stress_tags": ["knee_joint_loading", "patellar_shear", "quadriceps", "axial_spine"],
+    "contraindicated_tags": ["knee_pain", "knee_injury", "patellar_tendonitis", "severe_arthritis_knee"],
+    "modifications": [
+      "Chair-supported shallow squats (limit knee bend to 45 degrees)",
+      "Wall slide with exercise ball supporting the lumbar spine",
+      "Keep knees tracking behind toes and avoid deep flexion past 90 degrees"
+    ],
+    "alternatives": [
+      "Glute bridges (floor-based movement, removes knee shear force)",
+      "Seated straight-leg raises to build quadriceps without joint loading",
+      "Gentle flat-surface walking"
+    ],
+    "default_level": "beginner",
+    "required_equipment": "none",
+    "default_location": "home",
+    "guideline_notes": "Fit India lower body functional movement. Promotes bone density and leg endurance. Knee pain patients must limit flexion range.",
+    "citation": "Fit India Age-Appropriate Fitness Protocols 18-64 Years, MoHFW & MYAS, Section 4.2"
+  },
+  {
+    "id": "who_heavy_deadlifts",
+    "name": "heavy_deadlifts",
+    "aliases": ["deadlift", "deadlifts", "heavy deadlift", "barbell deadlift", "max deadlift", "powerlifting deadlift"],
+    "source_authority": "WHO Guidelines on Physical Activity 2020",
+    "category": "muscular_strength",
+    "stress_tags": ["high_lumbar_shear", "valsalva_maneuver", "high_blood_pressure_spike", "axial_spine_compression"],
+    "contraindicated_tags": [
+      "hypertension_stage2",
+      "hypertension_stage1",
+      "cardiac_history",
+      "aneurysm",
+      "lower_back_pain",
+      "slip_disc",
+      "lumbar_herniation",
+      "sciatica"
+    ],
+    "modifications": [
+      "Bodyweight hip hinge practice with neutral lumbar spine",
+      "Light dumbbell Romanian deadlift with continuous rhythmic breathing (strictly no breath-holding)"
+    ],
+    "alternatives": [
+      "Bird-dog exercise on a soft mat (strengthens posterior chain with zero axial spine loading)",
+      "Glute bridges on mat for posterior glute/hamstring engagement",
+      "Brisk walking with active core bracing"
+    ],
+    "default_level": "intermediate",
+    "required_equipment": "full_gym",
+    "default_location": "gym",
+    "guideline_notes": "WHO & ACSM Clinical Contraindication: High-load maximal resistance exercises causing acute Valsalva-induced systolic spikes (>200 mmHg) are strictly contraindicated in unmonitored hypertension.",
+    "citation": "WHO Guidelines on Physical Activity and Sedentary Behaviour 2020, Section: Adults with Chronic Conditions"
+  },
+  {
+    "id": "fit_india_jumping_jacks",
+    "name": "jumping_jacks",
+    "aliases": ["jumping jack", "star jumps", "burpees", "box jumps", "jump rope", "koodna"],
+    "source_authority": "Fit India Movement (MoHFW & MYAS, Govt of India)",
+    "category": "aerobic",
+    "stress_tags": ["high_impact_landing", "knee_impact", "cardiovascular_spike", "ankle_impact"],
+    "contraindicated_tags": [
+      "knee_pain",
+      "knee_injury",
+      "ankle_injury",
+      "hypertension_stage2",
+      "cardiac_history",
+      "plantar_fasciitis"
+    ],
+    "modifications": [
+      "Low-impact step-jacks (step one foot out to the side without jumping)",
+      "Rhythmic arm raises while walking in place"
+    ],
+    "alternatives": [
+      "Brisk walking with synchronized arm pumping",
+      "Low-impact steady marching in place",
+      "Stationary cycling at a comfortable cadence"
+    ],
+    "default_level": "intermediate",
+    "required_equipment": "none",
+    "default_location": "home",
+    "guideline_notes": "High-impact landing creates 3-4x bodyweight ground reaction forces. Unsuitable for active knee/ankle pain or unmanaged stage 2 hypertension.",
+    "citation": "Fit India Fitness Assessment Protocol (Age 18-64), Section 3.3"
+  },
+  {
+    "id": "who_overhead_press",
+    "name": "overhead_press",
+    "aliases": ["shoulder press", "military press", "dumbbell shoulder press", "overhead dumbbell press"],
+    "source_authority": "WHO Guidelines on Physical Activity 2020",
+    "category": "muscular_strength",
+    "stress_tags": ["shoulder_impingement", "hypertension_valsalva", "lumbar_extension"],
+    "contraindicated_tags": [
+      "shoulder_pain",
+      "rotator_cuff_injury",
+      "hypertension_stage2",
+      "shoulder_impingement"
+    ],
+    "modifications": [
+      "Seated neutral-grip dumbbell press with light resistance",
+      "Limit movement range below 90 degrees shoulder abduction"
+    ],
+    "alternatives": [
+      "Resistance band pull-aparts for scapular stability",
+      "Incline chest press with light dumbbells",
+      "Gentle wall-crawls and shoulder pendulum mobility exercises"
+    ],
+    "default_level": "intermediate",
+    "required_equipment": "dumbbells",
+    "default_location": "home",
+    "guideline_notes": "Overhead loading can exacerbate rotator cuff impingement and trigger Valsalva response. Patients with stage 2 hypertension should avoid sustained overhead lifting.",
+    "citation": "WHO Guidelines on Physical Activity 2020 & Clinical Exercise Guidelines for Hypertension"
+  },
+  {
+    "id": "fit_india_crunches",
+    "name": "crunches",
+    "aliases": ["sit-ups", "situps", "crunch", "ab crunches", "abdominal crunches"],
+    "source_authority": "Fit India Movement (MoHFW & MYAS, Govt of India)",
+    "category": "core_conditioning",
+    "stress_tags": ["lumbar_flexion", "cervical_strain", "intra_abdominal_pressure"],
+    "contraindicated_tags": [
+      "lower_back_pain",
+      "slip_disc",
+      "lumbar_herniation",
+      "cervical_pain",
+      "diastasis_recti"
+    ],
+    "modifications": [
+      "Pelvic tilts on a flat mat with knees bent",
+      "Deadbug exercise focusing on transverse abdominis engagement"
+    ],
+    "alternatives": [
+      "Bird-dog on all fours (safe isometric core stabilization)",
+      "Forearm plank from knees with neutral spine",
+      "Standing isometric ab bracing during daily walks"
+    ],
+    "default_level": "beginner",
+    "required_equipment": "none",
+    "default_location": "home",
+    "guideline_notes": "Repetitive spinal flexion under compressive load aggravates lumbar disc herniation. Isometric stabilization is preferred for spine safety.",
+    "citation": "Fit India Age-Appropriate Fitness Protocols 18-64 Years, Section 4.3"
+  },
+  {
+    "id": "fit_india_running",
+    "name": "running",
+    "aliases": ["jogging", "run", "jog", "treadmill running", "sprints", "sprinting", "daudna"],
+    "source_authority": "Fit India Movement (MoHFW & MYAS, Govt of India)",
+    "category": "aerobic",
+    "stress_tags": ["repetitive_knee_strike", "high_impact", "cardiovascular_exertion", "shin_splints"],
+    "contraindicated_tags": [
+      "knee_pain",
+      "knee_injury",
+      "ankle_injury",
+      "acute_shin_splints",
+      "plantar_fasciitis",
+      "cardiac_history"
+    ],
+    "modifications": [
+      "Brisk walking intervals (walk fast 2 mins, gentle walk 1 min)",
+      "Walk on level grass or soft track rather than hard pavement"
+    ],
+    "alternatives": [
+      "Brisk outdoor walking or treadmill incline walking at low speed",
+      "Stationary cycling with smooth pedal stroke",
+      "Gentle swimming or shallow-water walking"
+    ],
+    "default_level": "intermediate",
+    "required_equipment": "none",
+    "default_location": "outdoor",
+    "guideline_notes": "Vigorous aerobic activity. Individuals with joint pain or cardiac history should maintain low-impact cardio alternatives.",
+    "citation": "Fit India Movement Protocols, MoHFW & MYAS, Section 4.1"
+  },
+  {
+    "id": "ayush_gentle_yoga",
+    "name": "gentle_yoga",
+    "aliases": ["yoga", "pranayama", "stretching", "asanas", "cat-cow", "yogabhyas", "sukshma vyayama"],
+    "source_authority": "Ministry of AYUSH & MDNIY (Common Yoga Protocol, Govt of India)",
+    "category": "yoga_asana",
+    "stress_tags": ["mobility", "low_intensity", "joint_decompression"],
+    "contraindicated_tags": ["severe_joint_instability", "acute_severe_pain"],
+    "modifications": [
+      "Use yoga blocks and wall support for balance",
+      "Avoid deep twists or inversions if blood pressure is elevated"
+    ],
+    "alternatives": [
+      "Chair yoga and seated spinal mobility",
+      "Guided diaphragmatic breathing and relaxation"
+    ],
+    "default_level": "all",
+    "required_equipment": "yoga_mat",
+    "default_location": "home",
+    "guideline_notes": "Ministry of AYUSH Common Yoga Protocol: Safe, gentle loosening practices (Sadilaja) and restorative asanas for all age groups.",
+    "citation": "Common Yoga Protocol (CYP), Ministry of AYUSH & MDNIY, Govt of India, Chapter 3"
+  },
+  {
+    "id": "ayush_tadasana",
+    "name": "tadasana",
+    "aliases": ["palm tree pose", "tadasan", "mountain pose"],
+    "source_authority": "Ministry of AYUSH & MDNIY (Common Yoga Protocol, Govt of India)",
+    "category": "yoga_asana",
+    "stress_tags": ["postural_alignment", "axial_decompression", "balance"],
+    "contraindicated_tags": ["severe_vertigo", "acute_severe_pain"],
+    "modifications": [
+      "Keep feet hip-width apart rather than joined for better base of support",
+      "Keep heels on the floor if balance is unsteady"
+    ],
+    "alternatives": [
+      "Seated posture alignment in a firm chair",
+      "Gentle wall-supported standing alignment"
+    ],
+    "default_level": "all",
+    "required_equipment": "yoga_mat",
+    "default_location": "home",
+    "guideline_notes": "Promotes physical and mental stability; corrects posture and stretches thoracic spine.",
+    "citation": "Common Yoga Protocol, Ministry of AYUSH, Section 3.1"
+  },
+  {
+    "id": "ayush_vajrasana",
+    "name": "vajrasana",
+    "aliases": ["diamond pose", "thunderbolt pose", "vajrasan"],
+    "source_authority": "Ministry of AYUSH & MDNIY (Common Yoga Protocol, Govt of India)",
+    "category": "yoga_asana",
+    "stress_tags": ["knee_hyperflexion", "ankle_extension", "pelvic_blood_flow"],
+    "contraindicated_tags": ["knee_pain", "knee_injury", "acute_piles", "severe_arthritis_knee"],
+    "modifications": [
+      "Place a folded blanket or yoga cushion between heels and buttocks",
+      "Place a small rolled towel under ankles"
+    ],
+    "alternatives": [
+      "Sukhasana (Easy seated pose) on a cushion",
+      "Seated chair posture with upright spine"
+    ],
+    "default_level": "beginner",
+    "required_equipment": "yoga_mat",
+    "default_location": "home",
+    "guideline_notes": "The only asana recommended to be practiced immediately after meals to stimulate digestion. Avoid in acute knee joint inflammation.",
+    "citation": "Common Yoga Protocol, Ministry of AYUSH & MDNIY, Section 3.7"
+  },
+  {
+    "id": "ayush_bhujangasana",
+    "name": "bhujangasana",
+    "aliases": ["cobra pose", "bhujangasan", "serpent pose"],
+    "source_authority": "Ministry of AYUSH & MDNIY (Common Yoga Protocol, Govt of India)",
+    "category": "yoga_asana",
+    "stress_tags": ["lumbar_extension", "abdominal_stretch", "chest_expansion"],
+    "contraindicated_tags": ["acute_peptic_ulcer", "abdominal_hernia", "recent_abdominal_surgery", "acute_severe_back_spasm"],
+    "modifications": [
+      "Sarala Bhujangasana (Sphinx pose on forearms with gentle arch)",
+      "Keep elbows slightly bent and avoid hyperextension of lumbar spine"
+    ],
+    "alternatives": [
+      "Makarasana (Crocodile pose) for passive spinal relaxation",
+      "Seated gentle thoracic arch in chair"
+    ],
+    "default_level": "beginner",
+    "required_equipment": "yoga_mat",
+    "default_location": "home",
+    "guideline_notes": "Strengthens back muscles and improves chest expansion. Effective for bronchial asthma and mild back stiffness.",
+    "citation": "Common Yoga Protocol, Ministry of AYUSH & MDNIY, Section 3.11"
+  },
+  {
+    "id": "ayush_makarasana",
+    "name": "makarasana",
+    "aliases": ["crocodile pose", "makarasan"],
+    "source_authority": "Ministry of AYUSH & MDNIY (Common Yoga Protocol, Govt of India)",
+    "category": "yoga_asana",
+    "stress_tags": ["diaphragmatic_relaxation", "lumbar_decompression"],
+    "contraindicated_tags": ["acute_severe_pain"],
+    "modifications": [
+      "Adjust width of feet to comfortable distance",
+      "Place a thin cushion under lower abdomen if lumbar lordosis causes tension"
+    ],
+    "alternatives": [
+      "Shavasana (Corpse pose)",
+      "Side-lying resting posture"
+    ],
+    "default_level": "all",
+    "required_equipment": "yoga_mat",
+    "default_location": "home",
+    "guideline_notes": "Restorative prone posture. Highly recommended for patients with hypertension, stress, and lower back tension.",
+    "citation": "Common Yoga Protocol, Ministry of AYUSH & MDNIY, Section 3.13"
+  },
+  {
+    "id": "ayush_setubandhasana",
+    "name": "setubandhasana",
+    "aliases": ["bridge pose", "setu bandha sarvangasana", "glute bridge yoga", "setubandhasan"],
+    "source_authority": "Ministry of AYUSH & MDNIY (Common Yoga Protocol, Govt of India)",
+    "category": "yoga_asana",
+    "stress_tags": ["cervical_flexion", "glute_activation", "lumbar_support"],
+    "contraindicated_tags": ["acute_cervical_injury", "neck_pain", "severe_lumbar_herniation"],
+    "modifications": [
+      "Place a yoga block beneath sacrum for supported passive bridge",
+      "Keep lift moderate without straining cervical neck spine"
+    ],
+    "alternatives": [
+      "Floor glute bridges with head flat on mat",
+      "Pelvic tilts on mat"
+    ],
+    "default_level": "beginner",
+    "required_equipment": "yoga_mat",
+    "default_location": "home",
+    "guideline_notes": "Relieves backache, stretches neck and chest, calms brain and helps alleviate stress and mild hypertension.",
+    "citation": "Common Yoga Protocol, Ministry of AYUSH & MDNIY, Section 3.14"
+  },
+  {
+    "id": "ayush_nadi_shodhana",
+    "name": "anulom_vilom",
+    "aliases": ["nadi shodhana", "alternate nostril breathing", "anuloma viloma", "nadi shuddhi"],
+    "source_authority": "Ministry of AYUSH & MDNIY (Common Yoga Protocol, Govt of India)",
+    "category": "pranayama",
+    "stress_tags": ["autonomic_regulation", "parasympathetic_tone", "cardiovascular_calming"],
+    "contraindicated_tags": ["acute_nasal_blockage"],
+    "modifications": [
+      "Perform without breath retention (Kumbhaka) in hypertension or cardiac conditions",
+      "Maintain smooth, rhythmic 1:1 inhalation-exhalation ratio"
+    ],
+    "alternatives": [
+      "Simple deep diaphragmatic breathing",
+      "Bhramari pranayama"
+    ],
+    "default_level": "all",
+    "required_equipment": "none",
+    "default_location": "any",
+    "guideline_notes": "Principal calming pranayama. Reduces sympathetic activity, lowers heart rate and blood pressure, improves mental clarity. Safe for all patients.",
+    "citation": "Common Yoga Protocol, Ministry of AYUSH & MDNIY, Section 4.1"
+  },
+  {
+    "id": "ayush_bhramari",
+    "name": "bhramari_pranayama",
+    "aliases": ["bhramari", "humming bee breath", "bhramari breath"],
+    "source_authority": "Ministry of AYUSH & MDNIY (Common Yoga Protocol, Govt of India)",
+    "category": "pranayama",
+    "stress_tags": ["nitric_oxide_production", "vagal_stimulation", "acoustic_resonance"],
+    "contraindicated_tags": ["active_ear_infection"],
+    "modifications": [
+      "Practice without pressing tragi if ears feel sensitive",
+      "Gentle low-pitch humming without forceful exhalation"
+    ],
+    "alternatives": [
+      "Nadi Shodhana pranayama",
+      "Gentle rhythmic exhalation counting"
+    ],
+    "default_level": "all",
+    "required_equipment": "none",
+    "default_location": "any",
+    "guideline_notes": "Generates endogenous nitric oxide in paranasal sinuses. Alleviates stress, anger, and anxiety; beneficial in mild hypertension.",
+    "citation": "Common Yoga Protocol, Ministry of AYUSH & MDNIY, Section 4.2"
+  },
+  {
+    "id": "fit_india_plank",
+    "name": "plank",
+    "aliases": ["planks", "forearm plank", "front plank", "kumbhakasana"],
+    "source_authority": "Fit India Movement (MoHFW & MYAS, Govt of India)",
+    "category": "core_conditioning",
+    "stress_tags": ["isometric_core", "intra_thoracic_pressure", "shoulder_stability"],
+    "contraindicated_tags": ["hypertension_stage2", "hypertension_stage1", "cardiac_history", "rotator_cuff_injury"],
+    "modifications": [
+      "Knee plank (knees on mat to reduce lever arm and intra-thoracic pressure)",
+      "Incline forearm plank against a sturdy table or wall",
+      "Short 10-second holds with continuous breathing (avoid breath-holding)"
+    ],
+    "alternatives": [
+      "Bird-dog on all fours",
+      "Deadbug on mat",
+      "Glute bridges"
+    ],
+    "default_level": "beginner",
+    "required_equipment": "none",
+    "default_location": "home",
+    "guideline_notes": "Core endurance benchmark in Fit India. Hypertensive patients must not perform prolonged isometric breath holds.",
+    "citation": "Fit India Age-Appropriate Fitness Protocols 18-64 Years, Section 4.3"
+  },
+  {
+    "id": "fit_india_pushups",
+    "name": "pushups",
+    "aliases": ["push up", "push-ups", "press ups", "dand", "wall pushups", "knee pushups"],
+    "source_authority": "Fit India Movement (MoHFW & MYAS, Govt of India)",
+    "category": "muscular_strength",
+    "stress_tags": ["pectoralis", "anterior_deltoid", "triceps", "core_bracing"],
+    "contraindicated_tags": ["shoulder_pain", "rotator_cuff_injury", "wrist_pain", "acute_shoulder_impingement"],
+    "modifications": [
+      "Wall push-ups (standing arms-length from wall, low joint load)",
+      "Incline push-ups on kitchen counter or bench",
+      "Knee push-ups on soft mat"
+    ],
+    "alternatives": [
+      "Resistance band chest press",
+      "Seated dumbbell chest press with neutral grip",
+      "Isometric chest press with palms joined"
+    ],
+    "default_level": "beginner",
+    "required_equipment": "none",
+    "default_location": "home",
+    "guideline_notes": "Fit India upper body endurance standard. Regress to wall or knee pushups if shoulder or wrist pain is reported.",
+    "citation": "Fit India Age-Appropriate Fitness Protocols 18-64 Years, Section 4.2"
+  }
+]
+

@@ -396,6 +396,12 @@ async def record_field_answer(
                 str(val),
                 now,
             )
+            # Also keep patient_profiles synchronized with updated dietary preference
+            await conn.execute(
+                """UPDATE patient_profiles SET dietary_preference = $2 WHERE patient_id = $1""",
+                patient_id,
+                str(val),
+            )
     elif dest == FieldDestination.HABIT_SLOT:
         slot_key = field_def.dest_column
         await commit_habit_slot(

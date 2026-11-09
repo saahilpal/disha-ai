@@ -12,6 +12,7 @@ from disha_core.pep.habits_engine import (
     consolidate_patient_habits,
     detect_habit_signals,
     get_pep,
+    record_habit_episode,
     record_habit_observation,
     render_pep_brief,
 )
@@ -25,6 +26,7 @@ __all__ = [
     "consolidate_patient_habits",
     "detect_habit_signals",
     "get_pep",
+    "record_habit_episode",
     "record_habit_observation",
     "render_pep_brief",
 ]

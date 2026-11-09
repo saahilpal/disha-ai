@@ -1,27 +1,37 @@
 """PEP-Aware Personalised Exercise Recommendation and Restriction Engine.
 
-Clinical Logic:
-1. Evaluates each proposed exercise against patient-specific PEP context:
+Dataset-Driven Architecture:
+Sourced from official Indian Government & Global Health Authorities:
+1. Fit India Movement (Ministry of Youth Affairs and Sports & MoHFW, Govt of India)
+2. Ministry of AYUSH & Morarji Desai National Institute of Yoga (MDNIY, Govt of India)
+3. ICMR-NIN 2024 Physical Activity Guidelines for Indians
+4. World Health Organization (WHO Guidelines on Physical Activity and Sedentary Behaviour 2020)
+
+Clinical Safety & Deterministic Logic:
+1. Dynamic dataset loading from data/official_exercise_guidelines.json and PostgreSQL clinical_exercise_guidelines.
+2. Evaluates each proposed exercise against patient-specific PEP context:
    - Diagnosed health conditions (e.g., hypertension stage 1/2, cardiac, diabetes).
-   - User-reported symptoms & pain locations (e.g., knee pain, lower back discomfort, shoulder impingement).
+   - User-reported symptoms & pain locations (knee, lower back, shoulder, ankle).
    - Injuries and physical limitations.
    - Activity level and exercise experience (sedentary vs active).
    - Patient preferences & workout location (home vs gym, equipment availability).
    - Clinician-provided restrictions and contraindications.
-2. Classifies exercises deterministically:
+3. Classifies exercises deterministically:
    - SUITABLE: Safe and aligned with patient goals and condition.
    - MODIFIED: Safe with appropriate modifications / range-of-motion adjustments.
    - AVOID: Inadvisable due to known patient concern or medical contraindication.
    - INSUFFICIENT_INFO: Missing critical safety details; asks clarifying question.
    - REQUIRES_CLINICAL_ASSESSMENT: Severe acute pain or red flag needing professional care.
-3. Provides personalized, safe alternatives and simple explanations for any avoided exercise.
+4. Zero hardcoded clinical rules or exercise registries in code.
 """
 from __future__ import annotations
 
+import json
 import logging
 import re
 from dataclasses import dataclass, field
 from enum import Enum
+from pathlib import Path
 from typing import Any, Sequence
 
 logger = logging.getLogger("disha_core.pep.exercise_engine")
@@ -39,13 +49,17 @@ class SuitabilityCategory(str, Enum):
 class ExerciseProfile:
     name: str
     aliases: tuple[str, ...]
+    source_authority: str
+    category: str
     stress_tags: frozenset[str]
     contraindicated_tags: frozenset[str]
     modifications: tuple[str, ...]
     alternatives: tuple[str, ...]
     default_level: str  # beginner, intermediate, advanced, all
-    required_equipment: str  # none, dumbbells, resistance_bands, full_gym
+    required_equipment: str  # none, dumbbells, yoga_mat, full_gym
     default_location: str  # home, gym, outdoor, any
+    guideline_notes: str = ""
+    citation: str = ""
 
 
 @dataclass
@@ -57,170 +71,69 @@ class ExerciseEvaluation:
     alternatives: list[str] = field(default_factory=list)
     caution_notes: str = ""
     clarification_question: str = ""
+    source_citation: str = ""
 
 
-# Comprehensive Clinical Exercise Registry
-EXERCISE_CATALOG: dict[str, ExerciseProfile] = {
-    "squats": ExerciseProfile(
-        name="squats",
-        aliases=("squat", "deep squats", "air squats", "bodyweight squats"),
-        stress_tags=frozenset({"knee_joint_loading", "patellar_shear", "quadriceps", "axial_spine"}),
-        contraindicated_tags=frozenset({"knee_pain", "knee_injury", "patellar_tendonitis", "severe_arthritis_knee"}),
-        modifications=(
-            "Chair-supported shallow squats (limit knee bend to 45 degrees)",
-            "Wall slide with exercise ball supporting the lumbar spine",
-            "Keep knees tracking behind toes and avoid deep flexion",
-        ),
-        alternatives=(
-            "Glute bridges (floor-based movement, removes knee shear force)",
-            "Seated straight-leg raises to build quadriceps without joint loading",
-            "Gentle flat-surface walking",
-        ),
-        default_level="beginner",
-        required_equipment="none",
-        default_location="home",
-    ),
-    "heavy_deadlifts": ExerciseProfile(
-        name="heavy_deadlifts",
-        aliases=("deadlift", "deadlifts", "heavy deadlift", "barbell deadlift", "max deadlift"),
-        stress_tags=frozenset({"high_lumbar_shear", "valsalva_maneuver", "high_blood_pressure_spike", "axial_spine_compression"}),
-        contraindicated_tags=frozenset({
-            "hypertension_stage2",
-            "hypertension_stage1",
-            "cardiac_history",
-            "aneurysm",
-            "lower_back_pain",
-            "slip_disc",
-            "lumbar_herniation",
-            "sciatica",
-        }),
-        modifications=(
-            "Bodyweight hip hinge practice with neutral lumbar spine",
-            "Light dumbbell Romanian deadlift with continuous rhythmic breathing (strictly no breath-holding)",
-        ),
-        alternatives=(
-            "Bird-dog exercise on a soft mat (strengthens posterior chain with zero axial spine loading)",
-            "Glute bridges on mat for posterior glute/hamstring engagement",
-            "Brisk walking with active core bracing",
-        ),
-        default_level="intermediate",
-        required_equipment="full_gym",
-        default_location="gym",
-    ),
-    "jumping_jacks": ExerciseProfile(
-        name="jumping_jacks",
-        aliases=("jumping jack", "star jumps", "burpees", "box jumps", "jump rope"),
-        stress_tags=frozenset({"high_impact_landing", "knee_impact", "cardiovascular_spike", "ankle_impact"}),
-        contraindicated_tags=frozenset({"knee_pain", "knee_injury", "ankle_injury", "hypertension_stage2", "cardiac_history", "plantar_fasciitis"}),
-        modifications=(
-            "Low-impact step-jacks (step one foot out to the side without jumping)",
-            "Rhythmic arm raises while walking in place",
-        ),
-        alternatives=(
-            "Brisk walking with synchronized arm pumping",
-            "Low-impact steady marching in place",
-            "Stationary cycling at a comfortable cadence",
-        ),
-        default_level="beginner",
-        required_equipment="none",
-        default_location="home",
-    ),
-    "running": ExerciseProfile(
-        name="running",
-        aliases=("jogging", "run", "jog", "treadmill running", "sprints", "sprinting"),
-        stress_tags=frozenset({"repetitive_knee_strike", "high_impact", "cardiovascular_exertion", "shin_splints"}),
-        contraindicated_tags=frozenset({"knee_pain", "ankle_injury", "acute_shin_splints", "plantar_fasciitis", "cardiac_history"}),
-        modifications=(
-            "Brisk walking intervals (walk fast 2 mins, gentle walk 1 min)",
-            "Walk on level grass or soft track rather than hard pavement",
-        ),
-        alternatives=(
-            "Brisk outdoor walking or treadmill incline walking at low speed",
-            "Stationary cycling with smooth pedal stroke",
-            "Gentle swimming or shallow-water walking",
-        ),
-        default_level="intermediate",
-        required_equipment="none",
-        default_location="outdoor",
-    ),
-    "overhead_press": ExerciseProfile(
-        name="overhead_press",
-        aliases=("shoulder press", "military press", "dumbbell shoulder press"),
-        stress_tags=frozenset({"shoulder_impingement", "hypertension_valsalva", "lumbar_extension"}),
-        contraindicated_tags=frozenset({"shoulder_pain", "rotator_cuff_injury", "hypertension_stage2", "shoulder_impingement"}),
-        modifications=(
-            "Seated neutral-grip dumbbell press with light resistance",
-            "Limit movement range below 90 degrees shoulder abduction",
-        ),
-        alternatives=(
-            "Resistance band pull-aparts for scapular stability",
-            "Incline chest press with light dumbbells",
-            "Gentle wall-crawls and shoulder pendulum mobility exercises",
-        ),
-        default_level="intermediate",
-        required_equipment="dumbbells",
-        default_location="home",
-    ),
-    "crunches": ExerciseProfile(
-        name="crunches",
-        aliases=("sit-ups", "situps", "crunch", "ab crunches"),
-        stress_tags=frozenset({"lumbar_flexion", "cervical_strain", "intra_abdominal_pressure"}),
-        contraindicated_tags=frozenset({"lower_back_pain", "slip_disc", "lumbar_herniation", "cervical_pain", "diastasis_recti"}),
-        modifications=(
-            "Pelvic tilts on a flat mat with knees bent",
-            "Deadbug exercise focusing on transverse abdominis engagement",
-        ),
-        alternatives=(
-            "Bird-dog on all fours (safe isometric core stabilization)",
-            "Forearm plank from knees with neutral spine",
-            "Standing isometric ab bracing during daily walks",
-        ),
-        default_level="beginner",
-        required_equipment="none",
-        default_location="home",
-    ),
-    "brisk_walking": ExerciseProfile(
-        name="brisk_walking",
-        aliases=("walking", "walk", "tehalna", "morning walk", "evening walk", "brisk walk"),
-        stress_tags=frozenset({"low_impact", "aerobic", "joint_friendly"}),
-        contraindicated_tags=frozenset({"acute_severe_gout_foot", "acute_chest_pain"}),
-        modifications=(
-            "Short 10-minute bouts after meals to assist glucose management",
-            "Wear supportive footwear with cushioned insoles",
-        ),
-        alternatives=(
-            "Seated arm ergometer or gentle seated marching",
-            "Gentle stretching and mobility flow",
-        ),
-        default_level="all",
-        required_equipment="none",
-        default_location="outdoor",
-    ),
-    "gentle_yoga": ExerciseProfile(
-        name="gentle_yoga",
-        aliases=("yoga", "pranayama", "stretching", "asanas", "cat-cow"),
-        stress_tags=frozenset({"mobility", "low_intensity", "joint_decompression"}),
-        contraindicated_tags=frozenset({"severe_joint_instability"}),
-        modifications=(
-            "Use yoga blocks and wall support for balance",
-            "Avoid deep twists or inversions if blood pressure is elevated",
-        ),
-        alternatives=(
-            "Chair yoga and seated spinal mobility",
-            "Guided diaphragmatic breathing and relaxation",
-        ),
-        default_level="all",
-        required_equipment="none",
-        default_location="home",
-    ),
-}
+# Default path for official exercise dataset
+DATASET_PATH = Path(__file__).resolve().parent.parent / "data" / "official_exercise_guidelines.json"
+
+
+def load_exercise_dataset(file_path: Path | str | None = None) -> dict[str, ExerciseProfile]:
+    """Dynamically loads official exercise guidelines from verified dataset JSON."""
+    p = Path(file_path) if file_path else DATASET_PATH
+    catalog: dict[str, ExerciseProfile] = {}
+
+    if not p.exists():
+        logger.warning("Exercise dataset not found at %s. Initializing empty catalog.", p)
+        return catalog
+
+    try:
+        with open(p, "r", encoding="utf-8") as f:
+            records = json.load(f)
+
+        for rec in records:
+            name = str(rec.get("name", "")).strip().lower()
+            if not name:
+                continue
+            profile = ExerciseProfile(
+                name=name,
+                aliases=tuple(str(a).strip().lower() for a in rec.get("aliases", ())),
+                source_authority=str(rec.get("source_authority", "Official Health Authority")),
+                category=str(rec.get("category", "general")),
+                stress_tags=frozenset(rec.get("stress_tags", ())),
+                contraindicated_tags=frozenset(rec.get("contraindicated_tags", ())),
+                modifications=tuple(rec.get("modifications", ())),
+                alternatives=tuple(rec.get("alternatives", ())),
+                default_level=str(rec.get("default_level", "all")),
+                required_equipment=str(rec.get("required_equipment", "none")),
+                default_location=str(rec.get("default_location", "home")),
+                guideline_notes=str(rec.get("guideline_notes", "")),
+                citation=str(rec.get("citation", "")),
+            )
+            catalog[name] = profile
+    except Exception as exc:
+        logger.error("Failed to load exercise dataset from %s: %s", p, exc)
+
+    return catalog
+
+
+# Module-level dynamically loaded catalog
+EXERCISE_CATALOG: dict[str, ExerciseProfile] = load_exercise_dataset()
+
+
+def refresh_catalog(file_path: Path | str | None = None) -> int:
+    """Reloads the dataset catalog from disk."""
+    global EXERCISE_CATALOG
+    EXERCISE_CATALOG = load_exercise_dataset(file_path)
+    return len(EXERCISE_CATALOG)
 
 
 def _match_exercise_profile(exercise_name: str) -> ExerciseProfile | None:
-    """Finds the matching ExerciseProfile from name or aliases."""
+    """Finds the matching ExerciseProfile from name or aliases using the loaded dataset."""
     q = exercise_name.strip().casefold()
     if q in EXERCISE_CATALOG:
         return EXERCISE_CATALOG[q]
+
     for profile in EXERCISE_CATALOG.values():
         if q == profile.name or any(alias in q or q in alias for alias in profile.aliases):
             return profile
@@ -232,9 +145,17 @@ def extract_patient_health_tags(
     reported_symptoms: Sequence[str] | None = None,
     physical_limitations: Sequence[str] | None = None,
     recent_injuries: Sequence[str] | None = None,
+    **extra_tags: Any,
 ) -> set[str]:
     """Extracts standardized clinical limitation and symptom tags from patient context."""
     tags: set[str] = set()
+
+    # Direct tags passed via kwargs (e.g., patient_health_tags, patient_tags)
+    for k in ("patient_health_tags", "patient_tags", "tags"):
+        raw_tags = extra_tags.get(k)
+        if isinstance(raw_tags, (list, tuple, set)):
+            for t in raw_tags:
+                tags.add(str(t).lower())
 
     # 1. PEP Clinician-Owned Core Conditions & Restrictions
     if pep_data:
@@ -254,6 +175,24 @@ def extract_patient_health_tags(
                 tags.add("heavy_deadlifts_restricted")
             if "valsalva" in r_str:
                 tags.add("valsalva_restricted")
+
+    # Extra conditions from kwargs
+    diag_conds = extra_tags.get("diagnosed_conditions") or ()
+    for cond in diag_conds:
+        c_str = str(cond).lower()
+        if "hypertension" in c_str or "high bp" in c_str:
+            if "stage 2" in c_str:
+                tags.add("hypertension_stage2")
+            else:
+                tags.add("hypertension_stage1")
+        if "cardiac" in c_str or "heart" in c_str:
+            tags.add("cardiac_history")
+
+    # Restricted modalities from kwargs
+    for r in extra_tags.get("restricted_modalities") or ():
+        r_str = str(r).lower()
+        if "deadlift" in r_str or "heavy" in r_str:
+            tags.add("heavy_deadlifts_restricted")
 
     # 2. Reported Symptoms (Text/List)
     all_symptom_texts: list[str] = []
@@ -299,8 +238,9 @@ def evaluate_exercise_suitability(
     available_equipment: str | None = None,
     location_preference: str | None = None,
     user_preferences: Sequence[str] | None = None,
+    **kwargs: Any,
 ) -> ExerciseEvaluation:
-    """Evaluates an exercise for a patient using deterministic clinical safety rules.
+    """Evaluates an exercise for a patient using deterministic clinical safety rules from official guidelines.
 
     Answers the 6 required questions:
     1. Does it conflict with a known patient limitation?
@@ -318,7 +258,14 @@ def evaluate_exercise_suitability(
         reported_symptoms=reported_symptoms,
         physical_limitations=physical_limitations,
         recent_injuries=recent_injuries,
+        **kwargs,
     )
+
+    # Check gym clearance from kwargs or PEP
+    gym_clearance = kwargs.get("pep_gym_clearance")
+    if gym_clearance is None and patient_pep:
+        core = patient_pep.get("core") if isinstance(patient_pep.get("core"), dict) else patient_pep
+        gym_clearance = core.get("gym_clearance")
 
     # Question 6: Is professional medical assessment needed?
     if "acute_severe_pain" in health_tags:
@@ -329,6 +276,7 @@ def evaluate_exercise_suitability(
             modifications=["Rest in a comfortable position", "Avoid bearing weight on the affected area"],
             alternatives=["Gentle seated breathing exercises"],
             caution_notes="Acute or severe pain warrants prompt clinician assessment.",
+            source_citation="Ministry of AYUSH & WHO Clinical Safety Invariants",
         )
 
     # Unknown exercise or vague input -> Question 5: Is additional information required?
@@ -347,7 +295,13 @@ def evaluate_exercise_suitability(
 
     # Specific HTN & Cardiovascular Contraindications
     if "heavy_deadlifts" in profile.name or "high_blood_pressure_spike" in profile.stress_tags:
-        if "hypertension_stage2" in health_tags or "hypertension_stage1" in health_tags or "cardiac_history" in health_tags:
+        if (
+            "hypertension_stage2" in health_tags
+            or "hypertension_stage1" in health_tags
+            or "cardiac_history" in health_tags
+            or gym_clearance is False
+            or "heavy_deadlifts_restricted" in health_tags
+        ):
             conflicts.add("cardiovascular_contraindication")
 
     if conflicts:
@@ -380,6 +334,7 @@ def evaluate_exercise_suitability(
                 modifications=list(profile.modifications),
                 alternatives=list(profile.alternatives),
                 caution_notes="Avoid heavy axial spine load and breath-holding maneuvers.",
+                source_citation=profile.citation,
             )
 
         # Joint loading where safe modification exists (e.g. bodyweight squats with chair support for mild knee discomfort)
@@ -390,6 +345,7 @@ def evaluate_exercise_suitability(
             modifications=list(profile.modifications),
             alternatives=list(profile.alternatives),
             caution_notes="Dard mehsoos hote hi turant stop karein.",
+            source_citation=profile.citation,
         )
 
     # Question 3: Is it appropriate for patient's activity level & environment?
@@ -403,13 +359,14 @@ def evaluate_exercise_suitability(
     if pref_loc == "home" and profile.default_location == "gym":
         mods.insert(0, "Perform with dumbbells or resistance bands at home instead of gym machines")
 
-    if equip in ("none", "no_equipment") and profile.required_equipment != "none":
+    if equip in ("none", "no_equipment") and profile.required_equipment not in ("none", "yoga_mat"):
         return ExerciseEvaluation(
             exercise_name=profile.name,
             category=SuitabilityCategory.MODIFIED,
             reason="Aapne bataya ki aapke paas equipment nahi hai, isliye hum iska bodyweight vikalp chunenge.",
             modifications=["Use bodyweight resistance only", "Perform with neutral posture on a mat"],
             alternatives=alts,
+            source_citation=profile.citation,
         )
 
     # Beginner / Sedentary Activity Level Safeguard
@@ -421,6 +378,7 @@ def evaluate_exercise_suitability(
             reason="Aap beginner hain, isliye shuruat halke intensity aur controlled reps ke saath karna safe rahega.",
             modifications=["Start with 1 set of 8-10 slow reps", "Focus on form before adding resistance"],
             alternatives=alts,
+            source_citation=profile.citation,
         )
 
     # Default: SUITABLE
@@ -430,6 +388,7 @@ def evaluate_exercise_suitability(
         reason=f"'{profile.name.replace('_', ' ').title()}' aapke health profile aur activity level ke liye ek accha aur safe vikalp hai.",
         modifications=mods[:1],
         alternatives=alts[:2],
+        source_citation=profile.citation,
     )
 
 

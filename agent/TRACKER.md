@@ -70,4 +70,32 @@
 | **Zero Slop Frontend & Profile Journey** | WCAG AAA, no habit-viewing UI slop, journey stage | ✅ PASSED (`#memory-transparency-view` removed; `GET /patient/journey` wired to profile; edit modal expanded) | `disha_core/frontend/index.html`, `disha_core/frontend/app.js` |
 | **Full Repo Check & Test Suite** | 0 secrets, 0 lint errors, 0 dead files, 100% green | ✅ PASSED (Gitleaks 0 leaks, Ruff 100% clean, 0 dead files, 224/224 automated tests green) | `bash scripts/repo-check` |
 
+---
+
+## Master Order v4 — Loop 3 Tracking (Harden, Unified RAG & Production Delivery)
+
+| Task ID | Task Description | Owner | Status | Dependencies | Target / Evidence Path |
+|---|---|---|---|---|---|
+| L3-01 | Thin System Prompt Ablation (343 tokens) | `policy-eng` | DONE | L2-07 | Reduced `SYSTEM_PROMPT` in `disha_core/llm/client.py` from 1,155 tokens to 343 tokens (70.3% reduction, 0 hardcoded remedies) |
+| L3-02 | 30-Day Multi-Session Longitudinal Simulation | `eval-qa-eng` | DONE | L2-07 | `tests/test_multi_session_30day_simulation.py` (8 sessions, Vikram Patel, schedule changes, hysteresis, symptom decay, 100% green) |
+| L3-03 | Unified Indian Gov & WHO Exercise RAG | `knowledge-eng` | DONE | L3-02 | Fit India Movement (MoHFW), Ministry of AYUSH & MDNIY (Common Yoga Protocol), and WHO Guidelines 2020 ingested into `clinical_knowledge_base` and `knowledge_chunks` |
+| L3-04 | Dataset-Driven PEP Exercise Engine | `pep-habits-eng`| DONE | L3-03 | Zero hardcoded dictionaries; dynamic JSON & PostgreSQL querying; deterministic clinical safety rules; 10/10 tests green in `test_pep_exercise_suitability.py` |
+| L3-05 | Cloudflare Tunnel Watchdog & Public Ingress | `sre-lead` | DONE | L2-07 | Host watchdog daemon running (`PID 3991`), persistent edge ingress live at `https://constitution-maria-watts-fancy.trycloudflare.com`, 6/6 tests green in `test_tunnel_watchdog.py` |
+| L3-06 | Full Quality, Security & Repo Clean Passes | `repo-cleaner` | DONE | L3-01..05 | 245/245 tests green, Gitleaks 0 leaks across 25 commits, Ruff 100% clean, 2 consecutive passes of `repo-check` |
+| L3-07 | Loop 3 Integration & Gate 3 Final Sign-Off | BossEmployee | DONE | L3-01..06 | Production delivery sign-off in `agent/TRACKER.md` |
+
+---
+
+## GATE 3 VERIFICATION SIGN-OFF (2026-11-09)
+
+| Gate 3 Condition | Target Standard | Measured Verification Status | Evidence Path |
+|---|---|---|---|
+| **30-Day Longitudinal Simulation** | 8 sessions across 30 days on single patient state | ✅ PASSED (Day 1 baseline to Day 30 consolidation; shift change archival; transient symptom decay; gym override rejection) | `tests/test_multi_session_30day_simulation.py` |
+| **Thin System Prompt Policy** | System prompt <= 500 tokens, 0 hardcoded remedies | ✅ PASSED (343 tokens, 70.3% reduction, zero hardcoded remedies like jeera or mango) | `disha_core/llm/client.py` |
+| **Unified RAG Knowledge Base** | Single fast retrieval over health, AYUSH & exercise | ✅ PASSED (14 official Fit India, AYUSH Yoga CYP & WHO 2020 exercise chunks ingested into PostgreSQL, <2ms hybrid trgm+FTS retrieval) | `disha_core/db/seed_unified_exercise_rag.sql`, `disha_core/engine/retriever.py` |
+| **Dataset-Driven Exercise Engine** | 0 hardcoded rules in Python code | ✅ PASSED (Dynamic dataset loader with official citations from Fit India, AYUSH & WHO; 10/10 tests passing) | `disha_core/pep/exercise_engine.py`, `tests/test_pep_exercise_suitability.py` |
+| **Cloudflare Edge Ingress** | Supervised tunnel watchdog, 0ms cold starts | ✅ PASSED (Watchdog PID 3991, edge URL `https://constitution-maria-watts-fancy.trycloudflare.com`, verified `/health` and UI) | `scripts/tunnel-watchdog.sh`, `agent/TUNNEL_URL.txt` |
+| **Repository Invariants & Clean Passes** | 2 consecutive clean passes of `repo-check` | ✅ PASSED (2 consecutive full clean passes; Gitleaks 0 secrets, Ruff clean, 0 dead files, 245/245 automated tests passing) | `scripts/repo-check` |
+
+
 

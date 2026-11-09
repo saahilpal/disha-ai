@@ -95,41 +95,40 @@ def extract_patient_disclosures(text: str, lang: str = "hinglish") -> dict[str, 
             break
 
     # 4. Sleep & Wake timings
-    # E.g. "usually sleep around 9 in the morning" or "raat 2 baje sota hoon"
-    sleep_match = re.search(
-        r"(?:sleep|sota|soti|bedtime|so\s+jata|so\s+jati).{0,25}?(?:around|at|ko)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|raat|in\s+the\s+morning|at\s+night)?)",
-        lower,
-    )
-    if not sleep_match:
-        # Reverse phrasing: "subah 9 baje sota hoon"
-        sleep_match = re.search(
-            r"(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|raat|in\s+the\s+morning|at\s+night)?)\s*(?:ko\s+)?(?:sota|soti|sleep)",
-            lower,
-        )
-    if sleep_match:
-        raw_sleep = sleep_match.group(1)
-        # Contextual morning/night cues
-        if ("morning" in lower or "subah" in lower) and "am" not in raw_sleep and "pm" not in raw_sleep:
-            raw_sleep = f"{raw_sleep} am"
-        elif ("night" in lower or "raat" in lower or "shaam" in lower) and "am" not in raw_sleep and "pm" not in raw_sleep:
-            raw_sleep = f"{raw_sleep} pm"
-        norm_sleep = normalize_time(raw_sleep, lang)
-        if norm_sleep:
-            extracted["sleep_time"] = norm_sleep
-
+    # Prefer pre-verb time expressions: "7:30 baje uthta hoon", "11:30 baje sota hoon"
     wake_match = re.search(
-        r"(?:wake|uthta|uthti|wake\s+up).{0,25}?(?:around|at|ko)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|morning)?)",
+        r"(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|morning)?)\s*(?:baje\s+)?(?:ko\s+)?(?:uthta|uthti|wake)",
         lower,
     )
     if not wake_match:
         wake_match = re.search(
-            r"(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|morning)?)\s*(?:ko\s+)?(?:uthta|uthti|wake)",
+            r"(?:wake|uthta|uthti|wake\s+up|jagne).{0,15}?(?:around|at|ko)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|morning)?)(?:\s*baje)?",
             lower,
         )
     if wake_match:
         norm_wake = normalize_time(wake_match.group(1), lang)
         if norm_wake:
             extracted["wake_time"] = norm_wake
+
+    sleep_match = re.search(
+        r"(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|raat|in\s+the\s+morning|at\s+night)?)\s*(?:baje\s+)?(?:ko\s+)?(?:sota|soti|sleep)",
+        lower,
+    )
+    if not sleep_match:
+        sleep_match = re.search(
+            r"(?:sleep|sota|soti|bedtime|so\s+jata|so\s+jati).{0,15}?(?:around|at|ko)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|raat|in\s+the\s+morning|at\s+night)?)(?:\s*baje)?",
+            lower,
+        )
+    if sleep_match:
+        raw_sleep = sleep_match.group(1)
+        # Contextual morning/night cues
+        if ("morning" in lower or "subah" in lower) and "am" not in raw_sleep and "pm" not in raw_sleep and "raat" not in raw_sleep:
+            raw_sleep = f"{raw_sleep} am"
+        elif ("night" in lower or "raat" in lower or "shaam" in lower) and "am" not in raw_sleep and "pm" not in raw_sleep:
+            raw_sleep = f"{raw_sleep} pm"
+        norm_sleep = normalize_time(raw_sleep, lang)
+        if norm_sleep:
+            extracted["sleep_time"] = norm_sleep
 
     # 5. Water Intake
     water_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:liter|litre|l\b|liters|litres|glass|gilas|glasses)\s*(?:water|paani|pani)?", lower)

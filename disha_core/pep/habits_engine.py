@@ -415,6 +415,36 @@ async def record_habit_observation(
             await conn.close()
 
 
+async def record_habit_episode(
+    patient_id: str,
+    episode_type: str,
+    description: str,
+    expires_at: datetime | None = None,
+    due_at: datetime | None = None,
+    evidence_ref: str = "",
+    conn: asyncpg.Connection | None = None,
+) -> None:
+    """Record a transient episode (symptom, commitment, or one-off deviation) in habit_episodes."""
+    if expires_at is None:
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=24)
+    if conn is None:
+        return
+    await conn.execute(
+        """
+        INSERT INTO habit_episodes
+            (patient_id, episode_type, description, status, due_at, expires_at, evidence_ref)
+        VALUES ($1, $2, $3, 'active', $4, $5, $6)
+        """,
+        patient_id,
+        episode_type,
+        description,
+        due_at,
+        expires_at,
+        evidence_ref,
+    )
+    await conn.execute("UPDATE patient_pep SET is_dirty = TRUE WHERE patient_id = $1", patient_id)
+
+
 async def consolidate_patient_habits(
     patient_id: str,
     conn: asyncpg.Connection | None = None,
