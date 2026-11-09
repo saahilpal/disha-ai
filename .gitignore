@@ -105,7 +105,7 @@ package-lock.json.bak
 .synapse/*-shm
 
 # Large Binary Model Weights (Downloaded via scripts/ or model-bakeoff.md)
-models/
+/models/
 *.onnx
 *.bin
 *.safetensors
