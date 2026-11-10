@@ -11,7 +11,9 @@ The current response lifecycle is designed for patient-centred coaching without 
 4. **Context Relevance Discipline**: Meals and diet schedules are only discussed if the patient explicitly asked about food; workouts and gym routines are only brought up if the patient asked about physical activity.
 5. **Single Behaviour Source**: `data/behavior_rules.yaml` supplies the model-facing behavior and clinical policy. Python keeps only deterministic safety, persistence, validation, and response-delivery checks; it does not choose a scripted onboarding move.
 
-The five-stage PEP journey is an internal completeness measure. The current turn receives relevant missing-field candidates as optional context, so the model can ask one useful discovery question when it genuinely fits the user's intent. It is not a fixed question sequence.
+The five-stage PEP journey is an internal completeness measure. The live harness now asks the existing scheduler for one pending discovery opportunity after disclosures are applied. The scheduler can surface a later-stage detail when the user's current wording makes it relevant, while preserving the current-stage fallback otherwise. The candidate is recorded as pending for deterministic answer extraction, but remains optional model context: the model answers the current request first and may let the topic settle. Stages and checklist fields are not exposed in the prompt.
+
+The investigation found four causes of shallow or mechanical turns: the scheduler was implemented but never called by the shared chat/voice harness; discovery context only listed required fields from the lowest incomplete stage, hiding useful optional and later-stage details; the active behavior policy asked for one-to-three sentences even when a thread needed a little more development; and the final verifier still rejected the four-sentence coaching policy, triggering unnecessary repairs. The fix reuses the existing scheduler, makes relevance outrank stage order when supported by the user's wording, makes discovery optional and intent-scoped, and aligns final verification with the per-turn response target.
 
 ---
 

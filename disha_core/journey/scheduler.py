@@ -32,6 +32,23 @@ class ScheduledQuestion:
     phrasings: dict[str, str]
 
 
+def _relevance_score(question: JourneyQuestion, user_turn_text: str) -> int:
+    """Prefer a missing detail that fits the current turn over stage order."""
+    if not user_turn_text.strip():
+        return 0
+    turn_words = {
+        word.casefold().strip(".,?!():;")
+        for word in user_turn_text.replace("/", " ").replace("-", " ").split()
+        if len(word.strip(".,?!():;")) > 2
+    }
+    question_words = {
+        word.casefold().strip(".,?!():;")
+        for word in f"{question.target_field} {question.phrasings.get('en', '')}".split()
+        if len(word.strip(".,?!():;")) > 2
+    }
+    return len(turn_words & question_words)
+
+
 async def select_next_question(
     patient_id: str,
     journey_state: dict[str, Any],
@@ -103,8 +120,9 @@ async def select_next_question(
         if q.question_id in asked_qids or target in recent_asked_targets[:5]:
             continue
 
-        # Check stage relevance: prioritize current stage, but allow other stages if safety critical
-        if q.stage <= current_stage or q.priority == 1:
+        # Stages measure completeness only. A later field may surface when the
+        # current turn makes it relevant; otherwise retain the current-stage fallback.
+        if q.stage <= current_stage or _relevance_score(q, user_turn_text) > 0:
             candidates.append(q)
 
     if not candidates:
@@ -124,7 +142,14 @@ async def select_next_question(
         return None
 
     # 3. Sort candidates: active current stage first, then by priority, then stage
-    candidates.sort(key=lambda x: (x.stage != current_stage, x.priority, x.stage))
+    candidates.sort(
+        key=lambda x: (
+            -_relevance_score(x, user_turn_text),
+            x.stage != current_stage,
+            x.priority,
+            x.stage,
+        )
+    )
     selected = candidates[0]
 
     # 4. Localize question text

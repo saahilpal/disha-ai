@@ -419,14 +419,14 @@ def check_p4_honorifics(text: str) -> VerificationViolation | None:
     return None
 
 
-def check_p6_f3_length(text: str) -> VerificationViolation | None:
-    """P6 & F3: 1-3 sentences maximum; no lengthy paragraphs, fast WhatsApp exchange feel."""
+def check_p6_f3_length(text: str, max_sentences: int = 3) -> VerificationViolation | None:
+    """Enforce the response length selected for this turn."""
     sentences = split_sentences_multilingual(text)
-    if len(sentences) > 3:
+    if len(sentences) > max_sentences:
         return VerificationViolation(
             check_name="p6_f3_sentence_count",
-            description=f"Response has {len(sentences)} sentences; maximum allowed is 3",
-            specific_feedback="Keep your response strictly to 1-3 sentences maximum. Be concise like a WhatsApp exchange.",
+            description=f"Response has {len(sentences)} sentences; maximum allowed is {max_sentences}",
+            specific_feedback=f"Keep your response to {max_sentences} sentences maximum and stay concise.",
         )
     if len(text) > 450:
         return VerificationViolation(
@@ -586,7 +586,13 @@ def verify_response(text: str, context: dict[str, Any] | None = None) -> Verific
     v_p3 = check_p3_language_mode(sanitized, lang)
     if v_p3:
         violations.append(v_p3)
-    v_len = check_p6_f3_length(sanitized)
+    policy = ctx.get("length_policy")
+    max_sentences = getattr(policy, "max_sentences", None)
+    if not isinstance(max_sentences, int) and isinstance(policy, dict):
+        max_sentences = policy.get("max_sentences")
+    if not isinstance(max_sentences, int) or max_sentences <= 0:
+        max_sentences = 3
+    v_len = check_p6_f3_length(sanitized, max_sentences=max_sentences)
     if v_len:
         violations.append(v_len)
     for v_c2 in check_c2_clinical_boundary(sanitized):

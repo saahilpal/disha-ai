@@ -91,13 +91,20 @@ class TestDeterministicVerifiers:
             assert viol is not None, f"Expected violation for '{phrase}'"
             assert viol.check_name == "p4_banned_honorific"
 
-    def test_p6_f3_max_3_sentences(self):
+    def test_p6_f3_max_3_sentences_without_turn_policy(self):
         four_sents = (
             "Yeh pehla sentence hai. Yeh doosra sentence hai! Yeh teesra sentence hai? Yeh chautha sentence hai."
         )
         viol = check_p6_f3_length(four_sents)
         assert viol is not None
         assert viol.check_name == "p6_f3_sentence_count"
+
+    def test_verify_response_uses_turn_length_policy(self):
+        from disha_core.engine.context_builder import LengthPolicy
+        from disha_core.harness.verifier import verify_response
+
+        response = "First point. Second point. Third point. Fourth point."
+        assert verify_response(response, {"length_policy": LengthPolicy("coaching", 2, 4)}).is_valid
 
     def test_p6_f3_allows_1_to_3_sentences(self):
         assert check_p6_f3_length("Pani zyada piyein. Thoda walk karein.") is None

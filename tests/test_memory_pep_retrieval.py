@@ -40,8 +40,8 @@ from disha_core.services.chat_service import (
     persist_patient_disclosure,
     store_call_summary,
     store_conversation_turn,
-    store_patient_fact,
     store_memory_item,
+    store_patient_fact,
 )
 
 load_dotenv()
@@ -102,7 +102,7 @@ class TestPEPIntegrationAndRejection(unittest.TestCase):
         self.assertNotIn("<PEP_RESTRICTION_RULES", xml)
         self.assertIn('diagnosed="coronary_artery_disease"', xml)
 
-    def test_pep_discovery_context_exposes_candidates_without_staging_the_dialogue(self) -> None:
+    def test_pep_discovery_context_is_optional_and_does_not_expose_stages(self) -> None:
         xml = render_context_xml(
             {
                 "pep": {"language": "english"},
@@ -115,10 +115,20 @@ class TestPEPIntegrationAndRejection(unittest.TestCase):
             }
         )
 
-        self.assertIn('<PEP_DISCOVERY current_stage="3" mode="passive">', xml)
-        self.assertIn('name="Work Shift Schedule"', xml)
-        self.assertIn('name="Night Sleep Time"', xml)
-        self.assertIn("Ask about at most one only when it directly helps", xml)
+        self.assertNotIn("PEP_DISCOVERY", xml)
+
+        candidate_xml = render_context_xml(
+            {
+                "pep": {"language": "english"},
+                "discovery_candidate": {
+                    "target_field": "work_schedule",
+                    "question": "What does your work schedule look like?",
+                },
+            }
+        )
+        self.assertIn('<PEP_DISCOVERY mode="optional" priority="conversation_fit">', candidate_xml)
+        self.assertIn('field="work_schedule"', candidate_xml)
+        self.assertIn("do not mention profile tracking", candidate_xml)
 
     def test_cardiac_patient_forbidden_exercise_rejected(self) -> None:
         context = {

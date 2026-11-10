@@ -511,34 +511,18 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
             slots_xml = f"<PATIENT_SLOTS>{''.join(slot_parts)}</PATIENT_SLOTS>"
 
     discovery_xml = ""
-    journey = context.get("journey_state") or {}
-    stage_status = journey.get("stage_status") or {}
-    current_stage = journey.get("current_stage")
-    if current_stage and stage_status:
-        current = stage_status.get(f"stage_{current_stage}") or {}
-        missing_fields = current.get("missing_fields") or []
-        if missing_fields:
-            from disha_core.journey.fields import JOURNEY_FIELDS
-
-            candidates = []
-            for field_id in missing_fields:
-                field = JOURNEY_FIELDS.get(str(field_id))
-                if field is None:
-                    continue
-                candidates.append(
-                    f'<FIELD id="{html.escape(field.field_id, quote=True)}" '
-                    f'name="{html.escape(field.name, quote=True)}" '
-                    f'safety_critical="{str(field.safety_critical).lower()}"/>'
-                )
-            if candidates:
-                discovery_xml = (
-                    f'<PEP_DISCOVERY current_stage="{html.escape(str(current_stage), quote=True)}" '
-                    'mode="passive">'
-                    "These are possible missing profile details, not a questionnaire. "
-                    "Ask about at most one only when it directly helps the current user intent; "
-                    "never mention stages or the checklist, and respect refusal."
-                    f"{''.join(candidates)}</PEP_DISCOVERY>"
-                )
+    candidate = context.get("discovery_candidate") or {}
+    if candidate:
+        field_id = html.escape(str(candidate.get("target_field", "")), quote=True)
+        question = html.escape(str(candidate.get("question", "")))
+        discovery_xml = (
+            '<PEP_DISCOVERY mode="optional" priority="conversation_fit">'
+            "A single missing detail may help personalise this turn. Use it only if it fits "
+            "what the user just shared; answer the current request first, and do not mention "
+            "profile tracking, stages, fields, or a checklist. Respect uncertainty or refusal."
+            f'<CANDIDATE field="{field_id}">{question}</CANDIDATE>'
+            "</PEP_DISCOVERY>"
+        )
 
     return f"<PATIENT_PROFILE>{pep_xml}{pep_rule_xml}{brief_xml}{focus_xml}{lang_xml}{diet_rule_xml}{facts_xml}{slots_xml}{contradiction_xml}{discovery_xml}{diet_xml}</PATIENT_PROFILE>{length_xml}{clinical_xml}"
 

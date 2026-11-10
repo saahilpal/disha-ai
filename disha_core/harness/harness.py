@@ -301,6 +301,7 @@ class ResponseHarness:
                             extract_patient_disclosures,
                             load_or_create_journey,
                             record_field_answer,
+                            select_next_question,
                         )
 
                         lang = normalize_preferred_language((context.get("pep") or {}).get("language"))
@@ -343,8 +344,32 @@ class ResponseHarness:
                                     patient_id,
                                     pending_row["question_id"],
                                 )
-                        # Journey state and disclosures are persisted, but the model owns
-                        # conversational direction; onboarding never injects a question.
+                        if (
+                            not pending_row
+                            and not is_off_topic
+                            and intent
+                            not in {
+                                Intent.GREETING,
+                                Intent.APP_META,
+                            }
+                        ):
+                            candidate = await select_next_question(
+                                patient_id,
+                                journey_state,
+                                user_turn_text=payload.text,
+                                channel=channel,
+                                conn=connection,
+                                preferred_lang=lang,
+                                auto_record=True,
+                            )
+                            if candidate:
+                                context["discovery_candidate"] = {
+                                    "target_field": candidate.target_field,
+                                    "question": candidate.text,
+                                }
+                        # The scheduler records a pending opportunity for disclosure
+                        # extraction; the model still decides whether this turn should
+                        # explore it, answer directly, or let the topic settle.
 
                     should_retrieve = not prescribed_meal_query and (
                         bool(normalized.tags)
