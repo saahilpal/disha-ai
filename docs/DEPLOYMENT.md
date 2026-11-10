@@ -47,6 +47,8 @@ Each Compose setup has its own volumes and settings. Do not remove persistent da
 
 `scripts/tunnel-watchdog.sh` checks the local `/health` endpoint, starts `cloudflared`, extracts the generated `*.trycloudflare.com` hostname for a Quick Tunnel, and writes the current URL to `agent/TUNNEL_URL.txt` and `.env.local`. It defaults to `TARGET_URL=http://127.0.0.1:8080`; use `make tunnel-local` (or set `TARGET_URL=http://127.0.0.1:8010`) for the local-only runner. Environment settings can instead select a named tunnel or custom domain. Quick Tunnel URLs are temporary and can change after restart. The URL is public, not a credential.
 
+The `--status` command is read-only and remains usable when `cloudflared` is not installed; start/stop/restart operations still require the binary. This keeps CI diagnostics from being mistaken for a live tunnel.
+
 ```sh
 ./scripts/tunnel-watchdog.sh
 make tunnel-local
@@ -73,6 +75,7 @@ See [`disha_core/config.py`](../disha_core/config.py), [`disha_core/llm/client.p
 ## Configuration and security notes
 
 - Database credentials are `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, and `DB_PASSWORD` (or `DATABASE_URL`). The container uses `POSTGRES_*` initialization variables.
+- CI initializes the schema, additive PEP migrations, committed SQL fixtures, and the existing open-source ingestion scripts before running the database-backed acceptance suite. It does not reset or inspect developer Docker volumes.
 - LLM access is configured with `GROQ_API_KEY`, `GROQ_MODEL`, `GEMINI_API_KEY`, `GEMINI_MODEL`, and `OLLAMA_*`. Authorization/usage settings default false in `disha_core/config.py`; the root Compose file explicitly overrides several flags to true.
 - Audio egress has separate flags: `GROQ_HEALTH_DATA_PROCESSING_APPROVED`, `EDGE_TTS_HEALTH_DATA_PROCESSING_APPROVED`, and `QWEN3_TTS_HEALTH_DATA_PROCESSING_APPROVED`.
 - `CORS_ALLOWED_ORIGINS` is environment-defined. CORS is not authentication; the root Compose value is `*`, so that setting should not be mistaken for an access-control boundary.

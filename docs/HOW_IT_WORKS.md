@@ -24,7 +24,7 @@ graph TD
 - **8080:** NGINX reverse proxy (`disha_core-proxy-1`), serving static frontend assets (`disha_core/frontend/`) and proxying API/WebSocket traffic.
 - **8000:** FastAPI Python application (`disha_core-backend-1`), running `uvicorn disha_core.main:app`.
 - **5432:** PostgreSQL 16 database (`disha_core-postgres-1`) with `pgvector` extension enabled.
-- **11434:** Optional local Ollama inference service (`Qwen2.5-7B-Instruct`).
+- **11434:** Optional local Ollama inference service (the launcher prefers `qwen3.5:4b`, with the configured model override supported).
 
 ---
 
