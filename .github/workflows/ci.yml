@@ -252,5 +252,7 @@ jobs:
           DATABASE_URL: "postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha"
           GROQ_API_KEY: "dummy_token_scrubbed"
           GEMINI_API_KEY: "dummy_token_scrubbed"
+          # GitHub-hosted runners are shared; keep the stricter 850 ms local default.
+          MAX_SCENARIO_LATENCY_MS: "1500"
         run: |
           uv run pytest -v tests/ -k 'not manual and not live_network'

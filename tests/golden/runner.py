@@ -510,7 +510,14 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Disha AI Golden Test Runner (Behavior Spec v1)")
     parser.add_argument(
         "--category",
-        choices=["persona_tone", "conversation_flow", "clinical_safety", "memory_backend", "precedence", "long_conversation"],
+        choices=[
+            "persona_tone",
+            "conversation_flow",
+            "clinical_safety",
+            "memory_backend",
+            "precedence",
+            "long_conversation",
+        ],
         help="Filter by category",
     )
     parser.add_argument("--rule", help="Filter by rule ID (e.g. P1, C3, M1)")
