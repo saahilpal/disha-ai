@@ -86,10 +86,10 @@ start() {
     }
   fi
   if [[ -z "$OLLAMA_MODEL" ]]; then
-    if ollama list | awk 'NR > 1 {print $1}' | grep -Fxq "qwen2.5:7b"; then
-      OLLAMA_MODEL="qwen2.5:7b"
-    elif ollama list | awk 'NR > 1 {print $1}' | grep -Fxq "qwen3.5:4b"; then
+    if ollama list | awk 'NR > 1 {print $1}' | grep -Fxq "qwen3.5:4b"; then
       OLLAMA_MODEL="qwen3.5:4b"
+    elif ollama list | awk 'NR > 1 {print $1}' | grep -Fxq "qwen2.5:7b"; then
+      OLLAMA_MODEL="qwen2.5:7b"
     else
       OLLAMA_MODEL="qwen3.5:4b"
     fi

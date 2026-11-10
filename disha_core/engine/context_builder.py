@@ -510,7 +510,37 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
         if slot_parts:
             slots_xml = f"<PATIENT_SLOTS>{''.join(slot_parts)}</PATIENT_SLOTS>"
 
-    return f"<PATIENT_PROFILE>{pep_xml}{pep_rule_xml}{brief_xml}{focus_xml}{lang_xml}{diet_rule_xml}{facts_xml}{slots_xml}{contradiction_xml}{diet_xml}</PATIENT_PROFILE>{length_xml}{clinical_xml}"
+    discovery_xml = ""
+    journey = context.get("journey_state") or {}
+    stage_status = journey.get("stage_status") or {}
+    current_stage = journey.get("current_stage")
+    if current_stage and stage_status:
+        current = stage_status.get(f"stage_{current_stage}") or {}
+        missing_fields = current.get("missing_fields") or []
+        if missing_fields:
+            from disha_core.journey.fields import JOURNEY_FIELDS
+
+            candidates = []
+            for field_id in missing_fields:
+                field = JOURNEY_FIELDS.get(str(field_id))
+                if field is None:
+                    continue
+                candidates.append(
+                    f'<FIELD id="{html.escape(field.field_id, quote=True)}" '
+                    f'name="{html.escape(field.name, quote=True)}" '
+                    f'safety_critical="{str(field.safety_critical).lower()}"/>'
+                )
+            if candidates:
+                discovery_xml = (
+                    f'<PEP_DISCOVERY current_stage="{html.escape(str(current_stage), quote=True)}" '
+                    'mode="passive">'
+                    "These are possible missing profile details, not a questionnaire. "
+                    "Ask about at most one only when it directly helps the current user intent; "
+                    "never mention stages or the checklist, and respect refusal."
+                    f"{''.join(candidates)}</PEP_DISCOVERY>"
+                )
+
+    return f"<PATIENT_PROFILE>{pep_xml}{pep_rule_xml}{brief_xml}{focus_xml}{lang_xml}{diet_rule_xml}{facts_xml}{slots_xml}{contradiction_xml}{discovery_xml}{diet_xml}</PATIENT_PROFILE>{length_xml}{clinical_xml}"
 
 
 def add_approved_remedy_constraints(context: dict[str, Any], chunks: Any) -> None:
