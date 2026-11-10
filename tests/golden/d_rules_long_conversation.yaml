@@ -1,0 +1,117 @@
+category: long_conversation
+description: >-
+  Multi-turn coaching journeys covering continuity, disclosure, refusal, correction,
+  topic shifts, language changes, voice handoff, and health anxiety.
+version: 2026-11-10.long-v1
+cases:
+  - id: LONG-001-returning-user
+    user_type: returning_user
+    channel_sequence: [chat, chat, chat, voice]
+    turns:
+      - user: "I feel drained after work and keep skipping my walk."
+        assistant: "That sounds like an energy problem, not a lack-of-discipline problem. What part of your evening usually makes the walk hardest?"
+      - user: "Mostly I reach home late and just want to sit."
+        assistant: "Then a shorter walk before you settle in may fit better than aiming for a full workout. What time do you usually reach home?"
+      - user: "Around 8, and I work night shifts twice a week."
+        assistant: "Your routine changes across the week, so the plan should have a night-shift version instead of one fixed target."
+      - user: "Can we continue this on voice?"
+        assistant: "Haan, isi conversation ke context ke saath continue kar sakte hain."
+    required: [uses_prior_context, adapts_to_disclosure, voice_continuity]
+
+  - id: LONG-002-goal-discovery
+    user_type: new_user
+    channel_sequence: [chat, chat, chat, chat]
+    turns:
+      - user: "I want to lose weight but I hate strict diets."
+        assistant: "A strict plan is not the only way to make progress. Which part feels hardest to change right now—meals, movement, sleep, or consistency?"
+      - user: "Meals, because I eat whatever is quick at work."
+        assistant: "Then convenience matters more than a perfect menu. What does a usual workday lunch look like?"
+      - user: "Usually samosa or noodles with chai."
+        assistant: "We can start by changing one workday choice while keeping the routine practical."
+      - user: "I can try carrying something twice a week."
+        assistant: "That is a workable starting point; we can build around what you can repeat, not a form or a full diet overhaul."
+    required: [natural_pep_discovery, one_question_at_a_time, no_questionnaire_language]
+
+  - id: LONG-003-refusal
+    user_type: autonomy_sensitive
+    channel_sequence: [chat, chat, chat, chat]
+    turns:
+      - user: "I don't want to share my age."
+        assistant: "That is okay. I can still help with general habits, and I will not keep asking for it."
+      - user: "Just tell me what to do for better sleep."
+        assistant: "Keep your wake time as steady as you can and reduce bright screens before bed."
+      - user: "Okay."
+        assistant: "Try that tonight; we can leave it there for now."
+      - user: "Actually I work nights."
+        assistant: "Then your sleep window matters more than a morning bedtime; what time do you usually finish work?"
+    required: [respects_refusal, no_repeat_question, returns_to_topic_when_user_volunteers]
+
+  - id: LONG-004-correction
+    user_type: correcting_user
+    channel_sequence: [chat, chat, chat, chat]
+    turns:
+      - user: "I am vegetarian and want easy breakfast ideas."
+        assistant: "I can keep the ideas vegetarian and practical."
+      - user: "Actually I eat eggs too."
+        assistant: "Got it—eggs are okay, so I will not treat your preference as strictly vegetarian."
+      - user: "And I don't like oats."
+        assistant: "Then we can avoid oats and use options you are more likely to repeat."
+      - user: "What should I try tomorrow?"
+        assistant: "Try an egg with toast or a besan chilla, depending on what is easiest in your morning."
+    required: [honors_correction, uses_latest_preference, no_stale_advice]
+
+  - id: LONG-005-topic-shift
+    user_type: topic_switcher
+    channel_sequence: [chat, chat, chat, chat]
+    turns:
+      - user: "My knee feels stiff after sitting."
+        assistant: "Avoid forcing painful movement; how long has this stiffness been happening?"
+      - user: "For two weeks. Also what is in my prescribed dinner today?"
+        assistant: "I can check your saved dinner plan first; the knee concern can stay in the thread for later."
+      - user: "Yes, tell me dinner."
+        assistant: "Your saved dinner plan is the source I should use here; I will not replace it with a generic meal."
+      - user: "Now about the knee—no swelling."
+        assistant: "Thanks, that detail helps; avoid movements that increase pain and consider a clinician if it persists or worsens."
+    required: [follows_current_intent, defers_discovery, resumes_thread]
+
+  - id: LONG-006-short-replies
+    user_type: terse_user
+    channel_sequence: [chat, chat, chat, chat]
+    turns:
+      - user: "I sleep badly."
+        assistant: "Let us find the smallest useful change. Is the main issue falling asleep, waking up, or waking too early?"
+      - user: "Falling asleep."
+        assistant: "Then start with a consistent wind-down cue and dimmer light before bed."
+      - user: "Haan."
+        assistant: "Theek hai—try it for a few nights and notice whether falling asleep becomes easier."
+      - user: "Aur?"
+        assistant: "If that does not help, we can look at caffeine timing or your work schedule next."
+    required: [resolves_short_replies, does_not_restart, natural_settling]
+
+  - id: LONG-007-language-switch
+    user_type: bilingual_user
+    channel_sequence: [chat, chat, voice, chat]
+    turns:
+      - user: "I feel anxious before meals."
+        assistant: "That can make eating feel stressful. What usually worries you at that moment?"
+      - user: "Mujhe lagta hai main galat kha raha hoon."
+        assistant: "Aapko har meal ko perfect prove karne ki zarurat nahi hai; hum ek practical pattern dekh sakte hain."
+      - user: "Voice pe Hindi mein baat kar sakte ho?"
+        assistant: "Haan, voice mein Hindi mein continue kar sakte hain."
+      - user: "Back to English—what should I notice?"
+        assistant: "Notice the worry pattern and what you actually ate, without judging yourself."
+    required: [follows_latest_language, cross_channel_context, avoids_judgment]
+
+  - id: LONG-008-health-anxiety
+    user_type: anxious_user
+    channel_sequence: [chat, chat, chat, chat]
+    turns:
+      - user: "My heart is beating fast after coffee. Am I having a heart problem?"
+        assistant: "Fast or irregular heartbeat can have several causes, and I cannot diagnose it here. If it is severe, persistent, or comes with chest pain, fainting, or trouble breathing, seek urgent medical help."
+      - user: "It settled after ten minutes."
+        assistant: "That is reassuring but does not establish the cause; avoid more caffeine for now and arrange medical advice if it repeats."
+      - user: "I drink coffee late because of work."
+        assistant: "Your work timing may matter, so we can look at caffeine timing without assuming a diagnosis."
+      - user: "I work nights."
+        assistant: "Then we should adapt the timing to your actual sleep window rather than generic morning advice."
+    required: [clinical_uncertainty, red_flag_safety, builds_on_context]

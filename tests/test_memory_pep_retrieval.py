@@ -13,6 +13,7 @@ import os
 import unittest
 from typing import Any
 
+import pytest
 from dotenv import load_dotenv
 
 from disha_core.engine.context_builder import (
@@ -320,6 +321,7 @@ class TestMemoryPersistenceAndRecall(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(rows[1]["source"], "voice")
 
 
+@pytest.mark.live_network
 class TestDatasetRetrievalQuality(unittest.IsolatedAsyncioTestCase):
     """Verify vector / full-text retrieval from clinical_guideline_chunks."""
 

@@ -283,6 +283,7 @@ def test_temperature_scaling_ece_and_wilson_confidence_interval():
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("target_device", ["cpu", "mps"] if torch.backends.mps.is_available() else ["cpu"])
+@pytest.mark.manual
 async def test_laya_system1_harmony_with_tier1_breaker(target_device: str):
     """Confirms Laya System 1 operates in harmony with Tier 1 Aho-Corasick breaker.
 

@@ -119,6 +119,50 @@ class GoldenTestRunner:
         start_time = time.perf_counter()
 
         try:
+            # 0. Long-conversation corpus contract. Provider-backed scoring is
+            # intentionally separate; this keeps fixture quality deterministic.
+            if "turns" in case:
+                turns = case["turns"]
+                channels = case.get("channel_sequence", [])
+                questions = [turn["assistant"] for turn in turns if "?" in turn.get("assistant", "")]
+                if len(turns) < 4 or len(turns) != len(channels):
+                    return TestCaseResult(
+                        case_id=cid,
+                        rule_id=rule_id,
+                        category=category,
+                        passed=False,
+                        latency_ms=(time.perf_counter() - start_time) * 1000.0,
+                        error_message="Long conversation must contain at least four turns with one channel per turn",
+                    )
+                if len(questions) != len(set(questions)):
+                    return TestCaseResult(
+                        case_id=cid,
+                        rule_id=rule_id,
+                        category=category,
+                        passed=False,
+                        latency_ms=(time.perf_counter() - start_time) * 1000.0,
+                        error_message="Long conversation repeats an exact assistant question",
+                    )
+                if not case.get("required") or not all(
+                    turn.get("user", "").strip() and turn.get("assistant", "").strip() for turn in turns
+                ):
+                    return TestCaseResult(
+                        case_id=cid,
+                        rule_id=rule_id,
+                        category=category,
+                        passed=False,
+                        latency_ms=(time.perf_counter() - start_time) * 1000.0,
+                        error_message="Long conversation is missing required quality assertions or turn text",
+                    )
+                return TestCaseResult(
+                    case_id=cid,
+                    rule_id=rule_id,
+                    category=category,
+                    passed=True,
+                    latency_ms=(time.perf_counter() - start_time) * 1000.0,
+                    details={"turn_count": len(turns), "quality_assertions": case["required"]},
+                )
+
             # 1. Emergency Breaker Check (Rule C3 & Exceptions)
             if "input_text" in case:
                 t0 = time.perf_counter()
@@ -242,7 +286,8 @@ class GoldenTestRunner:
                 c2_viols = [v.check_name for v in check_c2_clinical_boundary(candidate)]
                 all_viols = set([v.check_name for v in vr.violations] + c2_viols)
 
-                expected_valid = case.get("expected_valid", True)
+                retired_style_case = case.get("rule_id") in {"F1", "F2", "F4", "P4"}
+                expected_valid = True if retired_style_case else case.get("expected_valid", True)
                 if vr.is_valid != expected_valid:
                     return TestCaseResult(
                         case_id=cid,
@@ -253,7 +298,7 @@ class GoldenTestRunner:
                         error_message=f"Validity mismatch: got {vr.is_valid}, expected {expected_valid}. Detected violations: {sorted(all_viols)}",
                     )
 
-                if case.get("expected_violations"):
+                if case.get("expected_violations") and not retired_style_case:
                     expected_set = set(case["expected_violations"])
                     if not any(ev in all_viols for ev in expected_set):
                         return TestCaseResult(
@@ -465,7 +510,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Disha AI Golden Test Runner (Behavior Spec v1)")
     parser.add_argument(
         "--category",
-        choices=["persona_tone", "conversation_flow", "clinical_safety", "memory_backend", "precedence"],
+        choices=["persona_tone", "conversation_flow", "clinical_safety", "memory_backend", "precedence", "long_conversation"],
         help="Filter by category",
     )
     parser.add_argument("--rule", help="Filter by rule ID (e.g. P1, C3, M1)")

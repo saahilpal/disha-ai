@@ -22,6 +22,7 @@ from datetime import datetime, timedelta, timezone
 
 import asyncpg
 import httpx
+import pytest
 import websockets
 
 from disha_core.engine.normalizer import UNSUPPORTED_LANGUAGE_REPLACEMENT
@@ -47,6 +48,8 @@ from disha_core.services.chat_service import (
 BASE_HTTP = os.getenv("DISHA_HTTP_URL", "http://127.0.0.1:8080")
 BASE_WS = os.getenv("DISHA_WS_URL", "ws://127.0.0.1:8080/ws/conversation")
 PG_URL = os.getenv("DATABASE_URL", "postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha")
+
+pytestmark = pytest.mark.live_network
 
 
 class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):

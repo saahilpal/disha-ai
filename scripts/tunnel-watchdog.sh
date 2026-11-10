@@ -128,7 +128,9 @@ save_tunnel_url() {
   # Also persist to .env.local for local runtime consumption
   local env_local="${REPO_ROOT}/.env.local"
   if [ -f "${env_local}" ]; then
-    sed -i '' '/^PUBLIC_TUNNEL_URL=/d' "${env_local}" 2>/dev/null || true
+    local env_tmp="${env_local}.tmp.$$"
+    grep -v '^PUBLIC_TUNNEL_URL=' "${env_local}" > "${env_tmp}" || true
+    mv -f "${env_tmp}" "${env_local}"
   fi
   echo "PUBLIC_TUNNEL_URL=\"${url}\"" >> "${env_local}"
 

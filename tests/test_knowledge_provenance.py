@@ -9,6 +9,8 @@ from pathlib import Path
 import asyncpg
 import pytest
 
+pytestmark = pytest.mark.live_network
+
 
 def _get_db_url() -> str:
     db_host = os.getenv("DB_HOST", "127.0.0.1")

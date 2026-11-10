@@ -48,6 +48,8 @@ SCRIPTS_DIR = REPO_ROOT / "scripts"
 AGENT_DIR = REPO_ROOT / "agent"
 DEFAULT_PG_URL = os.getenv("DATABASE_URL", "postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha")
 
+pytestmark = pytest.mark.live_network
+
 
 # ==============================================================================
 # MOCK INFRASTRUCTURE FOR CHAOS & DISRUPTION SIMULATION
