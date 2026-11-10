@@ -6,6 +6,7 @@ Tests all required aspects against live Docker container stack (port 8080):
 3. Interruption / Barge-in: sending {"type": "interrupt"} and asserting {"type": "interrupted"}.
 4. Merkle Ledger Commit Verification in PostgreSQL audit_claim_ledger.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -29,6 +30,7 @@ INVALID_TOKEN = "pt_invalid_dummy_token_99999"
 # Load .env if present
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     pass
@@ -58,10 +60,10 @@ async def verify_auth_handshake() -> dict[str, Any]:
             await ws.recv()
             results["invalid_token_rejected"] = False
     except websockets.exceptions.InvalidStatusCode as e:
-        results["invalid_token_rejected"] = (e.status_code == 401)
+        results["invalid_token_rejected"] = e.status_code == 401
         print(f"     Rejected with HTTP status {e.status_code}")
     except websockets.exceptions.ConnectionClosed as e:
-        results["invalid_token_rejected"] = (e.code == 4401)
+        results["invalid_token_rejected"] = e.code == 4401
         print(f"     Connection closed with WS code {e.code}")
 
     # 2. In-band authentication handshake
@@ -108,9 +110,11 @@ async def verify_auth_handshake() -> dict[str, Any]:
         print(f"     Query param auth error: {e}")
         results["query_param_auth_success"] = False
 
-    all_passed = results.get("invalid_token_rejected", False) and \
-                 results.get("in_band_auth_success", False) and \
-                 results.get("query_param_auth_success", False)
+    all_passed = (
+        results.get("invalid_token_rejected", False)
+        and results.get("in_band_auth_success", False)
+        and results.get("query_param_auth_success", False)
+    )
     results["passed"] = all_passed
     return results
 
@@ -161,12 +165,14 @@ async def verify_streaming_audio_turn(audio_bytes: bytes) -> dict[str, Any]:
         stt_ms = (t_stt - t0) * 1000.0 if t_stt else 0.0
         llm_val_ms = (t_first_sentence - t_stt) * 1000.0 if (t_first_sentence and t_stt) else 0.0
         text_ready_ms = (t_first_sentence - t0) * 1000.0 if t_first_sentence else 0.0
-        tts_first_chunk_ms = (t_first_audio - t_first_sentence) * 1000.0 if (t_first_audio and t_first_sentence) else 0.0
+        tts_first_chunk_ms = (
+            (t_first_audio - t_first_sentence) * 1000.0 if (t_first_audio and t_first_sentence) else 0.0
+        )
         total_turnaround_ms = (t_first_audio - t0) * 1000.0 if t_first_audio else 0.0
         turn_complete_ms = (t_done - t0) * 1000.0 if t_done else 0.0
 
-        print(f"  Transcript:            \"{transcript}\"")
-        print(f"  First Sentence:        \"{first_sentence}\"")
+        print(f'  Transcript:            "{transcript}"')
+        print(f'  First Sentence:        "{first_sentence}"')
         print(f"  • STT (Groq Whisper):  {stt_ms:.2f} ms")
         print(f"  • LLM TTFT + Val:      {llm_val_ms:.2f} ms")
         print(f"  • Text Ready Latency:  {text_ready_ms:.2f} ms")
@@ -227,8 +233,8 @@ async def verify_streaming_text_turn() -> dict[str, Any]:
         tts_first_ms = (t_first_audio - t0) * 1000.0 if t_first_audio else 0.0
         done_ms = (t_done - t0) * 1000.0 if t_done else 0.0
 
-        print(f"  Query: \"{query_text}\"")
-        print(f"  Emitted {len(sentences)} sentence(s): \"{' '.join(sentences)[:80]}...\"")
+        print(f'  Query: "{query_text}"')
+        print(f'  Emitted {len(sentences)} sentence(s): "{" ".join(sentences)[:80]}..."')
         print(f"  • Text TTFT:       {ttft_ms:.2f} ms")
         print(f"  • TTS First Audio: {tts_first_ms:.2f} ms")
         print(f"  • Turn Done:       {done_ms:.2f} ms")
@@ -265,7 +271,7 @@ async def verify_interruption_barge_in() -> dict[str, Any]:
                     received_active_speech = True
                     break
 
-        print("  2. Active speech received. Sending interrupt: {\"type\": \"interrupt\"}...")
+        print('  2. Active speech received. Sending interrupt: {"type": "interrupt"}...')
         t_interrupt_sent = time.perf_counter()
         await ws.send(json.dumps({"type": "interrupt"}))
 
@@ -285,7 +291,7 @@ async def verify_interruption_barge_in() -> dict[str, Any]:
                     received_interrupted_msg = True
                     t_interrupted_recv = time.perf_counter()
                     latency_ms = (t_interrupted_recv - t_interrupt_sent) * 1000.0
-                    print(f"  3. Received {{\"type\": \"interrupted\"}} in {latency_ms:.2f} ms!")
+                    print(f'  3. Received {{"type": "interrupted"}} in {latency_ms:.2f} ms!')
                     break
             elif isinstance(msg, bytes):
                 audio_after_interrupt += 1
@@ -322,12 +328,8 @@ async def verify_merkle_ledger_commit() -> dict[str, Any]:
     conn = await asyncpg.connect(PG_URL)
     try:
         total_records = await conn.fetchval("SELECT COUNT(*) FROM audit_claim_ledger")
-        patient_records = await conn.fetchval(
-            "SELECT COUNT(*) FROM audit_claim_ledger WHERE patient_id = 'pt_test_01'"
-        )
-        head_hash = await conn.fetchval(
-            "SELECT current_hash FROM audit_chain_head WHERE singleton = TRUE"
-        )
+        patient_records = await conn.fetchval("SELECT COUNT(*) FROM audit_claim_ledger WHERE patient_id = 'pt_test_01'")
+        head_hash = await conn.fetchval("SELECT current_hash FROM audit_chain_head WHERE singleton = TRUE")
 
         rows = await conn.fetch(
             """SELECT event_id, patient_id, user_input, llm_output, breaker_status,
@@ -356,11 +358,13 @@ async def verify_merkle_ledger_commit() -> dict[str, Any]:
             if recomputed == r["current_hash"]:
                 verified_count += 1
             else:
-                mismatches.append({
-                    "event_id": str(r["event_id"]),
-                    "expected": recomputed,
-                    "actual": r["current_hash"],
-                })
+                mismatches.append(
+                    {
+                        "event_id": str(r["event_id"]),
+                        "expected": recomputed,
+                        "actual": r["current_hash"],
+                    }
+                )
 
         print(f"  • Cryptographic Hashes:    {verified_count}/{len(rows)} verified matches in recent window")
         if mismatches:
@@ -371,7 +375,12 @@ async def verify_merkle_ledger_commit() -> dict[str, Any]:
             latest_record["event_id"] = str(latest_record["event_id"])
             latest_record["timestamp"] = str(latest_record["timestamp"])
 
-        passed = (total_records > 0) and (verified_count == len(rows)) and (mismatches == []) and (head_hash == rows[0]["current_hash"])
+        passed = (
+            (total_records > 0)
+            and (verified_count == len(rows))
+            and (mismatches == [])
+            and (head_hash == rows[0]["current_hash"])
+        )
         print(f"  • Head Hash Alignment:    {'PASS' if head_hash == rows[0]['current_hash'] else 'FAIL'}")
 
         return {

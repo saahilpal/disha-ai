@@ -5,6 +5,7 @@ Verifies:
 2. Multi-turn coverage (each case has >= 2 turns).
 3. Metric assertions on global invariants (human claims, price inventions, fallback strings).
 """
+
 from __future__ import annotations
 
 import json
@@ -46,13 +47,31 @@ def test_eval_dataset_all_25_situations_covered(eval_dataset: dict) -> None:
     assert len(situations) == 25, f"Expected 25 distinct situations, found {len(situations)}"
 
     expected_cards = {
-        "incomplete_vague_message", "emotional_venting", "symptom_report", "red_flag",
-        "crisis_self_harm", "medication_dose_question", "diet_exercise_question", "plan_lookup",
-        "goal_setting", "progress_and_wins", "lapse_no_shame", "motivation_dip",
-        "small_talk", "humor_are_you_human", "pricing_or_product", "unsupported_capability",
-        "out_of_scope", "unsupported_language", "privacy_request", "abusive_user",
-        "silence_timeout", "correction_of_stored_fact", "repeated_question",
-        "returning_after_gap", "routine_wellness"
+        "incomplete_vague_message",
+        "emotional_venting",
+        "symptom_report",
+        "red_flag",
+        "crisis_self_harm",
+        "medication_dose_question",
+        "diet_exercise_question",
+        "plan_lookup",
+        "goal_setting",
+        "progress_and_wins",
+        "lapse_no_shame",
+        "motivation_dip",
+        "small_talk",
+        "humor_are_you_human",
+        "pricing_or_product",
+        "unsupported_capability",
+        "out_of_scope",
+        "unsupported_language",
+        "privacy_request",
+        "abusive_user",
+        "silence_timeout",
+        "correction_of_stored_fact",
+        "repeated_question",
+        "returning_after_gap",
+        "routine_wellness",
     }
     missing = expected_cards - situations
     assert not missing, f"Missing situation cards in eval dataset: {missing}"

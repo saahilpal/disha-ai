@@ -3,6 +3,7 @@
 Revision ID: 0005_runtime_schema_alignment
 Revises: 0004_approved_condition_tag_index
 """
+
 from typing import Sequence, Union
 
 from alembic import op

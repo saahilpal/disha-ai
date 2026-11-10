@@ -5,6 +5,7 @@ Revises: 0003_knowledge_and_product_facts
 Create Date: 2026-11-09 00:00:00
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op

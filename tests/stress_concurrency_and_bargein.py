@@ -7,6 +7,7 @@ Validates:
 4. Asynchronous SQLite Write-Ahead Log (audit_wal.db) durability under concurrent load.
 5. Real-time client-side barge-in interruption hook (server task cancel & {"type": "interrupted"} response).
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -25,7 +26,9 @@ logger = logging.getLogger("StressConcurrency")
 
 WS_URL = "ws://127.0.0.1:8080/ws/conversation?token=pt_test_01_valid_bearer_token"
 CONCURRENT_SESSIONS = 30
-PG_DSN = os.getenv("DATABASE_URL", f"postgresql://disha:{os.getenv('POSTGRES_PASSWORD', 'postgres')}@127.0.0.1:5432/disha")
+PG_DSN = os.getenv(
+    "DATABASE_URL", f"postgresql://disha:{os.getenv('POSTGRES_PASSWORD', 'postgres')}@127.0.0.1:5432/disha"
+)
 
 
 def get_docker_memory_stats() -> dict[str, str]:
@@ -48,9 +51,7 @@ async def get_postgres_connection_count() -> int:
     """Query active PostgreSQL connection count."""
     conn = await asyncpg.connect(PG_DSN)
     try:
-        val = await conn.fetchval(
-            "SELECT count(*) FROM pg_stat_activity WHERE datname = 'disha';"
-        )
+        val = await conn.fetchval("SELECT count(*) FROM pg_stat_activity WHERE datname = 'disha';")
         return int(val)
     finally:
         await conn.close()
@@ -110,16 +111,10 @@ async def test_30_session_concurrency() -> dict[str, Any]:
     logger.info(f"Initial PostgreSQL active connections: {initial_pg_conns}")
     logger.info(f"Initial Docker memory footprint: {initial_mem}")
 
-    queries = [
-        f"Session {i}: Aaj mera breakfast aur dinner schedule kya hai?"
-        for i in range(CONCURRENT_SESSIONS)
-    ]
+    queries = [f"Session {i}: Aaj mera breakfast aur dinner schedule kya hai?" for i in range(CONCURRENT_SESSIONS)]
 
     t_start = time.perf_counter()
-    tasks = [
-        asyncio.create_task(run_single_client_session(i, queries[i]))
-        for i in range(CONCURRENT_SESSIONS)
-    ]
+    tasks = [asyncio.create_task(run_single_client_session(i, queries[i])) for i in range(CONCURRENT_SESSIONS)]
 
     # Monitor PG connections while sessions are running
     await asyncio.sleep(0.5)

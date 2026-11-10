@@ -344,7 +344,9 @@ def check_pep_and_clinical_bounds(text: str, context: dict[str, Any]) -> list[Ve
 # ---------------------------------------------------------------------------
 
 DEVANAGARI_RE = re.compile(r"[\u0900-\u097F]")
-ROMAN_HINDI_COMMON_RE = re.compile(r"\b(aap|aapka|aapko|hai|hain|kripya|karein|karo|nahi|nhi|mein|batao|theek|kaisa|kaise|kyun|kya|hoga)\b", re.I)
+ROMAN_HINDI_COMMON_RE = re.compile(
+    r"\b(aap|aapka|aapko|hai|hain|kripya|karein|karo|nahi|nhi|mein|batao|theek|kaisa|kaise|kyun|kya|hoga)\b", re.I
+)
 
 BANNED_HONORIFICS_RE = re.compile(
     r"\b(ji\s+sir|ji\s+ma'?am|ji\s+madam|sir|ma'?am|madam|sahab|sahib|shrimaan|shreemati)\b|"
@@ -353,13 +355,17 @@ BANNED_HONORIFICS_RE = re.compile(
 )
 
 C2_MEDICATION_DOSE_RE = re.compile(r"\b\d+\s*(?:mg|ml|mcg|tablets?|capsules?|goli)\b", re.I)
-C2_MED_NAMES_RE = re.compile(r"\b(metformin|paracetamol|ibuprofen|aspirin|omeprazole|atorvastatin|amlodipine|insulin)\b", re.I)
+C2_MED_NAMES_RE = re.compile(
+    r"\b(metformin|paracetamol|ibuprofen|aspirin|omeprazole|atorvastatin|amlodipine|insulin)\b", re.I
+)
 C2_DIAGNOSIS_RE = re.compile(
     r"\b(?:you\s+have\s+(?:diabetes|hypertension|pcos|thyroid|asthma|depression|anxiety|gerd)|"
     r"aapko\s+(?:diabetes|hypertension|pcos|thyroid|asthma|depression|anxiety|gerd)\s+hai)\b",
     re.I,
 )
-C2_TREATMENT_PLAN_RE = re.compile(r"\b(?:treatment\s+plan|start\s+taking|stop\s+taking|double\s+the\s+dose|halve\s+the\s+dose)\b", re.I)
+C2_TREATMENT_PLAN_RE = re.compile(
+    r"\b(?:treatment\s+plan|start\s+taking|stop\s+taking|double\s+the\s+dose|halve\s+the\s+dose)\b", re.I
+)
 
 
 def split_sentences_multilingual(text: str) -> list[str]:
@@ -391,7 +397,7 @@ def check_p3_language_mode(text: str, language_mode: str = "hinglish") -> Verifi
     elif lang in ("hi", "hindi"):
         # Hindi should use Devanagari script predominantly
         chars = [c for c in text if c.isalpha()]
-        deva_chars = [c for c in text if "\u0900" <= c <= "\u097F"]
+        deva_chars = [c for c in text if "\u0900" <= c <= "\u097f"]
         if chars and (len(deva_chars) / len(chars)) < 0.35:
             return VerificationViolation(
                 check_name="p3_hindi_devanagari",
@@ -444,8 +450,11 @@ def check_f1_zero_echo(text: str, context: dict[str, Any]) -> VerificationViolat
         if num in ("112", "14416"):
             continue
         # If response repeats "aapka weight {num}" or "{num} {unit}"
-        pattern = re.compile(rf"\b(?:aapka|apka|your)\s+(?:weight|vajan|age|umra)\s+{re.escape(num)}\b|"
-                             rf"\b(?:weight|vajan)\s+{re.escape(num)}\s*{re.escape(unit)}\b", re.I)
+        pattern = re.compile(
+            rf"\b(?:aapka|apka|your)\s+(?:weight|vajan|age|umra)\s+{re.escape(num)}\b|"
+            rf"\b(?:weight|vajan)\s+{re.escape(num)}\s*{re.escape(unit)}\b",
+            re.I,
+        )
         if pattern.search(text):
             return VerificationViolation(
                 check_name="f1_zero_echo",
@@ -586,40 +595,41 @@ def verify_response(text: str, context: dict[str, Any] | None = None) -> Verific
 
     # Behavior Spec v1 checks (gated by config / context flag)
     from disha_core.config import get_settings
+
     settings = get_settings()
     if getattr(settings, "behavior_spec_v1", True) or ctx.get("behavior_spec_v1", True):
         lang = str(ctx.get("language") or ctx.get("user_language") or "hinglish")
-        
+
         # P3: Language & script mode
         v_p3 = check_p3_language_mode(sanitized, lang)
         if v_p3:
             violations.append(v_p3)
-            
+
         # P4: Banned honorifics
         v_p4 = check_p4_honorifics(sanitized)
         if v_p4:
             violations.append(v_p4)
-            
+
         # P6 & F3: Length (1-3 sentences, char cap)
         v_len = check_p6_f3_length(sanitized)
         if v_len:
             violations.append(v_len)
-            
+
         # F1: Zero-echo
         v_echo = check_f1_zero_echo(sanitized, ctx)
         if v_echo:
             violations.append(v_echo)
-            
+
         # F2: At most one question
         v_f2 = check_f2_at_most_one_question(sanitized)
         if v_f2 and v_f2 not in violations:
             violations.append(v_f2)
-            
+
         # F4: Selective empathy
         v_f4 = check_f4_selective_empathy(sanitized, ctx)
         if v_f4:
             violations.append(v_f4)
-            
+
         # C2: No advice on chat (meds, diagnosis, treatment)
         for v_c2 in check_c2_clinical_boundary(sanitized):
             violations.append(v_c2)

@@ -3,6 +3,7 @@
 Enforces strict sectioned reads/writes, stage provenance, timing telemetry,
 and PHI-safe trace generation across chat and voice pipelines.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -15,6 +16,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 class TranscriptSection(BaseModel):
     """Audio transcription inputs and interim stream state."""
+
     model_config = ConfigDict(extra="forbid")
 
     interim: str = Field(default="", description="Interim streaming transcript")
@@ -26,6 +28,7 @@ class TranscriptSection(BaseModel):
 
 class LanguageSection(BaseModel):
     """Language detection, script identification, and boundary checks."""
+
     model_config = ConfigDict(extra="forbid")
 
     code: str = Field(default="hinglish", description="Language code: en, hi, or hinglish")
@@ -36,6 +39,7 @@ class LanguageSection(BaseModel):
 
 class SafetySection(BaseModel):
     """Clinical emergency breaker and early PEP risk gate outputs."""
+
     model_config = ConfigDict(extra="forbid")
 
     breaker_triggered: bool = Field(default=False, description="Emergency red-flag breaker fired")
@@ -47,6 +51,7 @@ class SafetySection(BaseModel):
 
 class StageIntentSection(BaseModel):
     """Laya intent routing and Onboarding Stage Engine cursor state."""
+
     model_config = ConfigDict(extra="forbid")
 
     intent: str = Field(default="general_coaching", description="Classified intent")
@@ -60,6 +65,7 @@ class StageIntentSection(BaseModel):
 
 class PatientBriefSection(BaseModel):
     """Patient snapshot loaded from profile and clinician PEP store."""
+
     model_config = ConfigDict(extra="forbid")
 
     patient_id: str = Field(default="", description="Unique patient identifier")
@@ -73,6 +79,7 @@ class PatientBriefSection(BaseModel):
 
 class MemoryBriefSection(BaseModel):
     """Short-term conversational turns and long-term memory brief."""
+
     model_config = ConfigDict(extra="forbid")
 
     history_turns: list[dict[str, str]] = Field(default_factory=list, description="Recent conversation turns")
@@ -83,6 +90,7 @@ class MemoryBriefSection(BaseModel):
 
 class RetrievalSection(BaseModel):
     """Evidence chunks retrieved from pgvector / RAG corpus."""
+
     model_config = ConfigDict(extra="forbid")
 
     evidence_ids: list[str] = Field(default_factory=list, description="IDs of retrieved chunks")
@@ -94,6 +102,7 @@ class RetrievalSection(BaseModel):
 
 class RulesSection(BaseModel):
     """Clinical guardrails and business rules fired during turn."""
+
     model_config = ConfigDict(extra="forbid")
 
     rules_fired: list[str] = Field(
@@ -104,6 +113,7 @@ class RulesSection(BaseModel):
 
 class DraftSection(BaseModel):
     """Raw generation from LLM provider before sentence validation."""
+
     model_config = ConfigDict(extra="forbid")
 
     raw_text: str = Field(default="", description="Raw unvalidated model output")
@@ -115,6 +125,7 @@ class DraftSection(BaseModel):
 
 class ValidatorSection(BaseModel):
     """Clinical sentence validator outputs and boundary enforcements."""
+
     model_config = ConfigDict(extra="forbid")
 
     status: str = Field(default="validated", description="Validator status, e.g. validated, rewritten, deflected")
@@ -126,6 +137,7 @@ class ValidatorSection(BaseModel):
 
 class SpokenSection(BaseModel):
     """TTS speech synthesis streaming outputs."""
+
     model_config = ConfigDict(extra="forbid")
 
     spoken_text: str = Field(default="", description="Concatenated spoken output")
@@ -136,6 +148,7 @@ class SpokenSection(BaseModel):
 
 class PlaybackSection(BaseModel):
     """Client-side audio playback lifecycle and interruption tracking."""
+
     model_config = ConfigDict(extra="forbid")
 
     completed: bool = Field(default=False, description="Whether playback finished completely")
@@ -149,6 +162,7 @@ class TurnContext(BaseModel):
     Each pipeline component strictly reads from upstream sections and writes
     only to its assigned downstream section.
     """
+
     model_config = ConfigDict(extra="forbid")
 
     turn_id: str = Field(default_factory=lambda: f"turn_{uuid4().hex[:12]}")
@@ -190,7 +204,9 @@ class TurnContext(BaseModel):
         return {
             "turn_id": self.turn_id,
             "session_id": self.session_id,
-            "patient_hash": hashlib.sha256(self.patient_id.encode("utf-8")).hexdigest()[:12] if self.patient_id else "anon",
+            "patient_hash": hashlib.sha256(self.patient_id.encode("utf-8")).hexdigest()[:12]
+            if self.patient_id
+            else "anon",
             "channel": self.channel,
             "utterance_length": len(raw_text),
             "utterance_sha256_prefix": text_sha,
@@ -230,4 +246,3 @@ class TurnContext(BaseModel):
             },
             "timing_ms": self.stage_latencies_ms,
         }
-

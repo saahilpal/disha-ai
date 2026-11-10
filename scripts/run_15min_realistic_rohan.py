@@ -4,6 +4,7 @@ Conducts a strict 15-minute (900+ seconds) active real-world conversation with D
 Simulates natural pacing, progressive disclosures, unexpected topic shifts, memory recalls,
 pricing inquiries, and nutritional moderation queries across 45-55 turns.
 """
+
 import asyncio
 import json
 import os
@@ -23,51 +24,42 @@ CONVERSATION_STAGES = [
     "Kya empty stomach cold brew peene se acidity ya jitteriness badh sakti hai?",
     "Abhi ke liye mujhe thoda fresh feel karna hai, office meeting hai 30 mins mein. Quick fix kya ho sakta hai?",
     "Thoda normal paani pi liya maine aur face wash kiya, headache thoda kam hua hai.",
-
     # Topic 2: Work desk posture & screen fatigue
     "Waise din bhar laptop screen dekhne se meri aankhon mein jalan aur neck stiffness ho rahi hai.",
     "Kya desk par baithe baithe koi simple neck aur shoulder stretches kar sakte hain?",
     "Blue light glasses pehnna sach mein helpful hota hai ya sirf marketing hype hai?",
     "Office chair par lumbar support ke liye pillow lagana theek rahega?",
-
     # Topic 3: Lunch choices & afternoon energy crash
     "Lunch time hone wala hai. Bahar cafeteria mein chole bhature, dal tadka with roti, aur veg thali options hain.",
     "Agar dal tadka aur 2 rotis loon toh afternoon mein lethargy ya bloating toh nahi hogi?",
     "Dopahar ke khane ke baad aksar bohot neend aati hai, is crash ko kaise rokein?",
     "Lunch ke turant baad 10 minute walk karna kaisa rahega?",
-
     # Topic 4: Weekend football & sports fitness
     "Waise is Sunday main doston ke saath football khelne ka plan bana raha hoon.",
     "Kya mera fitness level football ke 90 minutes sprint match ke liye safe hai?",
     "Football khelte waqt hydration ke liye plain water better hai ya coconut water?",
     "Agar match ke dauran calf muscle tight lage toh turant kya karna chahiye?",
-
     # Topic 5: Memory recall & coffee habit check-in
     "Subah jo humne 2 large cold brew coffee ki baat ki thi, kya uski wajah se dehydration ho sakta hai match mein?",
     "Daily caffeine limit kitni honi chahiye ek 27 year old desk worker ke liye?",
     "Coffee ko replace karne ke liye koi healthy warm drink batao office ke liye.",
-
     # Topic 6: Evening workout & Gym clearance
     "Office ke baad gym jaakar moderate strength training ya dumbbell exercises karna chahun toh allowed hai?",
     "Chest press aur squats ke 3 sets karna theek rahega aaj ke fatigue level ke sath?",
     "Pre-workout snack mein ek banana ya handful of almonds khana kaisa rahega?",
-
     # Topic 7: Pricing & Capability boundaries
     "Disha, ek baat batao, yeh app paid hai kya? Kitne ka subscription hai?",
     "Agar main daily personal guidance aur meal reviews chahta hoon toh kya extra charge hoga?",
     "Kya tum mere phone pe WhatsApp par daily morning motivation aur workout plan bhej sakti ho?",
-
     # Topic 8: Seasonal Fruit & Nutrition Moderation
     "Garmiyon mein aam (mango) khane se mera body fat badhega kya? Weight loss ke time aam bilkul band karna padega?",
     "Din mein 100g mango slice khana theek hai ya dinner ke baad dessert jaisa lena chahiye?",
     "Mango shake with sugar vs whole fresh fruit slice mein health ke hisaab se kya difference hai?",
-
     # Topic 9: Sleep schedule & night routine
     "Raat ko neend aane mein bohot time lagta hai, aksar 1:30 AM tak phone scroll karta rehta hoon.",
     "Late night screen scrolling habit ko break karne ke liye practical trick kya hai?",
     "Room temperature aur darkness ka neend ki quality par kya impact padta hai?",
     "Kya raat ko warm milk lena digestion ke liye heavy hota hai ya sleep induce karta hai?",
-
     # Topic 10: Long-range context synthesis & habit commitment
     "Toh summary mein: subah cold brew kam karna hai, dopahar light lunch + walk, aur football ke liye hydration.",
     "Aaj raat ko kitne baje dinner complete kar lena chahiye agar 11 PM sona hai?",
@@ -166,7 +158,9 @@ async def run_15min_realistic_session():
                     await asyncio.sleep(sleep_dur)
 
         total_elapsed = round(time.time() - start_time, 1)
-        print(f"\n[Rohan Completed Full 15 Min] Total active duration: {total_elapsed}s ({round(total_elapsed/60, 2)} mins), {turn_idx} turns.")
+        print(
+            f"\n[Rohan Completed Full 15 Min] Total active duration: {total_elapsed}s ({round(total_elapsed / 60, 2)} mins), {turn_idx} turns."
+        )
 
 
 if __name__ == "__main__":

@@ -72,6 +72,8 @@ In `disha_core/compliance/ledger.py` (lines 51, 59, 100–121):
 ```python
 wal_path: str | Path | None = "audit_wal.db"
 ...
+
+
 def _write_wal(self, record: AuditRecord) -> None:
     if not self.wal_path:
         return
@@ -195,8 +197,8 @@ pool = await asyncpg.create_pool(
     user=os.environ["DB_USER"],
     password=os.environ["DB_PASSWORD"],
     min_size=1,
-    max_size=10,      # <--- HARD CAP OF 10 CONNECTIONS
-    timeout=2,        # <--- 2-SECOND ACQUISITION TIMEOUT
+    max_size=10,  # <--- HARD CAP OF 10 CONNECTIONS
+    timeout=2,  # <--- 2-SECOND ACQUISITION TIMEOUT
 )
 ```
 
@@ -210,9 +212,7 @@ async def _persist(self, record: AuditRecord) -> None:
             )
             ...
             await connection.execute(...)
-            await connection.execute(
-                "UPDATE audit_chain_head SET current_hash = $1 WHERE singleton = TRUE", digest
-            )
+            await connection.execute("UPDATE audit_chain_head SET current_hash = $1 WHERE singleton = TRUE", digest)
 ```
 
 ### 3.2 Concurrency Breakdown & Pool Starvation
@@ -345,8 +345,9 @@ self._session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider
 self._encode = encode
 self._decode = decode
 
+
 def classify(self, text: str) -> Intent:
-    values = self._session.run(None, self._encode(text)) # <--- BLOCKING C++ CALL
+    values = self._session.run(None, self._encode(text))  # <--- BLOCKING C++ CALL
     intent = self._decode(values)
     if not isinstance(intent, Intent):
         raise TypeError("intent decoder must return an Intent")

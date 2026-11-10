@@ -2,6 +2,7 @@
 
 Enforces boundary integrity, payload size bounds, and deterministic normalization.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -13,6 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 @dataclass
 class TurnState:
     """State tracking for a conversational turn across breaker and validator."""
+
     breaker_status: str = "clear"
     validator_status: str = "accepted"
     retrieval_status: str = "not_requested"
@@ -21,14 +23,14 @@ class TurnState:
 
 class TurnRequest(BaseModel):
     """Chat/conversation turn input payload."""
+
     model_config = ConfigDict(extra="forbid")
 
     text: str = Field(min_length=1, max_length=5000, description="Patient utterance or query")
     client_msg_id: str | None = Field(default=None, description="Client idempotency message ID")
     conversation_id: str | None = Field(default=None, description="Active conversation UUID")
     meal_type: Literal["breakfast", "lunch", "dinner"] | None = Field(
-        default=None,
-        description="Optional meal window (only set if relevant to meals/nutrition)"
+        default=None, description="Optional meal window (only set if relevant to meals/nutrition)"
     )
 
     @model_validator(mode="before")
@@ -58,6 +60,7 @@ class TurnRequest(BaseModel):
 
 class LoginRequest(BaseModel):
     """Patient login credentials payload."""
+
     model_config = ConfigDict(extra="forbid")
 
     email: str = Field(min_length=3, max_length=255, description="Patient registered email")
@@ -72,6 +75,7 @@ class LoginRequest(BaseModel):
 
 class OnboardingRequest(BaseModel):
     """Patient registration and clinical profile onboarding payload."""
+
     model_config = ConfigDict(extra="ignore")
 
     name: str = Field(min_length=1, max_length=128, description="Patient full name")
@@ -82,13 +86,21 @@ class OnboardingRequest(BaseModel):
     height_cm: float | None = Field(default=None, ge=40.0, le=280.0, description="Height in centimeters")
     weight_kg: float | None = Field(default=None, ge=10.0, le=400.0, description="Weight in kilograms")
     conditions: list[str] = Field(default_factory=list, max_length=50, description="Self-reported clinical conditions")
-    hypertension_stage: str | None = Field(default=None, max_length=32, description="Patient-reported hypertension grade or stage")
+    hypertension_stage: str | None = Field(
+        default=None, max_length=32, description="Patient-reported hypertension grade or stage"
+    )
     gym_clearance: bool | None = Field(default=None, description="Deprecated; not treated as clinician verification")
     activity_level: str | None = Field(default=None, max_length=32, description="Baseline activity level")
-    movement_restrictions: list[str] = Field(default_factory=list, max_length=50, description="Physical movement limitations")
+    movement_restrictions: list[str] = Field(
+        default_factory=list, max_length=50, description="Physical movement limitations"
+    )
     dietary_preference: str | None = Field(default=None, max_length=64, description="Dietary pattern")
-    health_goals: list[str] = Field(default_factory=list, max_length=50, description="Primary health coaching objectives")
-    language: str = Field(default="hinglish", max_length=32, description="Preferred language (english, hindi, hinglish)")
+    health_goals: list[str] = Field(
+        default_factory=list, max_length=50, description="Primary health coaching objectives"
+    )
+    language: str = Field(
+        default="hinglish", max_length=32, description="Preferred language (english, hindi, hinglish)"
+    )
     health_focuses: list[str] = Field(default_factory=list, max_length=50, description="Selected health focus areas")
     health_focus_other: str = Field(default="", max_length=1000, description="Custom self-described health concern")
 
@@ -103,6 +115,7 @@ class OnboardingRequest(BaseModel):
 
 class HealthResponse(BaseModel):
     """Database and health status response."""
+
     model_config = ConfigDict(extra="forbid")
 
     ok: bool = True
@@ -111,6 +124,7 @@ class HealthResponse(BaseModel):
 
 class ReadyResponse(BaseModel):
     """Readiness probe status."""
+
     model_config = ConfigDict(extra="forbid")
 
     ok: bool = True
@@ -121,6 +135,7 @@ class ReadyResponse(BaseModel):
 
 class PEPDetails(BaseModel):
     """Personal Experience Profile details."""
+
     model_config = ConfigDict(extra="ignore")
 
     hypertension_stage: str = "unknown"
@@ -135,6 +150,7 @@ class PEPDetails(BaseModel):
 
 class AuthResponse(BaseModel):
     """Authentication token response."""
+
     model_config = ConfigDict(extra="ignore")
 
     token: str
@@ -146,6 +162,7 @@ class AuthResponse(BaseModel):
 
 class PatientProfileResponse(BaseModel):
     """Full patient profile, exercise prescription, and current diet."""
+
     model_config = ConfigDict(extra="ignore")
 
     patient_id: str
@@ -158,6 +175,7 @@ class PatientProfileResponse(BaseModel):
 
 class ChatResponse(BaseModel):
     """Standard conversational turn response."""
+
     model_config = ConfigDict(extra="forbid")
 
     response: str
@@ -168,6 +186,7 @@ class ChatResponse(BaseModel):
 
 class ClientErrorPayload(BaseModel):
     """Client error reporting payload."""
+
     model_config = ConfigDict(extra="ignore")
 
     message: str = "unknown"
@@ -176,6 +195,7 @@ class ClientErrorPayload(BaseModel):
 
 class ClientErrorResponse(BaseModel):
     """Client error ack response."""
+
     model_config = ConfigDict(extra="forbid")
 
     logged: bool = True
@@ -183,6 +203,7 @@ class ClientErrorResponse(BaseModel):
 
 class ProfileUpdateRequest(BaseModel):
     """Payload for updating patient personal and health details."""
+
     model_config = ConfigDict(extra="forbid")
 
     name: str | None = Field(default=None, max_length=128)

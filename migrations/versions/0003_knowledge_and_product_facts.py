@@ -5,6 +5,7 @@ Revises: 0002_memory_and_pep
 Create Date: 2026-11-08 23:30:00.000000
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op

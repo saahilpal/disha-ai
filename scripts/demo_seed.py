@@ -11,6 +11,7 @@ Seeds three realistic synthetic patient profiles:
 
 Demo mode is clearly indicated in patient names, records, and access tokens.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -93,9 +94,32 @@ DEMO_PATIENTS = [
             )
         ],
         "temporal_facts": [
-            ("cardiac_history", json.dumps({"condition": "Coronary Artery Disease", "stent_year": 2024, "stent_location": "LAD", "gym_clearance": False})),
-            ("last_bp_reading", json.dumps({"systolic": 142, "diastolic": 90, "measured_at": "yesterday morning", "device": "Omron Upper Arm Cuff"})),
-            ("prescribed_medication", json.dumps({"class": "Beta Blocker & Statin", "note": "Disha does not alter dosage; patient adherent"})),
+            (
+                "cardiac_history",
+                json.dumps(
+                    {
+                        "condition": "Coronary Artery Disease",
+                        "stent_year": 2024,
+                        "stent_location": "LAD",
+                        "gym_clearance": False,
+                    }
+                ),
+            ),
+            (
+                "last_bp_reading",
+                json.dumps(
+                    {
+                        "systolic": 142,
+                        "diastolic": 90,
+                        "measured_at": "yesterday morning",
+                        "device": "Omron Upper Arm Cuff",
+                    }
+                ),
+            ),
+            (
+                "prescribed_medication",
+                json.dumps({"class": "Beta Blocker & Statin", "note": "Disha does not alter dosage; patient adherent"}),
+            ),
         ],
         "diet": {
             "breakfast": "2 moong dal chillas with fresh mint chutney (no added salt), 1 cup low-fat curd (approx 280 kcal)",
@@ -170,8 +194,14 @@ DEMO_PATIENTS = [
             )
         ],
         "temporal_facts": [
-            ("glycemic_metrics", json.dumps({"hba1c": 7.4, "fasting_glucose": 138, "diagnosed_year": 2021, "target_hba1c": 6.8})),
-            ("tea_sugar_status", json.dumps({"status": "eliminated refined sugar from morning and 5pm chai since last month"})),
+            (
+                "glycemic_metrics",
+                json.dumps({"hba1c": 7.4, "fasting_glucose": 138, "diagnosed_year": 2021, "target_hba1c": 6.8}),
+            ),
+            (
+                "tea_sugar_status",
+                json.dumps({"status": "eliminated refined sugar from morning and 5pm chai since last month"}),
+            ),
         ],
         "diet": {
             "breakfast": "Sprouted methi and moong dal chilla with green coriander chutney and unsweetened almond curd (approx 290 kcal)",
@@ -243,8 +273,21 @@ DEMO_PATIENTS = [
             )
         ],
         "temporal_facts": [
-            ("work_routine", json.dumps({"profession": "Software Engineer", "work_mode": "Hybrid", "sitting_hours": 9, "ergonomics": "Laptop stand with external keyboard"})),
-            ("step_goal", json.dumps({"target": 10000, "current_avg": 6800, "preferred_reminder_window": "16:00 - 18:00"})),
+            (
+                "work_routine",
+                json.dumps(
+                    {
+                        "profession": "Software Engineer",
+                        "work_mode": "Hybrid",
+                        "sitting_hours": 9,
+                        "ergonomics": "Laptop stand with external keyboard",
+                    }
+                ),
+            ),
+            (
+                "step_goal",
+                json.dumps({"target": 10000, "current_avg": 6800, "preferred_reminder_window": "16:00 - 18:00"}),
+            ),
         ],
         "diet": {
             "breakfast": "Rolled oats porridge cooked in skim milk with chia seeds, crushed almonds, and 1 bowl sprouted moong (approx 340 kcal)",
@@ -495,7 +538,9 @@ def print_demo_sheet():
         print(f"  • PEP Focus:   {p['pep']['primary_focus']}")
         print(f"  • Gym Clear:   {'YES (Cleared)' if p['pep']['gym_clearance'] else 'NO (Strictly Contraindicated)'}")
         print(f"  • Allowed:     {', '.join(p['pep']['allowed_modalities'][:3])}")
-        print(f"  • Restricted:  {', '.join(p['pep']['restricted_modalities'][:3]) if p['pep']['restricted_modalities'] else 'None'}")
+        print(
+            f"  • Restricted:  {', '.join(p['pep']['restricted_modalities'][:3]) if p['pep']['restricted_modalities'] else 'None'}"
+        )
         print(f"  • Token:       {p['tokens'][0]}")
     print("\n" + "=" * 76)
 

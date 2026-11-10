@@ -3,6 +3,7 @@
 Sub-turn micro-benchmarks executing 1,000 iterations each for breaker.py,
 retriever.py (pg_trgm), and validator.py, computing P50, P95, and P99 percentiles.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -154,10 +155,12 @@ def run_latency_profiler(iterations: int = 1000) -> dict[str, Any]:
         loop.close()
 
     overall_passed = breaker_stats["passed"] and validator_stats["passed"] and retriever_stats["passed"]
-    total_p95_overhead = (
-        breaker_stats["p95_ms"] + validator_stats["p95_ms"] + retriever_stats["p95_ms"]
+    total_p95_overhead = breaker_stats["p95_ms"] + validator_stats["p95_ms"] + retriever_stats["p95_ms"]
+    score = (
+        100.0
+        if overall_passed
+        else (66.6 if sum(1 for s in (breaker_stats, validator_stats, retriever_stats) if s["passed"]) == 2 else 33.3)
     )
-    score = 100.0 if overall_passed else (66.6 if sum(1 for s in (breaker_stats, validator_stats, retriever_stats) if s["passed"]) == 2 else 33.3)
 
     return {
         "suite": "latency_profiler",
@@ -176,6 +179,6 @@ def run_latency_profiler(iterations: int = 1000) -> dict[str, Any]:
 
 if __name__ == "__main__":
     import json
+
     res = run_latency_profiler(iterations=1000)
     print(json.dumps(res, indent=2))
-

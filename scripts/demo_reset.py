@@ -7,6 +7,7 @@ clinical PEPs, diet schedules, and habits.
 
 Ensures zero state leakage between demo runs.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -66,7 +67,9 @@ async def reset_demo_environment(db_url: str = DEFAULT_PG_URL) -> dict[str, Any]
                 demo_pids,
             )
 
-            print(f"[✓] Purged: {deleted_turns}, {deleted_history}, {deleted_journey}, {deleted_summaries}, {deleted_obs}")
+            print(
+                f"[✓] Purged: {deleted_turns}, {deleted_history}, {deleted_journey}, {deleted_summaries}, {deleted_obs}"
+            )
 
         # Reseed pristine state
         stats = await seed_demo_patients(db_url)

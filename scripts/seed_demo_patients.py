@@ -3,6 +3,7 @@
 
 Wrapper around scripts/demo_seed.py for backwards compatibility.
 """
+
 from __future__ import annotations
 
 import sys

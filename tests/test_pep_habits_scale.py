@@ -8,6 +8,7 @@ Tests:
 5. Replay idempotency: re-running consolidation produces identical hash and bumps no unnecessary versions.
 6. Downsampling: raw observations older than 90 days pruned while rollups are preserved.
 """
+
 from __future__ import annotations
 
 import json
@@ -76,7 +77,9 @@ class TestPepHabitsScaleBenchmark(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(current_wake, "06:30")
 
         # Day 3: Permanent change cue ("ab se maine shift badal di hai, 08:00 baje uthunga")
-        res3 = await commit_habit_slot(pid, "wake_time", "08:00", "ab se maine shift badal di hai, 08:00 baje uthunga", conn=self.conn)
+        res3 = await commit_habit_slot(
+            pid, "wake_time", "08:00", "ab se maine shift badal di hai, 08:00 baje uthunga", conn=self.conn
+        )
         self.assertEqual(res3["status"], "superseded")
 
         updated_wake = await self.conn.fetchval(
@@ -98,19 +101,21 @@ class TestPepHabitsScaleBenchmark(unittest.IsolatedAsyncioTestCase):
                    'Blood Pressure Control', 'Vegetarian', $2::jsonb
                )""",
             pid,
-            json.dumps({
-                "slots": {
-                    "wake_time": {"value_norm": "06:30", "confirm_count": 12},
-                    "sleep_time": {"value_norm": "23:00", "confirm_count": 12},
-                    "water_intake_target": {"value_norm": "3.0", "confirm_count": 8},
-                    "daily_steps_target": {"value_norm": "8000", "confirm_count": 15},
-                },
-                "trends": {
-                    "daily_steps_target": {"mean": 7850, "trend": "stable"},
-                    "water_intake_target": {"mean": 2.9, "trend": "increasing"},
-                },
-                "active_episodes": [{"id": 1, "description": "Drink 1 glass warm water before 10 AM"}],
-            }),
+            json.dumps(
+                {
+                    "slots": {
+                        "wake_time": {"value_norm": "06:30", "confirm_count": 12},
+                        "sleep_time": {"value_norm": "23:00", "confirm_count": 12},
+                        "water_intake_target": {"value_norm": "3.0", "confirm_count": 8},
+                        "daily_steps_target": {"value_norm": "8000", "confirm_count": 15},
+                    },
+                    "trends": {
+                        "daily_steps_target": {"mean": 7850, "trend": "stable"},
+                        "water_intake_target": {"mean": 2.9, "trend": "increasing"},
+                    },
+                    "active_episodes": [{"id": 1, "description": "Drink 1 glass warm water before 10 AM"}],
+                }
+            ),
         )
 
         latencies_ms: list[float] = []
@@ -150,9 +155,13 @@ class TestPepHabitsScaleBenchmark(unittest.IsolatedAsyncioTestCase):
 
         now = datetime.now(timezone.utc)
         # Old observation (120 days ago)
-        await record_habit_observation(pid, "daily_steps_target", 7500, "steps", observed_at=now - timedelta(days=120), conn=self.conn)
+        await record_habit_observation(
+            pid, "daily_steps_target", 7500, "steps", observed_at=now - timedelta(days=120), conn=self.conn
+        )
         # Recent observation (5 days ago)
-        await record_habit_observation(pid, "daily_steps_target", 8200, "steps", observed_at=now - timedelta(days=5), conn=self.conn)
+        await record_habit_observation(
+            pid, "daily_steps_target", 8200, "steps", observed_at=now - timedelta(days=5), conn=self.conn
+        )
 
         total_before = await self.conn.fetchval("SELECT COUNT(*) FROM habit_observations WHERE patient_id = $1", pid)
         self.assertEqual(total_before, 2)

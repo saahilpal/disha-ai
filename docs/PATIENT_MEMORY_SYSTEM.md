@@ -405,9 +405,10 @@ WHERE epistemic_status = 'active'
 RETURNING fact_id, patient_id, entity_type, attribute_name;
 """
 
+
 async def run_memory_decay_cycle(pool: asyncpg.Pool) -> list[dict]:
     """Transitions expired acute and episodic facts to resolved status.
-    
+
     Guarantees that stale symptoms never dilute active prompt contexts.
     """
     async with pool.acquire() as conn:

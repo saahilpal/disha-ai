@@ -4,6 +4,7 @@ Conducts an extended 25+ turn, 10-minute real-world conversation with Disha AI b
 Simulates natural pacing, progressive disclosures, unexpected topic shifts, memory recalls,
 pricing inquiries, and nutritional moderation queries.
 """
+
 import asyncio
 import json
 import os
@@ -22,26 +23,22 @@ TURNS = [
     "Mujhe kya karna chahiye abhi fresh feel karne ke liye?",
     "Thoda paani pi liya maine, but headache jaisa bhi lag raha hai halka sa.",
     "Kya screens zyada dekhne se bhi fatigue badh sakti hai?",
-
     # Phase 2: Weekend plans & sudden topic shift
     "Waise weekend pe main doston ke saath cricket khelne ka soch raha tha, kya khel sakta hoon?",
     "Kya woh acidity aur 5 cup chai wala issue cricket match ko affect karega?",
     "Cricket ke dauran hydration ke liye ORS ya nimbu paani lena theek rahega?",
     "Agar match dopahar 2 baje ho jab dhoop zyada hoti hai, toh heat exhaustion se kaise bachein?",
     "Waise kal raat meri neend theek se nahi hui thi, lagbhag 4 ghante hi so paaya tha.",
-
     # Phase 3: Sleep hygiene & digital habits
     "Raat ko neend na aane ka ek main reason late night mobile scrolling hai mera. Isko kaise control karun?",
     "Koi relaxing bedtime drink suggest kar sakte ho bina sugar ke?",
     "Chamomile tea ya warm turmeric milk mein se kya better rahega?",
-
     # Phase 4: Nutrition, Pricing & Seasonal moderation
     "Waise Disha, yeh app paid hai kya? Kitne ka subscription hai?",
     "Mujhe weight loss bhi shuru karna hai, kya garmiyon ke dauran aam (mango) khana completely band karna padega ya moderation mein allowed hai?",
     "Aam ko dopahar mein khana theek hai ya raat ke dessert ke time?",
     "Office lunch mein aksar bahar ka khana padta hai, oily gravies avoid karne ke liye safe options kya hain?",
     "Subah breakfast mein kya light aur energy-giving rahega mere desk job ke liye?",
-
     # Phase 5: Recalling earlier conversation & synthesis
     "Subah jo humne 5 cup chai ki baat ki thi, kal se main max 2 cups pe limit karne ka plan kar raha hoon.",
     "Chai ki jagah agar green tea ya warm water with lemon loon toh acidity kam hogi?",
@@ -121,7 +118,9 @@ async def run_simulation():
                 }
                 log_file.write(json.dumps(record) + "\n")
                 log_file.flush()
-                print(f"[Aarav Turn {idx:02d} | {record['elapsed_sec']}s | {latency_ms}ms] Disha: {response_text[:90]}...")
+                print(
+                    f"[Aarav Turn {idx:02d} | {record['elapsed_sec']}s | {latency_ms}ms] Disha: {response_text[:90]}..."
+                )
 
                 # Automated failure checks:
                 resp_lower = response_text.lower()
@@ -142,4 +141,3 @@ async def run_simulation():
 
 if __name__ == "__main__":
     asyncio.run(run_simulation())
-

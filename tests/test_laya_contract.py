@@ -10,6 +10,7 @@ Validates:
 4. Laya System 1 harmony with Tier 1 Aho-Corasick breaker on Apple Silicon MPS and CPU,
    guaranteeing 100.0% emergency recall and >=90.0% overall triage accuracy.
 """
+
 from __future__ import annotations
 
 import json
@@ -31,6 +32,7 @@ from tests.test_laya_integration import LABELED_CASES
 # -----------------------------------------------------------------------------
 # 1. Version Drift & Checkpoint Supply-Chain Verification
 # -----------------------------------------------------------------------------
+
 
 def test_laya_version_and_revision_integrity():
     """Verifies that installed Laya is exactly 0.4.27 and published revisions match."""
@@ -74,6 +76,7 @@ def test_laya_modernbert_weights_and_calibration_bounds():
 # -----------------------------------------------------------------------------
 # 2. Schema Contract: choice, score, and noul Question Types
 # -----------------------------------------------------------------------------
+
 
 @pytest.fixture(scope="module")
 def laya_agent():
@@ -158,6 +161,7 @@ def test_schema_noul_answer_contract(laya_agent):
 # 3. Non-Autoregressive Execution Invariant
 # -----------------------------------------------------------------------------
 
+
 def test_non_autoregressive_zero_output_tokens_invariant(laya_agent):
     """Guarantees that Laya performs pure classification with zero generated tokens."""
     state = "Patient completed 8000 steps today and blood pressure is normal."
@@ -175,6 +179,7 @@ def test_non_autoregressive_zero_output_tokens_invariant(laya_agent):
 # -----------------------------------------------------------------------------
 # 4. Deterministic Invariant & Option Permutation Stability
 # -----------------------------------------------------------------------------
+
 
 def test_deterministic_forward_pass_invariant(laya_agent):
     """Verifies that running inference on identical text yields bitwise identical answers."""
@@ -215,6 +220,7 @@ def test_option_order_permutation_contract(laya_agent):
 # 5. Long Document Budgeting & Truncation Contract
 # -----------------------------------------------------------------------------
 
+
 def test_truncation_reporting_on_long_state(laya_agent):
     """Verifies that usage metadata accurately reports truncation when state exceeds room."""
     long_state = "Patient reports intermittent palpitations and fatigue. " * 300
@@ -240,6 +246,7 @@ def test_malformed_question_rejection(laya_agent):
 # -----------------------------------------------------------------------------
 # 6. Temperature Scaling (T=1.42), ECE < 0.05, and Wilson CI [0.798, 0.983]
 # -----------------------------------------------------------------------------
+
 
 def test_temperature_scaling_ece_and_wilson_confidence_interval():
     """Confirms Temperature Scaling (T=1.42) produces ECE < 0.05 (measured: 0.0175)
@@ -272,6 +279,7 @@ def test_temperature_scaling_ece_and_wilson_confidence_interval():
 # -----------------------------------------------------------------------------
 # 7. Tier 1 Breaker + Laya System 1 Harmony on Apple Silicon MPS and CPU
 # -----------------------------------------------------------------------------
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("target_device", ["cpu", "mps"] if torch.backends.mps.is_available() else ["cpu"])

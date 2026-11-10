@@ -9,20 +9,17 @@ Verifies:
 - Rollback: BEHAVIOR_SPEC_V1=false restores legacy behavior
 """
 
-import pytest
-from disha_core.config import Settings
-from disha_core.harness.perception import TurnPerception, select_move, TriangleStatus
+from disha_core.harness.perception import TriangleStatus, TurnPerception, select_move
 from disha_core.harness.verifier import (
-    verify_response,
-    check_p3_language_mode,
-    check_p4_honorifics,
-    check_p6_f3_length,
+    check_c2_clinical_boundary,
     check_f1_zero_echo,
     check_f2_at_most_one_question,
     check_f4_selective_empathy,
-    check_c2_clinical_boundary,
+    check_p3_language_mode,
+    check_p4_honorifics,
+    check_p6_f3_length,
 )
-from disha_core.llm.client import get_system_prompt, PROMPT_VERSION, _BEHAVIOR_RULES
+from disha_core.llm.client import PROMPT_VERSION, get_system_prompt
 from disha_core.pipeline.breaker import EmergencyBreaker
 
 
@@ -31,7 +28,26 @@ class TestBehaviorSpecPromptAndRules:
 
     def test_all_18_rule_ids_present_in_rendered_prompt(self):
         prompt = get_system_prompt(behavior_spec_v1=True, language_mode="hinglish")
-        expected_ids = ["P1", "P2", "P3", "P4", "P5", "P6", "F1", "F2", "F3", "F4", "F5", "C1", "C2", "C3", "C4", "M1", "M2", "M3"]
+        expected_ids = [
+            "P1",
+            "P2",
+            "P3",
+            "P4",
+            "P5",
+            "P6",
+            "F1",
+            "F2",
+            "F3",
+            "F4",
+            "F5",
+            "C1",
+            "C2",
+            "C3",
+            "C4",
+            "M1",
+            "M2",
+            "M3",
+        ]
         for rid in expected_ids:
             assert f"[{rid}]" in prompt, f"Rule ID {rid} missing from rendered system prompt"
 
@@ -78,7 +94,9 @@ class TestDeterministicVerifiers:
             assert viol.check_name == "p4_banned_honorific"
 
     def test_p6_f3_max_3_sentences(self):
-        four_sents = "Yeh pehla sentence hai. Yeh doosra sentence hai! Yeh teesra sentence hai? Yeh chautha sentence hai."
+        four_sents = (
+            "Yeh pehla sentence hai. Yeh doosra sentence hai! Yeh teesra sentence hai? Yeh chautha sentence hai."
+        )
         viol = check_p6_f3_length(four_sents)
         assert viol is not None
         assert viol.check_name == "p6_f3_sentence_count"
@@ -147,7 +165,7 @@ class TestMovePrecedenceAndTriangle:
     def test_precedence_triangle_question_before_insight(self):
         p = TurnPerception(
             current_concern="headache",
-            triangle_status=TriangleStatus(duration="unknown", past_attempts="unknown", severity="unknown")
+            triangle_status=TriangleStatus(duration="unknown", past_attempts="unknown", severity="unknown"),
         )
         move = select_move(p)
         assert move == "triangle_question"
@@ -156,7 +174,7 @@ class TestMovePrecedenceAndTriangle:
     def test_precedence_clinical_insight_only_after_triangle_complete(self):
         p = TurnPerception(
             current_concern="headache",
-            triangle_status=TriangleStatus(duration="answered", past_attempts="answered", severity="answered")
+            triangle_status=TriangleStatus(duration="answered", past_attempts="answered", severity="answered"),
         )
         move = select_move(p)
         assert move == "clinical_insight"
@@ -164,7 +182,7 @@ class TestMovePrecedenceAndTriangle:
     def test_precedence_declined_axis_counts_as_complete(self):
         p = TurnPerception(
             current_concern="acidity",
-            triangle_status=TriangleStatus(duration="answered", past_attempts="declined", severity="answered")
+            triangle_status=TriangleStatus(duration="answered", past_attempts="declined", severity="answered"),
         )
         move = select_move(p)
         assert move == "clinical_insight"
@@ -174,4 +192,3 @@ class TestMovePrecedenceAndTriangle:
         res = breaker.check("Severe chest pain radiating to left arm and sweating")
         assert res.triggered is True
         assert "112" in res.response
-

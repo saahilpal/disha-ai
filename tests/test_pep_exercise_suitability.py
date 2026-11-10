@@ -1,4 +1,5 @@
 """Regression coverage for exercise safety without a static recommendation catalog."""
+
 from disha_core.pep.exercise_engine import (
     SuitabilityCategory,
     evaluate_exercise_suitability,

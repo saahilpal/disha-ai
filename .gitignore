@@ -117,3 +117,7 @@ infra/logs/
 
 # Agent working files
 .agent/
+
+# Interview and internal QA documentation (stored outside repository)
+docs/interview/
+

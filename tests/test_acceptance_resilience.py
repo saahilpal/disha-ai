@@ -11,6 +11,7 @@ Mission Acceptance Scenarios:
 5. Audit ledger outbox recovery: verify no stranded WAL records on crash.
 6. Replay journal turns idempotently: confirm identical state computation without duplicate entries.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -51,6 +52,7 @@ DEFAULT_PG_URL = os.getenv("DATABASE_URL", "postgresql://disha:disha_secure_pass
 # ==============================================================================
 # MOCK INFRASTRUCTURE FOR CHAOS & DISRUPTION SIMULATION
 # ==============================================================================
+
 
 class MockAsyncpgConnection:
     """Mock database connection for deterministic in-memory testing."""
@@ -112,16 +114,18 @@ class MockAsyncpgConnection:
         q = query.casefold()
         if "insert into audit_claim_ledger" in q:
             ev_id, p_id, u_in, llm_out, brk, val, prev, cur = args
-            self.state["rows"].append({
-                "event_id": ev_id,
-                "patient_id": p_id,
-                "user_input": u_in,
-                "llm_output": llm_out,
-                "breaker_status": brk,
-                "validator_status": val,
-                "prev_hash": prev,
-                "current_hash": cur,
-            })
+            self.state["rows"].append(
+                {
+                    "event_id": ev_id,
+                    "patient_id": p_id,
+                    "user_input": u_in,
+                    "llm_output": llm_out,
+                    "breaker_status": brk,
+                    "validator_status": val,
+                    "prev_hash": prev,
+                    "current_hash": cur,
+                }
+            )
         elif "update audit_chain_head" in q:
             self.state["head"] = args[0]
         return "COMMAND OK"
@@ -200,6 +204,7 @@ async def get_live_pg_connection():
     """Connect to live PostgreSQL if available; otherwise None."""
     try:
         import asyncpg
+
         conn = await asyncpg.connect(DEFAULT_PG_URL, timeout=3.0)
         return conn
     except Exception:
@@ -209,6 +214,7 @@ async def get_live_pg_connection():
 # ==============================================================================
 # SCENARIO 1: STACK RESTART MID-SESSION (RECONNECT & SESSION RESUMPTION)
 # ==============================================================================
+
 
 @pytest.mark.asyncio
 async def test_resilience_01_stack_restart_mid_session_reconnect_and_resumption():
@@ -253,7 +259,8 @@ async def test_resilience_01_stack_restart_mid_session_reconnect_and_resumption(
         # Verify Turn 1 is in DB
         t1_rows = await conn.fetch(
             "SELECT turn_index, speaker, raw_utterance FROM patient_turn_journal WHERE patient_id = $1 AND session_id = $2 ORDER BY turn_index",
-            test_pid, test_session,
+            test_pid,
+            test_session,
         )
         assert len(t1_rows) == 2
         assert t1_rows[0]["speaker"] == "user"
@@ -297,20 +304,19 @@ async def test_resilience_01_stack_restart_mid_session_reconnect_and_resumption(
             reconnected_conn, test_pid, limit=10, session_id=test_session, call_id=test_call
         )
         assert len(all_turns) == 4
-        assert [t["content"] for t in all_turns] == [
-            turn1_user, turn1_assistant, turn2_user, turn2_assistant
-        ]
+        assert [t["content"] for t in all_turns] == [turn1_user, turn1_assistant, turn2_user, turn2_assistant]
 
     finally:
         if conn:
             await conn.close()
-        if 'reconnected_conn' in locals() and reconnected_conn:
+        if "reconnected_conn" in locals() and reconnected_conn:
             await reconnected_conn.close()
 
 
 # ==============================================================================
 # SCENARIO 2: KILL POSTGRESQL MID-TURN AND RESTORE (CIRCUIT BREAKER & DEFLECTION)
 # ==============================================================================
+
 
 def test_resilience_02_kill_postgres_mid_turn_circuit_breaker_and_zero_corruption():
     """Scenario 2: Kill PostgreSQL database mid-turn and restore.
@@ -361,6 +367,7 @@ def test_resilience_02_kill_postgres_mid_turn_circuit_breaker_and_zero_corruptio
 # ==============================================================================
 # SCENARIO 3: TRIGGER TUNNEL WATCHDOG RESTART (URL PROPAGATION TO .env.local)
 # ==============================================================================
+
 
 def test_resilience_03_tunnel_watchdog_restart_and_env_local_propagation():
     """Scenario 3: Trigger tunnel watchdog restart and verify URL propagation.
@@ -438,6 +445,7 @@ def test_resilience_03_tunnel_watchdog_restart_and_env_local_propagation():
 # SCENARIO 4: DUAL-PROVIDER FAILOVER & CIRCUIT BREAKER
 # ==============================================================================
 
+
 @pytest.mark.asyncio
 async def test_resilience_04_dual_provider_failover_timeout_and_circuit_breaker():
     """Scenario 4: Dual-provider failover.
@@ -449,6 +457,7 @@ async def test_resilience_04_dual_provider_failover_timeout_and_circuit_breaker(
     4. Circuit breaker OPEN state immediately routes requests to secondary without attempting primary.
     5. Primary recovery resets breaker on success.
     """
+
     class FlakyPrimary(Provider):
         def __init__(self):
             self.calls = 0
@@ -511,6 +520,7 @@ async def test_resilience_04_dual_provider_failover_timeout_and_circuit_breaker(
 # SCENARIO 5: AUDIT LEDGER OUTBOX RECOVERY (ZERO STRANDED WAL RECORDS)
 # ==============================================================================
 
+
 @pytest.mark.asyncio
 async def test_resilience_05_audit_ledger_outbox_recovery_zero_stranded_wal():
     """Scenario 5: Audit ledger outbox recovery.
@@ -571,6 +581,7 @@ async def test_resilience_05_audit_ledger_outbox_recovery_zero_stranded_wal():
 # SCENARIO 6: REPLAY JOURNAL TURNS IDEMPOTENTLY (ZERO DUPLICATES)
 # ==============================================================================
 
+
 @pytest.mark.asyncio
 async def test_resilience_06_replay_journal_turns_idempotently():
     """Scenario 6: Replay journal turns idempotently.
@@ -604,8 +615,14 @@ async def test_resilience_06_replay_journal_turns_idempotently():
         # Seed 3 conversational turns
         turns = [
             ("Good morning Disha.", "Good morning! How is your health today?"),
-            ("Maine subah 30 minute walk ki.", "Bahut accha! Daily walking blood pressure control karne mein madad karti hai."),
-            ("Mera BP 130/85 hai aaj.", "Yeh Stage 1 range mein hai. Namak kam rakhein aur regular walk continue karein."),
+            (
+                "Maine subah 30 minute walk ki.",
+                "Bahut accha! Daily walking blood pressure control karne mein madad karti hai.",
+            ),
+            (
+                "Mera BP 130/85 hai aaj.",
+                "Yeh Stage 1 range mein hai. Namak kam rakhein aur regular walk continue karein.",
+            ),
         ]
         for u_text, a_text in turns:
             await store_conversation_turn(conn, test_pid, u_text, a_text, session_id=test_session)
@@ -622,9 +639,7 @@ async def test_resilience_06_replay_journal_turns_idempotently():
         journal_count_1 = await conn.fetchval(
             "SELECT COUNT(*) FROM patient_turn_journal WHERE patient_id = $1", test_pid
         )
-        rollup_count_1 = await conn.fetchval(
-            "SELECT COUNT(*) FROM habit_rollups WHERE patient_id = $1", test_pid
-        )
+        rollup_count_1 = await conn.fetchval("SELECT COUNT(*) FROM habit_rollups WHERE patient_id = $1", test_pid)
 
         # REPLAY RUN 2: Execute identical replay
         ctx_2 = await rehydrate_session_state(conn, test_pid, session_id=test_session)
@@ -633,9 +648,7 @@ async def test_resilience_06_replay_journal_turns_idempotently():
         journal_count_2 = await conn.fetchval(
             "SELECT COUNT(*) FROM patient_turn_journal WHERE patient_id = $1", test_pid
         )
-        rollup_count_2 = await conn.fetchval(
-            "SELECT COUNT(*) FROM habit_rollups WHERE patient_id = $1", test_pid
-        )
+        rollup_count_2 = await conn.fetchval("SELECT COUNT(*) FROM habit_rollups WHERE patient_id = $1", test_pid)
 
         # REPLAY RUN 3: Execute third replay
         ctx_3 = await rehydrate_session_state(conn, test_pid, session_id=test_session)
@@ -644,9 +657,7 @@ async def test_resilience_06_replay_journal_turns_idempotently():
         journal_count_3 = await conn.fetchval(
             "SELECT COUNT(*) FROM patient_turn_journal WHERE patient_id = $1", test_pid
         )
-        rollup_count_3 = await conn.fetchval(
-            "SELECT COUNT(*) FROM habit_rollups WHERE patient_id = $1", test_pid
-        )
+        rollup_count_3 = await conn.fetchval("SELECT COUNT(*) FROM habit_rollups WHERE patient_id = $1", test_pid)
 
         # ASSERTIONS: Identical state computation, zero duplicate entries
         assert ctx_1["conversation_history"] == ctx_2["conversation_history"] == ctx_3["conversation_history"]

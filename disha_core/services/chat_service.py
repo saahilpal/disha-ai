@@ -171,6 +171,7 @@ async def _load_history_on_conn(
 # Active Conversations & Unified Messages Persistence (Contract 2 / Spec M1)
 # ---------------------------------------------------------------------------
 
+
 async def _with_conn(conn_or_pool: Any, coro_func: Any, *args: Any, **kwargs: Any) -> Any:
     if conn_or_pool is None:
         return None
@@ -185,10 +186,9 @@ async def _with_conn(conn_or_pool: Any, coro_func: Any, *args: Any, **kwargs: An
     return await coro_func(conn_or_pool, *args, **kwargs)
 
 
-async def resolve_active_conversation(
-    conn_or_pool: Any, patient_id: str, channel: str = "chat"
-) -> dict[str, Any]:
+async def resolve_active_conversation(conn_or_pool: Any, patient_id: str, channel: str = "chat") -> dict[str, Any]:
     """Atomically find or create the active (unarchived) conversation for patient_id."""
+
     async def _resolve(conn: Any) -> dict[str, Any]:
         row = await conn.fetchrow(
             "SELECT id, user_id, channel, created_at, last_message_at, archived "
@@ -214,11 +214,13 @@ async def resolve_active_conversation(
 
 async def archive_active_conversation(conn_or_pool: Any, patient_id: str) -> None:
     """Archive current active conversation for patient."""
+
     async def _archive(conn: Any) -> None:
         await conn.execute(
             "UPDATE conversations SET archived = TRUE WHERE user_id = $1 AND archived = FALSE",
             patient_id,
         )
+
     await _with_conn(conn_or_pool, _archive)
 
 
@@ -234,6 +236,7 @@ async def record_message(
     meta: dict | None = None,
 ) -> dict[str, Any]:
     """Insert a message with auto-incrementing seq and client_msg_id idempotency."""
+
     async def _insert(conn: Any) -> dict[str, Any]:
         max_seq = await conn.fetchval(
             "SELECT COALESCE(MAX(seq), 0) FROM messages WHERE conversation_id = $1::uuid",
@@ -273,6 +276,7 @@ async def update_message_status(
     content: str | None = None,
 ) -> None:
     """Update message status ('complete' or 'aborted') and optionally final content."""
+
     async def _update(conn: Any) -> None:
         if content is not None:
             await conn.execute(
@@ -287,12 +291,11 @@ async def update_message_status(
                 status,
                 message_id,
             )
+
     await _with_conn(conn_or_pool, _update)
 
 
-async def get_active_conversation_with_messages(
-    conn_or_pool: Any, patient_id: str, limit: int = 50
-) -> dict[str, Any]:
+async def get_active_conversation_with_messages(conn_or_pool: Any, patient_id: str, limit: int = 50) -> dict[str, Any]:
     """Retrieve the active conversation entity and its chronological messages for frontend hydration."""
     conv = await resolve_active_conversation(conn_or_pool, patient_id)
     if not conv or not conv.get("id"):

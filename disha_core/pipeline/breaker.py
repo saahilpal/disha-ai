@@ -49,7 +49,9 @@ def load_red_flags_table(custom_path: str | Path | None = None) -> dict[str, Any
     """Load clinician-owned red flags table from YAML or JSON. Fail-safe on error."""
     target_path = _resolve_data_path(custom_path)
     if not target_path:
-        logger.warning("Clinician red_flags data table not found in search paths; operating in fail-safe fallback mode.")
+        logger.warning(
+            "Clinician red_flags data table not found in search paths; operating in fail-safe fallback mode."
+        )
         return _failsafe_empty_table()
 
     try:
@@ -248,12 +250,14 @@ class EmergencyBreaker:
             phrase = exc.get("phrase")
             pat_str = exc.get("pattern")
             if phrase and pat_str:
-                self._exceptions.append({
-                    "id": exc.get("id", ""),
-                    "phrase": phrase.casefold().strip(),
-                    "category": exc.get("category"),
-                    "compiled_pattern": re.compile(pat_str, re.I),
-                })
+                self._exceptions.append(
+                    {
+                        "id": exc.get("id", ""),
+                        "phrase": phrase.casefold().strip(),
+                        "category": exc.get("category"),
+                        "compiled_pattern": re.compile(pat_str, re.I),
+                    }
+                )
 
         entries: list[tuple[str, str]] = []
         seen: dict[str, str] = {}

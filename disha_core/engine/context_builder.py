@@ -167,13 +167,15 @@ async def build_patient_context(
                 existing_keys = {s.get("slot_key") for s in patient_slots}
                 for h in habit_rows:
                     if h["slot_key"] not in existing_keys:
-                        patient_slots.append({
-                            "slot_key": h["slot_key"],
-                            "slot_value": h["value_norm"],
-                            "source_authority": "PATIENT_REPORTED",
-                            "category": "lifestyle",
-                            "sensitive_flag": False,
-                        })
+                        patient_slots.append(
+                            {
+                                "slot_key": h["slot_key"],
+                                "slot_value": h["value_norm"],
+                                "source_authority": "PATIENT_REPORTED",
+                                "category": "lifestyle",
+                                "sensitive_flag": False,
+                            }
+                        )
                         existing_keys.add(h["slot_key"])
             if pep_dict and pep_dict.get("habits"):
                 raw_h = pep_dict["habits"]
@@ -184,18 +186,19 @@ async def build_patient_context(
                     for k, v in slots_dict.items():
                         if k not in existing_keys:
                             val = (
-                                v.get("value_norm")
-                                or v.get("value")
-                                or v.get("val")
-                                or ""
-                            ) if isinstance(v, dict) else str(v)
-                            patient_slots.append({
-                                "slot_key": k,
-                                "slot_value": val,
-                                "source_authority": "PATIENT_REPORTED",
-                                "category": "lifestyle",
-                                "sensitive_flag": False,
-                            })
+                                (v.get("value_norm") or v.get("value") or v.get("val") or "")
+                                if isinstance(v, dict)
+                                else str(v)
+                            )
+                            patient_slots.append(
+                                {
+                                    "slot_key": k,
+                                    "slot_value": val,
+                                    "source_authority": "PATIENT_REPORTED",
+                                    "category": "lifestyle",
+                                    "sensitive_flag": False,
+                                }
+                            )
                             existing_keys.add(k)
             hist_rows = []
             if call_id:
@@ -323,13 +326,15 @@ async def rehydrate_session_state(
             existing_keys = {s.get("slot_key") for s in patient_slots}
             for h in habit_rows:
                 if h["slot_key"] not in existing_keys:
-                    patient_slots.append({
-                        "slot_key": h["slot_key"],
-                        "slot_value": h["value_norm"],
-                        "source_authority": "PATIENT_REPORTED",
-                        "category": "lifestyle",
-                        "sensitive_flag": False,
-                    })
+                    patient_slots.append(
+                        {
+                            "slot_key": h["slot_key"],
+                            "slot_value": h["value_norm"],
+                            "source_authority": "PATIENT_REPORTED",
+                            "category": "lifestyle",
+                            "sensitive_flag": False,
+                        }
+                    )
                     existing_keys.add(h["slot_key"])
             if pep_dict and pep_dict.get("habits"):
                 raw_h = pep_dict["habits"]
@@ -339,18 +344,19 @@ async def rehydrate_session_state(
                     for k, v in slots_dict.items():
                         if k not in existing_keys:
                             val = (
-                                v.get("value_norm")
-                                or v.get("value")
-                                or v.get("val")
-                                or ""
-                            ) if isinstance(v, dict) else str(v)
-                            patient_slots.append({
-                                "slot_key": k,
-                                "slot_value": val,
-                                "source_authority": "PATIENT_REPORTED",
-                                "category": "lifestyle",
-                                "sensitive_flag": False,
-                            })
+                                (v.get("value_norm") or v.get("value") or v.get("val") or "")
+                                if isinstance(v, dict)
+                                else str(v)
+                            )
+                            patient_slots.append(
+                                {
+                                    "slot_key": k,
+                                    "slot_value": val,
+                                    "source_authority": "PATIENT_REPORTED",
+                                    "category": "lifestyle",
+                                    "sensitive_flag": False,
+                                }
+                            )
                             existing_keys.add(k)
         with suppress(Exception):
             hist_rows = []
@@ -575,9 +581,9 @@ def render_user_payload(user_input: str, context: dict[str, Any], chunks: Any = 
         last_esc = html.escape(last_assistant_turn[:300]) if last_assistant_turn else "None"
         conversation_state_xml = (
             f'<CONVERSATION_STATE is_followup_or_short_reply="{str(is_followup).lower()}">'
-            f'<LAST_ASSISTANT_UTTERANCE>{last_esc}</LAST_ASSISTANT_UTTERANCE>'
+            f"<LAST_ASSISTANT_UTTERANCE>{last_esc}</LAST_ASSISTANT_UTTERANCE>"
             f'<INSTRUCTION>Treat this conversation as an ongoing, continuous discussion. If user utterance refers to previous message (e.g. "that", "same", "why", "okay"), interpret it using the conversation history above.</INSTRUCTION>'
-            f'</CONVERSATION_STATE>'
+            f"</CONVERSATION_STATE>"
         )
 
     older_turns = context.get("retrieved_older_turns") or []

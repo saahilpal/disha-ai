@@ -5,6 +5,7 @@ Simulates multi-symptom overlaps (IBS + GERD + Night-Shift Fatigue), dietary tra
 sensitive wellness questions (stress-induced performance anxiety), nicotine cravings,
 and long-range contextual synthesis across 45-55 turns.
 """
+
 import asyncio
 import json
 import os
@@ -24,27 +25,23 @@ CONVERSATION_STAGES = [
     "Din mein 3-4 ghante so paata hoon bas, phir achanak aankh khul jaati hai aur sar bhaari rehta hai.",
     "Kya shift workers ke liye melatonin supplements lena safe hota hai ya naturally circadian rhythm adjust karein?",
     "Morning 6 AM ghar aate waqt sunlight block karne ke liye dark sunglasses pehanna helpful rahega kya?",
-
     # Phase 2: IBS Flare-up & digestive distress
     "Ek aur problem hai Disha, mujhe doctor ne pehle IBS-M (alternating diarrhea and constipation) diagnose kiya tha.",
     "Night shift mein 2 AM cafeteria se spicy misal pav aur chai pi li thi, tab se pet mein cramps aur severe bloating hai.",
     "Har 2 ghante mein washroom bhagna pad raha hai, aur abdominal discomfort bilkul kam nahi ho raha.",
     "Kya ICMR guidelines ke hisaab se koi simple kitchen remedy hai jo turant cramps aur bloating shant kar sake?",
     "Saunf aur jeera ka warm water lene se IBS symptoms mein relief mil sakta hai kya?",
-
     # Phase 3: Acid Reflux (GERD) & Posture
     "Cramps ke saath saath chest mein sharp burning sensation (heartburn) bhi ho rahi hai jo throat tak aa rahi hai.",
     "Pata hai yeh GERD ka flare-up hai kyunki khana khate hi shift chair par aage jhuk kar baithna padta hai.",
     "Kya sofe par ya bed par sar ko 6-8 inches elevate karke sone se acid reflux backflow ruk sakta hai?",
     "Kya cold milk peene se heartburn temporarily relieve hota hai ya baad mein rebound acid create karta hai?",
-
     # Phase 4: Dietary changes — Whey Protein vs Tofu/Plant protein
     "Main gym restart karna chahta tha aur ek trainer ne mujhe Whey Protein Concentrate lene ko bola.",
     "Lekin jab bhi whey shake leta hoon, pet phool jata hai aur gas bohot zyada banne lagti hai.",
     "Kya IBS aur lactose sensitivity wale logon ke liye Whey Isolate ya plant-based pea/brown rice protein better hota hai?",
     "Agar main protein powder band karke tofu aur moong dal chilla par switch karun toh digest karna aasan hoga?",
     "Tofu ko cooked form mein lene se bloating ka risk raw tofu ke comparison mein kam hota hai kya?",
-
     # Phase 5: Sensitive health topic — Stress, fatigue & libido/performance anxiety
     "Disha, ek personal aur sensitive sawal poochna tha bina kisi judgement ke.",
     "Night shift ke chronic fatigue aur work deadlines ke pressure ki wajah se meri sex drive bilkul low ho gayi hai.",
@@ -52,30 +49,25 @@ CONVERSATION_STAGES = [
     "Kya chronic sleep deprivation aur elevated cortisol levels directly male testosterone aur libido ko suppress karte hain?",
     "Bina kisi OTC pills ke, lifestyle aur stress management se is anxiety ko normalize kaise kar sakte hain?",
     "Kya pelvic floor relaxation exercises ya mindful breathing intimacy se pehle tension reduce karne mein madad karegi?",
-
     # Phase 6: Nicotine reduction & withdrawal cravings
     "Night shift mein jaagte rehne ke liye main pichhle 3 saal se din mein 5-6 cigarettes peeta aa raha tha.",
     "Abhi 3 din pehle maine bilkul quit karne ka decide kiya hai, lekin withdrawal bohot tough ho raha hai.",
     "Raat ke 3 baje extreme restlessness hoti hai aur haath kaanpne lagte hain craving ki wajah se.",
     "Jab acute craving hit kare toh 5-10 minutes ka delay mechanism ya deep breathing kaise apply karein?",
     "Kya chewing clove (laung) ya cinnamon stick mouth diversion ke liye effective hai jab smoking urge aaye?",
-
     # Phase 7: Memory recall & Holistic synthesis
     "Disha, pehle humne jo baat ki thi: meri night shift neend, IBS ka trigger, aur smoking withdrawal — sab interlinked hain na?",
     "Jab stress badhta hai toh mera IBS flare hota hai, aur IBS flare se neend kharab hoti hai.",
     "Aap mere liye ek realistic 24-hour routine outline kar sakti ho jo meri 8 PM - 5 AM shift ko accommodate kare?",
     "Subah 5:30 AM shift end hone ke baad ghar aane par kya halka breakfast lena chahiye sone se pehle?",
-
     # Phase 8: Database Diet Schedule check & Meal timings
     "Aaj raat ke khane (dinner) ke liye meri IBS-safe diet schedule mein kya recommended hai?",
     "Agar main raat 1 AM lunch break mein 150g paneer bhurji aur 2 rotis ke sath boiled vegetables loon toh safe hai?",
     "Khane ke turant baad tea ya black coffee lene se digestion par kya asar padega?",
-
     # Phase 9: Hydration & Electrolytes on Night Shift
     "Shift ke dauran AC room mein dehydration notice nahi hota, phir morning mein dark urine aati hai.",
     "Pura din kitna paani peena chahiye aur timing kaise divide karein taaki neend ke dauran bar bar urine na jana pade?",
     "Electrolyte water ya ORS lene ki zaroorat hai ya plain water + coconut water enough hai?",
-
     # Phase 10: Long-term plan & Final check-in
     "Toh plan clear hai: morning dark room sleep, saunf-jeera water for cramps, plant protein, aur nicotine urge diversion.",
     "Agar agle 48 ghante mein IBS cramping kam na ho ya stool mein blood aaye toh turant gastroenterologist ko dikhana hoga na?",
@@ -169,9 +161,10 @@ async def run_15min_complex_session():
                     await asyncio.sleep(sleep_dur)
 
         total_elapsed = round(time.time() - start_time, 1)
-        print(f"\n[Kabir Completed Full 15 Min] Total active duration: {total_elapsed}s ({round(total_elapsed/60, 2)} mins), {turn_idx} turns.")
+        print(
+            f"\n[Kabir Completed Full 15 Min] Total active duration: {total_elapsed}s ({round(total_elapsed / 60, 2)} mins), {turn_idx} turns."
+        )
 
 
 if __name__ == "__main__":
     asyncio.run(run_15min_complex_session())
-

@@ -3,6 +3,7 @@
 Revision ID: 0007_quarantine_unreviewed_knowledge
 Revises: 0006_product_fact_truth
 """
+
 from typing import Sequence, Union
 
 from alembic import op

@@ -164,9 +164,13 @@ async def voice(websocket: WebSocket) -> None:
                                         await cancel_active_turn()
                                         resp_text = emergency.response or breaker.default_protocol
                                         with suppress(Exception):
-                                            await websocket.send_json({"type": "transcript", "text": interim_text, "is_interim": True})
+                                            await websocket.send_json(
+                                                {"type": "transcript", "text": interim_text, "is_interim": True}
+                                            )
                                             await websocket.send_json({"type": "sentence", "text": resp_text})
-                                            await websocket.send_json({"type": "done", "status": f"triggered:{emergency.category}"})
+                                            await websocket.send_json(
+                                                {"type": "done", "status": f"triggered:{emergency.category}"}
+                                            )
                                         sent_lang = detect_turn_language(resp_text)
                                         with suppress(Exception):
                                             await session.speak(resp_text, websocket.send_bytes, language=sent_lang)

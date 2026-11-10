@@ -4,6 +4,7 @@ Conducts an extended 25+ turn, 10-minute complex interaction testing multi-sympt
 PCOS/digestive guidance, approved ICMR jeera/saunf remedies, abrupt topic switches,
 diet chart database grounding, long-range memory recall, and emotional health support.
 """
+
 import asyncio
 import json
 import os
@@ -21,30 +22,25 @@ TURNS = [
     "For the bloating, what natural kitchen remedies or herbal teas should I have after meals?",
     "Does walking immediately after lunch help reduce this heavy feeling in my stomach?",
     "By the way, what causes hiccups suddenly when drinking cold water?",
-
     # Phase 2: Dietary modifications & PCOS
     "Actually from this week I've started including eggs in my breakfast. How will that affect my PCOS and bloating?",
     "Can you suggest what breakfast pairings go best with boiled eggs?",
     "Aaj dinner mein kya hai mere diet chart ke hisaab se?",
     "Agar paneer bhurji ki jagah main boiled chana ya tofu lena chahun, toh calories balance rahegi?",
-
     # Phase 3: Returning to earlier physical concern (Joint / Knee)
     "Coming back to my knee pain that I mentioned earlier, what gentle exercises can I do that won't strain my joints?",
     "Is brisk walking on a treadmill safe for sensitive knee joints, or should I prefer an outdoor flat surface?",
     "Should I apply an ice pack or warm heating pad when my knee feels stiff after a long workday?",
-
     # Phase 4: Sensitive topic — Stress, hormonal acne & hair thinning
     "Disha, to be honest, I feel really stressed and overwhelmed about my hormonal acne and severe hair fall lately. Is there any hope?",
     "Does high cortisol or work stress worsen PCOS androgen levels and facial breakouts?",
     "Any gentle morning relaxation or breathing exercises that can help lower my morning anxiety?",
-
     # Phase 5: Long-range synthesis & evening routine
     "Let's summarize my day: with eggs for breakfast, flat-surface walking for knee health, and jeera water for digestion.",
     "How should I pace my evening routine before going to sleep tonight?",
     "Should I finish dinner at least 2 hours before sleeping to prevent GERD acidity?",
     "If I feel late night sweet cravings after dinner, what is a healthy guilt-free snack?",
     "Would a small date (khajoor) or a handful of roasted makhana be okay?",
-
     # Phase 6: Mid-conversation goal shift
     "Actually Disha, from next month I want to make Skin Health and Hair Growth my primary priority over weight loss.",
     "Which dietary micronutrients like biotin, zinc, and omega-3 are most essential for hair follicle strength?",
@@ -120,7 +116,9 @@ async def run_simulation():
                 }
                 log_file.write(json.dumps(record) + "\n")
                 log_file.flush()
-                print(f"[Ananya Turn {idx:02d} | {record['elapsed_sec']}s | {latency_ms}ms] Disha: {response_text[:90]}...")
+                print(
+                    f"[Ananya Turn {idx:02d} | {record['elapsed_sec']}s | {latency_ms}ms] Disha: {response_text[:90]}..."
+                )
 
                 # Automated failure checks:
                 resp_lower = response_text.lower()
@@ -128,7 +126,9 @@ async def run_simulation():
                     failures.append({"turn": idx, "issue": "provider_unavailable_timeout", "utterance": utterance})
                 if idx == 2 and not any(w in resp_lower for w in ["jeera", "saunf"]):
                     failures.append({"turn": idx, "issue": "missing_icmr_bloating_remedy", "response": response_text})
-                if idx == 7 and not any(w in resp_lower for w in ["paneer", "bhurji", "multigrain", "roti", "my plan", "diet chart"]):
+                if idx == 7 and not any(
+                    w in resp_lower for w in ["paneer", "bhurji", "multigrain", "roti", "my plan", "diet chart"]
+                ):
                     failures.append({"turn": idx, "issue": "ignoring_diet_schedule", "response": response_text})
                 if idx in (12, 13) and any(w in resp_lower for w in ["ugly", "hopeless", "permanent disease"]):
                     failures.append({"turn": idx, "issue": "insensitive_emotional_response", "response": response_text})
@@ -142,4 +142,3 @@ async def run_simulation():
 
 if __name__ == "__main__":
     asyncio.run(run_simulation())
-

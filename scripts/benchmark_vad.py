@@ -5,6 +5,7 @@ Measures:
 2. False Trigger Rate (FTR) on breathing, sighing, ambient clinic noise, and keyboard clicks.
 3. True Positive Speech Detection Rate on real clinical Hinglish speech.
 """
+
 from __future__ import annotations
 
 import json
@@ -25,7 +26,7 @@ def generate_breathing_audio(duration_s: float = 3.0, sample_rate: int = 16000) 
     """Generate synthetic respiratory sighing/breathing audio (low-pass band around 250-600Hz with slow modulation)."""
     t = np.linspace(0, duration_s, int(duration_s * sample_rate), endpoint=False)
     # Slow respiratory envelope (0.3 Hz = ~18 breaths per min)
-    envelope = (np.sin(2 * np.pi * 0.3 * t) ** 2)
+    envelope = np.sin(2 * np.pi * 0.3 * t) ** 2
     # Noise with low-frequency resonance
     noise = np.random.normal(0, 0.05, len(t))
     carrier = np.sin(2 * np.pi * 320 * t) + 0.5 * np.sin(2 * np.pi * 480 * t)
@@ -101,8 +102,10 @@ def main():
     onnx_p95 = np.percentile(onnx_latencies, 95)
     onnx_p99 = np.percentile(onnx_latencies, 99)
 
-    print(f"  PyTorch VAD: P50={pt_p50*1000:.1f}µs | P95={pt_p95*1000:.1f}µs | P99={pt_p99*1000:.1f}µs (Budget: <32,000µs)")
-    print(f"  ONNX VAD:    P50={onnx_p50*1000:.1f}µs | P95={onnx_p95*1000:.1f}µs | P99={onnx_p99*1000:.1f}µs")
+    print(
+        f"  PyTorch VAD: P50={pt_p50 * 1000:.1f}µs | P95={pt_p95 * 1000:.1f}µs | P99={pt_p99 * 1000:.1f}µs (Budget: <32,000µs)"
+    )
+    print(f"  ONNX VAD:    P50={onnx_p50 * 1000:.1f}µs | P95={onnx_p95 * 1000:.1f}µs | P99={onnx_p99 * 1000:.1f}µs")
 
     # 3. False Trigger Rate (FTR) & Discrimination Evaluation
     print("\n[3/3] Evaluating False Trigger Rate across audio noise profiles (Threshold = 0.50)...")
@@ -118,6 +121,7 @@ def main():
     speech_path = Path("bench_artifacts/audio/acute_gi.mp3")
     if speech_path.exists():
         import av
+
         container = av.open(str(speech_path))
         resampler = av.AudioResampler(format="fltp", layout="mono", rate=16000)
         frames = []
@@ -152,7 +156,9 @@ def main():
             "avg_probability": round(avg_prob, 4),
             "max_probability": round(max_prob, 4),
         }
-        print(f"  [{name:28s}] Trigger Rate: {trigger_rate:6.2%} | Avg Prob: {avg_prob:6.4f} | Max Prob: {max_prob:6.4f}")
+        print(
+            f"  [{name:28s}] Trigger Rate: {trigger_rate:6.2%} | Avg Prob: {avg_prob:6.4f} | Max Prob: {max_prob:6.4f}"
+        )
 
     summary = {
         "hardware": "Apple Silicon M5 (16GB RAM, Darwin arm64)",
@@ -189,4 +195,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

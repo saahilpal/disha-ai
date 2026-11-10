@@ -9,6 +9,7 @@ Covers all 7 Core Verification Pillars:
 6. Second session cross-session memory recall proof where Disha demonstrably recalls and uses the saved habit.
 7. Post-call summary generation, returning-user home hydration, unsupported-language deflection, and emergency during onboarding.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -96,7 +97,9 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
             """INSERT INTO patient_profiles (patient_id, email, password_hash, name, age, gender, height_cm, weight_kg, language, dietary_preference, health_goals)
                VALUES ($1, $2, 'hash', $3, 35, 'Male', 175.0, 75.0, 'hinglish', 'Vegetarian', ARRAY['Fitness & general wellness'])
                ON CONFLICT (patient_id) DO NOTHING""",
-            pid, email, name,
+            pid,
+            email,
+            name,
         )
         await self.conn.execute(
             """INSERT INTO patient_pep (patient_id, hypertension_stage, gym_clearance, allowed_modalities, restricted_modalities, primary_focus, diagnosed_conditions)
@@ -108,7 +111,10 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
             """INSERT INTO patient_access_tokens (token_hash, patient_id, expires_at, created_at)
                VALUES ($1, $2, $3, $4)
                ON CONFLICT (token_hash) DO UPDATE SET patient_id = EXCLUDED.patient_id""",
-            t_hash, pid, now + timedelta(days=7), now,
+            t_hash,
+            pid,
+            now + timedelta(days=7),
+            now,
         )
         return token
 
@@ -122,33 +128,41 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
         email_chat = f"rohan_chat_{uuid.uuid4().hex[:8]}@disha.test"
 
         async with httpx.AsyncClient(base_url=BASE_HTTP, timeout=60.0) as client:
-            reg_resp = await client.post("/auth/register", json={
-                "name": "Rohan Mehra",
-                "email": email_chat,
-                "password": "password123",
-                "age": 36,
-                "gender": "male",
-                "height_cm": 175.0,
-                "weight_kg": 78.0,
-                "dietary_preference": "Vegetarian",
-                "hypertension_stage": "stage 1",
-                "gym_clearance": True,
-                "activity_level": "moderate",
-                "health_goals": ["Blood Pressure Care"],
-                "health_focuses": ["Blood Pressure Care"],
-            })
+            reg_resp = await client.post(
+                "/auth/register",
+                json={
+                    "name": "Rohan Mehra",
+                    "email": email_chat,
+                    "password": "password123",
+                    "age": 36,
+                    "gender": "male",
+                    "height_cm": 175.0,
+                    "weight_kg": 78.0,
+                    "dietary_preference": "Vegetarian",
+                    "hypertension_stage": "stage 1",
+                    "gym_clearance": True,
+                    "activity_level": "moderate",
+                    "health_goals": ["Blood Pressure Care"],
+                    "health_focuses": ["Blood Pressure Care"],
+                },
+            )
             self.assertEqual(reg_resp.status_code, 200, f"Registration failed: {reg_resp.text}")
             token_chat = reg_resp.json()["token"]
             pid_chat = reg_resp.json()["patient_id"]
             self.test_pids.append(pid_chat)
 
             # DB Check: Profile, PEP, and Journey State initialized
-            prof_row = await self.conn.fetchrow("SELECT name, height_cm, weight_kg FROM patient_profiles WHERE patient_id = $1", pid_chat)
+            prof_row = await self.conn.fetchrow(
+                "SELECT name, height_cm, weight_kg FROM patient_profiles WHERE patient_id = $1", pid_chat
+            )
             self.assertIsNotNone(prof_row)
             self.assertEqual(prof_row["name"], "Rohan Mehra")
             self.assertEqual(float(prof_row["weight_kg"]), 78.0)
 
-            pep_row = await self.conn.fetchrow("SELECT primary_focus, dietary_preference, gym_clearance FROM patient_pep WHERE patient_id = $1", pid_chat)
+            pep_row = await self.conn.fetchrow(
+                "SELECT primary_focus, dietary_preference, gym_clearance FROM patient_pep WHERE patient_id = $1",
+                pid_chat,
+            )
             self.assertIsNotNone(pep_row)
             self.assertEqual(pep_row["primary_focus"], "Blood Pressure Care")
             self.assertEqual(pep_row["dietary_preference"], "Vegetarian")
@@ -174,7 +188,9 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
             c2_resp = await client.post(
                 "/chat",
                 headers={"Authorization": f"Bearer {token_chat}"},
-                json={"text": "Main subah 6:30 baje uthta hoon, raat ko 11:00 baje sota hoon aur din mein 3 litre paani peeta hoon."},
+                json={
+                    "text": "Main subah 6:30 baje uthta hoon, raat ko 11:00 baje sota hoon aur din mein 3 litre paani peeta hoon."
+                },
             )
             self.assertEqual(c2_resp.status_code, 200)
 
@@ -199,7 +215,11 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
         # Connect full-duplex WebSocket
         async with websockets.connect(f"{BASE_WS}?token={token_voice}") as ws:
             # Send voice turn answering lifestyle question
-            await ws.send(json.dumps({"type": "text", "text": "Main day shift job karta hoon aur daily 8000 steps walk karta hoon."}))
+            await ws.send(
+                json.dumps(
+                    {"type": "text", "text": "Main day shift job karta hoon aur daily 8000 steps walk karta hoon."}
+                )
+            )
 
             # Read frames until 'done'
             transcript_received = False
@@ -227,7 +247,9 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(v_map["daily_steps_target"]["value_norm"], "8000")
         self.assertEqual(v_map["daily_steps_target"]["source"], "voice")
 
-        v_journey = await self.conn.fetchrow("SELECT last_interaction_channel FROM patient_journey_state WHERE patient_id = $1", pid_voice)
+        v_journey = await self.conn.fetchrow(
+            "SELECT last_interaction_channel FROM patient_journey_state WHERE patient_id = $1", pid_voice
+        )
         self.assertIsNotNone(v_journey)
         self.assertEqual(v_journey["last_interaction_channel"], "voice")
 
@@ -259,7 +281,9 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
         await record_field_answer(pid, "wake_time", "05:00", "Subah 5 baje uthta hoon", "voice", self.conn)
 
         # Verify voice channel recorded
-        v_chan = await self.conn.fetchval("SELECT last_interaction_channel FROM patient_journey_state WHERE patient_id = $1", pid)
+        v_chan = await self.conn.fetchval(
+            "SELECT last_interaction_channel FROM patient_journey_state WHERE patient_id = $1", pid
+        )
         self.assertEqual(v_chan, "voice")
 
         # Step 3: Switch back to Chat -> Select next question in chat channel
@@ -456,7 +480,9 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
         )
         self.assertEqual(pep_after["hypertension_stage"], "Stage 2", "hypertension_stage was modified!")
         self.assertFalse(pep_after["gym_clearance"], "gym_clearance was unlawfully granted!")
-        self.assertEqual(list(pep_after["restricted_modalities"]), ["heavy_deadlifts", "valsalva_maneuvers", "crossfit"])
+        self.assertEqual(
+            list(pep_after["restricted_modalities"]), ["heavy_deadlifts", "valsalva_maneuvers", "crossfit"]
+        )
         self.assertEqual(pep_after["clinician_verified_at"], pep_before["clinician_verified_at"])
 
     # =========================================================================

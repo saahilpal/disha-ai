@@ -10,6 +10,7 @@ Sub-budget specification (<1,100ms Total Telephony Turnaround):
 4. Microsoft Edge-TTS (hi-IN-SwaraNeural first chunk): ~150–250ms (Local WAN jitter ~700ms)
 TOTAL TARGET: Strictly < 1,100ms
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -175,14 +176,16 @@ def main() -> None:
         print("\n" + "=" * 65)
         print("LIVE VOICE PIPELINE LATENCY TRACE REPORT")
         print("=" * 65)
-        print(f"Transcript: \"{summary['best_run']['transcript']}\"")
-        print(f"First Validated Sentence: \"{summary['best_run']['first_sentence']}\"")
+        print(f'Transcript: "{summary["best_run"]["transcript"]}"')
+        print(f'First Validated Sentence: "{summary["best_run"]["first_sentence"]}"')
         print("\nSTAGE-BY-STAGE LATENCY BREAKDOWN (Average Across Runs):")
         print(f"  1. Groq Whisper Large v3 Turbo (STT):    {summary['averages']['stt_ms']} ms (Target: <300ms)")
         print("  2. Deterministic Core (Breaker/RAG):     < 2.0 ms (Target: <35ms)")
         print(f"  3. LLM TTFT + Atomic Sentence Validator: {summary['averages']['llm_val_ms']} ms (Target: <350ms)")
         print("  -------------------------------------------------------------")
-        print(f"  >> ENGINE TURNAROUND (Audio In -> Text): {summary['averages']['text_turnaround_ms']} ms (Target: <650ms)")
+        print(
+            f"  >> ENGINE TURNAROUND (Audio In -> Text): {summary['averages']['text_turnaround_ms']} ms (Target: <650ms)"
+        )
         print(f"  4. Edge-TTS Audio Generation (First):    {summary['best_run']['tts_first_chunk_ms']} ms")
         print(f"  >> TOTAL MOUTH-TO-EAR TURNAROUND:        {summary['best_run']['total_turnaround_ms']} ms")
         print("\nMerkle Audit Hash Chain:")

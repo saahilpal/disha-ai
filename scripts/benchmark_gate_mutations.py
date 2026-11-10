@@ -11,6 +11,7 @@ that every planted defect is actively detected and blocked:
 
 Output: docs/eval/mutation_self_test_report.json
 """
+
 from __future__ import annotations
 
 import json
@@ -41,7 +42,11 @@ def run_mutation_1_hardcoded_reply() -> dict[str, Any]:
         # Run hardcode-check
         res = subprocess.run(["python3", "scripts/hardcode-check"], cwd=REPO_ROOT, capture_output=True, text=True)
         combined_output = res.stdout + res.stderr
-        caught = res.returncode != 0 and ("1,499" in combined_output or "hardcoded" in combined_output.lower() or "violation" in combined_output.lower())
+        caught = res.returncode != 0 and (
+            "1,499" in combined_output
+            or "hardcoded" in combined_output.lower()
+            or "violation" in combined_output.lower()
+        )
 
         print(f"  -> Exit Code: {res.returncode} | Defect Caught: {caught}")
         return {
@@ -76,7 +81,11 @@ def run_mutation_2_secret_leak() -> dict[str, Any]:
         # Run hardcode-check
         res = subprocess.run(["python3", "scripts/hardcode-check"], cwd=REPO_ROOT, capture_output=True, text=True)
         combined_output = res.stdout + res.stderr
-        caught = res.returncode != 0 and (secret_prefix in combined_output.lower() or "secret" in combined_output.lower() or "pattern" in combined_output.lower())
+        caught = res.returncode != 0 and (
+            secret_prefix in combined_output.lower()
+            or "secret" in combined_output.lower()
+            or "pattern" in combined_output.lower()
+        )
 
         print(f"  -> Exit Code: {res.returncode} | Defect Caught: {caught}")
         return {
@@ -101,7 +110,16 @@ def run_mutation_3_dead_file() -> dict[str, Any]:
 
     try:
         # Run repo-check dead file scanner (step 6 logic)
-        res = subprocess.run(["bash", "-c", "python3 - << 'PYEOF'\nimport os, sys\nfrom pathlib import Path\ndead_extensions = ('.tmp', '.bak', '.orig', '.rej')\ndead_files = [str(Path(r)/f) for r, _, fs in os.walk('.') for f in fs if any(f.endswith(e) for e in dead_extensions) and '.venv' not in r and '.git' not in r]\nif dead_files:\n    print(f'Found dead files: {dead_files}')\n    sys.exit(1)\nsys.exit(0)\nPYEOF"], cwd=REPO_ROOT, capture_output=True, text=True)
+        res = subprocess.run(
+            [
+                "bash",
+                "-c",
+                "python3 - << 'PYEOF'\nimport os, sys\nfrom pathlib import Path\ndead_extensions = ('.tmp', '.bak', '.orig', '.rej')\ndead_files = [str(Path(r)/f) for r, _, fs in os.walk('.') for f in fs if any(f.endswith(e) for e in dead_extensions) and '.venv' not in r and '.git' not in r]\nif dead_files:\n    print(f'Found dead files: {dead_files}')\n    sys.exit(1)\nsys.exit(0)\nPYEOF",
+            ],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
 
         caught = res.returncode != 0 and "orphaned_debug.tmp" in res.stdout
         print(f"  -> Exit Code: {res.returncode} | Defect Caught: {caught}")
@@ -128,7 +146,16 @@ def run_mutation_4_file_overlap() -> dict[str, Any]:
 
     try:
         # Run duplicate check from repo-check
-        res = subprocess.run(["bash", "-c", "python3 - << 'PYEOF'\nimport os, sys, hashlib\nfrom collections import defaultdict\nfrom pathlib import Path\nhashes = defaultdict(list)\nignore = {'.git', '.venv', 'node_modules', '.ruff_cache', '.pytest_cache'}\nfor r, dirs, fs in os.walk('.'):\n    dirs[:] = [d for d in dirs if d not in ignore]\n    for f in fs:\n        p = Path(r)/f\n        if p.is_file() and p.stat().st_size > 50 and p.suffix == '.py':\n            h = hashlib.sha256(p.read_bytes()).hexdigest()\n            hashes[h].append(str(p))\ndups = [ps for ps in hashes.values() if len(ps) > 1 and not all(Path(p).name == '__init__.py' for p in ps)]\nif dups:\n    print(f'Duplicates detected: {dups}')\n    sys.exit(1)\nsys.exit(0)\nPYEOF"], cwd=REPO_ROOT, capture_output=True, text=True)
+        res = subprocess.run(
+            [
+                "bash",
+                "-c",
+                "python3 - << 'PYEOF'\nimport os, sys, hashlib\nfrom collections import defaultdict\nfrom pathlib import Path\nhashes = defaultdict(list)\nignore = {'.git', '.venv', 'node_modules', '.ruff_cache', '.pytest_cache'}\nfor r, dirs, fs in os.walk('.'):\n    dirs[:] = [d for d in dirs if d not in ignore]\n    for f in fs:\n        p = Path(r)/f\n        if p.is_file() and p.stat().st_size > 50 and p.suffix == '.py':\n            h = hashlib.sha256(p.read_bytes()).hexdigest()\n            hashes[h].append(str(p))\ndups = [ps for ps in hashes.values() if len(ps) > 1 and not all(Path(p).name == '__init__.py' for p in ps)]\nif dups:\n    print(f'Duplicates detected: {dups}')\n    sys.exit(1)\nsys.exit(0)\nPYEOF",
+            ],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+        )
 
         caught = res.returncode != 0 and "duplicate_admin.py" in res.stdout
         print(f"  -> Exit Code: {res.returncode} | Defect Caught: {caught}")

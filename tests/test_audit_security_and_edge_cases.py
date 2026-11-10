@@ -31,6 +31,7 @@ from disha_core.services.auth_service import _hash_password, _verify_password
 # SECTION 1: SQL Injection & Query Parameterization
 # ==============================================================================
 
+
 def test_sql_injection_payload_in_turn_request():
     """Verify that malicious SQL injection strings in TurnRequest are handled safely."""
     malicious_inputs = [
@@ -68,6 +69,7 @@ async def test_build_patient_context_query_safety():
 # SECTION 2: User Registration & Authentication
 # ==============================================================================
 
+
 @pytest.mark.asyncio
 async def test_duplicate_registration_overwrites_existing_user():
     """Security Regression: Registering an existing email must be rejected with 409 Conflict
@@ -83,32 +85,38 @@ async def test_duplicate_registration_overwrites_existing_user():
             unique_email = f"victim_{uuid.uuid4().hex[:8]}@example.com"
 
             # 1. Victim registers
-            r1 = await client.post("/auth/register", json={
-                "name": "Victim User",
-                "email": unique_email,
-                "password": "VictimPassword123",
-                "age": 32,
-                "gender": "female",
-                "height_cm": 165.0,
-                "weight_kg": 62.0,
-                "dietary_preference": "Vegetarian",
-            })
+            r1 = await client.post(
+                "/auth/register",
+                json={
+                    "name": "Victim User",
+                    "email": unique_email,
+                    "password": "VictimPassword123",
+                    "age": 32,
+                    "gender": "female",
+                    "height_cm": 165.0,
+                    "weight_kg": 62.0,
+                    "dietary_preference": "Vegetarian",
+                },
+            )
             assert r1.status_code == 200
             data_1 = r1.json()
             victim_pid = data_1["patient_id"]
             victim_token = data_1["token"]
 
             # 2. Attacker attempts to register with same email
-            r2 = await client.post("/auth/register", json={
-                "name": "Attacker Hijacker",
-                "email": unique_email,
-                "password": "AttackerPassword999",
-                "age": 48,
-                "gender": "male",
-                "height_cm": 182.0,
-                "weight_kg": 88.0,
-                "dietary_preference": "Non-Vegetarian",
-            })
+            r2 = await client.post(
+                "/auth/register",
+                json={
+                    "name": "Attacker Hijacker",
+                    "email": unique_email,
+                    "password": "AttackerPassword999",
+                    "age": 48,
+                    "gender": "male",
+                    "height_cm": 182.0,
+                    "weight_kg": 88.0,
+                    "dietary_preference": "Non-Vegetarian",
+                },
+            )
             # Verified Security Fix: Returns 409 Conflict
             assert r2.status_code == 409
             assert "already exists" in r2.json()["detail"].lower()
@@ -127,10 +135,13 @@ async def test_auth_login_credential_bypass_to_demo_account():
     app = create_app()
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url="http://test") as client:
-            res = await client.post("/auth/login", json={
-                "email": "unregistered_stranger_12345@example.com",
-                "password": "invalidpassword",
-            })
+            res = await client.post(
+                "/auth/login",
+                json={
+                    "email": "unregistered_stranger_12345@example.com",
+                    "password": "invalidpassword",
+                },
+            )
             assert res.status_code == 401
             assert "Invalid email or password" in res.json().get("detail", "")
 
@@ -152,6 +163,7 @@ def test_password_storage_uses_unique_salted_pbkdf2_and_upgrades_legacy_hashes()
 # ==============================================================================
 # SECTION 3: PEP & Diet Schedule Generation & Vitals Edge Cases
 # ==============================================================================
+
 
 def test_vitals_negative_age_rejected_by_pydantic():
     """Negative age is rejected by Pydantic validation."""
@@ -187,7 +199,11 @@ def test_vitals_extreme_bmi_unrestricted_gym_clearance():
     else:
         htn_stage = "normal"
 
-    if htn_stage in ("stage 1", "stage 2") or not req.gym_clearance or any("heavy" in r.lower() for r in req.movement_restrictions):
+    if (
+        htn_stage in ("stage 1", "stage 2")
+        or not req.gym_clearance
+        or any("heavy" in r.lower() for r in req.movement_restrictions)
+    ):
         allowed = ["brisk walking", "gentle yoga"]
         gym_cleared = False
     else:
@@ -222,7 +238,14 @@ def test_hypertension_stage_parsing_loopholes():
 
         # Notice "stage2", "stage-2", "grade 2", "severe hypertension", "hypertensive crisis"
         # all erroneously resolve to "normal"
-        if label in ["stage2", "stage-2", "grade 2", "severe hypertension", "hypertensive crisis", "high blood pressure"]:
+        if label in [
+            "stage2",
+            "stage-2",
+            "grade 2",
+            "severe hypertension",
+            "hypertensive crisis",
+            "high blood pressure",
+        ]:
             assert stage == "normal"
 
 
@@ -239,6 +262,7 @@ async def test_today_ist_weekday_mismatch_crashes_patient_context():
 # ==============================================================================
 # SECTION 4: WebSocket Security & Resource Exhaustion
 # ==============================================================================
+
 
 def test_max_voice_turn_bytes_constant():
     """Verify MAX_VOICE_TURN_BYTES constant is 10 MB."""

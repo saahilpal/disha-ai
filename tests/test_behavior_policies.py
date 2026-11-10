@@ -378,9 +378,7 @@ class TestPolicyPackHotReload:
                 data = yaml.safe_load(f)
 
             # Strip all good examples from first policy
-            data["policies"][0]["examples"] = [
-                ex for ex in data["policies"][0]["examples"] if ex["type"] == "bad"
-            ]
+            data["policies"][0]["examples"] = [ex for ex in data["policies"][0]["examples"] if ex["type"] == "bad"]
 
             time.sleep(0.05)
             with open(test_file, "w", encoding="utf-8") as f:

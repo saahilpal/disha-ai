@@ -3,6 +3,7 @@
 Tests on Apple Silicon M5 (16GB RAM) with realistic Hinglish clinical audio.
 Measures Word Error Rate (WER), Latency, RTF, Peak Memory, and Cost.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -106,6 +107,7 @@ def transcribe_local_faster_whisper(model: WhisperModel, audio_path: str) -> tup
 
 def normalize_hinglish(text: str) -> str:
     import re
+
     text = text.lower()
     text = re.sub(r"[^\w\s]", "", text)
     return re.sub(r"\s+", " ", text).strip()
@@ -137,12 +139,14 @@ async def main():
     for sample in TEST_SAMPLES:
         path = CACHE_DIR / f"{sample['id']}.mp3"
         audio = await synthesize_audio(sample["reference_deva"], path)
-        prepared_samples.append({
-            **sample,
-            "path": str(path),
-            "bytes": len(audio),
-            "approx_duration_s": round(len(audio) / 32000, 2),  # ~32KB/s for 128kbps mp3
-        })
+        prepared_samples.append(
+            {
+                **sample,
+                "path": str(path),
+                "bytes": len(audio),
+                "approx_duration_s": round(len(audio) / 32000, 2),  # ~32KB/s for 128kbps mp3
+            }
+        )
         print(f"  ✓ {sample['id']} ({len(audio)} bytes)")
 
     results: dict[str, Any] = {
@@ -169,16 +173,18 @@ async def main():
         wer, script = calculate_best_wer(hyp, s)
         median_lat = sorted(runs_lat)[1]
 
-        results["groq_whisper_turbo"].append({
-            "id": s["id"],
-            "category": s["category"],
-            "reference_deva": s["reference_deva"],
-            "hypothesis": hyp,
-            "script": script,
-            "wer": round(wer, 4),
-            "latency_p50_ms": round(median_lat, 2),
-            "latency_p95_ms": round(max(runs_lat), 2),
-        })
+        results["groq_whisper_turbo"].append(
+            {
+                "id": s["id"],
+                "category": s["category"],
+                "reference_deva": s["reference_deva"],
+                "hypothesis": hyp,
+                "script": script,
+                "wer": round(wer, 4),
+                "latency_p50_ms": round(median_lat, 2),
+                "latency_p95_ms": round(max(runs_lat), 2),
+            }
+        )
         print(f"  Groq [{s['id']}]: WER={wer:.2%} ({script}) | Latency P50={median_lat:.1f}ms | Hyp: '{hyp}'")
 
     rss_after_groq = get_peak_rss_mb()
@@ -200,15 +206,17 @@ async def main():
         wer, script = calculate_best_wer(hyp, s)
         median_lat = sorted(runs_lat)[1]
 
-        results["faster_whisper_tiny"].append({
-            "id": s["id"],
-            "category": s["category"],
-            "hypothesis": hyp,
-            "script": script,
-            "wer": round(wer, 4),
-            "latency_p50_ms": round(median_lat, 2),
-            "latency_p95_ms": round(max(runs_lat), 2),
-        })
+        results["faster_whisper_tiny"].append(
+            {
+                "id": s["id"],
+                "category": s["category"],
+                "hypothesis": hyp,
+                "script": script,
+                "wer": round(wer, 4),
+                "latency_p50_ms": round(median_lat, 2),
+                "latency_p95_ms": round(max(runs_lat), 2),
+            }
+        )
         print(f"  tiny [{s['id']}]: WER={wer:.2%} ({script}) | Latency P50={median_lat:.1f}ms | Hyp: '{hyp}'")
 
     rss_after_tiny = get_peak_rss_mb()
@@ -230,15 +238,17 @@ async def main():
         wer, script = calculate_best_wer(hyp, s)
         median_lat = sorted(runs_lat)[1]
 
-        results["faster_whisper_base"].append({
-            "id": s["id"],
-            "category": s["category"],
-            "hypothesis": hyp,
-            "script": script,
-            "wer": round(wer, 4),
-            "latency_p50_ms": round(median_lat, 2),
-            "latency_p95_ms": round(max(runs_lat), 2),
-        })
+        results["faster_whisper_base"].append(
+            {
+                "id": s["id"],
+                "category": s["category"],
+                "hypothesis": hyp,
+                "script": script,
+                "wer": round(wer, 4),
+                "latency_p50_ms": round(median_lat, 2),
+                "latency_p95_ms": round(max(runs_lat), 2),
+            }
+        )
         print(f"  base [{s['id']}]: WER={wer:.2%} ({script}) | Latency P50={median_lat:.1f}ms | Hyp: '{hyp}'")
 
     rss_after_base = get_peak_rss_mb()
@@ -250,7 +260,9 @@ async def main():
         "models": {
             "Groq Whisper-large-v3-turbo": {
                 "avg_wer": round(sum(r["wer"] for r in results["groq_whisper_turbo"]) / len(TEST_SAMPLES), 4),
-                "avg_latency_p50_ms": round(sum(r["latency_p50_ms"] for r in results["groq_whisper_turbo"]) / len(TEST_SAMPLES), 2),
+                "avg_latency_p50_ms": round(
+                    sum(r["latency_p50_ms"] for r in results["groq_whisper_turbo"]) / len(TEST_SAMPLES), 2
+                ),
                 "peak_ram_mb": round(groq_mem_mb, 1),
                 "cost_per_1k_turns_usd": 0.04,  # $0.0006/min * 4s/turn * 1000 = $0.04
                 "offline_support": False,
@@ -258,7 +270,9 @@ async def main():
             },
             "Local faster-whisper tiny (int8)": {
                 "avg_wer": round(sum(r["wer"] for r in results["faster_whisper_tiny"]) / len(TEST_SAMPLES), 4),
-                "avg_latency_p50_ms": round(sum(r["latency_p50_ms"] for r in results["faster_whisper_tiny"]) / len(TEST_SAMPLES), 2),
+                "avg_latency_p50_ms": round(
+                    sum(r["latency_p50_ms"] for r in results["faster_whisper_tiny"]) / len(TEST_SAMPLES), 2
+                ),
                 "peak_ram_mb": round(tiny_mem_mb, 1),
                 "cost_per_1k_turns_usd": 0.00,
                 "offline_support": True,
@@ -266,7 +280,9 @@ async def main():
             },
             "Local faster-whisper base (int8)": {
                 "avg_wer": round(sum(r["wer"] for r in results["faster_whisper_base"]) / len(TEST_SAMPLES), 4),
-                "avg_latency_p50_ms": round(sum(r["latency_p50_ms"] for r in results["faster_whisper_base"]) / len(TEST_SAMPLES), 2),
+                "avg_latency_p50_ms": round(
+                    sum(r["latency_p50_ms"] for r in results["faster_whisper_base"]) / len(TEST_SAMPLES), 2
+                ),
                 "peak_ram_mb": round(base_mem_mb, 1),
                 "cost_per_1k_turns_usd": 0.00,
                 "offline_support": True,
@@ -283,4 +299,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

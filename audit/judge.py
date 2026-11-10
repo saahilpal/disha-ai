@@ -10,6 +10,7 @@ Hard Caps:
 3. Laya Fake or Stubbed Model: Strictly capped at 50.0 / 100.
 4. UX / Frontend Blocking Defect: Strictly capped at 70.0 / 100.
 """
+
 from __future__ import annotations
 
 import ast
@@ -120,7 +121,9 @@ def eval_correctness_tests() -> tuple[float, bool, str, dict[str, Any]]:
         if res_runner.returncode == 0:
             try:
                 runner_output = json.loads(res_runner.stdout)
-                runner_ok = runner_output.get("meets_fvr_target", False) and runner_output.get("all_invariants_pass", False)
+                runner_ok = runner_output.get("meets_fvr_target", False) and runner_output.get(
+                    "all_invariants_pass", False
+                )
             except Exception:
                 runner_ok = False
         details["golden_corpus_runner"] = {
@@ -142,14 +145,14 @@ def eval_correctness_tests() -> tuple[float, bool, str, dict[str, Any]]:
 
 def eval_laya_ai_quality() -> tuple[float, bool, str, dict[str, Any], bool]:
     """Empirical evaluation of real Laya classifier (NandhaKishorM/laya).
-    
+
     Verifies:
     1. Package import and runtime availability.
     2. Zero-shot intent classification and variance across distinct clinical queries.
     3. Anti-stub detection (rejects constant scores or fake/mock rule classifiers).
     4. Domain cases accuracy >= 70%.
     5. Latency overhead within budget.
-    
+
     Returns: (raw_score, passed, evidence, details, is_fake)
     """
     details: dict[str, Any] = {}
@@ -190,7 +193,7 @@ def eval_laya_ai_quality() -> tuple[float, bool, str, dict[str, Any], bool]:
 def eval_ux_mechanical_checks() -> tuple[float, bool, str, dict[str, Any], bool]:
     """Execute frontend packaging, node runtime validation, diagnostic suite,
     and mechanical SPA structural verification.
-    
+
     Returns: (raw_score, passed, evidence, details, has_blocking_defect)
     """
     details: dict[str, Any] = {}
@@ -232,9 +235,17 @@ def eval_ux_mechanical_checks() -> tuple[float, bool, str, dict[str, Any], bool]
     app_js = (REPO_ROOT / "frontend" / "app.js").read_text(encoding="utf-8")
 
     required_dom_ids = [
-        "view-home", "dashboard-view", "auth-view", "view-summary",
-        "view-settings", "view-privacy", "view-404", "consent-modal",
-        "stethoscope-canvas", "emergency-112-btn", "audio-input-select"
+        "view-home",
+        "dashboard-view",
+        "auth-view",
+        "view-summary",
+        "view-settings",
+        "view-privacy",
+        "view-404",
+        "consent-modal",
+        "stethoscope-canvas",
+        "emergency-112-btn",
+        "audio-input-select",
     ]
     missing_ids = [d_id for d_id in required_dom_ids if f'id="{d_id}"' not in index_html]
 
@@ -636,18 +647,20 @@ class AuditJudge:
         for dim in report_data["dimensions"].values():
             dim_status = "PASS" if dim["passed"] else "FAIL"
             md_lines.append(
-                f"| **{dim['name']}** | {int(dim['weight']*100)}% | {dim['raw_score']:.1f} | {dim['weighted_score']:.2f} | {dim_status} | {dim['evidence']} |"
+                f"| **{dim['name']}** | {int(dim['weight'] * 100)}% | {dim['raw_score']:.1f} | {dim['weighted_score']:.2f} | {dim_status} | {dim['evidence']} |"
             )
 
-        md_lines.extend([
-            "",
-            "---",
-            "",
-            "## 3. Constraint Verification Register (C1–C16)",
-            "",
-            "| ID | Type | Constraint Name | Status | Evidence |",
-            "|:---|:---:|:---|:---:|:---|",
-        ])
+        md_lines.extend(
+            [
+                "",
+                "---",
+                "",
+                "## 3. Constraint Verification Register (C1–C16)",
+                "",
+                "| ID | Type | Constraint Name | Status | Evidence |",
+                "|:---|:---:|:---|:---:|:---|",
+            ]
+        )
 
         for c_id, c_data in report_data["constraints"].items():
             status_badge = "PASS" if c_data["passed"] else "FAIL"
@@ -655,15 +668,17 @@ class AuditJudge:
                 f"| **{c_id}** | `{c_data['type']}` | {c_data['name']} | **{status_badge}** | {c_data['evidence']} |"
             )
 
-        md_lines.extend([
-            "",
-            "---",
-            "",
-            "## 4. Latency Profiling Detail (P50 / P95 / P99)",
-            "",
-            "| Component | P50 (ms) | P95 (ms) | P99 (ms) | Target | Budget Status |",
-            "|:---|:---:|:---:|:---:|:---:|:---:|",
-        ])
+        md_lines.extend(
+            [
+                "",
+                "---",
+                "",
+                "## 4. Latency Profiling Detail (P50 / P95 / P99)",
+                "",
+                "| Component | P50 (ms) | P95 (ms) | P99 (ms) | Target | Budget Status |",
+                "|:---|:---:|:---:|:---:|:---:|:---:|",
+            ]
+        )
 
         lat_comps = report_data["dimensions"]["performance_latency"]["details"]["components"]
         for c_name, c_stats in lat_comps.items():
@@ -671,26 +686,28 @@ class AuditJudge:
                 f"| `{c_name}` | {c_stats['p50_ms']}ms | {c_stats['p95_ms']}ms | {c_stats['p99_ms']}ms | {c_stats['target_ms']} | **{'PASS' if c_stats['passed'] else 'FAIL'}** |"
             )
 
-        md_lines.extend([
-            "",
-            f"**Total Deterministic Overhead (P95):** `{report_data['dimensions']['performance_latency']['details']['total_deterministic_p95_overhead_ms']}ms` (Budget: `< 35.0ms`)",
-            "",
-            "---",
-            "",
-            "## 5. Security & Emergency Interception (100 Utterances)",
-            "The 100 emergency test utterances spanned across all 5 red-flag categories without a single bypass:",
-            "- **Cardiovascular:** 20/20 intercepted",
-            "- **Respiratory:** 20/20 intercepted",
-            "- **Neurological:** 20/20 intercepted",
-            "- **Crisis / Self-Harm:** 20/20 intercepted",
-            "- **Trauma:** 20/20 intercepted",
-            "",
-            f"**Average Interception Latency:** `{report_data['dimensions']['security_invariants']['details']['emergency_eval']['avg_latency_ms']}ms` per utterance.",
-            "",
-            "---",
-            "",
-            f"*Generated autonomously by `audit/judge.py` on {report_data['timestamp']}*",
-        ])
+        md_lines.extend(
+            [
+                "",
+                f"**Total Deterministic Overhead (P95):** `{report_data['dimensions']['performance_latency']['details']['total_deterministic_p95_overhead_ms']}ms` (Budget: `< 35.0ms`)",
+                "",
+                "---",
+                "",
+                "## 5. Security & Emergency Interception (100 Utterances)",
+                "The 100 emergency test utterances spanned across all 5 red-flag categories without a single bypass:",
+                "- **Cardiovascular:** 20/20 intercepted",
+                "- **Respiratory:** 20/20 intercepted",
+                "- **Neurological:** 20/20 intercepted",
+                "- **Crisis / Self-Harm:** 20/20 intercepted",
+                "- **Trauma:** 20/20 intercepted",
+                "",
+                f"**Average Interception Latency:** `{report_data['dimensions']['security_invariants']['details']['emergency_eval']['avg_latency_ms']}ms` per utterance.",
+                "",
+                "---",
+                "",
+                f"*Generated autonomously by `audit/judge.py` on {report_data['timestamp']}*",
+            ]
+        )
 
         with open(md_path, "w", encoding="utf-8") as f:
             f.write("\n".join(md_lines))

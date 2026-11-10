@@ -9,6 +9,7 @@ Verifies:
    - Ungrounded clinical claims
 3. Merkle Audit Ledger concurrency, non-blocking behavior, dynamic WAL crash recovery, and parallel chain integrity.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -36,6 +37,7 @@ from disha_core.pipeline.validator import (
 # ==============================================================================
 # SECTION 1: Aho-Corasick Emergency Breaker Adversarial Edge Cases
 # ==============================================================================
+
 
 @pytest.mark.parametrize(
     "text,expected_category",
@@ -104,6 +106,7 @@ def test_devanagari_router_emergency_deflection():
 # ==============================================================================
 # SECTION 2: Clinical Safety Guardrails (Diagnosis, Prescription, Sodium, Grounding)
 # ==============================================================================
+
 
 @pytest.mark.parametrize(
     "text",
@@ -190,6 +193,7 @@ def test_grounding_validation_accepts_verified_tokens():
 # SECTION 3: Merkle Audit Ledger Concurrency & Tamper Evidence
 # ==============================================================================
 
+
 class MockConnection:
     def __init__(self, state):
         self.state = state
@@ -213,15 +217,17 @@ class MockConnection:
     async def execute(self, query, *args):
         if "INSERT INTO audit_claim_ledger" in query:
             ev_id, p_id, u_in, llm_out, brk, val, prev, cur = args
-            self.state["rows"].append({
-                "event_id": ev_id,
-                "patient_id": p_id,
-                "user_input": u_in,
-                "llm_output": llm_out,
-                "status": f"{brk}|{val}",
-                "prev_hash": prev,
-                "current_hash": cur,
-            })
+            self.state["rows"].append(
+                {
+                    "event_id": ev_id,
+                    "patient_id": p_id,
+                    "user_input": u_in,
+                    "llm_output": llm_out,
+                    "status": f"{brk}|{val}",
+                    "prev_hash": prev,
+                    "current_hash": cur,
+                }
+            )
         elif "UPDATE audit_chain_head" in query:
             self.state["head"] = args[0]
 

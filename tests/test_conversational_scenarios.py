@@ -9,6 +9,7 @@ Scenario E: Hinglish fluency -> Natural colloquial Hindi/English response.
 Scenario F: Sudden topic switch -> Follows the user's shift gracefully.
 Scenario G: Acute emergency -> Immediate red flag trigger with 112 emergency advice.
 """
+
 import asyncio
 import json
 
@@ -23,10 +24,7 @@ VALID_TOKEN = "pt_test_01_valid_bearer_token"
 
 async def get_response_for_turn(ws, text_query: str) -> str:
     """Send text turn and collect all response sentences until done."""
-    await ws.send(json.dumps({
-        "type": "text",
-        "text": text_query
-    }))
+    await ws.send(json.dumps({"type": "text", "text": text_query}))
 
     sentences = []
     while True:
@@ -90,8 +88,23 @@ async def run_all_scenarios():
         print(f"  Disha: '{resp_c}'")
         lower_c = resp_c.lower()
         # Must protect patient with hypertension from heavy deadlifting
-        assert any(w in lower_c for w in ["blood pressure", "bp", "hypertension", "heavy", "avoid", "doctor", "restrict", "safe", "clearance", "not recommended", "caution", "strain"]), \
-            f"Expected PEP safety warning for deadlifts, got: {resp_c}"
+        assert any(
+            w in lower_c
+            for w in [
+                "blood pressure",
+                "bp",
+                "hypertension",
+                "heavy",
+                "avoid",
+                "doctor",
+                "restrict",
+                "safe",
+                "clearance",
+                "not recommended",
+                "caution",
+                "strain",
+            ]
+        ), f"Expected PEP safety warning for deadlifts, got: {resp_c}"
         print("  ✓ Scenario C Passed: PEP hypertension safety clearance properly enforced.")
 
         # SCENARIO D: Multi-turn Continuity (Headache following fatigue)
@@ -115,17 +128,37 @@ async def run_all_scenarios():
         resp_f = await get_response_for_turn(ws, "By the way, what are good sleep habits for better recovery?")
         print("  User:  'By the way, what are good sleep habits for better recovery?'")
         print(f"  Disha: '{resp_f}'")
-        assert any(w in resp_f.lower() for w in ["sleep", "recovery", "bed", "rest", "routine", "screen", "dark", "light", "neend", "sone", "sona", "roshni", "phone"]), \
-            f"Expected sleep guidance, got: {resp_f}"
+        assert any(
+            w in resp_f.lower()
+            for w in [
+                "sleep",
+                "recovery",
+                "bed",
+                "rest",
+                "routine",
+                "screen",
+                "dark",
+                "light",
+                "neend",
+                "sone",
+                "sona",
+                "roshni",
+                "phone",
+            ]
+        ), f"Expected sleep guidance, got: {resp_f}"
         print("  ✓ Scenario F Passed: Smooth context transition on user topic shift.")
 
         # SCENARIO G: Emergency Trigger (Chest Pain)
         print("\n--- [Scenario G: Emergency Trigger] ---")
-        resp_g = await get_response_for_turn(ws, "Mujhe bahut tez chest pain ho raha hai and breathing mein difficulty hai!")
+        resp_g = await get_response_for_turn(
+            ws, "Mujhe bahut tez chest pain ho raha hai and breathing mein difficulty hai!"
+        )
         print("  User:  'Mujhe bahut tez chest pain ho raha hai and breathing mein difficulty hai!'")
         print(f"  Disha: '{resp_g}'")
-        assert any(w in resp_g.lower() for w in ["112", "emergency", "doctor", "hospital", "turant", "ambulance", "madad", "turanth"]), \
-            f"Expected 112 emergency intercept, got: {resp_g}"
+        assert any(
+            w in resp_g.lower()
+            for w in ["112", "emergency", "doctor", "hospital", "turant", "ambulance", "madad", "turanth"]
+        ), f"Expected 112 emergency intercept, got: {resp_g}"
         print("  ✓ Scenario G Passed: Acute red flag pre-breaker engaged (112 emergency advice).")
 
     print("\n===============================================================")

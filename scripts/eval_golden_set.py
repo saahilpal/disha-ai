@@ -6,6 +6,7 @@ against the live running backend (http://127.0.0.1:8080).
 Evaluates clinical safety, PEP personalization, pricing transparency, channel boundary,
 persona identity, and language grounding.
 """
+
 from __future__ import annotations
 
 import json
@@ -28,9 +29,13 @@ def register_user(client: httpx.Client, profile: dict[str, Any]) -> str:
     """Registers a fresh patient matching the golden profile and returns bearer token."""
     email = f"golden_{uuid.uuid4().hex[:8]}@eval.disha.ai"
     conditions = profile.get("conditions", [])
-    htn_stage = "stage 2" if any("stage 2" in str(c).lower() or "hypertension" in str(c).lower() for c in conditions) else "normal"
+    htn_stage = (
+        "stage 2"
+        if any("stage 2" in str(c).lower() or "hypertension" in str(c).lower() for c in conditions)
+        else "normal"
+    )
     gym_clear = profile.get("gym_clearance", False if htn_stage != "normal" else True)
-    
+
     payload = {
         "name": profile.get("name", "Golden Test User"),
         "email": email,
@@ -49,7 +54,7 @@ def register_user(client: httpx.Client, profile: dict[str, Any]) -> str:
         "health_focuses": profile.get("health_focuses", ["General Wellness"]),
         "health_focus_other": "",
     }
-    
+
     res = client.post(f"{BACKEND_URL}/auth/register", json=payload, timeout=10.0)
     if res.status_code != 200:
         raise RuntimeError(f"Failed to register patient: {res.status_code} - {res.text}")
@@ -60,20 +65,20 @@ def evaluate_golden_set():
     print("=== Disha AI Golden Evaluation Suite ===")
     print(f"Target: {BACKEND_URL}")
     print(f"Golden Set: {GOLDEN_SET_PATH}\n")
-    
+
     if not GOLDEN_SET_PATH.exists():
         print(f"ERROR: {GOLDEN_SET_PATH} not found!")
         sys.exit(1)
-        
+
     with open(GOLDEN_SET_PATH) as f:
         eval_data = json.load(f)
-        
+
     test_cases = eval_data.get("test_cases", [])
     results: list[dict[str, Any]] = []
-    
+
     passed_count = 0
     total_count = len(test_cases)
-    
+
     with httpx.Client(timeout=30.0) as client:
         for idx, case in enumerate(test_cases, 1):
             case_id = case["case_id"]
@@ -82,23 +87,23 @@ def evaluate_golden_set():
             utterance = case["user_utterance"]
             pass_regex = case.get("pass_criteria_regex", "")
             forbidden = case.get("forbidden_behavior", [])
-            
+
             print(f"[{idx}/{total_count}] Testing {case_id} ({category})...")
-            print(f"     User: \"{utterance}\"")
-            
+            print(f'     User: "{utterance}"')
+
             # 1. Resolve token
             if user_profile.get("patient_id") == "pt_test_01":
                 token = "pt_test_01_valid_bearer_token"
             else:
                 token = register_user(client, user_profile)
-                
+
             headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
-            
+
             t0 = time.perf_counter()
             try:
                 res = client.post(f"{BACKEND_URL}/chat", headers=headers, json={"text": utterance})
                 latency_ms = round((time.perf_counter() - t0) * 1000, 2)
-                
+
                 if res.status_code != 200:
                     status = "http_error"
                     response_text = f"HTTP {res.status_code}: {res.text}"
@@ -108,7 +113,7 @@ def evaluate_golden_set():
                     data = res.json()
                     response_text = data.get("response", "")
                     status = data.get("status", "unknown")
-                    
+
                     if status == "provider_unavailable":
                         is_pass = False
                         fail_reason = "Provider unavailable (LLM failed or timed out)"
@@ -124,28 +129,30 @@ def evaluate_golden_set():
                 response_text = str(exc)
                 is_pass = False
                 fail_reason = f"Client exception: {exc}"
-                
+
             if is_pass:
                 passed_count += 1
                 print(f"     => PASS ({latency_ms}ms) [status: {status}]")
             else:
                 print(f"     => FAIL ({latency_ms}ms) [status: {status}]: {fail_reason}")
-                
-            print(f"     Disha: \"{response_text[:140]}...\"\n")
-            
-            results.append({
-                "case_id": case_id,
-                "category": category,
-                "severity": case.get("severity", "MEDIUM"),
-                "utterance": utterance,
-                "response": response_text,
-                "status": status,
-                "latency_ms": latency_ms,
-                "pass_criteria_regex": pass_regex,
-                "passed": is_pass,
-                "fail_reason": fail_reason,
-            })
-            
+
+            print(f'     Disha: "{response_text[:140]}..."\n')
+
+            results.append(
+                {
+                    "case_id": case_id,
+                    "category": category,
+                    "severity": case.get("severity", "MEDIUM"),
+                    "utterance": utterance,
+                    "response": response_text,
+                    "status": status,
+                    "latency_ms": latency_ms,
+                    "pass_criteria_regex": pass_regex,
+                    "passed": is_pass,
+                    "fail_reason": fail_reason,
+                }
+            )
+
     REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
     summary = {
         "timestamp": time.time(),
@@ -157,12 +164,12 @@ def evaluate_golden_set():
     }
     with open(REPORT_PATH, "w") as f:
         json.dump(summary, f, indent=2)
-        
+
     print("========================================")
     print(f"Golden Eval Results: {passed_count}/{total_count} Passed ({summary['pass_rate_pct']}%)")
     print(f"Detailed Report: {REPORT_PATH}")
     print("========================================")
-    
+
     if passed_count != total_count:
         sys.exit(1)
 

@@ -58,7 +58,7 @@ class Settings:
     # Behavior Spec v1 feature flag (rollback to legacy by setting env BEHAVIOR_SPEC_V1=false)
     behavior_spec_v1: bool = True
     confirm_critical_values: bool = False  # D2: confirm allergies/medicines/doses; default OFF
-    language_switch_threshold: int = 2     # D5: consecutive msgs before silent language switch
+    language_switch_threshold: int = 2  # D5: consecutive msgs before silent language switch
 
     @classmethod
     def from_env(cls) -> Settings:

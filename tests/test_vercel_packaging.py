@@ -1,5 +1,5 @@
-"""Validation suite for Vercel packaging, security headers, and client runtime resilience.
-"""
+"""Validation suite for Vercel packaging, security headers, and client runtime resilience."""
+
 from __future__ import annotations
 
 import json
@@ -41,10 +41,7 @@ def test_vercel_json_security_and_routing() -> None:
         headers_config = data.get("headers", [])
         assert len(headers_config) > 0
 
-        global_headers = {
-            h["key"]: h["value"]
-            for h in headers_config[0].get("headers", [])
-        }
+        global_headers = {h["key"]: h["value"] for h in headers_config[0].get("headers", [])}
 
         # 1. Strict-Transport-Security
         assert "Strict-Transport-Security" in global_headers

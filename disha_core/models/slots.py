@@ -3,6 +3,7 @@
 Covers English, Hindi (Devanagari script), and Hinglish (Romanized Hindi).
 Defines slot schemas, normalizers, source authority validation, and clinical boundary guards.
 """
+
 from __future__ import annotations
 
 import logging
@@ -17,6 +18,7 @@ logger = logging.getLogger("disha_core.models.slots")
 
 class SourceAuthority(str, Enum):
     """Authority source governing slot permissions and updates."""
+
     PEP_DOCTOR = "PEP_DOCTOR"
     PATIENT_REPORTED = "PATIENT_REPORTED"
     CLINICIAN = "CLINICIAN"
@@ -24,6 +26,7 @@ class SourceAuthority(str, Enum):
 
 class EpistemicStatus(str, Enum):
     """Epistemic state of an asserted memory item or fact."""
+
     ACTIVE = "active"
     SUPERSEDED = "superseded"
     RESOLVED = "resolved"
@@ -36,22 +39,46 @@ DEVANAGARI_DIGITS = str.maketrans("०१२३४५६७८९", "0123456789"
 
 # Hindi word to numeric mappings
 HINDI_NUMBER_WORDS: dict[str, float] = {
-    "ek": 1.0, "एक": 1.0,
-    "do": 2.0, "दो": 2.0,
-    "teen": 3.0, "तीन": 3.0,
-    "chaar": 4.0, "char": 4.0, "चार": 4.0,
-    "paanch": 5.0, "panch": 5.0, "पांच": 5.0, "पाँच": 5.0,
-    "chhah": 6.0, "che": 6.0, "chhe": 6.0, "छह": 6.0, "छः": 6.0,
-    "saat": 7.0, "सात": 7.0,
-    "aath": 8.0, "आठ": 8.0,
-    "nau": 9.0, "नौ": 9.0,
-    "das": 10.0, "दस": 10.0,
-    "gyarah": 11.0, "ग्यारह": 11.0,
-    "baarah": 12.0, "बारह": 12.0,
-    "aadha": 0.5, "आधा": 0.5,
-    "dedh": 1.5, "डेढ़": 1.5,
-    "dhai": 2.5, "ढाई": 2.5,
-    "hazar": 1000.0, "hazaar": 1000.0, "हजार": 1000.0, "हज़ार": 1000.0,
+    "ek": 1.0,
+    "एक": 1.0,
+    "do": 2.0,
+    "दो": 2.0,
+    "teen": 3.0,
+    "तीन": 3.0,
+    "chaar": 4.0,
+    "char": 4.0,
+    "चार": 4.0,
+    "paanch": 5.0,
+    "panch": 5.0,
+    "पांच": 5.0,
+    "पाँच": 5.0,
+    "chhah": 6.0,
+    "che": 6.0,
+    "chhe": 6.0,
+    "छह": 6.0,
+    "छः": 6.0,
+    "saat": 7.0,
+    "सात": 7.0,
+    "aath": 8.0,
+    "आठ": 8.0,
+    "nau": 9.0,
+    "नौ": 9.0,
+    "das": 10.0,
+    "दस": 10.0,
+    "gyarah": 11.0,
+    "ग्यारह": 11.0,
+    "baarah": 12.0,
+    "बारह": 12.0,
+    "aadha": 0.5,
+    "आधा": 0.5,
+    "dedh": 1.5,
+    "डेढ़": 1.5,
+    "dhai": 2.5,
+    "ढाई": 2.5,
+    "hazar": 1000.0,
+    "hazaar": 1000.0,
+    "हजार": 1000.0,
+    "हज़ार": 1000.0,
 }
 
 
@@ -102,7 +129,9 @@ def normalize_time(val: Any, lang: str = "hinglish") -> str:
 
     s = _clean_text(str(val)).lower()
 
-    is_night = any(w in s for w in ("रात", "raat", "night", "shaam", "sham", "evening", "pm", "सोना", "sota", "sote", "soti"))
+    is_night = any(
+        w in s for w in ("रात", "raat", "night", "shaam", "sham", "evening", "pm", "सोना", "sota", "sote", "soti")
+    )
     is_morning = any(w in s for w in ("सुबह", "subah", "subha", "morning", "am", "उठना", "uthta", "uthti", "uthte"))
 
     # Match hour and minute
@@ -166,7 +195,10 @@ def normalize_meal_preferences(val: Any, lang: str = "hinglish") -> str:
 
     if any(w in s for w in ("pure veg", "pure vegetarian", "shuddh shakahari")):
         return "Vegetarian"
-    if any(q in s for q in ("chhod diya", "band kar diya", "quit non-veg", "stopped non-veg", "left non-veg")) and "veg" in s:
+    if (
+        any(q in s for q in ("chhod diya", "band kar diya", "quit non-veg", "stopped non-veg", "left non-veg"))
+        and "veg" in s
+    ):
         return "Vegetarian"
 
     if any(w in s for w in ("jain", "जैन", "no onion", "bina pyaaz")):
@@ -177,7 +209,9 @@ def normalize_meal_preferences(val: Any, lang: str = "hinglish") -> str:
         return "Vegan"
     if any(w in s for w in ("egg", "eggetarian", "अंडा", "anda")):
         return "Eggetarian"
-    if any(w in s for w in ("non-veg", "non veg", "nonveg", "meat", "chicken", "mutton", "fish", "मांसाहारी", "mansahari")):
+    if any(
+        w in s for w in ("non-veg", "non veg", "nonveg", "meat", "chicken", "mutton", "fish", "मांसाहारी", "mansahari")
+    ):
         return "Non-Vegetarian"
     if any(w in s for w in ("veg", "vegetarian", "शाकाहारी", "shakahari")):
         return "Vegetarian"
@@ -280,6 +314,7 @@ def normalize_physical_activity_clearance(val: Any, lang: str = "hinglish") -> d
 @dataclass(frozen=True)
 class SlotDefinition:
     """Canonical metadata definition for a habit, lifestyle, or clinical boundary slot."""
+
     key: str
     prompt_label: str
     valid_types: tuple[type, ...]
@@ -293,6 +328,7 @@ class SlotDefinition:
 @dataclass(frozen=True)
 class ContradictionResult:
     """Result of checking a patient's self-reported claim against PEP clinical constraints."""
+
     is_contradiction: bool
     slot_key: str
     reported_value: Any
@@ -401,7 +437,7 @@ class SlotRegistry:
 
     def __init__(self, slots: list[SlotDefinition] | None = None) -> None:
         self._slots: dict[str, SlotDefinition] = {}
-        for s in (slots or CANONICAL_SLOTS):
+        for s in slots or CANONICAL_SLOTS:
             self.register(s)
 
     def register(self, slot: SlotDefinition) -> None:
@@ -491,7 +527,9 @@ class SlotRegistry:
         if slot_key == "dietary_restrictions":
             htn_stage = str(pep_data.get("hypertension_stage", "")).casefold()
             val_str = str(reported_value).lower()
-            if ("stage 2" in htn_stage or "crisis" in htn_stage) and any(w in val_str for w in ("high salt", "extra salt", "namkeen")):
+            if ("stage 2" in htn_stage or "crisis" in htn_stage) and any(
+                w in val_str for w in ("high salt", "extra salt", "namkeen")
+            ):
                 return ContradictionResult(
                     is_contradiction=True,
                     slot_key=slot_key,
@@ -597,10 +635,19 @@ class SlotRegistry:
                 break
 
         # 8. Physical activity clearance claims (Detected to evaluate contradictions)
-        if any(w in s for w in (
-            "doctor said gym", "doctor cleared", "doctor ne bola gym", "doctor ne bola heavy",
-            "gym ki permission", "cardiologist said", "physician cleared", "doctor cleared me",
-        )):
+        if any(
+            w in s
+            for w in (
+                "doctor said gym",
+                "doctor cleared",
+                "doctor ne bola gym",
+                "doctor ne bola heavy",
+                "gym ki permission",
+                "cardiologist said",
+                "physician cleared",
+                "doctor cleared me",
+            )
+        ):
             # Note: extracted as a candidate claim, NOT directly applied to PEP!
             extracted["patient_claimed_clearance"] = s
 

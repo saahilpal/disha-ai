@@ -14,6 +14,7 @@ logger = logging.getLogger(__name__)
 import hashlib as _hashlib
 from pathlib import Path as _Path
 
+
 def _load_behavior_rules() -> list[dict]:
     """Load rules from data/behavior_rules.yaml at module import."""
     rules_path = _Path(__file__).resolve().parent.parent.parent / "data" / "behavior_rules.yaml"
@@ -24,18 +25,17 @@ def _load_behavior_rules() -> list[dict]:
         return []
     try:
         import yaml
+
         with open(rules_path, encoding="utf-8") as f:
             data = yaml.safe_load(f)
         return data.get("rules", [])
     except Exception:
         return []
 
+
 def _render_spec_v1_prompt(rules: list[dict]) -> tuple[str, str]:
     """Render ≤600-token system prompt from behavior_rules.yaml. Returns (prompt, hash)."""
-    prompt = (
-        "You are Disha, an AI health coach. Plain text only, no markdown.\n"
-        "RULES:\n"
-    )
+    prompt = "You are Disha, an AI health coach. Plain text only, no markdown.\nRULES:\n"
     for r in rules:
         prompt += f"[{r['id']}] {r['text']}\n"
     prompt += (
@@ -47,6 +47,7 @@ def _render_spec_v1_prompt(rules: list[dict]) -> tuple[str, str]:
     h = _hashlib.sha256(prompt.encode()).hexdigest()[:12]
     prompt += f"\n# PROMPT_VERSION: v1-{h}"
     return prompt, f"v1-{h}"
+
 
 _BEHAVIOR_RULES = _load_behavior_rules()
 _SPEC_V1_PROMPT, PROMPT_VERSION = _render_spec_v1_prompt(_BEHAVIOR_RULES) if _BEHAVIOR_RULES else ("", "v0-legacy")
@@ -108,6 +109,7 @@ INSTRUCTION HIERARCHY & PRIORITY DISCIPLINE:
 4. Accurate Profile Memory (PEP): Accurately reflect verified disclosures without inventing facts.
 5. Optional Onboarding Progress: Progressive profile gathering is strictly secondary to coaching. Never force an inquiry when the user is discussing an ongoing health topic."""
 
+
 def get_system_prompt(behavior_spec_v1: bool = True, language_mode: str = "hinglish") -> str:
     """Return the active system prompt, with language instruction injected."""
     if not behavior_spec_v1:
@@ -121,6 +123,7 @@ def get_system_prompt(behavior_spec_v1: bool = True, language_mode: str = "hingl
     }
     lang_line = lang_instructions.get(language_mode, lang_instructions["hinglish"])
     return _SPEC_V1_PROMPT.replace("{language_instruction}", f"\n{lang_line}\n")
+
 
 # Default export for backward compatibility
 SYSTEM_PROMPT = get_system_prompt()

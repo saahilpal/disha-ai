@@ -7,6 +7,7 @@ Tracking TurnContext trace, eliminating canned answer strings and fake Disha utt
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from contextlib import suppress
@@ -69,9 +70,7 @@ async def _commit_turn(
 
     history = app_state.conversation_history[patient_id]
     if not (
-        len(history) >= 2
-        and history[-2].get("content") == user_text
-        and history[-1].get("content") == assistant_text
+        len(history) >= 2 and history[-2].get("content") == user_text and history[-1].get("content") == assistant_text
     ):
         history.append({"role": "user", "content": user_text})
         history.append({"role": "assistant", "content": assistant_text})
@@ -238,10 +237,14 @@ class ResponseHarness:
 
         if prescribed_meal_query and context.get("diet_status") == "NOT_FOUND":
             # If the user previously discussed this meal in recent history, let LLM answer from context
-            has_meal_in_history = any(
-                effective_meal_type in m.get("content", "").lower()
-                for m in (context.get("conversation_history") or ())
-            ) if effective_meal_type else False
+            has_meal_in_history = (
+                any(
+                    effective_meal_type in m.get("content", "").lower()
+                    for m in (context.get("conversation_history") or ())
+                )
+                if effective_meal_type
+                else False
+            )
             if not has_meal_in_history:
                 state.validator_status = "rewritten:meal_not_found"
                 tc.validator.status = "rewritten:meal_not_found"
@@ -486,19 +489,60 @@ class ResponseHarness:
         # ==========================================
         t1 = time.monotonic()
         from disha_core.config import get_settings
+
         settings = get_settings()
 
         if getattr(settings, "behavior_spec_v1", True):
             from disha_core.harness.perception import TurnPerception, select_move
+
             user_text_lower = payload.text.lower()
-            is_med = any(w in user_text_lower for w in ("medicine", "dawai", "goli", "dose", "mg", "tablets", "metformin", "paracetamol", "prescription", "ilaj"))
-            is_distress = any(w in user_text_lower for w in ("pain", "dard", "suffering", "pareshan", "upset", "crying", "anxiety", "depression", "takleef", "hurt", "stress"))
-            is_vague = len(payload.text.split()) <= 2 and user_text_lower in ("kuch", "maybe", "shayad", "pata nahi", "dont know", "not sure", "aisa hi")
-            
+            is_med = any(
+                w in user_text_lower
+                for w in (
+                    "medicine",
+                    "dawai",
+                    "goli",
+                    "dose",
+                    "mg",
+                    "tablets",
+                    "metformin",
+                    "paracetamol",
+                    "prescription",
+                    "ilaj",
+                )
+            )
+            is_distress = any(
+                w in user_text_lower
+                for w in (
+                    "pain",
+                    "dard",
+                    "suffering",
+                    "pareshan",
+                    "upset",
+                    "crying",
+                    "anxiety",
+                    "depression",
+                    "takleef",
+                    "hurt",
+                    "stress",
+                )
+            )
+            is_vague = len(payload.text.split()) <= 2 and user_text_lower in (
+                "kuch",
+                "maybe",
+                "shayad",
+                "pata nahi",
+                "dont know",
+                "not sure",
+                "aisa hi",
+            )
+
             lang_detected = getattr(normalized, "language", None) or context.get("language") or "hinglish"
             perception = TurnPerception(
-                detected_language="hi" if lang_detected == "hindi" else ("en" if lang_detected in ("english", "en") else "hinglish"),
-                detected_script="devanagari" if any("\u0900" <= c <= "\u097F" for c in payload.text) else "latin",
+                detected_language="hi"
+                if lang_detected == "hindi"
+                else ("en" if lang_detected in ("english", "en") else "hinglish"),
+                detected_script="devanagari" if any("\u0900" <= c <= "\u097f" for c in payload.text) else "latin",
                 user_act="greeting" if (intent and getattr(intent, "value", None) == "greeting") else "other",
                 answer_quality="vague" if is_vague else "complete",
                 medication_inquiry=is_med,
@@ -540,6 +584,7 @@ class ResponseHarness:
         try:
             if getattr(settings, "behavior_spec_v1", True) and channel != "voice":
                 from disha_core.harness.verifier import split_sentences_multilingual
+
                 raw_sentences: list[str] = []
                 async for sentence in val_stream_fn(llm_stream, validator_instance, context):
                     raw_sentences.append(sentence)
@@ -618,18 +663,23 @@ class ResponseHarness:
             # D5: Silent language switch after 2 consecutive messages in another supported language
             detected_lang = context.get("detected_language")
             stored_lang = context.get("language")
-            if detected_lang and stored_lang and detected_lang != stored_lang and getattr(app_state, "pool", None) is not None:
+            if (
+                detected_lang
+                and stored_lang
+                and detected_lang != stored_lang
+                and getattr(app_state, "pool", None) is not None
+            ):
                 last_lang = context.get("previous_turn_detected_language")
                 if last_lang == detected_lang:
                     with suppress(Exception):
                         async with app_state.pool.acquire() as l_conn:
                             await l_conn.execute(
                                 "UPDATE patient_profiles SET language = $1 WHERE patient_id = $2",
-                                detected_lang, patient_id
+                                detected_lang,
+                                patient_id,
                             )
                             await l_conn.execute(
-                                "UPDATE patient_pep SET language = $1 WHERE patient_id = $2",
-                                detected_lang, patient_id
+                                "UPDATE patient_pep SET language = $1 WHERE patient_id = $2", detected_lang, patient_id
                             )
                             logger.info("D5: Silently switched patient %s language to %s", patient_id, detected_lang)
 
@@ -659,6 +709,7 @@ class ResponseHarness:
         # Section 5.8: Observability - Per-turn PHI-safe trace log
         try:
             from disha_core.llm.client import PROMPT_VERSION
+
             trace_entry = {
                 "event": "turn_trace",
                 "patient_id": patient_id[:8] + "...",

@@ -88,6 +88,7 @@ async def repair_turn(
 
     # If attempts exhausted, attempt 1 strict regeneration constrained to the chosen move
     from disha_core.config import get_settings
+
     settings = get_settings()
     if getattr(settings, "behavior_spec_v1", True) or context.get("behavior_spec_v1", True):
         chosen_move = context.get("chosen_move") or "natural_reply"

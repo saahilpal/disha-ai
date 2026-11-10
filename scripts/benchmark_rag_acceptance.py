@@ -7,6 +7,7 @@ Evaluates:
 3. Provenance & Claim Attribution: 20 clinical/dietary answers verified against TurnContext.retrieval.evidence_ids.
 4. Embedding Model & Vector Dimension audit across database tables.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -197,7 +198,6 @@ BENCHMARK_CASES = [
         "expected_chunks": [18],
         "is_ood": False,
     },
-
     # ---------------- Hindi Queries (Devanagari) (20) ----------------
     {
         "id": "HI-01",
@@ -359,7 +359,6 @@ BENCHMARK_CASES = [
         "expected_chunks": [18],
         "is_ood": False,
     },
-
     # ---------------- Hinglish Queries (20) ----------------
     {
         "id": "HIN-01",
@@ -521,13 +520,17 @@ BENCHMARK_CASES = [
         "expected_chunks": [18],
         "is_ood": False,
     },
-
     # ---------------- Out of Domain / Safe Abstention (15) ----------------
     {"id": "OOD-01", "lang": "ood", "query": "quantum computer graphics card python script", "is_ood": True},
     {"id": "OOD-02", "lang": "ood", "query": "who won the 2024 cricket t20 world cup match", "is_ood": True},
     {"id": "OOD-03", "lang": "ood", "query": "how to repair car brake pads and engine clutch", "is_ood": True},
     {"id": "OOD-04", "lang": "ood", "query": "best recipe for chocolate fudge brownie cake", "is_ood": True},
-    {"id": "OOD-05", "lang": "ood", "query": "stock market technical indicators and cryptocurrency price", "is_ood": True},
+    {
+        "id": "OOD-05",
+        "lang": "ood",
+        "query": "stock market technical indicators and cryptocurrency price",
+        "is_ood": True,
+    },
     {"id": "OOD-06", "lang": "ood", "query": "what is the capital city of australia", "is_ood": True},
     {"id": "OOD-07", "lang": "ood", "query": "how to solve quadratic equations using calculus", "is_ood": True},
     {"id": "OOD-08", "lang": "ood", "query": "photoshop layer masking tutorial for graphic designers", "is_ood": True},
@@ -578,23 +581,25 @@ async def run_retrieval_benchmarks(conn: asyncpg.Connection) -> list[EvalResult]
 
         if is_ood:
             # Safe abstention: Expect 0 chunks returned
-            safely_abstained = (len(chunks) == 0)
-            results.append(EvalResult(
-                case_id=case["id"],
-                lang=case["lang"],
-                query=q,
-                is_ood=True,
-                retrieved_count=len(chunks),
-                retrieved_chunks=retrieved_ids,
-                retrieved_tags=retrieved_tags,
-                hit_k1=False,
-                hit_k3=False,
-                hit_k5=False,
-                reciprocal_rank=0.0,
-                grounded=True if safely_abstained else False,
-                safely_abstained=safely_abstained,
-                latency_ms=lat_ms,
-            ))
+            safely_abstained = len(chunks) == 0
+            results.append(
+                EvalResult(
+                    case_id=case["id"],
+                    lang=case["lang"],
+                    query=q,
+                    is_ood=True,
+                    retrieved_count=len(chunks),
+                    retrieved_chunks=retrieved_ids,
+                    retrieved_tags=retrieved_tags,
+                    hit_k1=False,
+                    hit_k3=False,
+                    hit_k5=False,
+                    reciprocal_rank=0.0,
+                    grounded=True if safely_abstained else False,
+                    safely_abstained=safely_abstained,
+                    latency_ms=lat_ms,
+                )
+            )
         else:
             exp_chunks = set(case.get("expected_chunks", []))
             exp_tags = set(case.get("expected_tags", []))
@@ -621,22 +626,24 @@ async def run_retrieval_benchmarks(conn: asyncpg.Connection) -> list[EvalResult]
                         rr = 1.0 / (idx + 1)
 
             grounded = k5_match
-            results.append(EvalResult(
-                case_id=case["id"],
-                lang=case["lang"],
-                query=q,
-                is_ood=False,
-                retrieved_count=len(chunks),
-                retrieved_chunks=retrieved_ids,
-                retrieved_tags=retrieved_tags,
-                hit_k1=k1_match,
-                hit_k3=k3_match,
-                hit_k5=k5_match,
-                reciprocal_rank=rr,
-                grounded=grounded,
-                safely_abstained=False,
-                latency_ms=lat_ms,
-            ))
+            results.append(
+                EvalResult(
+                    case_id=case["id"],
+                    lang=case["lang"],
+                    query=q,
+                    is_ood=False,
+                    retrieved_count=len(chunks),
+                    retrieved_chunks=retrieved_ids,
+                    retrieved_tags=retrieved_tags,
+                    hit_k1=k1_match,
+                    hit_k3=k3_match,
+                    hit_k5=k5_match,
+                    reciprocal_rank=rr,
+                    grounded=grounded,
+                    safely_abstained=False,
+                    latency_ms=lat_ms,
+                )
+            )
 
     return results
 
@@ -644,26 +651,106 @@ async def run_retrieval_benchmarks(conn: asyncpg.Connection) -> list[EvalResult]
 async def run_20_turn_claim_verifications(client: httpx.AsyncClient) -> list[dict[str, Any]]:
     """Execute 20 clinical/dietary turns and verify factual claim attribution to chunk_ids."""
     clinical_queries = [
-        {"q": "Can a type 2 diabetic patient eat fresh seasonal mango?", "claim": "100g mango permitted in moderation in afternoon", "cid": 112},
-        {"q": "Mujhe bohot bloating aur gas ho rahi hai, kya gharelu upaay karu?", "claim": "warm jeera or saunf water and light walking post meals", "cid": 111},
-        {"q": "What is the recommended salt intake limit for high blood pressure?", "claim": "under 5 grams (one level teaspoon) daily", "cid": 1},
-        {"q": "Khana khane ke baad roasted saunf lene ke kya fayde hain?", "claim": "chew half teaspoon roasted saunf post meals for acid regurgitation", "cid": 477},
-        {"q": "What kitchen remedy is advised for acute nausea and vomiting?", "claim": "fresh ginger water or slice with rock salt", "cid": 474},
-        {"q": "Gale me kharash aur dry cough ke liye bedtime drink?", "claim": "warm milk with half teaspoon pure turmeric and black pepper", "cid": 475},
-        {"q": "How does cumin jeera water assist morning digestion?", "claim": "boil one teaspoon cumin in water and sip warm", "cid": 476},
-        {"q": "Sugar control ke liye subah methi dana kaise lena chahiye?", "claim": "soak one teaspoon fenugreek seeds overnight", "cid": 5},
-        {"q": "How much cooking oil is recommended daily for high cholesterol?", "claim": "limit visible oils to 20-25 grams daily", "cid": 9},
-        {"q": "Why is brisk walking recommended for fatty liver?", "claim": "150 minutes weekly moderate aerobic walking reduces liver fat", "cid": 14},
-        {"q": "What is the recommended remedy for chronic bedtime constipation?", "claim": "one tablespoon isabgol husk with lukewarm water", "cid": 11},
-        {"q": "Can spearmint tea help with facial hair in PCOS?", "claim": "one to two cups organic spearmint tea daily reduces androgens", "cid": 21},
-        {"q": "Which Indian foods are high in iron for low hemoglobin?", "claim": "roasted chana with jaggery and moringa drumstick", "cid": 15},
-        {"q": "Why should tea be avoided right after meals in anemia?", "claim": "do not drink tea or coffee within one hour before or after meals", "cid": 16},
-        {"q": "What potassium rich natural foods support blood pressure vascular health?", "claim": "tender coconut water, banana, palak", "cid": 2},
-        {"q": "Which millets are best to replace white rice for diabetes?", "claim": "ragi, jowar, bajra with lower glycemic index", "cid": 3},
-        {"q": "How much water is needed to flush uric acid in gout?", "claim": "three to four liters water daily", "cid": 19},
-        {"q": "Why should cabbage be cooked before eating for thyroid health?", "claim": "cook cruciferous vegetables thoroughly to neutralize goitrogens", "cid": 18},
-        {"q": "Khatti dakar aur acidity ke liye dinner timing kya honi chahiye?", "claim": "finish dinner at least 2-3 hours before sleeping", "cid": 6},
-        {"q": "What gentle activity is recommended daily for cardiovascular health?", "claim": "30 to 45 minutes brisk walking daily", "cid": 485},
+        {
+            "q": "Can a type 2 diabetic patient eat fresh seasonal mango?",
+            "claim": "100g mango permitted in moderation in afternoon",
+            "cid": 112,
+        },
+        {
+            "q": "Mujhe bohot bloating aur gas ho rahi hai, kya gharelu upaay karu?",
+            "claim": "warm jeera or saunf water and light walking post meals",
+            "cid": 111,
+        },
+        {
+            "q": "What is the recommended salt intake limit for high blood pressure?",
+            "claim": "under 5 grams (one level teaspoon) daily",
+            "cid": 1,
+        },
+        {
+            "q": "Khana khane ke baad roasted saunf lene ke kya fayde hain?",
+            "claim": "chew half teaspoon roasted saunf post meals for acid regurgitation",
+            "cid": 477,
+        },
+        {
+            "q": "What kitchen remedy is advised for acute nausea and vomiting?",
+            "claim": "fresh ginger water or slice with rock salt",
+            "cid": 474,
+        },
+        {
+            "q": "Gale me kharash aur dry cough ke liye bedtime drink?",
+            "claim": "warm milk with half teaspoon pure turmeric and black pepper",
+            "cid": 475,
+        },
+        {
+            "q": "How does cumin jeera water assist morning digestion?",
+            "claim": "boil one teaspoon cumin in water and sip warm",
+            "cid": 476,
+        },
+        {
+            "q": "Sugar control ke liye subah methi dana kaise lena chahiye?",
+            "claim": "soak one teaspoon fenugreek seeds overnight",
+            "cid": 5,
+        },
+        {
+            "q": "How much cooking oil is recommended daily for high cholesterol?",
+            "claim": "limit visible oils to 20-25 grams daily",
+            "cid": 9,
+        },
+        {
+            "q": "Why is brisk walking recommended for fatty liver?",
+            "claim": "150 minutes weekly moderate aerobic walking reduces liver fat",
+            "cid": 14,
+        },
+        {
+            "q": "What is the recommended remedy for chronic bedtime constipation?",
+            "claim": "one tablespoon isabgol husk with lukewarm water",
+            "cid": 11,
+        },
+        {
+            "q": "Can spearmint tea help with facial hair in PCOS?",
+            "claim": "one to two cups organic spearmint tea daily reduces androgens",
+            "cid": 21,
+        },
+        {
+            "q": "Which Indian foods are high in iron for low hemoglobin?",
+            "claim": "roasted chana with jaggery and moringa drumstick",
+            "cid": 15,
+        },
+        {
+            "q": "Why should tea be avoided right after meals in anemia?",
+            "claim": "do not drink tea or coffee within one hour before or after meals",
+            "cid": 16,
+        },
+        {
+            "q": "What potassium rich natural foods support blood pressure vascular health?",
+            "claim": "tender coconut water, banana, palak",
+            "cid": 2,
+        },
+        {
+            "q": "Which millets are best to replace white rice for diabetes?",
+            "claim": "ragi, jowar, bajra with lower glycemic index",
+            "cid": 3,
+        },
+        {
+            "q": "How much water is needed to flush uric acid in gout?",
+            "claim": "three to four liters water daily",
+            "cid": 19,
+        },
+        {
+            "q": "Why should cabbage be cooked before eating for thyroid health?",
+            "claim": "cook cruciferous vegetables thoroughly to neutralize goitrogens",
+            "cid": 18,
+        },
+        {
+            "q": "Khatti dakar aur acidity ke liye dinner timing kya honi chahiye?",
+            "claim": "finish dinner at least 2-3 hours before sleeping",
+            "cid": 6,
+        },
+        {
+            "q": "What gentle activity is recommended daily for cardiovascular health?",
+            "claim": "30 to 45 minutes brisk walking daily",
+            "cid": 485,
+        },
     ]
 
     verifications: list[dict[str, Any]] = []
@@ -699,19 +786,21 @@ async def run_20_turn_claim_verifications(client: httpx.AsyncClient) -> list[dic
         claim_present = any(word.lower() in response_text.lower() for word in expected_claim.split()[:4])
         provenance_verified = str(expected_cid) in tc.retrieval.evidence_ids
 
-        verifications.append({
-            "sample_num": idx,
-            "query": q,
-            "response": response_text,
-            "status": status,
-            "latency_ms": lat,
-            "turn_id": tc.turn_id,
-            "expected_chunk_id": expected_cid,
-            "evidence_ids": tc.retrieval.evidence_ids,
-            "factual_claim": expected_claim,
-            "claim_grounded_in_response": claim_present,
-            "provenance_verified": provenance_verified,
-        })
+        verifications.append(
+            {
+                "sample_num": idx,
+                "query": q,
+                "response": response_text,
+                "status": status,
+                "latency_ms": lat,
+                "turn_id": tc.turn_id,
+                "expected_chunk_id": expected_cid,
+                "evidence_ids": tc.retrieval.evidence_ids,
+                "factual_claim": expected_claim,
+                "claim_grounded_in_response": claim_present,
+                "provenance_verified": provenance_verified,
+            }
+        )
 
     return verifications
 
@@ -816,7 +905,9 @@ async def main():
         print(f"  Recall@5: {all_clinical_metrics['recall@5']}%")
         print(f"  MRR:      {all_clinical_metrics['mrr']}")
         print(f"  Grounded: {all_clinical_metrics['groundedness']}%")
-        print(f"  Latency:  p50={all_clinical_metrics['latency_p50_ms']}ms, p95={all_clinical_metrics['latency_p95_ms']}ms")
+        print(
+            f"  Latency:  p50={all_clinical_metrics['latency_p50_ms']}ms, p95={all_clinical_metrics['latency_p95_ms']}ms"
+        )
         print(f"English Queries (N={len(en_res)}): Recall@3={en_metrics['recall@3']}%, MRR={en_metrics['mrr']}")
         print(f"Hindi Queries   (N={len(hi_res)}): Recall@3={hi_metrics['recall@3']}%, MRR={hi_metrics['mrr']}")
         print(f"Hinglish Queries(N={len(hin_res)}): Recall@3={hin_metrics['recall@3']}%, MRR={hin_metrics['mrr']}")
@@ -829,8 +920,8 @@ async def main():
         prov_count = sum(1 for v in verifications if v["provenance_verified"])
         ground_count = sum(1 for v in verifications if v["claim_grounded_in_response"])
         print("  Sampled Turns: 20/20")
-        print(f"  Claims Grounded in Approved Evidence: {ground_count}/20 ({round(ground_count/20*100, 1)}%)")
-        print(f"  Provenance Verified in TurnContext: {prov_count}/20 ({round(prov_count/20*100, 1)}%)")
+        print(f"  Claims Grounded in Approved Evidence: {ground_count}/20 ({round(ground_count / 20 * 100, 1)}%)")
+        print(f"  Provenance Verified in TurnContext: {prov_count}/20 ({round(prov_count / 20 * 100, 1)}%)")
 
         print("\n[3/4] Auditing Database Vector Embeddings & Model Identity...")
         emb_audit = await verify_database_embeddings(conn)

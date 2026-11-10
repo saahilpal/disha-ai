@@ -14,12 +14,14 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 class ExampleType(str, Enum):
     """Categorization of few-shot example."""
+
     GOOD = "good"
     BAD = "bad"
 
 
 class ExampleLanguage(str, Enum):
     """Language codes for localized examples."""
+
     EN = "en"
     HI = "hi"
     HINGLISH = "hinglish"
@@ -27,6 +29,7 @@ class ExampleLanguage(str, Enum):
 
 class PolicyStatus(str, Enum):
     """Lifecycle status of a situation policy."""
+
     ACTIVE = "active"
     DRAFT = "draft"
     DEPRECATED = "deprecated"
@@ -71,13 +74,9 @@ class SituationPolicy(BaseModel):
         good_count = sum(1 for ex in v if ex.type == ExampleType.GOOD)
         bad_count = sum(1 for ex in v if ex.type == ExampleType.BAD)
         if good_count < 2:
-            raise ValueError(
-                f"Each card must contain at least 2 good examples, found {good_count}"
-            )
+            raise ValueError(f"Each card must contain at least 2 good examples, found {good_count}")
         if bad_count < 2:
-            raise ValueError(
-                f"Each card must contain at least 2 bad examples, found {bad_count}"
-            )
+            raise ValueError(f"Each card must contain at least 2 bad examples, found {bad_count}")
         return v
 
     @property

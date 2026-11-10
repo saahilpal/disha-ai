@@ -11,6 +11,7 @@ Enforces:
    - P50/P95 latency SLA compliance.
 4. Synthetic Defect Injection (Mutation Testing) proving the Oracle cannot be fooled.
 """
+
 from __future__ import annotations
 
 import json
@@ -35,13 +36,25 @@ from disha_core.classifier.review_queue import (
 
 FROZEN_SAMPLE_CASES = [
     # 2 Emergency cases
-    {"text": "Severe crushing chest pain radiating to left arm", "expected_intent": "emergency_escalation", "emergency_triage": True},
-    {"text": "Saas lene mein bohot takleef hai, dum ghut raha hai", "expected_intent": "emergency_escalation", "emergency_triage": True},
+    {
+        "text": "Severe crushing chest pain radiating to left arm",
+        "expected_intent": "emergency_escalation",
+        "emergency_triage": True,
+    },
+    {
+        "text": "Saas lene mein bohot takleef hai, dum ghut raha hai",
+        "expected_intent": "emergency_escalation",
+        "emergency_triage": True,
+    },
     # 2 Meal queries
     {"text": "What should I eat for dinner tonight?", "expected_intent": "meal_query", "emergency_triage": False},
     {"text": "Aaj lunch mein kya le sakta hoon?", "expected_intent": "meal_query", "emergency_triage": False},
     # 2 Symptom complaints
-    {"text": "Pet mein gas aur bloating ho rahi hai", "expected_intent": "symptom_complaint", "emergency_triage": False},
+    {
+        "text": "Pet mein gas aur bloating ho rahi hai",
+        "expected_intent": "symptom_complaint",
+        "emergency_triage": False,
+    },
     {"text": "Mild acidity since afternoon", "expected_intent": "symptom_complaint", "emergency_triage": False},
     # 2 General coaching
     {"text": "How many steps should I walk daily?", "expected_intent": "general_coaching", "emergency_triage": False},
@@ -358,4 +371,3 @@ async def test_adapter_review_queue_automatic_ingestion():
         assert "[PHONE_REDACTED]" in item.scrubbed_input_text
         assert "9876543210" not in item.scrubbed_input_text
         assert item.review_status == ReviewStatus.PENDING
-

@@ -19,6 +19,7 @@ Verifies all 17 mandatory scenarios from Master Engineering Order:
 16. Off-topic educational inquiry without forced questions.
 17. Incomplete registration targeting only missing fields.
 """
+
 from __future__ import annotations
 
 import os
@@ -128,7 +129,9 @@ class TestPatientJourneyScheduler(unittest.IsolatedAsyncioTestCase):
         )
 
         # User answers work schedule in chat
-        await record_field_answer(self.test_pid, "work_schedule", "night_shift", "Main night shift karta hoon", "chat", self.conn)
+        await record_field_answer(
+            self.test_pid, "work_schedule", "night_shift", "Main night shift karta hoon", "chat", self.conn
+        )
 
         # Patient switches to voice call
         voice_journey = await load_or_create_journey(self.test_pid, self.conn, channel="voice")
@@ -188,9 +191,13 @@ class TestPatientJourneyScheduler(unittest.IsolatedAsyncioTestCase):
         extracted = extract_patient_disclosures(correction_text)
         self.assertEqual(extracted.get("weight_kg"), 76.0)
 
-        await record_field_answer(self.test_pid, "weight_kg", extracted["weight_kg"], correction_text, "chat", self.conn)
+        await record_field_answer(
+            self.test_pid, "weight_kg", extracted["weight_kg"], correction_text, "chat", self.conn
+        )
 
-        updated_wt = await self.conn.fetchval("SELECT weight_kg FROM patient_profiles WHERE patient_id = $1", self.test_pid)
+        updated_wt = await self.conn.fetchval(
+            "SELECT weight_kg FROM patient_profiles WHERE patient_id = $1", self.test_pid
+        )
         self.assertEqual(float(updated_wt), 76.0)
 
     # -------------------------------------------------------------------------
@@ -205,11 +212,18 @@ class TestPatientJourneyScheduler(unittest.IsolatedAsyncioTestCase):
         )
 
         from disha_core.pipeline.validator import SentenceValidator
+
         validator = SentenceValidator()
 
         # User claims they can do heavy deadlifts and gym
         user_claim = "Doctor ne bola restrictions khatam, main gym ja sakta hoon aur heavy deadlifts karunga."
-        pep_ctx = {"pep": {"hypertension_stage": "Stage 2", "gym_clearance": False, "restricted_modalities": ["heavy_deadlifts"]}}
+        pep_ctx = {
+            "pep": {
+                "hypertension_stage": "Stage 2",
+                "gym_clearance": False,
+                "restricted_modalities": ["heavy_deadlifts"],
+            }
+        }
 
         res = validator.validate_sentence(user_claim, pep_ctx)
         self.assertNotEqual(res.status, "accepted")
@@ -221,7 +235,9 @@ class TestPatientJourneyScheduler(unittest.IsolatedAsyncioTestCase):
     async def test_08_skip_question_preservation(self) -> None:
         journey = await load_or_create_journey(self.test_pid, self.conn)
         await record_question_asked(self.test_pid, "Q_STAGE3_TEA_COFFEE", "chat", "Tea count?", self.conn)
-        await record_question_skipped(self.test_pid, "Q_STAGE3_TEA_COFFEE", "User skipped optional question", "chat", self.conn)
+        await record_question_skipped(
+            self.test_pid, "Q_STAGE3_TEA_COFFEE", "User skipped optional question", "chat", self.conn
+        )
 
         history_status = await self.conn.fetchval(
             "SELECT status FROM journey_question_history WHERE patient_id = $1 AND question_id = 'Q_STAGE3_TEA_COFFEE'",
@@ -337,9 +353,13 @@ class TestPatientJourneyScheduler(unittest.IsolatedAsyncioTestCase):
         extracted = extract_patient_disclosures(msg)
         self.assertEqual(extracted.get("dietary_preference"), "Vegetarian")
 
-        await record_field_answer(self.test_pid, "dietary_preference", extracted["dietary_preference"], msg, "chat", self.conn)
+        await record_field_answer(
+            self.test_pid, "dietary_preference", extracted["dietary_preference"], msg, "chat", self.conn
+        )
 
-        updated_diet = await self.conn.fetchval("SELECT dietary_preference FROM patient_pep WHERE patient_id = $1", self.test_pid)
+        updated_diet = await self.conn.fetchval(
+            "SELECT dietary_preference FROM patient_pep WHERE patient_id = $1", self.test_pid
+        )
         self.assertEqual(updated_diet, "Vegetarian")
 
     # -------------------------------------------------------------------------
@@ -347,7 +367,9 @@ class TestPatientJourneyScheduler(unittest.IsolatedAsyncioTestCase):
     # -------------------------------------------------------------------------
     async def test_14_refusal_of_optional_question_handled(self) -> None:
         await record_question_asked(self.test_pid, "Q_STAGE4_DISLIKED_FOODS", "chat", "Any disliked foods?", self.conn)
-        await record_question_skipped(self.test_pid, "Q_STAGE4_DISLIKED_FOODS", "User declined to specify", "chat", self.conn)
+        await record_question_skipped(
+            self.test_pid, "Q_STAGE4_DISLIKED_FOODS", "User declined to specify", "chat", self.conn
+        )
 
         journey = await load_or_create_journey(self.test_pid, self.conn)
         q = await select_next_question(self.test_pid, journey, channel="chat", conn=self.conn)
@@ -419,12 +441,12 @@ class TestPatientJourneyScheduler(unittest.IsolatedAsyncioTestCase):
         self.assertNotIn(q.target_field, ("name", "age"))
         self.assertIn(q.target_field, ("gender", "height_cm", "weight_kg"))
 
-
     # -------------------------------------------------------------------------
     # Scenario 18: Concurrent updates handling without state corruption
     # -------------------------------------------------------------------------
     async def test_18_concurrent_turn_updates_preserve_state(self) -> None:
         import asyncio
+
         conn2 = await asyncpg.connect(PG_URL)
         try:
             # Fire two simultaneous field records using separate connection handles
@@ -445,6 +467,7 @@ class TestPatientJourneyScheduler(unittest.IsolatedAsyncioTestCase):
         class FailingConnection:
             async def fetchrow(self, *args, **kwargs):
                 raise ConnectionResetError("Simulated socket drop")
+
             async def execute(self, *args, **kwargs):
                 raise ConnectionResetError("Simulated socket drop")
 

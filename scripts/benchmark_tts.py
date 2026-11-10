@@ -3,6 +3,7 @@
 Measures Time to First Chunk (TTFB), Total Latency, Real-Time Factor (RTF),
 Memory footprint, and Hinglish pronunciation quality on Apple Silicon M5.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -128,13 +129,17 @@ async def main():
             await asyncio.sleep(0.05)
         # Select median run
         med_run = sorted(runs, key=lambda r: r["total_latency_ms"])[1]
-        edge_results.append({
-            "id": item["id"],
-            "category": item["category"],
-            "text": item["text"],
-            **med_run,
-        })
-        print(f"  Edge-TTS [{item['id']}]: TTFB={med_run['ttfb_ms']}ms | Total={med_run['total_latency_ms']}ms | RTF={med_run['rtf']}")
+        edge_results.append(
+            {
+                "id": item["id"],
+                "category": item["category"],
+                "text": item["text"],
+                **med_run,
+            }
+        )
+        print(
+            f"  Edge-TTS [{item['id']}]: TTFB={med_run['ttfb_ms']}ms | Total={med_run['total_latency_ms']}ms | RTF={med_run['rtf']}"
+        )
 
     # 2. Benchmark Local Kokoro-82M (ONNX)
     print("\n[2/3] Benchmarking Local Kokoro-82M (ONNX Runtime)...")
@@ -153,13 +158,17 @@ async def main():
             metrics = benchmark_kokoro(kokoro, item["text"], voice="af_sarah")
             runs.append(metrics)
         med_run = sorted(runs, key=lambda r: r["total_latency_ms"])[1]
-        kokoro_results.append({
-            "id": item["id"],
-            "category": item["category"],
-            "text": item["text"],
-            **med_run,
-        })
-        print(f"  Kokoro [{item['id']}]: TTFB={med_run['ttfb_ms']}ms | Total={med_run['total_latency_ms']}ms | RTF={med_run['rtf']}")
+        kokoro_results.append(
+            {
+                "id": item["id"],
+                "category": item["category"],
+                "text": item["text"],
+                **med_run,
+            }
+        )
+        print(
+            f"  Kokoro [{item['id']}]: TTFB={med_run['ttfb_ms']}ms | Total={med_run['total_latency_ms']}ms | RTF={med_run['rtf']}"
+        )
 
     # 3. Aggregate Comparison
     summary = {
@@ -176,7 +185,9 @@ async def main():
             },
             "Local Kokoro-82M (ONNX)": {
                 "avg_ttfb_ms": round(sum(r["ttfb_ms"] for r in kokoro_results) / len(kokoro_results), 2),
-                "avg_total_latency_ms": round(sum(r["total_latency_ms"] for r in kokoro_results) / len(kokoro_results), 2),
+                "avg_total_latency_ms": round(
+                    sum(r["total_latency_ms"] for r in kokoro_results) / len(kokoro_results), 2
+                ),
                 "avg_rtf": round(sum(r["rtf"] for r in kokoro_results) / len(kokoro_results), 4),
                 "ram_footprint_mb": 340.0,  # ~325MB model weights in ONNX runtime
                 "hindi_accent_naturalness": 4.8,  # Struggles with Hinglish/Hindi phonotactics without Hindi espeak lexicons
@@ -195,4 +206,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-

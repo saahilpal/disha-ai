@@ -27,10 +27,7 @@
 1. **Schema Hardcoded Default (`meal_type = "dinner"`):**  
    In `disha_core/models/schemas.py` lines 25-28:
    ```python
-   meal_type: Literal["breakfast", "lunch", "dinner"] = Field(
-       default="dinner",
-       description="Prescribed meal window"
-   )
+   meal_type: Literal["breakfast", "lunch", "dinner"] = Field(default="dinner", description="Prescribed meal window")
    ```
    When a user sends *any* query (e.g. "I had a stressful day" or "I have a headache"), `meal_type` is missing from the payload and automatically defaults to `"dinner"`.
 
@@ -41,10 +38,8 @@
 3. **XML Context Forced into User Prompt:**  
    In `disha_core/engine/context_builder.py` lines 85-88:
    ```python
-   diet_xml = context.get("diet_slot_xml") or diet_slot_xml(
-       context.get("meal_type", "dinner"), context.get("diet_items")
-   )
-   return f'<PATIENT_PROFILE>{pep_xml}{diet_xml}</PATIENT_PROFILE>{clinical_xml}'
+   diet_xml = context.get("diet_slot_xml") or diet_slot_xml(context.get("meal_type", "dinner"), context.get("diet_items"))
+   return f"<PATIENT_PROFILE>{pep_xml}{diet_xml}</PATIENT_PROFILE>{clinical_xml}"
    ```
    On every turn, the user's message is prefixed with:
    `<PATIENT_PROFILE><DIET_SLOT meal="dinner" status="FOUND">Grilled tofu with sauteed broccoli, bell peppers, and half cup brown rice (approx 380 kcal)</DIET_SLOT></PATIENT_PROFILE><USER_UTTERANCE>I feel tired</USER_UTTERANCE>`.

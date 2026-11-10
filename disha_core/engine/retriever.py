@@ -232,4 +232,3 @@ async def retrieve_conversation_history(
     # Return in chronological order
     results.reverse()
     return results
-

@@ -3,6 +3,7 @@
 Revision ID: 0006_product_fact_truth
 Revises: 0005_runtime_schema_alignment
 """
+
 from typing import Sequence, Union
 
 from alembic import op

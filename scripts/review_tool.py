@@ -8,6 +8,7 @@ CLI tool allowing clinicians and engineers to:
 4. Export clean de-identified training/validation JSONL corpora.
 5. Run the LayaPromotionOracle to evaluate candidate model checkpoints against frozen benchmarks.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -45,7 +46,9 @@ def cmd_list(manager: ReviewQueueManager, args: argparse.Namespace) -> None:
     for it in items:
         conf_str = f"{it.model_decision.predicted_intent} ({it.model_decision.intent_confidence:.2f})"
         snippet = it.scrubbed_input_text.replace("\n", " ")[:36]
-        print(f"{it.review_id:<38} {it.trigger_type.value:<22} {it.review_status.value:<18} {conf_str:<24} {snippet}...")
+        print(
+            f"{it.review_id:<38} {it.trigger_type.value:<22} {it.review_status.value:<18} {conf_str:<24} {snippet}..."
+        )
     print(f"\nTotal listed: {len(items)}\n")
 
 
@@ -127,18 +130,23 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
 
     # In production, predict_fn calls the candidate and baseline adapters
     from disha_core.pipeline.router import IntentRouter
+
     router = IntentRouter()
 
     def baseline_predict(text: str) -> dict[str, Any]:
         breaker_res, intent_res = router.route(text)
         is_emg = breaker_res.triggered or (intent_res and intent_res.value == "EMERGENCY_TRIAGE")
-        intent_str = "emergency_escalation" if is_emg else (intent_res.value.lower() if intent_res else "general_coaching")
+        intent_str = (
+            "emergency_escalation" if is_emg else (intent_res.value.lower() if intent_res else "general_coaching")
+        )
         return {"intent": intent_str, "confidence": 0.88, "emergency_triage": is_emg}
 
     def candidate_predict(text: str) -> dict[str, Any]:
         breaker_res, intent_res = router.route(text)
         is_emg = breaker_res.triggered or (intent_res and intent_res.value == "EMERGENCY_TRIAGE")
-        intent_str = "emergency_escalation" if is_emg else (intent_res.value.lower() if intent_res else "general_coaching")
+        intent_str = (
+            "emergency_escalation" if is_emg else (intent_res.value.lower() if intent_res else "general_coaching")
+        )
         return {"intent": intent_str, "confidence": 0.92, "emergency_triage": is_emg}
 
     baseline_metrics = oracle.evaluate_model(args.baseline, baseline_predict)
@@ -147,14 +155,22 @@ def cmd_evaluate(args: argparse.Namespace) -> None:
     report = oracle.evaluate_promotion(candidate_metrics, baseline_metrics)
 
     print(f"\nBaseline ({args.baseline}):")
-    print(f"  Accuracy:         {baseline_metrics.accuracy * 100:.1f}% [{baseline_metrics.accuracy_wilson.lower_bound:.3f}, {baseline_metrics.accuracy_wilson.upper_bound:.3f}]")
-    print(f"  Emergency Recall: {baseline_metrics.emergency_recall * 100:.1f}% ({baseline_metrics.emergency_caught}/{baseline_metrics.emergency_cases})")
+    print(
+        f"  Accuracy:         {baseline_metrics.accuracy * 100:.1f}% [{baseline_metrics.accuracy_wilson.lower_bound:.3f}, {baseline_metrics.accuracy_wilson.upper_bound:.3f}]"
+    )
+    print(
+        f"  Emergency Recall: {baseline_metrics.emergency_recall * 100:.1f}% ({baseline_metrics.emergency_caught}/{baseline_metrics.emergency_cases})"
+    )
     print(f"  ECE:              {baseline_metrics.ece:.4f}")
     print(f"  P50 Latency:      {baseline_metrics.p50_latency_ms:.2f} ms")
 
     print(f"\nCandidate ({args.candidate}):")
-    print(f"  Accuracy:         {candidate_metrics.accuracy * 100:.1f}% [{candidate_metrics.accuracy_wilson.lower_bound:.3f}, {candidate_metrics.accuracy_wilson.upper_bound:.3f}]")
-    print(f"  Emergency Recall: {candidate_metrics.emergency_recall * 100:.1f}% ({candidate_metrics.emergency_caught}/{candidate_metrics.emergency_cases})")
+    print(
+        f"  Accuracy:         {candidate_metrics.accuracy * 100:.1f}% [{candidate_metrics.accuracy_wilson.lower_bound:.3f}, {candidate_metrics.accuracy_wilson.upper_bound:.3f}]"
+    )
+    print(
+        f"  Emergency Recall: {candidate_metrics.emergency_recall * 100:.1f}% ({candidate_metrics.emergency_caught}/{candidate_metrics.emergency_cases})"
+    )
     print(f"  ECE:              {candidate_metrics.ece:.4f}")
     print(f"  P50 Latency:      {candidate_metrics.p50_latency_ms:.2f} ms")
 

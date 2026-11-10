@@ -16,6 +16,7 @@ Scoring Metrics:
 4. Safety Invariant Preservation (SIP) == 100% (Mandatory zero-tolerance gate)
 5. Token Budget Overhead <= 350 tokens & Latency Impact
 """
+
 from __future__ import annotations
 
 import datetime
@@ -34,11 +35,12 @@ import pytest
 # ENUMS & MEMORY DATA STRUCTURES
 # ==============================================================================
 
+
 class MemoryTier(str, Enum):
-    L1_JOURNAL = "L1_JOURNAL"                    # Raw Turn Journal & User Profile
-    L2_TEMPORAL_GRAPH = "L2_TEMPORAL_GRAPH"      # Temporal Fact Graph (Episodic & Events)
-    L3_SAFETY_PROFILE = "L3_SAFETY_PROFILE"      # Clinical Safety Profile (Hard Safety Boundary)
-    
+    L1_JOURNAL = "L1_JOURNAL"  # Raw Turn Journal & User Profile
+    L2_TEMPORAL_GRAPH = "L2_TEMPORAL_GRAPH"  # Temporal Fact Graph (Episodic & Events)
+    L3_SAFETY_PROFILE = "L3_SAFETY_PROFILE"  # Clinical Safety Profile (Hard Safety Boundary)
+
     # Aliases for cross-spec compatibility
     L1_PROFILE = "L1_PROFILE"
     L2_EPISODIC = "L2_EPISODIC"
@@ -56,11 +58,11 @@ class MemoryOperation(str, Enum):
 
 
 class TemporalType(str, Enum):
-    ACUTE = "ACUTE"          # Transient, short-lived (e.g. 24-48 hours TTL)
-    CHRONIC = "CHRONIC"      # Long-term clinical conditions (indefinite TTL)
-    EPISODIC = "EPISODIC"    # Discrete historical events / milestones
+    ACUTE = "ACUTE"  # Transient, short-lived (e.g. 24-48 hours TTL)
+    CHRONIC = "CHRONIC"  # Long-term clinical conditions (indefinite TTL)
+    EPISODIC = "EPISODIC"  # Discrete historical events / milestones
     PERMANENT = "PERMANENT"  # Core identity, baseline preferences (indefinite TTL)
-    ACTIVE = "ACTIVE"        # Active ongoing lifestyle/preference state
+    ACTIVE = "ACTIVE"  # Active ongoing lifestyle/preference state
 
 
 class EpistemicStatus(str, Enum):
@@ -100,9 +102,10 @@ class MemoryRecord:
 # LIVING MEMORY ENGINE HARNESS IMPLEMENTATION
 # ==============================================================================
 
+
 class LivingMemoryHarness:
     """Production reference implementation of Disha's Living PEP & Memory Engine.
-    
+
     Enforces the Five Invariant Update Rules:
     1. Rule of Historical Continuity (No Blind Overwrites via SUPERSEDE).
     2. Rule of Epistemic Segregation (User-reported vs Clinician-confirmed).
@@ -233,8 +236,15 @@ class LivingMemoryHarness:
 
         # Rule 4: Deterministic Safety Immutability
         # If the target key represents an L3/L4 Safety Profile and the operation attempts to downgrade or overwrite:
-        if tier in (MemoryTier.L3_SAFETY_PROFILE, MemoryTier.L4_SAFETY_INVARIANT) or "diagnosed_condition" in key or key == "gym_clearance":
-            if op_type in (MemoryOperation.SUPERSEDE, MemoryOperation.UPDATE) and epistemic_status == EpistemicStatus.USER_REPORTED:
+        if (
+            tier in (MemoryTier.L3_SAFETY_PROFILE, MemoryTier.L4_SAFETY_INVARIANT)
+            or "diagnosed_condition" in key
+            or key == "gym_clearance"
+        ):
+            if (
+                op_type in (MemoryOperation.SUPERSEDE, MemoryOperation.UPDATE)
+                and epistemic_status == EpistemicStatus.USER_REPORTED
+            ):
                 # Log violation rejection
                 event = {
                     "timestamp": current_time.isoformat(),
@@ -246,16 +256,20 @@ class LivingMemoryHarness:
                 return False, "REJECTED_SAFETY_INVARIANT_IMMUTABILITY"
 
         if op_type == MemoryOperation.REJECT_OVERWRITE:
-            self.rejection_audit_log.append({
-                "timestamp": current_time.isoformat(),
-                "key": key,
-                "attempted_value": value,
-                "reason": "Explicitly rejected overwrite per safety invariant.",
-            })
+            self.rejection_audit_log.append(
+                {
+                    "timestamp": current_time.isoformat(),
+                    "key": key,
+                    "attempted_value": value,
+                    "reason": "Explicitly rejected overwrite per safety invariant.",
+                }
+            )
             return True, "OVERWRITE_REJECTED_AS_EXPECTED"
 
         if op_type == MemoryOperation.ADD:
-            valid_to = current_time + datetime.timedelta(hours=validity_duration_hours) if validity_duration_hours else None
+            valid_to = (
+                current_time + datetime.timedelta(hours=validity_duration_hours) if validity_duration_hours else None
+            )
             record = MemoryRecord(
                 record_id=self._next_id(),
                 patient_id=self.patient_id,
@@ -294,13 +308,15 @@ class LivingMemoryHarness:
                 metadata=metadata,
             )
             self.records.append(new_record)
-            self.contradiction_log.append({
-                "timestamp": current_time.isoformat(),
-                "key": key,
-                "superseded_record_ids": [p.record_id for p in active_prior],
-                "new_record_id": new_id,
-                "status": "SUPERSEDED_SUCCESSFULLY",
-            })
+            self.contradiction_log.append(
+                {
+                    "timestamp": current_time.isoformat(),
+                    "key": key,
+                    "superseded_record_ids": [p.record_id for p in active_prior],
+                    "new_record_id": new_id,
+                    "status": "SUPERSEDED_SUCCESSFULLY",
+                }
+            )
             return True, new_id
 
         elif op_type == MemoryOperation.UPDATE:
@@ -313,7 +329,15 @@ class LivingMemoryHarness:
                 return True, target.record_id
             else:
                 return self.execute_operation(
-                    MemoryOperation.ADD, tier, key, value, current_time, temporal_type, validity_duration_hours, epistemic_status, metadata
+                    MemoryOperation.ADD,
+                    tier,
+                    key,
+                    value,
+                    current_time,
+                    temporal_type,
+                    validity_duration_hours,
+                    epistemic_status,
+                    metadata,
                 )
 
         return False, "UNKNOWN_OPERATION"
@@ -324,7 +348,7 @@ class LivingMemoryHarness:
 
     def retrieve_context_for_intent(self, intent: str, current_time: datetime.datetime) -> tuple[str, int]:
         """Constructs intent-directed memory XML context and returns (xml_payload, token_count).
-        
+
         Enforces strict token budgeting:
         - Mandatory Safety Block (< 50 tokens)
         - Relevant Active Profile (< 150 tokens)
@@ -339,7 +363,7 @@ class LivingMemoryHarness:
         for sr in safety_records:
             val_str = html.escape(str(sr.value))
             safety_xml_parts.append(f'<SAFETY_CONSTRAINT key="{sr.key}" value="{val_str}"/>')
-        safety_block = f'<SAFETY_INVARIANTS>{"".join(safety_xml_parts)}</SAFETY_INVARIANTS>'
+        safety_block = f"<SAFETY_INVARIANTS>{''.join(safety_xml_parts)}</SAFETY_INVARIANTS>"
 
         # 2. Intent-Scaped Profile & Episodic Retrieval
         profile_xml_parts = []
@@ -375,8 +399,10 @@ class LivingMemoryHarness:
                 if r.tier == MemoryTier.L1_PROFILE:
                     profile_xml_parts.append(f'<PROFILE key="{r.key}" value="{html.escape(str(r.value))}"/>')
 
-        profile_block = f'<LIVING_PEP>{"".join(profile_xml_parts)}</LIVING_PEP>'
-        episodic_block = f'<EPISODIC_MEMORY>{"".join(episodic_xml_parts)}</EPISODIC_MEMORY>' if episodic_xml_parts else ""
+        profile_block = f"<LIVING_PEP>{''.join(profile_xml_parts)}</LIVING_PEP>"
+        episodic_block = (
+            f"<EPISODIC_MEMORY>{''.join(episodic_xml_parts)}</EPISODIC_MEMORY>" if episodic_xml_parts else ""
+        )
 
         full_context = f"<MEMORY_CONTEXT>{safety_block}{profile_block}{episodic_block}</MEMORY_CONTEXT>"
 
@@ -390,6 +416,7 @@ class LivingMemoryHarness:
 # ==============================================================================
 # EXACT MATHEMATICAL SCORING ENGINE
 # ==============================================================================
+
 
 class MemoryScoringEngine:
     """Computes exact evaluation metrics across the multi-day test suite."""
@@ -436,6 +463,7 @@ class MemoryScoringEngine:
 # ==============================================================================
 # PYTEST MULTI-DAY LONGITUDINAL EVALUATION TEST SUITE
 # ==============================================================================
+
 
 @pytest.fixture
 def golden_suite_data() -> dict[str, Any]:
@@ -515,8 +543,13 @@ def test_day2_longitudinal_followup_and_temporal_demarcation(memory_harness, gol
 
     # Setup Day 1 acute state
     memory_harness.execute_operation(
-        MemoryOperation.ADD, MemoryTier.L2_EPISODIC, "acute_symptom.headache",
-        "severe headache reported", t1, TemporalType.ACUTE, validity_duration_hours=36.0
+        MemoryOperation.ADD,
+        MemoryTier.L2_EPISODIC,
+        "acute_symptom.headache",
+        "severe headache reported",
+        t1,
+        TemporalType.ACUTE,
+        validity_duration_hours=36.0,
     )
 
     # At Day 2 (approx 24.5h later), acute headache is within 36h validity window -> should be queried for follow up
@@ -526,15 +559,24 @@ def test_day2_longitudinal_followup_and_temporal_demarcation(memory_harness, gol
 
     # Ingest Day 2 user turn: User reports walk and feeling fresh
     success, r_walk = memory_harness.execute_operation(
-        MemoryOperation.ADD, MemoryTier.L2_EPISODIC, "adherence_event.walk",
-        "completed 20 min brisk walk", t2, TemporalType.EPISODIC
+        MemoryOperation.ADD,
+        MemoryTier.L2_EPISODIC,
+        "adherence_event.walk",
+        "completed 20 min brisk walk",
+        t2,
+        TemporalType.EPISODIC,
     )
     assert success is True
 
     # Update headache status to RESOLVING
     success, r_update = memory_harness.execute_operation(
-        MemoryOperation.UPDATE, MemoryTier.L2_EPISODIC, "acute_symptom.headache",
-        "headache improving / fresh feeling", t2, TemporalType.ACUTE, metadata={"status": "RESOLVING"}
+        MemoryOperation.UPDATE,
+        MemoryTier.L2_EPISODIC,
+        "acute_symptom.headache",
+        "headache improving / fresh feeling",
+        t2,
+        TemporalType.ACUTE,
+        metadata={"status": "RESOLVING"},
     )
     assert success is True
 
@@ -683,18 +725,31 @@ def test_day7_selective_recall_and_token_budget_discipline(memory_harness, golde
 
     # Simulate Day 1 acute headache with 36h TTL
     memory_harness.execute_operation(
-        MemoryOperation.ADD, MemoryTier.L2_EPISODIC, "acute_symptom.headache",
-        "severe headache", t1, TemporalType.ACUTE, validity_duration_hours=36.0
+        MemoryOperation.ADD,
+        MemoryTier.L2_EPISODIC,
+        "acute_symptom.headache",
+        "severe headache",
+        t1,
+        TemporalType.ACUTE,
+        validity_duration_hours=36.0,
     )
     # Simulate Day 3 equipment correction to water bottles
     memory_harness.execute_operation(
-        MemoryOperation.SUPERSEDE, MemoryTier.L1_PROFILE, "home_equipment",
-        "water bottles (paani ki bottles)", t3, TemporalType.PERMANENT
+        MemoryOperation.SUPERSEDE,
+        MemoryTier.L1_PROFILE,
+        "home_equipment",
+        "water bottles (paani ki bottles)",
+        t3,
+        TemporalType.PERMANENT,
     )
     # Simulate Day 2 brisk walk adherence
     memory_harness.execute_operation(
-        MemoryOperation.ADD, MemoryTier.L2_EPISODIC, "adherence_event.walk",
-        "completed 20 min brisk walk", t1 + datetime.timedelta(days=1), TemporalType.EPISODIC
+        MemoryOperation.ADD,
+        MemoryTier.L2_EPISODIC,
+        "adherence_event.walk",
+        "completed 20 min brisk walk",
+        t1 + datetime.timedelta(days=1),
+        TemporalType.EPISODIC,
     )
 
     # Perform intent-directed retrieval for Day 7 workout query
@@ -736,37 +791,57 @@ def test_overall_golden_memory_scorecard(memory_harness, golden_suite_data):
     # Execute full sequence of operations across 7 days
     # Day 1: Acute complaint
     memory_harness.execute_operation(
-        MemoryOperation.ADD, MemoryTier.L2_EPISODIC, "acute_symptom.headache",
-        "severe headache", t1, TemporalType.ACUTE, validity_duration_hours=36.0
+        MemoryOperation.ADD,
+        MemoryTier.L2_EPISODIC,
+        "acute_symptom.headache",
+        "severe headache",
+        t1,
+        TemporalType.ACUTE,
+        validity_duration_hours=36.0,
     )
     # Day 2: Walk adherence & headache improvement
     memory_harness.execute_operation(
-        MemoryOperation.ADD, MemoryTier.L2_EPISODIC, "adherence_event.walk",
-        "20 min brisk walk", t2, TemporalType.EPISODIC
+        MemoryOperation.ADD,
+        MemoryTier.L2_EPISODIC,
+        "adherence_event.walk",
+        "20 min brisk walk",
+        t2,
+        TemporalType.EPISODIC,
     )
     memory_harness.execute_operation(
-        MemoryOperation.UPDATE, MemoryTier.L2_EPISODIC, "acute_symptom.headache",
-        "resolving", t2, TemporalType.ACUTE
+        MemoryOperation.UPDATE, MemoryTier.L2_EPISODIC, "acute_symptom.headache", "resolving", t2, TemporalType.ACUTE
     )
     # Day 3: SUPERSEDE equipment
     memory_harness.execute_operation(
-        MemoryOperation.SUPERSEDE, MemoryTier.L1_PROFILE, "home_equipment",
-        "water bottles", t3, TemporalType.PERMANENT
+        MemoryOperation.SUPERSEDE, MemoryTier.L1_PROFILE, "home_equipment", "water bottles", t3, TemporalType.PERMANENT
     )
     # Day 4: Social food event with negation
     memory_harness.execute_operation(
-        MemoryOperation.ADD, MemoryTier.L2_EPISODIC, "dietary_event.social",
-        "samosas and gulab jamun without acidity", t4, TemporalType.EPISODIC
+        MemoryOperation.ADD,
+        MemoryTier.L2_EPISODIC,
+        "dietary_event.social",
+        "samosas and gulab jamun without acidity",
+        t4,
+        TemporalType.EPISODIC,
     )
     # Day 5: Safety breach attempt (rejected)
     memory_harness.execute_operation(
-        MemoryOperation.SUPERSEDE, MemoryTier.L4_SAFETY_INVARIANT, "diagnosed_condition.stage_2_hypertension",
-        "cured", t5, TemporalType.CHRONIC, epistemic_status=EpistemicStatus.USER_REPORTED
+        MemoryOperation.SUPERSEDE,
+        MemoryTier.L4_SAFETY_INVARIANT,
+        "diagnosed_condition.stage_2_hypertension",
+        "cured",
+        t5,
+        TemporalType.CHRONIC,
+        epistemic_status=EpistemicStatus.USER_REPORTED,
     )
     # Day 6: Dietary negation and milk supersession
     memory_harness.execute_operation(
-        MemoryOperation.SUPERSEDE, MemoryTier.L1_PROFILE, "dietary_rules.milk_preference",
-        "soya milk", t6, TemporalType.PERMANENT
+        MemoryOperation.SUPERSEDE,
+        MemoryTier.L1_PROFILE,
+        "dietary_rules.milk_preference",
+        "soya milk",
+        t6,
+        TemporalType.PERMANENT,
     )
 
     # 1. Compute Information Retention Rate (IRR) on Day 7

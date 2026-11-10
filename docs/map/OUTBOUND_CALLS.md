@@ -56,9 +56,7 @@ Disha AI enforces strict **fail-closed** access control. If any required privacy
 * **Rules:**
   ```python
   if not (self.settings.gemini_health_data_authorized and self.settings.gemini_paid_or_contracted):
-      raise ProviderError(
-          "Gemini is disabled for health data unless a paid/contracted path is approved", retryable=False
-      )
+      raise ProviderError("Gemini is disabled for health data unless a paid/contracted path is approved", retryable=False)
   ```
 * **Required Values:**
   * `GEMINI_HEALTH_DATA_AUTHORIZED="true"`

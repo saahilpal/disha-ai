@@ -58,7 +58,7 @@ async def sync_known_fields_from_db(patient_id: str, conn: asyncpg.Connection) -
             known["dietary_preference"] = p_row["dietary_preference"]
         if p_row["health_goals"]:
             known["primary_health_goal"] = p_row["health_goals"]
-        if p_row["health_conditions"] is not None:
+        if p_row["health_conditions"]:
             known["diagnosed_conditions"] = list(p_row["health_conditions"])
 
     # 2. patient_pep
@@ -70,7 +70,7 @@ async def sync_known_fields_from_db(patient_id: str, conn: asyncpg.Connection) -
         patient_id,
     )
     if pep_row:
-        if pep_row["diagnosed_conditions"] is not None and "diagnosed_conditions" not in known:
+        if pep_row["diagnosed_conditions"] and "diagnosed_conditions" not in known:
             known["diagnosed_conditions"] = list(pep_row["diagnosed_conditions"])
         if pep_row["primary_focus"] and not known.get("primary_health_goal"):
             known["primary_health_goal"] = pep_row["primary_focus"]

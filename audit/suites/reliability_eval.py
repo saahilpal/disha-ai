@@ -3,6 +3,7 @@
 Chaos testing including HTTP 429 provider failover, consecutive failure circuit breaker,
 and database disconnect/reconnection resilience.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -61,8 +62,10 @@ class BrokenConnection:
         class _Tx:
             async def __aenter__(self) -> None:
                 raise ConnectionResetError("Connection reset by peer")
+
             async def __aexit__(self, *args: Any) -> None:
                 pass
+
         return _Tx()
 
 
@@ -184,6 +187,6 @@ def run_reliability_eval() -> dict[str, Any]:
 
 if __name__ == "__main__":
     import json
+
     res = run_reliability_eval()
     print(json.dumps(res, indent=2))
-

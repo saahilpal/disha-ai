@@ -8,6 +8,7 @@ that every planted defect fails closed:
 4. Planted duplicate file overlap
 5. Planted test count reduction
 """
+
 from __future__ import annotations
 
 from scripts.benchmark_gate_mutations import (

@@ -7,6 +7,7 @@ general coaching, and emergency triage. Enforces:
 3. Minimum accuracy and latency SLA benchmarks.
 4. Active stub-detection that fails if a dummy/static mock replaces Laya.
 """
+
 from __future__ import annotations
 
 import time
@@ -29,7 +30,6 @@ LABELED_CASES: list[dict[str, str]] = [
     {"text": "Is paneer bhurji allowed for dinner according to my plan?", "expected_intent": "meal_query"},
     {"text": "Subah ke nashte mein kya lena chahiye?", "expected_intent": "meal_query"},
     {"text": "Tell me the calorie count for my prescribed afternoon snack.", "expected_intent": "meal_query"},
-
     # 8 Symptom Complaint cases
     {"text": "Khana khane ke baad pet phool raha hai aur gas ho rahi hai.", "expected_intent": "symptom_complaint"},
     {"text": "I am feeling mild acidity and bloating since morning.", "expected_intent": "symptom_complaint"},
@@ -39,22 +39,29 @@ LABELED_CASES: list[dict[str, str]] = [
     {"text": "Halka gas ban raha hai, kya saunf water le sakta hoon?", "expected_intent": "symptom_complaint"},
     {"text": "My stomach feels uneasy and mildly crampy.", "expected_intent": "symptom_complaint"},
     {"text": "Mild reflux in the throat after waking up.", "expected_intent": "symptom_complaint"},
-
     # 8 General Coaching cases
     {"text": "Namaste Disha, aaj ka din kaisa shuru karein?", "expected_intent": "general_coaching"},
     {"text": "How many steps should I walk daily for my blood pressure?", "expected_intent": "general_coaching"},
     {"text": "Can I do 30 minutes of gentle morning yoga?", "expected_intent": "general_coaching"},
     {"text": "Kya main sham ko brisk walk ke liye jaa sakta hoon?", "expected_intent": "general_coaching"},
     {"text": "Tips for improving my deep sleep and stress levels.", "expected_intent": "general_coaching"},
-    {"text": "Good morning, just checking in for my daily health habit tracking.", "expected_intent": "general_coaching"},
+    {
+        "text": "Good morning, just checking in for my daily health habit tracking.",
+        "expected_intent": "general_coaching",
+    },
     {"text": "Pani kitna peena chahiye din bhar mein?", "expected_intent": "general_coaching"},
     {"text": "I completed my 8,000 steps today, feeling energetic.", "expected_intent": "general_coaching"},
-
     # 8 Emergency Escalation cases
-    {"text": "Chhati mein tez dabaav aur dard ho raha hai, left arm mein fail raha hai.", "expected_intent": "emergency_escalation"},
+    {
+        "text": "Chhati mein tez dabaav aur dard ho raha hai, left arm mein fail raha hai.",
+        "expected_intent": "emergency_escalation",
+    },
     {"text": "Severe crushing chest pain and profuse sweating right now.", "expected_intent": "emergency_escalation"},
     {"text": "Saas lene mein bohot takleef ho rahi hai, dum ghut raha hai.", "expected_intent": "emergency_escalation"},
-    {"text": "Sudden facial drooping and slurred speech since 10 minutes ago.", "expected_intent": "emergency_escalation"},
+    {
+        "text": "Sudden facial drooping and slurred speech since 10 minutes ago.",
+        "expected_intent": "emergency_escalation",
+    },
     {"text": "Khoon ki ulti ho rahi hai aur behosh ho raha hoon.", "expected_intent": "emergency_escalation"},
     {"text": "Unbearable chest tightness radiating to the jaw.", "expected_intent": "emergency_escalation"},
     {"text": "Patient has collapsed and is unresponsive on the floor.", "expected_intent": "emergency_escalation"},
@@ -64,6 +71,7 @@ LABELED_CASES: list[dict[str, str]] = [
 
 class StaticFakeClassifier:
     """Mock that returns identical output regardless of input."""
+
     def classify(self, text: str) -> LayaClassificationResult:
         return LayaClassificationResult(
             intent="general_coaching",

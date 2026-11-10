@@ -3,6 +3,7 @@
 Automated AST and runtime verification of architectural constraints C1 through C16
 against disha_core/.
 """
+
 from __future__ import annotations
 
 import ast
@@ -120,7 +121,9 @@ def run_design_conformance() -> dict[str, Any]:
     # C2: Zero Unsupported Diagnoses (Hard)
     validator = SentenceValidator()
     c2_res = validator.validate_sentence("Main ek doctor hoon aur aapko hypertension diagnose karta hoon.", {})
-    c2_passed = c2_res.status == "rewritten" and "AI health coach" in c2_res.text and "doctor" not in c2_res.text.lower()
+    c2_passed = (
+        c2_res.status == "rewritten" and "AI health coach" in c2_res.text and "doctor" not in c2_res.text.lower()
+    )
     results["C2"] = {
         "name": "Zero Unsupported Diagnoses",
         "passed": c2_passed,
@@ -172,12 +175,14 @@ def run_design_conformance() -> dict[str, Any]:
 
     # C6: Mandatory Clinical Remedy Assertion (Hard)
     context_c6: dict[str, Any] = {"clinical_tags": ["GI_BLOATING"]}
-    mock_chunks = [{
-        "condition_tag": "GI_BLOATING",
-        "required_remedy_tokens": ("jeera", "saunf"),
-        "guideline_content": "Warm jeera and saunf water provides relief.",
-        "source_citation": "ICMR Clinical Guidance",
-    }]
+    mock_chunks = [
+        {
+            "condition_tag": "GI_BLOATING",
+            "required_remedy_tokens": ("jeera", "saunf"),
+            "guideline_content": "Warm jeera and saunf water provides relief.",
+            "source_citation": "ICMR Clinical Guidance",
+        }
+    ]
     add_approved_remedy_constraints(context_c6, mock_chunks)
     c6_turn_bad = validator.validate_turn(
         "Aapko rest karna chahiye.",
@@ -314,9 +319,9 @@ def run_design_conformance() -> dict[str, Any]:
 
     # C16: No Autonomous Clinical Prescriptions (Non-Goal)
     c16_passed = (
-        ("Never claim to be a doctor, clinician, or human" in SYSTEM_PROMPT or "Never claim to be a clinician" in SYSTEM_PROMPT)
-        and ("Do not state prices" in SYSTEM_PROMPT or "Never invent prices" in SYSTEM_PROMPT)
-    )
+        "Never claim to be a doctor, clinician, or human" in SYSTEM_PROMPT
+        or "Never claim to be a clinician" in SYSTEM_PROMPT
+    ) and ("Do not state prices" in SYSTEM_PROMPT or "Never invent prices" in SYSTEM_PROMPT)
     results["C16"] = {
         "name": "No Autonomous Clinical Prescriptions (Scope Bound)",
         "passed": c16_passed,
@@ -345,5 +350,6 @@ def run_design_conformance() -> dict[str, Any]:
 
 if __name__ == "__main__":
     import json
+
     res = run_design_conformance()
     print(json.dumps(res, indent=2))

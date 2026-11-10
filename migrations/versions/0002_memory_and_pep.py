@@ -5,6 +5,7 @@ Revises: 0001_initial_schema
 Create Date: 2026-11-08 22:30:00.000000
 
 """
+
 from typing import Sequence, Union
 
 from alembic import op

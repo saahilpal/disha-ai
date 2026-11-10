@@ -11,6 +11,7 @@ Validates:
 5. Dynamic dietary adaptation (vegetarian transition honored, no meat recommendations).
 6. 30-day memory retention, context token budget (<= 400 tokens), and sub-30ms retrieval latency.
 """
+
 from __future__ import annotations
 
 import os

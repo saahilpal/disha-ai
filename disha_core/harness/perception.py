@@ -29,10 +29,7 @@ class TriangleStatus(BaseModel):
 
     def all_complete(self) -> bool:
         """True if every axis is answered or declined."""
-        return all(
-            getattr(self, ax) in ("answered", "declined")
-            for ax in ("duration", "past_attempts", "severity")
-        )
+        return all(getattr(self, ax) in ("answered", "declined") for ax in ("duration", "past_attempts", "severity"))
 
 
 class TurnPerception(BaseModel):
@@ -43,8 +40,13 @@ class TurnPerception(BaseModel):
     detected_language: Literal["en", "hi", "hinglish"] = "hinglish"
     detected_script: Literal["latin", "devanagari", "mixed"] = "latin"
     user_act: Literal[
-        "answer", "refusal", "question", "disclosure",
-        "greeting", "correction", "other",
+        "answer",
+        "refusal",
+        "question",
+        "disclosure",
+        "greeting",
+        "correction",
+        "other",
     ] = "other"
     answer_quality: Literal["complete", "vague", "incomplete", "na"] = "na"
     missing_info: str | None = None
@@ -56,9 +58,14 @@ class TurnPerception(BaseModel):
 
     # Chosen move is set by deterministic code, NOT the LLM
     chosen_move: Literal[
-        "emergency", "withhold_and_pivot", "clarify",
-        "triangle_question", "intake_slot", "clinical_insight",
-        "pivot", "natural_reply",
+        "emergency",
+        "withhold_and_pivot",
+        "clarify",
+        "triangle_question",
+        "intake_slot",
+        "clinical_insight",
+        "pivot",
+        "natural_reply",
     ] = "natural_reply"
 
 
@@ -114,4 +121,3 @@ def select_move(
 
     # Default: pivot to expert call
     return "pivot"
-

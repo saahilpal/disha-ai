@@ -2,7 +2,9 @@
 
 import asyncio
 import logging
+
 import asyncpg
+
 from disha_core.config import get_settings
 
 logging.basicConfig(level=logging.INFO)
@@ -50,8 +52,10 @@ CREATE TABLE IF NOT EXISTS dialogue_state (
 );
 """
 
+
 async def main():
     import os
+
     settings = get_settings()
     db_url = os.getenv("DATABASE_URL") or getattr(settings, "database_url", None)
     if not db_url or "nitrousoxide" in db_url:
@@ -63,6 +67,7 @@ async def main():
         logger.info("Successfully applied conversations, messages, and dialogue_state schema.")
     finally:
         await conn.close()
+
 
 if __name__ == "__main__":
     asyncio.run(main())

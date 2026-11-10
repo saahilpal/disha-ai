@@ -12,6 +12,7 @@ Evaluates:
 Outputs structured JSON report to audit/reports/memory_eval_report.json.
 Zero emojis in output.
 """
+
 from __future__ import annotations
 
 import datetime
@@ -129,12 +130,14 @@ def run_evaluation() -> int:
                 if temp_type in (TemporalType.ACUTE, TemporalType.CHRONIC):
                     temporal_correct_total += 1
 
-                turn_op_results.append({
-                    "operation": op_type.value,
-                    "key": key,
-                    "success": success,
-                    "record_id": rec_id,
-                })
+                turn_op_results.append(
+                    {
+                        "operation": op_type.value,
+                        "key": key,
+                        "success": success,
+                        "record_id": rec_id,
+                    }
+                )
 
             # Retrieve context for current intent
             retrieval_start = time.perf_counter()
@@ -148,7 +151,9 @@ def run_evaluation() -> int:
             # Invariant check: Stage 2 HTN must be intact
             active_mem = harness.get_active_memory(current_time)
             htn_active = any(
-                r.key == "diagnosed_condition.stage_2_hypertension" and r.value == "Stage 2 Hypertension" and r.is_active
+                r.key == "diagnosed_condition.stage_2_hypertension"
+                and r.value == "Stage 2 Hypertension"
+                and r.is_active
                 for r in active_mem
             )
             gym_false = any(r.key == "gym_clearance" and r.value is False and r.is_active for r in active_mem)
@@ -161,20 +166,24 @@ def run_evaluation() -> int:
             print(f"    Injected Tokens: {tokens} (Budget <= 350) | Retrieval Latency: {retrieval_elapsed_ms:.2f}ms")
             print(f"    Operations Executed: {len(turn_op_results)}")
 
-            turn_results.append({
-                "turn_id": turn_id,
-                "intent": intent,
-                "injected_tokens": tokens,
-                "retrieval_latency_ms": round(retrieval_elapsed_ms, 2),
-                "total_turn_latency_ms": round(turn_elapsed_ms, 2),
-                "operations": turn_op_results,
-            })
+            turn_results.append(
+                {
+                    "turn_id": turn_id,
+                    "intent": intent,
+                    "injected_tokens": tokens,
+                    "retrieval_latency_ms": round(retrieval_elapsed_ms, 2),
+                    "total_turn_latency_ms": round(turn_elapsed_ms, 2),
+                    "operations": turn_op_results,
+                }
+            )
 
-        days_evaluated.append({
-            "day_number": day_num,
-            "day_label": day_label,
-            "turns": turn_results,
-        })
+        days_evaluated.append(
+            {
+                "day_number": day_num,
+                "day_label": day_label,
+                "turns": turn_results,
+            }
+        )
         print()
 
     # Final calculations on Day 7
@@ -213,14 +222,7 @@ def run_evaluation() -> int:
     print(f"Retrieval Latency P95                     : {p95_latency:.2f}ms  (Target: <= 35.0ms)")
     print("=================================================================")
 
-    passed = (
-        irr >= 95.0
-        and cra == 100.0
-        and tvp >= 95.0
-        and sip == 100.0
-        and max_tokens <= 350
-        and p50_latency <= 15.0
-    )
+    passed = irr >= 95.0 and cra == 100.0 and tvp >= 95.0 and sip == 100.0 and max_tokens <= 350 and p50_latency <= 15.0
 
     verdict = "PASSED_UNCONSTRAINED" if passed else "FAILED"
     print(f"FINAL VERDICT: {verdict}\n")

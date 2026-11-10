@@ -8,6 +8,7 @@ Processes dirty patients:
 4. Materializes a compact JSONB habits snapshot on patient_pep.
 5. Clears the is_dirty flag.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -33,7 +34,9 @@ logger = logging.getLogger("disha_consolidator")
 DEFAULT_PG_URL = os.getenv("DATABASE_URL", "postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha")
 
 
-async def run_consolidation(pg_url: str = DEFAULT_PG_URL, all_patients: bool = False, specific_patient: str | None = None) -> int:
+async def run_consolidation(
+    pg_url: str = DEFAULT_PG_URL, all_patients: bool = False, specific_patient: str | None = None
+) -> int:
     conn = await asyncpg.connect(pg_url)
     try:
         if specific_patient:

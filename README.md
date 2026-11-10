@@ -94,7 +94,6 @@ The host must remain powered on, connected to the internet, and running the loca
 - **How It Works:** [System Execution & Port Tour](docs/HOW_IT_WORKS.md)
 - **Theory & Cognition:** [How Disha Thinks (Decision Pipeline)](docs/theory/HOW_DISHA_THINKS.md)
 - **Learnings & RCA:** [Consolidated Engineering Learnings](docs/LEARNINGS.md)
-- **Interview & QA:** [20 Engineering Questions & Answers](docs/interview/QA.md) and [Project Story](docs/interview/STORY.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Deployment and local services](docs/DEPLOYMENT.md)
 - [Memory, onboarding, and PEP](docs/MEMORY_AND_PEP.md)

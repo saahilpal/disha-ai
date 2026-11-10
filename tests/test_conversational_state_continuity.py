@@ -41,9 +41,7 @@ class MockLLM:
         self.last_prompt = ""
         self.last_messages: list[dict[str, str]] = []
 
-    async def stream(
-        self, prompt: str, messages: list[dict[str, str]] | None = None
-    ) -> AsyncIterator[str]:
+    async def stream(self, prompt: str, messages: list[dict[str, str]] | None = None) -> AsyncIterator[str]:
         self.last_prompt = prompt
         self.last_messages = list(messages or [])
         yield self.response_text
@@ -89,9 +87,7 @@ class TestConversationalStateContinuity(unittest.IsolatedAsyncioTestCase):
         # 1a: Emergency deflection
         res = [
             sent
-            async for sent in harness.execute_turn(
-                req, self.test_pid, TurnRequest(text="Mujhe severe chest pain hai")
-            )
+            async for sent in harness.execute_turn(req, self.test_pid, TurnRequest(text="Mujhe severe chest pain hai"))
         ]
         self.assertTrue(len(res) > 0)
         self.assertIn("112", res[0])
@@ -183,9 +179,7 @@ class TestConversationalStateContinuity(unittest.IsolatedAsyncioTestCase):
 
         # Verify render_user_payload generates <CONVERSATION_STATE>
         context: dict[str, Any] = {
-            "conversation_history": [
-                {"role": t[0], "content": t[1]} for t in turns
-            ],
+            "conversation_history": [{"role": t[0], "content": t[1]} for t in turns],
             "meal_relevant": True,
             "exercise_relevant": False,
         }
@@ -228,9 +222,7 @@ class TestConversationalStateContinuity(unittest.IsolatedAsyncioTestCase):
             # Must not be the excluded recent turn
             self.assertNotIn("test 9", item["content"])
             # Must be relevant to thyroid
-            self.assertTrue(
-                "thyroid" in item["content"].lower() or "medication" in item["content"].lower()
-            )
+            self.assertTrue("thyroid" in item["content"].lower() or "medication" in item["content"].lower())
 
     # --------------------------------------------------------------------------
     # Test 5: Cross-Session & Chat-to-Voice Continuity
@@ -338,9 +330,7 @@ class TestConversationalStateContinuity(unittest.IsolatedAsyncioTestCase):
 
         for idx, text in enumerate(ten_user_turns, start=1):
             mock_llm.response_text = f"Coach guidance for turn {idx}."
-            sentences = [
-                s async for s in harness.execute_turn(req, self.test_pid, TurnRequest(text=text))
-            ]
+            sentences = [s async for s in harness.execute_turn(req, self.test_pid, TurnRequest(text=text))]
             self.assertTrue(len(sentences) > 0)
 
         # Inspect final in-memory conversation history

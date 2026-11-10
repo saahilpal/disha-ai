@@ -8,6 +8,7 @@ Measures exact TTFT, total turn turnaround latency, audio streaming chunk count,
 safety breaker status, and Merkle audit ledger linkage in PostgreSQL.
 Flags any flaky steps or latency threshold violations.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -163,7 +164,7 @@ async def execute_rehearsal_run(run_idx: int) -> dict[str, Any]:
         # Execute Act 2 through Act 8
         for scene in DEMO_SCENES:
             print(f"\n--- [{scene['name']}] ---")
-            print(f"  Prompt: \"{scene['input']}\"")
+            print(f'  Prompt: "{scene["input"]}"')
             ws_endpoint = f"{WS_URL}?token={scene['token']}"
 
             t0 = time.perf_counter()
@@ -237,37 +238,45 @@ async def execute_rehearsal_run(run_idx: int) -> dict[str, Any]:
                         passed_keywords = False
                         forbidden_hit.append(fkw)
 
-                status_ok = passed_keywords and (done_status in ["accepted", "validated"] or "rewritten" in str(done_status))
+                status_ok = passed_keywords and (
+                    done_status in ["accepted", "validated"] or "rewritten" in str(done_status)
+                )
                 if not status_ok:
                     run_passed = False
 
-                print(f"  Output: \"{resp_text[:100]}...\"")
-                print(f"  Metrics: TTFT={ttft_ms:.1f}ms | Total={total_ms:.1f}ms | Audio={audio_chunks} chunks ({audio_bytes}B)")
+                print(f'  Output: "{resp_text[:100]}..."')
+                print(
+                    f"  Metrics: TTFT={ttft_ms:.1f}ms | Total={total_ms:.1f}ms | Audio={audio_chunks} chunks ({audio_bytes}B)"
+                )
                 print(f"  Status: {'[✓] PASS' if status_ok else '[✗] FAIL'} (status={done_status})")
                 if missing_kw:
                     print(f"    Missing required keywords: {missing_kw}")
                 if forbidden_hit:
                     print(f"    Forbidden keywords found: {forbidden_hit}")
 
-                results.append({
-                    "scene_id": scene["id"],
-                    "name": scene["name"],
-                    "ttft_ms": ttft_ms,
-                    "total_ms": total_ms,
-                    "audio_bytes": audio_bytes,
-                    "done_status": done_status,
-                    "passed": status_ok,
-                })
+                results.append(
+                    {
+                        "scene_id": scene["id"],
+                        "name": scene["name"],
+                        "ttft_ms": ttft_ms,
+                        "total_ms": total_ms,
+                        "audio_bytes": audio_bytes,
+                        "done_status": done_status,
+                        "passed": status_ok,
+                    }
+                )
 
             except Exception as exc:
                 print(f"  [✗] Error during scene execution: {exc}")
                 run_passed = False
-                results.append({
-                    "scene_id": scene["id"],
-                    "name": scene["name"],
-                    "error": str(exc),
-                    "passed": False,
-                })
+                results.append(
+                    {
+                        "scene_id": scene["id"],
+                        "name": scene["name"],
+                        "error": str(exc),
+                        "passed": False,
+                    }
+                )
 
             # Pacing sleep
             await asyncio.sleep(2.0)
@@ -276,7 +285,7 @@ async def execute_rehearsal_run(run_idx: int) -> dict[str, Any]:
         print("\n--- [Act 9: Live Clinician Rule Addition & Hot Reload] ---")
         await inject_live_clinician_rule(conn)
         clinician_prompt = "Disha, kya main din mein green tea pi sakta hoon?"
-        print(f"  Prompt: \"{clinician_prompt}\"")
+        print(f'  Prompt: "{clinician_prompt}"')
 
         for attempt in range(2):
             try:
@@ -313,20 +322,24 @@ async def execute_rehearsal_run(run_idx: int) -> dict[str, Any]:
         total_ms = (time.perf_counter() - t0) * 1000.0
         ttft_ms = (first_token_time * 1000.0) if first_token_time else total_ms
         resp_text = " ".join(sentences)
-        hot_reload_ok = "green tea" in resp_text.casefold() and ("safe" in resp_text.casefold() or "pi sakte" in resp_text.casefold())
+        hot_reload_ok = "green tea" in resp_text.casefold() and (
+            "safe" in resp_text.casefold() or "pi sakte" in resp_text.casefold()
+        )
 
-        print(f"  Output: \"{resp_text}\"")
+        print(f'  Output: "{resp_text}"')
         print(f"  Metrics: TTFT={ttft_ms:.1f}ms | Total={total_ms:.1f}ms")
         print(f"  Hot Reload Verified: {'[✓] PASS' if hot_reload_ok else '[✗] FAIL'}")
 
-        results.append({
-            "scene_id": "scene_08_clinician_hot_reload",
-            "name": "Act 9: Live Clinician Rule Addition",
-            "ttft_ms": ttft_ms,
-            "total_ms": total_ms,
-            "done_status": done_status,
-            "passed": hot_reload_ok,
-        })
+        results.append(
+            {
+                "scene_id": "scene_08_clinician_hot_reload",
+                "name": "Act 9: Live Clinician Rule Addition",
+                "ttft_ms": ttft_ms,
+                "total_ms": total_ms,
+                "done_status": done_status,
+                "passed": hot_reload_ok,
+            }
+        )
         if not hot_reload_ok:
             run_passed = False
 

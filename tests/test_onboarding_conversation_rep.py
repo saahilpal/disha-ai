@@ -269,11 +269,19 @@ class TestOnboardingConversationRepetition(unittest.IsolatedAsyncioTestCase):
     # Test J: Token-efficient system prompt discipline
     # --------------------------------------------------------------------------
     def test_j_token_efficient_system_prompt_discipline(self) -> None:
-        self.assertIn("RESPONSE LENGTH & TOKEN EFFICIENCY", SYSTEM_PROMPT)
-        self.assertIn("2 to 4 focused sentences", SYSTEM_PROMPT)
-        self.assertIn("EMPATHY, TONE & EMOTIONAL AWARENESS", SYSTEM_PROMPT)
-        self.assertIn("toxic positivity", SYSTEM_PROMPT)
-        self.assertIn("Never sound like a form-filling questionnaire", SYSTEM_PROMPT)
+        from disha_core.config import get_settings
+        from disha_core.llm.client import _LEGACY_SYSTEM_PROMPT
+
+        if get_settings().behavior_spec_v1:
+            self.assertIn("1-3 sentences maximum", SYSTEM_PROMPT)
+            self.assertIn("No lengthy paragraphs", SYSTEM_PROMPT)
+            self.assertIn("Selective empathy", SYSTEM_PROMPT)
+        else:
+            self.assertIn("RESPONSE LENGTH & TOKEN EFFICIENCY", _LEGACY_SYSTEM_PROMPT)
+            self.assertIn("2 to 4 focused sentences", _LEGACY_SYSTEM_PROMPT)
+            self.assertIn("EMPATHY, TONE & EMOTIONAL AWARENESS", _LEGACY_SYSTEM_PROMPT)
+            self.assertIn("toxic positivity", _LEGACY_SYSTEM_PROMPT)
+            self.assertIn("Never sound like a form-filling questionnaire", _LEGACY_SYSTEM_PROMPT)
 
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@
 
 Canonical implementation lives in `disha_core.db.ingest_open_datasets`.
 """
+
 from __future__ import annotations
 
 import asyncio

@@ -32,14 +32,6 @@ This directory contains the canonical documentation for the Disha AI conversatio
 
 ---
 
-## 4. Interview & Narrative Artifacts (`docs/interview/`)
-- [`docs/interview/STORY.md`](file:///Users/nitrousoxide/Code/disha%20ai/docs/interview/STORY.md): One-page narrative of the project origin, problem statement, and architectural turnaround.
-- [`docs/interview/QA.md`](file:///Users/nitrousoxide/Code/disha%20ai/docs/interview/QA.md): 20 honest, evidence-backed engineering questions and answers across system design and safety.
-- [`docs/interview/GLOSSARY.md`](file:///Users/nitrousoxide/Code/disha%20ai/docs/interview/GLOSSARY.md): Definitions of key concepts (PEP, History Triangle, Zero-Echo, Barge-in, Breaker).
-- [`docs/interview/RCA/`](file:///Users/nitrousoxide/Code/disha%20ai/docs/interview/RCA/): Root cause analyses for refresh loss, greeting lectures, and voice continuity bugs.
-
----
-
 ## 5. Engineering Records & Changes (`docs/changes/`)
 - [`docs/changes/WHY.md`](file:///Users/nitrousoxide/Code/disha%20ai/docs/changes/WHY.md): Architectural justification ledger for non-trivial codebase modifications.
 - [`docs/OWNERS.yaml`](file:///Users/nitrousoxide/Code/disha%20ai/docs/OWNERS.yaml): Code-to-documentation mapping rules verified by `scripts/docs-drift`.

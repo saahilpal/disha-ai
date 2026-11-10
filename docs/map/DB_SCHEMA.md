@@ -260,9 +260,7 @@ $$\text{current\_hash} = \text{SHA-256}(\text{payload})$$
 To guarantee serialized order across concurrent turns without race conditions:
 ```python
 async with connection.transaction():
-    prev_hash = await connection.fetchval(
-        "SELECT current_hash FROM audit_chain_head WHERE singleton = TRUE FOR UPDATE"
-    )
+    prev_hash = await connection.fetchval("SELECT current_hash FROM audit_chain_head WHERE singleton = TRUE FOR UPDATE")
     # compute digest...
     await connection.execute("INSERT INTO audit_claim_ledger ...", digest)
     await connection.execute("UPDATE audit_chain_head SET current_hash = $1 WHERE singleton = TRUE", digest)
