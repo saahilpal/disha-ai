@@ -567,9 +567,38 @@ def render_user_payload(user_input: str, context: dict[str, Any], chunks: Any = 
             f"</RELEVANT_PAST_CONVERSATION>"
         )
 
+    recent_history = context.get("conversation_history") or []
+    conversation_state_xml = ""
+    if recent_history:
+        turns = []
+        for turn in recent_history[-16:]:
+            speaker = html.escape(str(turn.get("role", "user")), quote=True)
+            content = html.escape(str(turn.get("content", "")))
+            if content:
+                turns.append(f'<TURN speaker="{speaker}">{content}</TURN>')
+        if turns:
+            last_assistant = next(
+                (str(turn.get("content", "")) for turn in reversed(recent_history) if turn.get("role") == "assistant"),
+                "",
+            )
+            short_followup = len(user_input.split()) <= 4
+            last_assistant_xml = (
+                f"<LAST_ASSISTANT_UTTERANCE>{html.escape(last_assistant)}</LAST_ASSISTANT_UTTERANCE>"
+                if last_assistant
+                else ""
+            )
+            conversation_state_xml = (
+                f'<CONVERSATION_STATE is_followup_or_short_reply="{str(short_followup).lower()}" '
+                'note="Recent turns; use them to resolve references and corrections.">'
+                f"{''.join(turns)}"
+                f"{last_assistant_xml}"
+                "</CONVERSATION_STATE>"
+            )
+
     return (
         f"{render_context_xml(context, chunks)}"
         f"{discipline_xml}"
+        f"{conversation_state_xml}"
         f"{older_turns_xml}"
         f"<USER_UTTERANCE>{html.escape(user_input)}</USER_UTTERANCE>"
     )

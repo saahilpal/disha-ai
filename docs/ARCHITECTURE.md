@@ -84,7 +84,7 @@ The focused behavior conformance set is [`tests/evals/conversational_behavior_ca
 
 - `patient_profiles` stores account and user-supplied profile fields; `patient_pep` contains focus, concern, language, dietary, and safety-related fields. Patient-reported information is not equivalent to clinician verification.
 - The onboarding journey code extracts disclosures and persists them to profile, PEP, `memory_items`, `patient_temporal_facts`, or habit/episode tables according to field mapping. The login/register request schema accepts some values (including stage, clearance, and movement-limit fields) that the registration service does not currently persist into clinician-style PEP fields. Do not assume those values have been captured or verified.
-- The current turn context reads active PEP/facts/slots and the latest eight journal messages. The process-local history is keyed by patient and capped at 16 messages; completed turns are appended to `patient_turn_journal`. Current shared turn calls use the default session unless a caller supplies a session/call identifier.
+- The current turn context reads active PEP/facts/slots and the latest 16 journal messages. The process-local history is keyed by patient and capped at 16 messages; completed turns are appended to `patient_turn_journal`. Current shared turn calls use the default session unless a caller supplies a session/call identifier.
 - The database journal is ordinary application persistence, not a database-enforced immutable audit log. See [Memory and PEP](MEMORY_AND_PEP.md) for the limits and table roles.
 
 ## Voice processing
@@ -98,6 +98,10 @@ The WebSocket supports cancellation/interruption, but code does not implement co
 PostgreSQL stores profiles, access-token hashes, PEP, meal schedules, approved knowledge, short-term journal rows, and structured memory/journey data. `disha_core/db/schema.sql` installs `pg_trgm` and ordinary text indexes/views; the current knowledge lookup combines text search and trigram similarity. PostgreSQL initialization SQL is applied only to a new data volume by Docker's entrypoint.
 
 The audit queue is separate from patient conversational context; do not infer a tamper-proof ledger, guaranteed durability, or compliance certification from table names or historical documentation.
+
+## Refresh and interrupted-response reliability
+
+The database is the source of truth for the active conversation. `GET /chat/conversation` resolves the authenticated user's unarchived conversation without creating one, returns messages in sequence order, and hydrates the browser before a new turn can be sent. Chat turns use `client_msg_id` for idempotent user/assistant records; streaming creates the assistant record first and updates it as the stream completes or is interrupted. Non-stream requests persist the user message before model generation. Non-empty interrupted assistant content remains visible on the next hydration instead of being silently discarded. Chat and voice use the same active conversation and shared turn context, while channel metadata remains available for observability.
 
 ## Runtime status and evidence
 

@@ -70,7 +70,7 @@ make tunnel-local
 scripts/local-models.sh status
 ```
 
-The host must remain powered on, connected to the internet, and running the local API, database, Ollama, MLX Audio, and tunnel watchdog. TryCloudflare assigns a temporary public URL; check `agent/TUNNEL_URL.txt` after starting or restarting the tunnel. The local-only LLM and synthetic STT checks passed, but the MLX Audio server's Svara TTS endpoint currently fails with a GPU-stream error; direct CLI generation works, so do not treat voice TTS as verified. See [Deployment](docs/DEPLOYMENT.md) for precise checks and limitations.
+The host must remain powered on, connected to the internet, and running the local API, database, Ollama, MLX Audio, and tunnel watchdog. `scripts/local-models.sh start` starts Ollama when needed and configures it as the final LLM fallback; set `LOCAL_ONLY=true` for an explicitly offline-only run. TryCloudflare assigns a temporary public URL; check `agent/TUNNEL_URL.txt` after starting or restarting the tunnel. The local model was verified with `qwen2.5:7b`; the MLX Audio server's Svara TTS endpoint currently fails with a GPU-stream error, so voice TTS remains unverified. See [Deployment](docs/DEPLOYMENT.md) for precise checks and limitations.
 
 ## Repository map
 

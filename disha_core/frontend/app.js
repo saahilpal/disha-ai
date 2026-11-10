@@ -27,6 +27,7 @@
     token: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_token')) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_token')) || null,
     patientId: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_patient_id')) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_id')) || null,
     patientName: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_patient_name')) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_name')) || null,
+    conversationHydrated: false,
     language: normalizeLanguageCode(
       typeof localStorage !== 'undefined' && localStorage.getItem('disha_language')
     ),
@@ -1187,6 +1188,7 @@
     state.token = token;
     state.patientId = patientId;
     state.patientName = patientName;
+    state.conversationHydrated = false;
     if (typeof localStorage !== 'undefined') {
       try {
         localStorage.setItem('disha_token', token);
@@ -1256,14 +1258,17 @@
               appendChatMessage(role, content);
             }
           }
+          state.conversationHydrated = true;
           return history.some((turn) => Boolean(turn.content));
         }
+        state.conversationHydrated = true;
         return false;
       }
       const detail = await res.json().catch(() => ({}));
       throw new Error(detail.detail || 'Conversation history could not be loaded. Please retry.');
     } catch (e) {
       console.warn('Failed to load chat history:', e);
+      state.conversationHydrated = false;
       showAlert('Your conversation could not be loaded. Please retry; it has not been deleted.');
       return null;
     }
@@ -1448,6 +1453,7 @@
     state.patientId = null;
     state.patientName = null;
     state.conversationId = null;
+    state.conversationHydrated = false;
     state.transcriptHistory = [];
     state.lastUserClientMsgId = null;
     if (dom.chatStream) dom.chatStream.innerHTML = '';
@@ -2719,6 +2725,10 @@
     if (state.textTurnInFlight) return;
     const query = String(text || '').trim();
     if (!query) return;
+    if (state.token && !state.conversationHydrated) {
+      showAlert('Your conversation is still loading. Please retry in a moment.');
+      return;
+    }
     state.lastUserQuery = query;
     const clientMsgId = options.clientMsgId || ('msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9));
     state.lastUserClientMsgId = clientMsgId;

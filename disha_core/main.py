@@ -502,34 +502,44 @@ def create_app() -> FastAPI:
                 }
             raise
         state = TurnState()
+        # Persist the user turn before generation so a disconnected/non-stream request
+        # cannot lose the user's message before the assistant has replied.
+        pool = getattr(request.app.state, "pool", None)
+        conversation_id = None
+        client_msg_id = getattr(payload, "client_msg_id", None) or str(uuid.uuid4())
+        if pool is not None:
+            from disha_core.services.chat_service import record_message, resolve_active_conversation
+
+            conv = await resolve_active_conversation(pool, patient_id)
+            if conv and conv.get("id"):
+                conversation_id = str(conv["id"])
+                await record_message(
+                    pool,
+                    conversation_id,
+                    patient_id,
+                    "user",
+                    "chat",
+                    payload.text,
+                    status="complete",
+                    client_msg_id=client_msg_id,
+                )
         sentences = [sentence async for sentence in _turn_sentences(request, patient_id, payload, state)]
         output = " ".join(sentences)
 
         # Persist turn to active conversation (Spec M1 / Contract 2)
-        pool = getattr(request.app.state, "pool", None)
-        conversation_id = None
-        if pool is not None:
-            with suppress(Exception):
-                from disha_core.services.chat_service import record_message, resolve_active_conversation
+        if pool is not None and conversation_id is not None:
+            from disha_core.services.chat_service import record_message
 
-                conv = await resolve_active_conversation(pool, patient_id)
-                if conv and conv.get("id"):
-                    cid = str(conv["id"])
-                    conversation_id = cid
-                    c_msg_id = getattr(payload, "client_msg_id", None) or str(uuid.uuid4())
-                    await record_message(
-                        pool, cid, patient_id, "user", "chat", payload.text, status="complete", client_msg_id=c_msg_id
-                    )
-                    await record_message(
-                        pool,
-                        cid,
-                        patient_id,
-                        "assistant",
-                        "chat",
-                        output,
-                        status="complete",
-                        client_msg_id=f"{c_msg_id}:assistant",
-                    )
+            await record_message(
+                pool,
+                conversation_id,
+                patient_id,
+                "assistant",
+                "chat",
+                output,
+                status="complete",
+                client_msg_id=f"{client_msg_id}:assistant",
+            )
 
         _enqueue_audit(
             request.app.state.ledger,

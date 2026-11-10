@@ -311,7 +311,7 @@ async def get_active_conversation_with_messages(conn_or_pool: Any, patient_id: s
         rows = await conn.fetch(
             "SELECT id, seq, role, channel, content, status, client_msg_id, created_at "
             "FROM messages WHERE conversation_id = $1::uuid "
-            "AND (content <> '' OR status = 'complete') "
+            "AND (content <> '' OR status IN ('complete', 'aborted')) "
             "ORDER BY seq ASC LIMIT $2",
             str(conv_id),
             limit,
