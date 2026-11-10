@@ -48,11 +48,14 @@ find_cloudflared_bin() {
 }
 
 CLOUDFLARED_BIN="$(find_cloudflared_bin)"
-if [ -z "${CLOUDFLARED_BIN}" ]; then
-  echo "[!] Error: cloudflared binary not found in PATH, /opt/homebrew/bin, or /usr/local/bin" >&2
-  echo "[!] Please install via 'brew install cloudflared' or download from cloudflare.com" >&2
-  exit 1
-fi
+
+require_cloudflared() {
+  if [ -z "${CLOUDFLARED_BIN}" ]; then
+    echo "[!] Error: cloudflared binary not found in PATH, /opt/homebrew/bin, or /usr/local/bin" >&2
+    echo "[!] Please install via 'brew install cloudflared' or download from cloudflare.com" >&2
+    exit 1
+  fi
+}
 
 # ------------------------------------------------------------------------------
 # 3. Logging Function
@@ -163,6 +166,7 @@ check_edge_connectivity() {
 # 7. Cloudflared Process Launcher
 # ------------------------------------------------------------------------------
 start_cloudflared() {
+  require_cloudflared
   log "INFO" "Launching cloudflared instance..."
 
   # Rotate log if larger than 10MB

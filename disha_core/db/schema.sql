@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS patient_pep (
     habits_version INT DEFAULT 1 NOT NULL,
     is_dirty BOOLEAN DEFAULT FALSE NOT NULL,
     habits_updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    clinician_verified_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

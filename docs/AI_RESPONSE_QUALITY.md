@@ -2,14 +2,16 @@
 
 ## Executive Overview
 
-As part of Disha AI's clinical and conversational excellence initiative, the reasoning and response lifecycle has been re-architected to guarantee high-quality, patient-centric coaching without robotic cliches, question parroting, or rigid length constraints.
+The current response lifecycle is designed for patient-centred coaching without robotic clichés, mechanical question parroting, or a rigid length constraint. Model quality still depends on the configured provider and is evaluated with controlled multi-turn cases.
 
 ### Core Architectural Principles
-1. **Zero Parroting / Anti-Echo Invariant**: The assistant must never repeat or paraphrase the patient's question back to them (e.g. *"I understand you have been feeling tired after work..."*, *"Aapne poocha ki pet mein dard hai..."*).
+1. **Zero Mechanical Echo**: The assistant avoids parroting the patient's wording, while allowing a brief contextual reference when it helps resolve a correction or follow-up.
 2. **Direct Answer First**: Sentence 1 must deliver the substantive answer or primary actionable advice directly, eliminating introductory empathy fluff and repetitive greetings.
 3. **Dynamic Response Length Targeting**: Response length is tailored dynamically based on user intent and query complexity rather than forcing every turn into a rigid sentence count.
 4. **Context Relevance Discipline**: Meals and diet schedules are only discussed if the patient explicitly asked about food; workouts and gym routines are only brought up if the patient asked about physical activity.
-5. **Lean Prompt Architecture**: Structural discipline is enforced programmatically in the Python pipeline (`anti_echo.py`, `normalizer.py`, `context_builder.py`, `sentence_buffer.py`, `validator.py`) rather than bloating the LLM system prompt.
+5. **Single Behaviour Source**: `data/behavior_rules.yaml` supplies the model-facing behavior and clinical policy. Python keeps only deterministic safety, persistence, validation, and response-delivery checks; it does not choose a scripted onboarding move.
+
+The five-stage PEP journey is an internal completeness measure. The current turn receives relevant missing-field candidates as optional context, so the model can ask one useful discovery question when it genuinely fits the user's intent. It is not a fixed question sequence.
 
 ---
 
@@ -22,7 +24,7 @@ sequenceDiagram
     participant Router as IntentRouter & Breaker
     participant Norm as Normalizer
     participant Context as ContextBuilder
-    participant LLM as DualProviderClient (Groq/Gemini)
+    participant LLM as DualProviderClient (Groq/Gemini/Ollama)
     participant Buffer as SentenceBuffer (Dynamic Length)
     participant AntiEcho as Anti-Echo & Direct-Answer Engine
     participant Val as SentenceValidator

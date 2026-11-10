@@ -25,7 +25,8 @@ async def apply_pep_habits_schema(pg_url: str = DEFAULT_PG_URL) -> None:
             ADD COLUMN IF NOT EXISTS habits JSONB DEFAULT '{}'::jsonb NOT NULL,
             ADD COLUMN IF NOT EXISTS habits_version INT DEFAULT 1 NOT NULL,
             ADD COLUMN IF NOT EXISTS is_dirty BOOLEAN DEFAULT FALSE NOT NULL,
-            ADD COLUMN IF NOT EXISTS habits_updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL;
+            ADD COLUMN IF NOT EXISTS habits_updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+            ADD COLUMN IF NOT EXISTS clinician_verified_at TIMESTAMPTZ;
         """)
 
         # 2. habit_current_state
