@@ -972,26 +972,6 @@
     });
   }
 
-  if (dom.togglePassword && dom.passwordInput) {
-    dom.togglePassword.addEventListener('click', () => {
-      const isPwd = dom.passwordInput.type === 'password';
-      dom.passwordInput.type = isPwd ? 'text' : 'password';
-      if (dom.eyeOpen) dom.eyeOpen.style.display = isPwd ? 'none' : 'block';
-      if (dom.eyeClosed) dom.eyeClosed.style.display = isPwd ? 'block' : 'none';
-    });
-  }
-
-  if (dom.toggleOnboardPassword && dom.onboardPassword) {
-    dom.toggleOnboardPassword.addEventListener('click', () => {
-      const isPwd = dom.onboardPassword.type === 'password';
-      dom.onboardPassword.type = isPwd ? 'text' : 'password';
-      const eyeOpen = dom.toggleOnboardPassword.querySelector('.eye-open');
-      const eyeClosed = dom.toggleOnboardPassword.querySelector('.eye-closed');
-      if (eyeOpen) eyeOpen.style.display = isPwd ? 'none' : 'block';
-      if (eyeClosed) eyeClosed.style.display = isPwd ? 'block' : 'none';
-    });
-  }
-
   // Condition chips mutual exclusion logic
   const conditionCheckboxes = typeof document !== 'undefined' ? document.querySelectorAll('input[name="condition"]') : [];
   conditionCheckboxes.forEach((cb) => {

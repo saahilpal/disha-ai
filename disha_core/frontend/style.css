@@ -598,10 +598,13 @@ h1, h2, h3, h4 {
 
 /* AUTHENTICATION VIEW */
 #auth-view {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
   justify-content: center;
   min-height: calc(100vh - 60px);
+  background: radial-gradient(circle at 50% 8%, var(--accent-subtle) 0, transparent 34%), var(--paper);
 }
 
 .auth-wrapper {
