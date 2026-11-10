@@ -171,6 +171,21 @@ jobs:
   tests:
     name: Canonical Test Matrix (Pytest)
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: disha
+          POSTGRES_PASSWORD: disha_secure_pass_123
+          POSTGRES_DB: disha
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
     steps:
       - name: Checkout Codebase
         uses: actions/checkout@v4
@@ -186,12 +201,28 @@ jobs:
       - name: Install Dependencies
         run: |
           uv venv
-          uv pip install -r disha_core/requirements.txt pytest pytest-asyncio
+          uv pip install -r disha_core/requirements.txt pytest pytest-asyncio pytest-subtests
+
+      - name: Initialize Database Schema
+        env:
+          PGPASSWORD: disha_secure_pass_123
+        run: |
+          sudo apt-get update && sudo apt-get install -y postgresql-client
+          psql -h localhost -U disha -d disha -f disha_core/db/schema.sql
+          psql -h localhost -U disha -d disha -f disha_core/db/seed_product_facts.sql
+          uv run python disha_core/db/apply_conversations_schema.py
+          uv run python disha_core/db/apply_journey_schema.py
+          uv run python disha_core/db/apply_pep_habits_schema.py
 
       - name: Run Canonical Pytest Suite
         env:
+          DB_HOST: "127.0.0.1"
+          DB_PORT: "5432"
+          DB_USER: "disha"
+          DB_PASSWORD: "disha_secure_pass_123"
+          DB_NAME: "disha"
+          DATABASE_URL: "postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha"
           GROQ_API_KEY: "dummy_token_scrubbed"
           GEMINI_API_KEY: "dummy_token_scrubbed"
-          POSTGRES_PASSWORD: "postgres"
         run: |
-          uv run pytest -v tests/ -m "not live_network and not manual"
+          uv run pytest -v tests/ -k 'not manual and not live_network'
