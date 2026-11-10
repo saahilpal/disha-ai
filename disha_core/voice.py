@@ -427,6 +427,7 @@ def _is_local_url(url: str) -> bool:
 async def transcribe_groq(
     audio: bytes,
     *,
+    language: str | None = None,
     filename: str = "turn.webm",
     content_type: str = "audio/webm",
     client_factory: Any = None,
@@ -464,11 +465,19 @@ async def transcribe_groq(
     factory = client_factory or httpx.AsyncClient
     headers = {"Authorization": f"Bearer {key}"} if key else {}
     async with factory(timeout=timeout) as client:
+        stt_data: dict[str, Any] = {"model": model, "response_format": "json"}
+        if language:
+            lang_clean = str(language).lower()
+            if lang_clean in ("hi", "hindi", "hinglish"):
+                stt_data["language"] = "hi"
+            elif lang_clean in ("en", "english"):
+                stt_data["language"] = "en"
+
         response = await client.post(
             url,
             headers=headers,
             files={"file": (filename, audio, content_type)},
-            data={"model": model, "response_format": "json"},
+            data=stt_data,
         )
     if response.status_code >= 400:
         raise RuntimeError(f"{backend} Whisper returned HTTP {response.status_code}")

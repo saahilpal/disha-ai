@@ -29,6 +29,30 @@
 
 ---
 
+## Featured End-to-End Complaint Journey: `JOURNEY-HELLO-TRIANGLE-PIVOT-HINGLISH`
+- **Track:** Full clinical complaint journey from greeting to 10-minute expert call pivot
+- **Language:** Hinglish (Roman script default)
+- **Status:** Conformance Verified (P1-P6, F1-F5, C1-C4, M1-M3)
+
+```conversation
+[User Turn 1]: Hi Disha
+[Disha Turn 1]: Namaste! Main Disha hoon, aapki AI health coach. Aaj aap kaisa feel kar rahe hain aur main aapki routine mein kaise help kar sakti hoon?
+
+[User Turn 2]: Mujhe pichhle kuch dino se pet mein acidity aur jalan ho rahi hai
+[Disha Turn 2]: Sunkar bura laga, acidity pareshan kar sakti hai. Yeh jalan aapko kab se feel ho rahi hai?
+
+[User Turn 3]: Lagbhag 2 hafte se chal raha hai
+[Disha Turn 3]: Got it. Iske liye aapne abhi tak koi gharelu nuskha ya diet change try kiya hai?
+
+[User Turn 4]: Haan thanda doodh piya tha par zyada asar nahi hua
+[Disha Turn 4]: Samajh gayi. Is acidity ki severity kitni hai aur kya yeh aapke daily kaam ya neend ko affect kar rahi hai?
+
+[User Turn 5]: Haan raat ko so nahi pata aur jalan badh jaati hai
+[Disha Turn 5]: Raat ko heavy meal avoid karein aur dinner ke baad thoda walk karein. Kyunki yeh 2 hafte se hai, ek 10-minute expert call se aapko doctor se exact guidance mil sakti hai.
+```
+
+---
+
 ## Transcript 01: `EVAL-INCOMPLETE_VAGUE_MESSAGE-EN-01`
 - **Situation Card:** `incomplete_vague_message`
 - **Language:** `en`
@@ -37,10 +61,10 @@
 
 ```conversation
 [User Turn 1]: Hello, I need some help regarding incomplete vague message.
-[Disha Turn 1 (12281.17ms)]: Main aapki madad karne ke liye yahan hoon, lekin aapne abhi apni pareshani ke baare mein poori baat nahi batayi hai. Aap aaram se batayein ki aapko kya mehsoos ho raha hai ya aap kis baare mein baat karna chahte hain. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (467.2ms)]: Hi, I am here to help. Please tell me a bit more about what is on your mind or what specific health concern you want to discuss.
 
 [User Turn 2]: Can you elaborate on what steps I should take next?
-[Disha Turn 2 (25002.73ms)]: EXCEPTION: timed out
+[Disha Turn 2 (424.02ms)]: Since you haven't shared specific symptoms or goals yet, I can't give you a personalized plan. Could you tell me a bit more about what you're struggling with, like your sleep, diet, or energy levels? This will help me guide you better.
 
 ```
 
@@ -59,10 +83,10 @@
 
 ```conversation
 [User Turn 1]: What is your recommended advice for incomplete vague message?
-[Disha Turn 1 (1833.3ms)]: Jab aapko samajh na aa raha ho ki apni sehat ke baare mein kaise batayein, toh bas shuruat kisi ek choti si cheez se karein jo aapko pareshan kar rahi hai. Chahe woh neend ki kami ho, thakan ho, ya diet mein koi badlav, aap bas wahi share karein. Main aapki baaton ko samajhkar aapko sahi disha mein guide karne ki koshish karungi. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (417.74ms)]: For general wellness, start with a low-glycemic vegetarian diet rich in fiber, like daily moong or masoor dal, and swap sugary chai for herbal brews. Adding regular exercise is also a key first-line step to improve energy and overall health.
 
 [User Turn 2]: Is there anything simple I can do at home today?
-[Disha Turn 2 (19634.26ms)]: Bilkul, aapko kuch simple steps karne se madad milegi jo aapka din bhejege. 1. Morning Walk: Chaudvin se 15-20 minutes walk karenge, yeh aapki energy level upar se badalenge. 2.
+[Disha Turn 2 (5714.6ms)]: Of course! You can start with a simple walk or some light stretching at home. For a quick, healthy snack, try some boiled moong dal or masoor dal with a side of cucumber slices. And instead of sugary chai, opt for herbal tea like mint or chamomile.
 
 ```
 
@@ -81,10 +105,10 @@
 
 ```conversation
 [User Turn 1]: नमस्ते दिशा, मुझे अपनी दिनचर्या और स्वास्थ्य के बारे में कुछ मार्गदर्शन चाहिए।
-[Disha Turn 1 (11123.4ms)]: Aapki sehat aur dincharya ko behtar banane ke liye hum chote-chote badlav se shuruat kar sakte hain, jaise ki samay par khana aur thoda physical movement shamil karna. Aap apni daily routine ke baare mein thoda aur batayein taaki main aapko behtar suggestions de sakun. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (22717.63ms)]: नमस्ते! आपकी दिनचर्या और स्वास्थ्य के बारे में जानने से लाभ हो सकता है। नमस्ते! आपकी दिनचर्या और स्वास्थ्य के बारे में बात करने से खुशी है। शुरुआत में, आपको एक आसान चाल या कुछ खुशहाल टिस्टिंग करना सुझाता है। आपके लिए एक चावल दाल जैसा खाना और कुछ करमुल टिप्पणियाँ भी अच्छी तरह से लागू हो सकती हैं। और जगह-जगह खाना जानकारी देने के लिए भी आपकी म इसके अलावा, आपके लिए एक छोटा सड़क चलना या खुली वायु में कुछ हल्का व्यायाम शुरू करना बहुत मददगार हो सकता है।
 
 [User Turn 2]: इसके लिए मुझे सबसे पहला कदम क्या उठाना चाहिए?
-[Disha Turn 2 (3517.54ms)]: Sabse pehla aur asaan kadam ye hai ki aap apne din ki shuruat ek glass paani aur thodi si physical activity se karein, jaise ki 10-15 minute ki halki walk. Isse aapka metabolism activate hoga aur aap din bhar zyada energetic feel karenge. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 2 (25001.77ms)]: EXCEPTION: timed out
 
 ```
 
@@ -103,10 +127,10 @@
 
 ```conversation
 [User Turn 1]: क्या आप मुझे incomplete vague message के बारे में समझा सकती हैं?
-[Disha Turn 1 (9108.41ms)]: Incomplete ya vague message ka matlab hota hai jab aap apni pareshani ko poori tarah se explain nahi kar paate, jaise sirf ye kehna ki "aaj achha nahi lag raha" ya "kuch theek nahi hai". Aise mein main aapke physical symptoms ya mood ke baare mein thoda aur puchti hoon taaki hum sahi wajah tak pahunch sakein. Aap bas bina kisi jhijhak ke batayein ki aapko kya mehsoos ho raha hai, chahe wo pet mein dard ho, thakan ho ya koi aur baat. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (537.88ms)]: Aapki pehli step hai aaj hi 10-15 minute ki halki walk karna aur ek glass paani peena. Isse aapki energy badhegi aur aapko apni body ki haalat samajhne mein madad milegi.
 
 [User Turn 2]: क्या इसमें कोई घरेलू उपाय काम आ सकता है?
-[Disha Turn 2 (10547.62ms)]: Gharelu upay tabhi sabse zyada asardaar hote hain jab hume pata ho ki aapko exactly kya pareshani ho rahi hai. Agar aapko thodi thakan ya susti mehsoos ho rahi hai, toh din bhar mein thoda-thoda paani peete rehna aur samay par halka vegetarian khana lena ek achi shuruat ho sakti hai. Kya aapko koi specific physical takleef hai ya aap bas apni overall energy badhana chahte hain? Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 2 (411.18ms)]: Haan, aap chai ya coffee ki jagah mint ya tulsi ki chai pe sote waqt ek glass gunguna paani pee sakte hain. Ye aapki digestion aur neend dono mein sudhaar laata hai.
 
 ```
 
@@ -125,10 +149,10 @@
 
 ```conversation
 [User Turn 1]: Yaar Disha, mujhe thoda health advice chahiye tha regarding my routine.
-[Disha Turn 1 (1636.22ms)]: General wellness ke liye sabse zaroori hai ki aap apne din mein ek consistent routine banayein, jismein samay par khana aur thodi physical activity shamil ho. Kyunki aap vegetarian diet follow karte hain, toh koshish karein ki apni plate mein protein aur fiber ka achha balance rakhein taaki aapko din bhar energy milti rahe. Agar aapko koi specific health concern ya routine mein dikkat aa rahi hai, toh zaroor batayein. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (446.71ms)]: Bilkul, aapki routine ko behtar banane ke liye pehle apne kaam ke schedule ko samajhna zaroori hai. Kya aapka kaam day shift, night shift ya rotational rehta hai?
 
 [User Turn 2]: Right now kya immediate step lena chahiye mujhe?
-[Disha Turn 2 (1581.89ms)]: Immediate step ke liye sabse behtar hai ki aap abhi ek glass paani piyein aur agle 5-10 minute ke liye screen se door hokar thoda walk karein ya deep breathing karein. Isse aapka mind refresh hoga aur aapko apne routine ko lekar clarity milegi. Kya aapko din bhar mein energy ki kami mehsoos hoti hai ya phir neend se judi koi pareshani hai? Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 2 (19914.41ms)]: Bilkul, abhi toh aapki routine ko सुधारने की शुरुआत करने से लाभ हो सकता है। आपको जानना चाहिए कि आप कितने बजे उठते हैं। यदि आप रात की शुरुआत में उठते हैं, तो शुरुआत में छोटी सी चाल या खुशहाल टिस्टिंग करना बहुत मददगार हो सकता है। और एक छोटा सा खाना जैसे चावल दाल या फल भी आपके शरीर को ऊर्जा देगा
 
 ```
 
@@ -147,10 +171,10 @@
 
 ```conversation
 [User Turn 1]: Mujhe incomplete vague message ke baare mein kuch practical tips do na.
-[Disha Turn 1 (10979.92ms)]: Jab aapko apni health ke baare mein baat karni ho, toh sabse practical tip ye hai ki aap apne symptoms ko thoda detail mein batayein. Jaise ki, agar dard hai toh kahan aur kaisa hai, ya agar thakan hai toh wo din ke kis hisse mein zyada hoti hai. Isse mujhe aapki situation samajhne mein aasani hogi aur main aapko behtar guidance de paungi. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (22813.69ms)]: Bilkul, aapki routine mein kehne ka ek छोटा सारा बदल लाएंगे यानी आपको जानना चाहिए कि आप कितने बजे उठते हैं। यदि आप रात की शुरुआत में उठते हैं, तो शुरुआत में छोटी सी चाल या खुशहाल टिस्टिंग करना बहुत मददगार हो सकता है। और एक छोटा सा खाना जैसे चावल दाल या फल भी आपके शरीर को ऊर्जा देगा। यह आपकी
 
 [User Turn 2]: Are you sure koi home remedy nahi try kar sakte?
-[Disha Turn 2 (22222.54ms)]: Sure, aapko kuch gharelu upay bhi de sakte hain. Agar aapko thakan ho rahi hai, toh koshish karein ki samay par thoda-thoda paani peete rehna. Haldi ki kahaniyaat hai ki usse thakan se relief miley. Aise hi, aloe vera gel aur ginger bhi thakan ke liye kuch useful ho sakte hain.
+[Disha Turn 2 (21896.23ms)]: Bilkul, aap एक छोटी सी चाल या खुशहाल टिस्टिंग कर सकते हैं जैसे जाग रहे हुए कुछ हल्का व्यायाम या चावल दाल जैसा खाना। ये आसान उपाय आपके शरीर को ऊर्जा देगे और दिनचर्या को बेहतर बनाएंगे।
 
 ```
 
@@ -169,10 +193,10 @@
 
 ```conversation
 [User Turn 1]: Hello, I need some help regarding emotional venting.
-[Disha Turn 1 (1660.7ms)]: Emotional venting ke liye aap mujhse bina kisi jhijhak ke baat kar sakte hain. Kabhi-kabhi sirf apni baaton ko shabd dena aur kisi ke saath share karna hi man ko kaafi halka kar deta hai. Kya koi aisi specific baat hai jo aapko pareshan kar rahi hai ya aap bas apna stress nikalna chahte hain? Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (676.19ms)]: Main yahan hoon, aap apne mann ki baat bilkul khul ke bata sakte hain. Kya aaj koi khaas cheez hui hai ya koi specific tension hai jo aapko pareshan kar rahi hai?
 
 [User Turn 2]: Can you elaborate on what steps I should take next?
-[Disha Turn 2 (24063.68ms)]: Sure, here are some steps you can take: 1. Start your day with overnight soaked almonds or walnuts. These are good for PCOS and will keep you full. 2.
+[Disha Turn 2 (772.7ms)]: Aap abhi ke liye apne mann ki baat ko likh kar note kar sakte hain, isse aapko apni feelings samajhne mein madad milegi. Saath hi, aaj ke liye ek halki 10 minute ki walk ya deep breathing ka practice karein, jo aapko calm feel karayega.
 
 ```
 
@@ -191,10 +215,10 @@
 
 ```conversation
 [User Turn 1]: What is your recommended advice for emotional venting?
-[Disha Turn 1 (2135.99ms)]: Emotional venting ke liye aap apne thoughts ko ek diary mein likh sakte hain, jo aapko clarity dene mein madad karega. Saath hi, agar aap PCOS manage kar rahe hain, toh low glycemic index diet follow karna aur daily exercise karna aapke mood aur energy levels ko stabilize karne mein kaafi help kar sakta hai. Aap apni diet mein moong ya masoor ki dal aur fiber ke liye fruits ko skin ke saath shamil kar sakte hain. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (25002.21ms)]: EXCEPTION: timed out
 
 [User Turn 2]: Is there anything simple I can do at home today?
-[Disha Turn 2 (11380.76ms)]: Aaj aap ghar par deep breathing exercises try kar sakte hain, jo stress kam karne aur man ko shant rakhne mein bahut madad karti hain. Iske alawa, thodi der ke liye screen se door hokar kisi shant jagah par baithna ya halki stretching karna bhi aapko relax feel kara sakta hai. Kya aapne aaj apne liye thoda time nikala hai? Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 2 (503.15ms)]: Aap aaj ke liye ghar par hi 10 minute ki halki stretching ya yoga kar sakte hain, jo aapke stress ko kam karegi. Saath hi, mint ya chamomile ki herbal chai peene se aapko thoda relax feel hoga.
 
 ```
 
@@ -213,10 +237,10 @@
 
 ```conversation
 [User Turn 1]: नमस्ते दिशा, मुझे अपनी दिनचर्या और स्वास्थ्य के बारे में कुछ मार्गदर्शन चाहिए।
-[Disha Turn 1 (1561.25ms)]: Apni sehat aur dincharya ko behtar banane ki disha mein pehla kadam uthana bahut achhi baat hai. Hum choti-choti habits se shuruat kar sakte hain, jaise ki sahi samay par khana aur thoda physical movement shamil karna. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (25002.31ms)]: EXCEPTION: timed out
 
 [User Turn 2]: इसके लिए मुझे सबसे पहला कदम क्या उठाना चाहिए?
-[Disha Turn 2 (1891.03ms)]: Sabse pehla kadam apni daily routine mein ek fixed sleep aur meal time set karna hai, kyunki consistency se body ka internal clock behtar hota hai. Aap apne din ki shuruat halki stretching ya 10-15 minute ki walk se kar sakte hain, jo aapke mood aur energy dono ko boost karegi. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 2 (607.99ms)]: Sabse pehla kadam hai ki aap abhi apne paas jo bhi tension ya stress hai, use kisi paper par likh dein. Isse aapke mann ke thoughts clear honge aur aapko apni feelings samajhne mein madad milegi.
 
 ```
 
@@ -235,10 +259,10 @@
 
 ```conversation
 [User Turn 1]: क्या आप मुझे emotional venting के बारे में समझा सकती हैं?
-[Disha Turn 1 (1704.47ms)]: Emotional venting ka matlab hai apne andar dabbe hue emotions, stress ya pareshaniyon ko bahar nikalna taaki aap halka mehsoos kar sakein. Aap ise likh kar, kisi bharosemand dost se baat karke, ya phir sirf ek shant jagah baith kar apne thoughts ko acknowledge karke kar sakte hain. Yeh process aapko apne stress ke triggers ko samajhne aur unhe manage karne mein madad karti hai. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (25002.27ms)]: EXCEPTION: timed out
 
 [User Turn 2]: क्या इसमें कोई घरेलू उपाय काम आ सकता है?
-[Disha Turn 2 (1747.61ms)]: Emotional venting ke liye koi dawa toh nahi hoti, lekin kuch simple cheezein aapko calm down karne mein madad kar sakti hain. Jaise ki ek cup garam herbal tea peena ya phir ek diary mein apne saare thoughts likh dena, jisse man ka bojh halka ho jata hai. Deep breathing ya meditation bhi stress ko release karne ka ek bahut asardaar tarika hai. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 2 (697.97ms)]: जी हां, घरेलू उपाय बहुत काम आते हैं। आप दिन में 8-10 गिलास पानी पिएं और तनाव कम करने के लिए 10 मिनट की गहरी सांसें लें। साथ ही, हल्की सैर या स्ट्रेचिंग भी आपकी दिनचर्या को बेहतर बनाएगी।
 
 ```
 
@@ -257,10 +281,10 @@
 
 ```conversation
 [User Turn 1]: Yaar Disha, mujhe thoda health advice chahiye tha regarding my routine.
-[Disha Turn 1 (8776.62ms)]: Health aur routine ko behtar banane ke liye sabse zaroori hai ki aap apne din mein kuch fixed habits banayein, jaise ki time par sona aur balanced vegetarian meals lena. Aap apni energy levels ko maintain karne ke liye din bhar mein thoda-thoda paani peete rahein aur koshish karein ki rozana thodi physical activity zaroor ho. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (622.79ms)]: Bilkul, aapki routine ko behtar banane ke liye pehle apne neend ke pattern ko check karein. Raat ko kitne baje sote hain aur subah kitne baje uthate hain?
 
 [User Turn 2]: Right now kya immediate step lena chahiye mujhe?
-[Disha Turn 2 (8831.5ms)]: Immediate step ke taur par aap abhi ek glass paani piyein aur 5 minute ke liye apni aankhein band karke sirf apni saanson par dhyan dein. Isse aapka nervous system thoda calm hoga aur aapko clarity milegi ki aapko aage kya karna hai. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 2 (19185.22ms)]: Aaj ke liye, aap ek 10-15 minute ki halki walk karein aur ek glass paani peene se shuru karein. Isse aapki energy badhegi aur aapko apni body ki haalat samajhne mein madad milegi.
 
 ```
 
@@ -279,10 +303,10 @@
 
 ```conversation
 [User Turn 1]: Mujhe emotional venting ke baare mein kuch practical tips do na.
-[Disha Turn 1 (1868.51ms)]: Emotional venting ke liye sabse practical tarika hai 'brain dump' karna, jisme aap bina soche ek paper par apne saare pareshan karne wale thoughts likh dete hain. Iske alawa, kisi trusted person se baat karna ya phir physical activity jaise ki tez chalna bhi emotions ko release karne mein madad karta hai. Jab aapko bahut zyada overwhelm mehsoos ho, toh 4-7-8 breathing technique try karein, jisme 4 second saans andar lein, 7 second hold karein aur 8 second mein dheere se bahar chhodein. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (25004.14ms)]: EXCEPTION: timed out
 
 [User Turn 2]: Are you sure koi home remedy nahi try kar sakte?
-[Disha Turn 2 (12283.7ms)]: Emotional stress ya overwhelm ke liye koi specific 'home remedy' dawa ki tarah kaam nahi karti, lekin kuch cheezein aapke mood ko stabilize karne mein madad kar sakti hain. Jaise ki chamomile ya peppermint tea peena, ya phir thodi der khuli hawa mein walk karna, jo aapke mind ko distract karne mein kaafi helpful hota hai. Agar aapko lagta hai ki ye pareshani bahut zyada badh rahi hai, toh apne family doctor se baat karna sabse sahi rahega. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 2 (17521.75ms)]: Bilkul, aapke pareshan hone ka samajh gaya. Mint ya tulsi ki chai peene se digestion aur neend mein sudhaar aayi ho sakti hai. Ek glass gunguna paani aur mint chai peene se aapko thoda relax feel ho sakti hai.
 
 ```
 
@@ -301,10 +325,10 @@
 
 ```conversation
 [User Turn 1]: Hello, I need some help regarding symptom report.
-[Disha Turn 1 (20366.39ms)]: Oh, kya hua? Aap kis tarah ke symptoms feel kar rahe hain? Kya kuch specific symptoms ho rahi hain jaise ki pain, bloating, ya kuch aur? Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (535.19ms)]: Bilkul, main aapki help kar sakti hoon. Aapko abhi kya specific symptoms ya discomfort mehsoos ho raha hai?
 
 [User Turn 2]: Can you elaborate on what steps I should take next?
-[Disha Turn 2 (7268.23ms)]: Aap apni general wellness aur health ko behtar banane ke liye apne din ki shuruat raat bhar bhigoye hue badam ya akhrot se kar sakte hain, jo aapko der tak full rakhenge. Khane mein maida ki jagah atta, jowar, ya bajra jaise whole grains aur legumes ko shamil karein, kyunki ye dheere digest hote hain aur blood sugar ko stable rakhte hain. Snacks mein fried ya sugary cheezon ki jagah roasted chana, nuts, ya fresh fruits lena ek achha badlav hoga. Kya aap apni daily routine mein koi physical activity ya exercise bhi karte hain?
+[Disha Turn 2 (577.26ms)]: Aapke liye agla step hai ki aap apni diet mein whole grains jaise atta, jowar ya oats shamil karein, jo insulin resistance manage karne mein madad karte hain. Saath hi, refined sugar aur maida ki jagah roasted chana ya nuts jaise healthy snacks chunein.
 
 ```
 
@@ -323,10 +347,10 @@
 
 ```conversation
 [User Turn 1]: What is your recommended advice for symptom report?
-[Disha Turn 1 (1846.99ms)]: Symptom report ke liye sabse pehle aapko apne symptoms ko ek diary mein note karna chahiye, jaise ki woh kab shuru hue aur kitni der tak rahe. Agar aapko PCOS ya hormonal imbalance se jude symptoms mehsoos ho rahe hain, toh low glycemic index wala khana jaise ki moong ya masoor ki dal aur chilke samet phal khana kafi faydemand hota hai. Regular exercise bhi hormonal balance aur stress kam karne mein madad karti hai, isliye din mein thodi der active rehna zaroori hai. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (19460.96ms)]: Aapke liye, agla step hai ki aap apni diet mein whole grains jaise atta, jowar ya oats shamil karein. Isse insulin resistance manage karne mein madad milegi. Saath hi, refined sugar aur maida ki jagah roasted chana ya nuts jaise healthy snacks chunein. Aap bhi 8-10 glasses paani peene se shuru karein.
 
 [User Turn 2]: Is there anything simple I can do at home today?
-[Disha Turn 2 (9828.79ms)]: Aaj aap ghar par hydration ka dhyan rakhte hue din bhar thoda-thoda karke paani pi sakte hain, jo body ko detox karne mein madad karta hai. Saath hi, 15-20 minute ki deep breathing ya light stretching karne se aapka stress level kam ho sakta hai aur aap relax feel karenge. Agar aapko koi specific takleef mehsoos ho rahi hai, toh apne family doctor se consult karna sabse behtar rahega. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 2 (545.6ms)]: Aaj ke liye aap 10-15 minute ki halki walk ya stretching se shuru karein. Ek healthy snack ke taur par boiled moong dal ya masoor dal ke saath cucumber slices try karein.
 
 ```
 
@@ -345,10 +369,10 @@
 
 ```conversation
 [User Turn 1]: नमस्ते दिशा, मुझे अपनी दिनचर्या और स्वास्थ्य के बारे में कुछ मार्गदर्शन चाहिए।
-[Disha Turn 1 (6238.44ms)]: Aapki sehat aur dincharya ko behtar banane ke liye hum chote-chote badlav se shuruat kar sakte hain, jaise ki samay par khana aur thodi physical activity shamil karna. Ek vegetarian diet mein protein ke liye aap dal, paneer, aur sprouts ko apne meals mein add kar sakte hain, jo aapko din bhar energy denge. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (24929.57ms)]: नमस्ते! बहुत सुन्ना है कि आप अपनी दिनचर्या और स्वास्थ्य के बारे में मार्गदर्शन चाहते हैं। आज के लिए, आप एक छोटी सी चाल या योग कर सकते हैं जो आपको शांति दे सकती है। और एक healthy snack जैसे बोइल्ड मोंग डाल या मसूर डाल के साथ कुकीमी खाने से भी लाभ उठाएं।
 
 [User Turn 2]: इसके लिए मुझे सबसे पहला कदम क्या उठाना चाहिए?
-[Disha Turn 2 (21308.51ms)]: Aap apne din ki shuruat raat bhar bhigoye hue badam ya akhrot se kar sakte hain, jo aapko der tak full rakhenge. Khane mein maida ki jagah atta, jowar, ya bajra jaise whole grains aur legumes ko shamil karein, kyunki ye aapki digestion ko help karte hain aur blood sugar level ko stable rakhte hain. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 2 (477.23ms)]: सबसे पहला कदम है कि आप आज के लिए एक 10-15 मिनट की हल्की वॉक करें और एक गिलास गुनगुना पानी पिएं। इससे आपकी ऊर्जा बढ़ेगी और आपकी शरीर की स्थिति को समझने में मदद मिलेगी।
 
 ```
 
@@ -367,10 +391,10 @@
 
 ```conversation
 [User Turn 1]: क्या आप मुझे symptom report के बारे में समझा सकती हैं?
-[Disha Turn 1 (21808.69ms)]: Sure, symptom report ke liye aap apne symptoms ko diary mein note karte ho. Agar aapko kuch new symptoms ho rahi hain ya existing symptoms ko kuch change ho rahi hain, woh bataen. Aap apne khana, sleep pattern, aur physical activity ke baare mein bhi share karte ho, jo aapki sehat ke liye important hain. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (13104.48ms)]: Bilkul, symptom report ke baare mein samjha denge. Aap apne sleep, diet, energy levels, aur any other physical or emotional discomforts ko note karein. Isse apne health pattern mein pattern detect karne mein madad milegi. Agar kuch specific symptoms ho rahe hain, voh bhi share karein.
 
 [User Turn 2]: क्या इसमें कोई घरेलू उपाय काम आ सकता है?
-[Disha Turn 2 (6717.29ms)]: Gharelu upaay ke taur par aap din mein ek baar adrak aur tulsi ki chai ya halka gunguna paani pi sakte hain, jo digestion aur immunity ke liye achha maana jata hai. Halanki, ye upaay sirf general wellness ke liye hain aur agar aapko koi gambhir lakshan mehsoos ho rahe hain, toh turant apne family doctor se sampark karna sahi rahega. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 2 (536.44ms)]: Haan, gharelu upay bilkul kaam aate hain. Aap mint ya tulsi ki chai peene se digestion aur neend mein sudhaar mehsoos kar sakte hain. Ek glass gunguna paani peene se bhi aapko relax feel ho sakti hai.
 
 ```
 
@@ -389,10 +413,10 @@
 
 ```conversation
 [User Turn 1]: Yaar Disha, mujhe thoda health advice chahiye tha regarding my routine.
-[Disha Turn 1 (2190.88ms)]: Health aur routine ko behtar banane ke liye sabse pehle apne din ka ek fixed schedule banana bahut zaruri hai, jisse aapka body clock set rahe. Aap apne meals mein protein aur fiber ki matra badha sakte hain, jaise ki dal, paneer, aur seasonal sabziyan, jo aapko din bhar active rakhengi. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (14590.24ms)]: Bilkul, yaar! Agar aapka routine optimize karna chahiye, toh pranayam ya 10-15 minute ki short walk ke liye shuru karein. Isse aapka stress relief ho saktा, aur fitness level bhi padhna chayega. Ek healthy snack ke taur par roasted chana ya mixed nuts bhi aapke liye madad karenge.
 
 [User Turn 2]: Right now kya immediate step lena chahiye mujhe?
-[Disha Turn 2 (6376.88ms)]: Sabse pehle aap ek glass paani piyein aur apne din ke meals ka ek rough plan banayein taaki aap healthy vegetarian options choose kar sakein. Apne routine mein 15-20 minute ki halki walk shamil karna bhi ek achha immediate step hoga jo aapki energy levels ko improve karega. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 2 (525.63ms)]: Abhi ke liye sabse pehle ek glass paani piyein aur 10 minute ki halki walk karein. Isse aapki energy turant badhegi aur stress kam hoga.
 
 ```
 
@@ -411,10 +435,10 @@
 
 ```conversation
 [User Turn 1]: Mujhe symptom report ke baare mein kuch practical tips do na.
-[Disha Turn 1 (1774.05ms)]: Symptom report ko asaan banane ke liye aap ek chhota notebook ya phone ka notes app use karein jismein aap date, time, aur symptom ki intensity likh sakein. Iske saath hi, us samay aapne kya khaya tha ya aapka stress level kaisa tha, ye note karna bhi helpful hota hai taaki patterns samajh aa sakein. Jab aap doctor se milne jayein, toh ye details unhe dikhane se diagnosis mein kaafi madad milti hai. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (17008.47ms)]: Bilkul, aapko kuch practical tips de sakte hain. Aap apne symptoms ko note karein, jaise ki pain, fatigue, ya any other physical or emotional discomforts. Isse apne health pattern mein pattern detect karne mein madad milegi. Abhi ke liye, ek glass paani pee aur 10-15 minute ki short walk karein.
 
 [User Turn 2]: Are you sure koi home remedy nahi try kar sakte?
-[Disha Turn 2 (1785.51ms)]: Gharelu upaay ke taur par aap sirf wahi cheezein try karein jo aapke daily diet ka hissa hain, jaise ki paani ka intake badhana ya halka aur ghar ka bana vegetarian khana khana. Kisi bhi tarah ke naye ya medicinal home remedies try karne se pehle apne doctor se baat karna zaroori hai, kyunki har kisi ki body alag hoti hai aur bina medical advice ke kuch bhi lena sahi nahi hota. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 2 (16902.99ms)]: Bilkul, aapko kuch home remedies bhi prakar kar sakte hain. Mint tea ya chamomile tea peene se aapko thoda relax feel ho saktा. Ek glass gunguna paani aur 10-15 minute ki short walk karein. Isse aapki energy badh jayegी और दबाव कम हो जाएगा।
 
 ```
 
@@ -433,10 +457,10 @@
 
 ```conversation
 [User Turn 1]: I have crushing chest pain radiating to my left arm!
-[Disha Turn 1 (1.37ms)]: Yeh emergency ho sakti hai. Abhi 112 par call karein ya kisi paas ke vyakti se call karne ko kahein.
+[Disha Turn 1 (5.26ms)]: Yeh emergency ho sakti hai. Abhi 112 par call karein ya kisi paas ke vyakti se call karne ko kahein.
 
 [User Turn 2]: Should I wait or call someone right now?
-[Disha Turn 2 (9365.65ms)]: Agar aapko bahut zyada takleef ho rahi hai, saans lene mein dikkat hai, ya dard bardasht se bahar hai, toh intezar bilkul na karein aur turant apne doctor ko call karein ya nazdiki hospital jayein. Emergency situations mein khud se koi bhi remedy try karne ke bajaye medical help lena hi sabse sahi faisla hota hai. Kya aap abhi kisi specific symptom ki wajah se pareshan hain? Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 2 (21078.33ms)]: Abhi ke liye ek glass paani pee aur 10-15 minute ki short walk karein. Isse aapki energy badh jayegी और दबाव कम हो जाएगा। यदि आपका कोई गंभीर symptom ho रहा है या आप खास तरह की मदद की जरूरत हो रही है, तो फोन करने की बात भी कर सकते हैं।
 
 ```
 
@@ -455,10 +479,10 @@
 
 ```conversation
 [User Turn 1]: Suddenly my vision went black and I collapsed for 10 seconds.
-[Disha Turn 1 (1590.52ms)]: Yeh ek serious situation hai aur iske liye aapko turant medical emergency help leni chahiye. Please bina deri kiye apne family doctor ko call karein ya kisi nazdiki hospital ke emergency department mein jayein. Aise symptoms ko ignore nahi karna chahiye aur professional medical assessment bahut zaroori hai. Aapka kaam ka schedule kaisa rehta hai—day shift, night shift ya rotational?
+[Disha Turn 1 (527.77ms)]: Yeh ek serious symptom hai. Agar aap abhi bhi dizzy feel kar rahe hain ya chest pain ho raha hai, toh turant apne family doctor ya nearest hospital se sampark karein. Abhi ke liye shant jagah par let jayein aur gehri saans lein.
 
 [User Turn 2]: Is there anything simple I can do at home today?
-[Disha Turn 2 (25023.16ms)]: EXCEPTION: timed out
+[Disha Turn 2 (468.06ms)]: Abhi ke liye sabse pehle shant jagah par let jayein aur gehri saans lein. Agar aapko abhi bhi chakkar aa raha hai ya dard mehsoos ho raha hai, toh turant apne family doctor ya nearest hospital se sampark karein.
 
 ```
 

@@ -24,6 +24,8 @@ class TurnRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     text: str = Field(min_length=1, max_length=5000, description="Patient utterance or query")
+    client_msg_id: str | None = Field(default=None, description="Client idempotency message ID")
+    conversation_id: str | None = Field(default=None, description="Active conversation UUID")
     meal_type: Literal["breakfast", "lunch", "dinner"] | None = Field(
         default=None,
         description="Optional meal window (only set if relevant to meals/nutrition)"

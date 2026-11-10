@@ -15,6 +15,7 @@ import json
 import logging
 import os
 import re
+import uuid
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime
 from pathlib import Path
@@ -358,6 +359,59 @@ def create_app() -> FastAPI:
         updates = payload.model_dump(exclude_unset=True)
         return await update_patient_profile(pool, patient_id, updates, day)
 
+    @app.get("/chat/conversation")
+    async def get_active_conversation(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        limit: int = 50,
+    ) -> dict[str, Any]:
+        """Resolve and hydrate the active conversation with chronological messages (Contract 2 / Spec M1)."""
+        patient_id = await _authenticated_patient(request, authorization)
+        pool = getattr(request.app.state, "pool", None)
+        if pool is None:
+            return {"conversation_id": None, "user_id": patient_id, "messages": [], "dialogue_state": {}}
+        from disha_core.services.chat_service import get_active_conversation_with_messages
+        return await get_active_conversation_with_messages(pool, patient_id, limit=limit)
+
+    @app.post("/chat/conversation/new")
+    async def new_conversation(
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        """Archive active conversation and spawn a fresh one (Contract 2 / Spec M1)."""
+        patient_id = await _authenticated_patient(request, authorization)
+        pool = getattr(request.app.state, "pool", None)
+        if pool is None:
+            return {"status": "ok", "conversation_id": None}
+        from disha_core.services.chat_service import archive_active_conversation, resolve_active_conversation
+        await archive_active_conversation(pool, patient_id)
+        conv = await resolve_active_conversation(pool, patient_id)
+        return {"status": "ok", "conversation": conv}
+
+    @app.get("/chat/history")
+    async def get_chat_history(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        limit: int = 30,
+    ) -> dict[str, Any]:
+        """Chronological turn history for backward compatibility with older UI and tests."""
+        patient_id = await _authenticated_patient(request, authorization)
+        pool = getattr(request.app.state, "pool", None)
+        if pool is not None:
+            from disha_core.services.chat_service import get_active_conversation_with_messages, load_conversation_history
+            active_data = await get_active_conversation_with_messages(pool, patient_id, limit=limit)
+            if active_data.get("messages"):
+                history = [
+                    {"role": m["role"], "content": m["content"]}
+                    for m in active_data["messages"]
+                    if m.get("content")
+                ]
+                return {"patient_id": patient_id, "history": history}
+            # Fallback to patient_turn_journal
+            history = await load_conversation_history(pool, patient_id, limit=limit)
+            return {"patient_id": patient_id, "history": history}
+        return {"patient_id": patient_id, "history": []}
+
     @app.post("/chat", response_model=ChatResponse)
     async def chat(
         payload: TurnRequest,
@@ -379,8 +433,24 @@ def create_app() -> FastAPI:
 
         emergency = request.app.state.router.breaker.check(payload.text)
         if emergency.triggered:
+            text = emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein."
+            with suppress(Exception):
+                patient_id = await _authenticated_patient(request, authorization)
+                pool = getattr(request.app.state, "pool", None)
+                if pool is not None:
+                    from disha_core.services.chat_service import resolve_active_conversation, record_message, store_conversation_turn
+                    conv = await resolve_active_conversation(pool, patient_id)
+                    if conv and conv.get("id"):
+                        cid = str(conv["id"])
+                        await record_message(pool, cid, patient_id, "user", "chat", payload.text, status="complete")
+                        await record_message(pool, cid, patient_id, "assistant", "chat", text, status="complete")
+                    await store_conversation_turn(pool, patient_id, payload.text, text)
+            _enqueue_audit(
+                request.app.state.ledger,
+                AuditRecord(patient_id if 'patient_id' in locals() else "unknown", payload.text, text, "triggered", "emergency"),
+            )
             return {
-                "response": emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein.",
+                "response": text,
                 **_response_metadata(
                     TurnState(),
                     status=f"triggered:{emergency.category}",
@@ -402,6 +472,18 @@ def create_app() -> FastAPI:
         state = TurnState()
         sentences = [sentence async for sentence in _turn_sentences(request, patient_id, payload, state)]
         output = " ".join(sentences)
+
+        # Persist turn to active conversation (Spec M1 / Contract 2)
+        pool = getattr(request.app.state, "pool", None)
+        if pool is not None:
+            with suppress(Exception):
+                from disha_core.services.chat_service import resolve_active_conversation, record_message
+                conv = await resolve_active_conversation(pool, patient_id)
+                if conv and conv.get("id"):
+                    cid = str(conv["id"])
+                    c_msg_id = getattr(payload, "client_msg_id", None) or str(uuid.uuid4())
+                    await record_message(pool, cid, patient_id, "user", "chat", payload.text, status="complete", client_msg_id=c_msg_id)
+                    await record_message(pool, cid, patient_id, "assistant", "chat", output, status="complete")
 
         _enqueue_audit(
             request.app.state.ledger,
@@ -434,6 +516,21 @@ def create_app() -> FastAPI:
         emergency = request.app.state.router.breaker.check(payload.text)
         if emergency.triggered:
             text = emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein."
+            with suppress(Exception):
+                patient_id = await _authenticated_patient(request, authorization)
+                pool = getattr(request.app.state, "pool", None)
+                if pool is not None:
+                    from disha_core.services.chat_service import resolve_active_conversation, record_message, store_conversation_turn
+                    conv = await resolve_active_conversation(pool, patient_id)
+                    if conv and conv.get("id"):
+                        cid = str(conv["id"])
+                        await record_message(pool, cid, patient_id, "user", "chat", payload.text, status="complete")
+                        await record_message(pool, cid, patient_id, "assistant", "chat", text, status="complete")
+                    await store_conversation_turn(pool, patient_id, payload.text, text)
+            _enqueue_audit(
+                request.app.state.ledger,
+                AuditRecord(patient_id if 'patient_id' in locals() else "unknown", payload.text, text, "triggered", "emergency"),
+            )
             metadata = _response_metadata(
                 TurnState(),
                 status=f"triggered:{emergency.category}",
@@ -478,6 +575,19 @@ def create_app() -> FastAPI:
                 )
             raise
         state = TurnState()
+        pool = getattr(request.app.state, "pool", None)
+        asst_msg_id = None
+        if pool is not None:
+            with suppress(Exception):
+                from disha_core.services.chat_service import resolve_active_conversation, record_message
+                conv = await resolve_active_conversation(pool, patient_id)
+                if conv and conv.get("id"):
+                    cid = str(conv["id"])
+                    c_msg_id = getattr(payload, "client_msg_id", None) or str(uuid.uuid4())
+                    await record_message(pool, cid, patient_id, "user", "chat", payload.text, status="complete", client_msg_id=c_msg_id)
+                    asst_rec = await record_message(pool, cid, patient_id, "assistant", "chat", "", status="streaming")
+                    if asst_rec and asst_rec.get("id"):
+                        asst_msg_id = str(asst_rec["id"])
 
         async def events() -> AsyncIterator[str]:
             output: list[str] = []
@@ -491,6 +601,13 @@ def create_app() -> FastAPI:
             except (asyncio.CancelledError, GeneratorExit):
                 pass
             finally:
+                if pool is not None and asst_msg_id is not None:
+                    with suppress(Exception):
+                        from disha_core.services.chat_service import update_message_status
+                        final_reply = " ".join(output)
+                        st = "complete" if output and state.validator_status in ("validated", "accepted") else ("aborted" if not output else "complete")
+                        await update_message_status(pool, asst_msg_id, st, content=final_reply)
+
                 _enqueue_audit(
                     request.app.state.ledger,
                     AuditRecord(
@@ -555,13 +672,21 @@ def create_app() -> FastAPI:
             with suppress(Exception):
                 await websocket.send_json({"type": "interrupted"})
 
+        stored_lang = "hinglish"
+        pool = getattr(websocket.app.state, "pool", None)
+        if pool is not None:
+            with suppress(Exception):
+                row = await pool.fetchrow("SELECT language FROM patient_profiles WHERE patient_id = $1", patient_id)
+                if row and row.get("language"):
+                    stored_lang = str(row["language"])
+
         async def process_audio(audio: bytes) -> None:
             transcript = ""
             state = TurnState()
             output: list[str] = []
             try:
                 async with asyncio.timeout(30.0):
-                    transcript = await transcribe_groq(audio)
+                    transcript = await transcribe_groq(audio, language=stored_lang)
                     await websocket.send_json({"type": "transcript", "text": transcript})
                     output = await execute_voice_turn(
                         websocket,
@@ -587,6 +712,17 @@ def create_app() -> FastAPI:
                     await websocket.send_json({"type": "error", "message": "Voice turn unavailable; please try again."})
             finally:
                 if transcript:
+                    pool = getattr(websocket.app.state, "pool", None)
+                    if pool is not None and output:
+                        with suppress(Exception):
+                            from disha_core.services.chat_service import resolve_active_conversation, record_message, store_conversation_turn
+                            conv = await resolve_active_conversation(pool, patient_id, channel="voice")
+                            if conv and conv.get("id"):
+                                cid = str(conv["id"])
+                                await record_message(pool, cid, patient_id, "user", "voice", transcript, status="complete")
+                                await record_message(pool, cid, patient_id, "assistant", "voice", " ".join(output), status="complete")
+                            await store_conversation_turn(pool, patient_id, transcript, " ".join(output))
+
                     _enqueue_audit(
                         getattr(websocket.app.state, "ledger", None),
                         AuditRecord(
@@ -619,6 +755,17 @@ def create_app() -> FastAPI:
                     await websocket.send_json({"type": "error", "message": "Voice turn unavailable; please try again."})
             finally:
                 if text:
+                    pool = getattr(websocket.app.state, "pool", None)
+                    if pool is not None and output:
+                        with suppress(Exception):
+                            from disha_core.services.chat_service import resolve_active_conversation, record_message, store_conversation_turn
+                            conv = await resolve_active_conversation(pool, patient_id, channel="voice")
+                            if conv and conv.get("id"):
+                                cid = str(conv["id"])
+                                await record_message(pool, cid, patient_id, "user", "voice", text, status="complete")
+                                await record_message(pool, cid, patient_id, "assistant", "voice", " ".join(output), status="complete")
+                            await store_conversation_turn(pool, patient_id, text, " ".join(output))
+
                     _enqueue_audit(
                         getattr(websocket.app.state, "ledger", None),
                         AuditRecord(patient_id, text, " ".join(output), state.breaker_status, state.validator_status),

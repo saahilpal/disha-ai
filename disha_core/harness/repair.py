@@ -86,6 +86,39 @@ async def repair_turn(
             logger.warning("LLM call during repair attempt %d failed: %s", attempt, exc)
             break
 
-    # If attempts exhausted, apply constrained fallback
+    # If attempts exhausted, attempt 1 strict regeneration constrained to the chosen move
+    from disha_core.config import get_settings
+    settings = get_settings()
+    if getattr(settings, "behavior_spec_v1", True) or context.get("behavior_spec_v1", True):
+        chosen_move = context.get("chosen_move") or "natural_reply"
+        strict_prompt = (
+            f"{prompt}\n\n"
+            f"[STRICT FINAL REGENERATION - CONSTRAINED TO MOVE: {chosen_move}]\n"
+            f"Generate a strictly compliant, 1-2 sentence plain text response executing ONLY the move '{chosen_move}'.\n"
+            f"Rules: at most 1 question, zero medication or diagnostic advice, zero echo of user numbers, no honorifics.\n"
+        )
+        try:
+            chunks: list[str] = []
+            try:
+                stream_iter = llm_client.stream(strict_prompt, messages=messages)
+            except TypeError:
+                stream_iter = llm_client.stream(strict_prompt)
+            async for chunk in stream_iter:
+                if chunk:
+                    chunks.append(chunk)
+            candidate_text = "".join(chunks).strip()
+            if candidate_text:
+                candidate_res = verify_response(candidate_text, context)
+                if candidate_res.is_valid:
+                    logger.info("Response successfully repaired on strict constrained regeneration")
+                    return candidate_text, True, repaired_violations
+        except Exception as exc:
+            logger.warning("Strict constrained regeneration failed: %s", exc)
+
+        # In Behavior Spec v1, no canned answer-shaped fallbacks; return clearly labeled system error
+        sys_err = format_system_error("Safety verification threshold exceeded")
+        return sys_err, False, repaired_violations
+
+    # Legacy rollback fallback
     fallback = apply_constrained_fallback(current_text, violations, context)
     return fallback, False, repaired_violations

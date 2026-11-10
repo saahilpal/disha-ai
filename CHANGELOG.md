@@ -9,6 +9,28 @@ Style Standard: Strict technical precision, zero emojis.
 
 ---
 
+## [1.3.0] - 2026-11-10
+
+### Added
+- **Behavior Spec v1 (Owner-Provided Implementation)**:
+  - Added `data/behavior_rules.yaml` as the canonical single source of truth for all 18 rules (P1-P6, F1-F5, C1-C4, M1-M3).
+  - Added deterministic system prompt generation rendering `data/behavior_rules.yaml` into ≤600-token prompt (585 tokens) with version hash (`v1-9f113b222df1`) in `disha_core/llm/client.py`.
+  - Added `TurnPerception` schema and deterministic precedence move selector in `disha_core/harness/perception.py`.
+  - Added multilingual behavior rule verifiers in `disha_core/harness/verifier.py`: P3 (script & language mode), P4 (banned honorifics), P6/F3 (sentence count ≤3, char cap ≤450), F1 (zero-echo cross-script), F2 (at most 1 question), F4 (selective empathy gated on distress), and C2 (clinical boundary table).
+  - Added `tests/test_behavior_spec_v1.py` with 25 unit tests validating all rules, precedence chain, and flag rollback.
+  - Added first-run one-tap language choice modal in `disha_core/frontend/app.js` with localized options for Hinglish, हिन्दी, and English.
+  - Added D5 silent 2-turn language switch in `disha_core/harness/harness.py`.
+  - Added unified persistence endpoints `GET /chat/conversation` and `POST /chat/conversation/new` in `disha_core/main.py`.
+  - Wired message and conversation recording for SSE streams (`POST /chat/stream`), sync turns (`POST /chat`), and voice WebSocket (`/voice`).
+  - Added `data/i18n/{en,hi,hinglish}.yaml` and `data/c2_boundary.yaml` data catalogs.
+
+### Changed
+- Replaced 1,446-token prompt with 585-token versioned prompt, achieving a 59.5% token reduction.
+- Replaced sentence-by-sentence chat streaming verification with whole-draft verification, guaranteeing turn-level conformance.
+- Replaced canned answer-shaped fallback strings with LLM-only repair loop (max 2 attempts + 1 strict constrained regeneration).
+
+---
+
 ## [1.2.0] - 2026-11-09
 
 ### Added

@@ -1246,34 +1246,123 @@
     await fetchPatientProfile();
     const hasHistory = await fetchChatHistory();
 
-    if (!hasHistory && state.patientName) {
-      const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
-      if (stream) {
-        const streamText = stream.innerText || stream.textContent || '';
-        if (!streamText.includes(`Namaste ${state.patientName}`)) {
-          appendChatMessage('assistant', `Namaste ${state.patientName}! Main Disha hoon, aapki personal AI health coach. Aaj aap kaisa mehsoos kar rahe hain?`);
+    if (!hasHistory) {
+      const chosenLang = (typeof localStorage !== 'undefined' && localStorage.getItem('disha_language_chosen'));
+      if (!chosenLang) {
+        showFirstRunLanguageModal();
+      } else if (state.patientName) {
+        const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
+        if (stream) {
+          const streamText = stream.innerText || stream.textContent || '';
+          if (!streamText.includes(`Namaste ${state.patientName}`)) {
+            appendChatMessage('assistant', `Namaste ${state.patientName}! Main Disha hoon, aapki personal AI health coach. Aaj aap kaisa mehsoos kar rahe hain?`);
+          }
         }
       }
     }
+  }
+
+  function showFirstRunLanguageModal() {
+    if (typeof document === 'undefined') return;
+    const existing = document.getElementById('first-run-lang-modal');
+    if (existing) return;
+
+    const modal = document.createElement('div');
+    modal.id = 'first-run-lang-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(4px);';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:28px;max-width:420px;width:90%;box-shadow:0 20px 40px rgba(0,0,0,0.2);text-align:center;">
+        <h3 style="margin:0 0 8px;font-size:20px;color:#1a202c;">Choose your language</h3>
+        <p style="margin:0 0 20px;font-size:14px;color:#718096;">अपनी भाषा चुनें / Select your coaching language</p>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <button type="button" class="lang-opt-btn" data-lang="hinglish" style="padding:14px;border:2px solid #e2e8f0;border-radius:12px;background:#f7fafc;font-size:16px;font-weight:600;cursor:pointer;color:#2d3748;transition:all 0.2s;">
+            Hinglish <span style="font-size:12px;color:#718096;display:block;font-weight:normal;">(Default — Mix of Hindi & English)</span>
+          </button>
+          <button type="button" class="lang-opt-btn" data-lang="hindi" style="padding:14px;border:2px solid #e2e8f0;border-radius:12px;background:#f7fafc;font-size:16px;font-weight:600;cursor:pointer;color:#2d3748;transition:all 0.2s;">
+            हिन्दी <span style="font-size:12px;color:#718096;display:block;font-weight:normal;">(Devanagari Hindi)</span>
+          </button>
+          <button type="button" class="lang-opt-btn" data-lang="english" style="padding:14px;border:2px solid #e2e8f0;border-radius:12px;background:#f7fafc;font-size:16px;font-weight:600;cursor:pointer;color:#2d3748;transition:all 0.2s;">
+            English <span style="font-size:12px;color:#718096;display:block;font-weight:normal;">(Clear, casual English)</span>
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    const buttons = modal.querySelectorAll('.lang-opt-btn');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const selected = btn.getAttribute('data-lang') || 'hinglish';
+        state.language = selected;
+        try {
+          localStorage.setItem('disha_language', selected);
+          localStorage.setItem('disha_language_chosen', 'true');
+        } catch (e) {}
+        if (dom.onboardLanguage) dom.onboardLanguage.value = selected;
+        if (dom.languageSelect) dom.languageSelect.value = selected;
+
+        if (state.token) {
+          const config = getBackendConfig();
+          try {
+            await fetch(`${config.httpBase}/patient/profile`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${state.token}`
+              },
+              body: JSON.stringify({ language: selected })
+            });
+          } catch (err) {
+            console.warn('Failed to save language to backend:', err);
+          }
+        }
+        modal.remove();
+
+        const greetings = {
+          hinglish: `Namaste ${state.patientName || ''}! Main Disha hoon, aapki personal AI health coach. Aaj aap kaisa feel kar rahe hain?`,
+          hindi: `नमस्ते ${state.patientName || ''}! मैं दिशा हूँ, आपकी पर्सनल AI हेल्थ कोच। आज आप कैसा महसूस कर रहे हैं?`,
+          english: `Hello ${state.patientName || ''}! I'm Disha, your personal AI health coach. How are you feeling today?`
+        };
+        const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
+        if (stream && !stream.innerText.trim()) {
+          appendChatMessage('assistant', greetings[selected] || greetings.hinglish);
+        }
+      });
+    });
   }
 
   async function fetchChatHistory() {
     if (!state.token) return false;
     try {
       const config = getBackendConfig();
-      const res = await fetch(`${config.httpBase}/chat/history?limit=30`, {
+      // Hydrate from active conversation endpoint first (Contract 2 / Spec M1)
+      let res = await fetch(`${config.httpBase}/chat/conversation?limit=50`, {
         headers: {
           'Authorization': `Bearer ${state.token}`
         }
       });
+      if (!res.ok) {
+        res = await fetch(`${config.httpBase}/chat/history?limit=30`, {
+          headers: {
+            'Authorization': `Bearer ${state.token}`
+          }
+        });
+      }
       if (res.ok) {
         const data = await res.json();
-        const history = data.history || [];
+        if (data.conversation_id) {
+          state.conversationId = data.conversation_id;
+        }
+        const history = data.messages || data.history || [];
         const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
         if (stream && history.length > 0) {
           stream.innerHTML = '';
           for (const turn of history) {
-            appendChatMessage(turn.role === 'assistant' ? 'assistant' : 'user', turn.content);
+            const role = turn.role === 'assistant' ? 'assistant' : 'user';
+            const content = turn.content || '';
+            if (content) {
+              appendChatMessage(role, content);
+            }
           }
           return true;
         }
@@ -2777,6 +2866,13 @@
     state.activeStreamAbortController = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const fetchSignal = state.activeStreamAbortController ? state.activeStreamAbortController.signal : undefined;
 
+    const clientMsgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    const turnPayload = {
+      text: text,
+      client_msg_id: clientMsgId,
+      conversation_id: state.conversationId || undefined
+    };
+
     try {
       let res;
       try {
@@ -2786,7 +2882,7 @@
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${state.token}`,
           },
-          body: JSON.stringify({ text: text }),
+          body: JSON.stringify(turnPayload),
           signal: fetchSignal,
         });
       } catch (fetchErr) {
@@ -2802,7 +2898,7 @@
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${state.token}`,
           },
-          body: JSON.stringify({ text: text }),
+          body: JSON.stringify(turnPayload),
           signal: fetchSignal,
         });
         if (!fallbackRes.ok) {

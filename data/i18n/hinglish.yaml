@@ -1,0 +1,26 @@
+# Hinglish (Roman script, casual code-mixed) — default mode
+language: hinglish
+label: "Hinglish"
+
+emergency_text: "Yeh emergency ho sakti hai. Abhi 112 par call karein ya nearest hospital jaayein. Please kisi ko saath rakhein."
+unsupported_language_text: "Sorry, main sirf English, Hindi aur Hinglish samajhti hoon."
+system_error_text: "[System Error: Kripya thodi der baad try karein.]"
+language_choice_prompt: "Aap kis language mein baat karna chahenge?"
+expert_call_cta: "Ek 10-minute expert call se aapko better guidance mil sakti hai."
+
+banned_honorifics:
+  - "ji"
+  - "sir"
+  - "ma'am"
+  - "madam"
+  - "sahab"
+  - "sahib"
+  - "shrimaan"
+  - "shreemati"
+
+# Labels shown on the language-choice screen (all 3 languages visible)
+language_choice_labels:
+  english: "English"
+  hindi: "हिन्दी"
+  hinglish: "Hinglish"
+

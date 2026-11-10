@@ -1,0 +1,20 @@
+# English — casual, plain English; no Hindi words
+language: english
+label: "English"
+
+emergency_text: "This could be an emergency. Please call 112 immediately or go to the nearest hospital. Keep someone with you."
+unsupported_language_text: "Sorry, I only understand English, Hindi, and Hinglish."
+system_error_text: "[System Error: Please try again in a moment.]"
+language_choice_prompt: "Which language would you like to chat in?"
+expert_call_cta: "A 10-minute expert call can give you better guidance on this."
+
+banned_honorifics:
+  - "sir"
+  - "ma'am"
+  - "madam"
+
+language_choice_labels:
+  english: "English"
+  hindi: "हिन्दी"
+  hinglish: "Hinglish"
+

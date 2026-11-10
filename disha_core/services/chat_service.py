@@ -167,6 +167,172 @@ async def _load_history_on_conn(
     return history
 
 
+# ---------------------------------------------------------------------------
+# Active Conversations & Unified Messages Persistence (Contract 2 / Spec M1)
+# ---------------------------------------------------------------------------
+
+async def _with_conn(conn_or_pool: Any, coro_func: Any, *args: Any, **kwargs: Any) -> Any:
+    if conn_or_pool is None:
+        return None
+    if hasattr(conn_or_pool, "acquire") and callable(conn_or_pool.acquire):
+        acq = conn_or_pool.acquire()
+        if hasattr(acq, "__aenter__"):
+            async with acq as conn:
+                return await coro_func(conn, *args, **kwargs)
+        elif hasattr(acq, "__await__"):
+            conn = await acq
+            return await coro_func(conn, *args, **kwargs)
+    return await coro_func(conn_or_pool, *args, **kwargs)
+
+
+async def resolve_active_conversation(
+    conn_or_pool: Any, patient_id: str, channel: str = "chat"
+) -> dict[str, Any]:
+    """Atomically find or create the active (unarchived) conversation for patient_id."""
+    async def _resolve(conn: Any) -> dict[str, Any]:
+        row = await conn.fetchrow(
+            "SELECT id, user_id, channel, created_at, last_message_at, archived "
+            "FROM conversations WHERE user_id = $1 AND archived = FALSE",
+            patient_id,
+        )
+        if row:
+            return dict(row)
+        # Create new active conversation
+        new_row = await conn.fetchrow(
+            "INSERT INTO conversations (user_id, channel, archived) "
+            "VALUES ($1, $2, FALSE) "
+            "ON CONFLICT (user_id) WHERE (archived = FALSE) "
+            "DO UPDATE SET last_message_at = NOW() "
+            "RETURNING id, user_id, channel, created_at, last_message_at, archived",
+            patient_id,
+            channel,
+        )
+        return dict(new_row) if new_row else {}
+
+    return await _with_conn(conn_or_pool, _resolve)
+
+
+async def archive_active_conversation(conn_or_pool: Any, patient_id: str) -> None:
+    """Archive current active conversation for patient."""
+    async def _archive(conn: Any) -> None:
+        await conn.execute(
+            "UPDATE conversations SET archived = TRUE WHERE user_id = $1 AND archived = FALSE",
+            patient_id,
+        )
+    await _with_conn(conn_or_pool, _archive)
+
+
+async def record_message(
+    conn_or_pool: Any,
+    conversation_id: str,
+    patient_id: str,
+    role: str,
+    channel: str,
+    content: str,
+    status: str = "complete",
+    client_msg_id: str | None = None,
+    meta: dict | None = None,
+) -> dict[str, Any]:
+    """Insert a message with auto-incrementing seq and client_msg_id idempotency."""
+    async def _insert(conn: Any) -> dict[str, Any]:
+        max_seq = await conn.fetchval(
+            "SELECT COALESCE(MAX(seq), 0) FROM messages WHERE conversation_id = $1::uuid",
+            conversation_id,
+        )
+        next_seq = int(max_seq or 0) + 1
+        meta_json = json.dumps(meta or {})
+        row = await conn.fetchrow(
+            """INSERT INTO messages (conversation_id, user_id, seq, role, channel, content, status, client_msg_id, meta)
+               VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+               ON CONFLICT (conversation_id, client_msg_id) 
+               DO UPDATE SET content = EXCLUDED.content, status = EXCLUDED.status
+               RETURNING id, conversation_id, seq, role, channel, content, status, client_msg_id, created_at""",
+            conversation_id,
+            patient_id,
+            next_seq,
+            role,
+            channel,
+            content,
+            status,
+            client_msg_id,
+            meta_json,
+        )
+        await conn.execute(
+            "UPDATE conversations SET last_message_at = NOW() WHERE id = $1::uuid",
+            conversation_id,
+        )
+        return dict(row) if row else {}
+
+    return await _with_conn(conn_or_pool, _insert)
+
+
+async def update_message_status(
+    conn_or_pool: Any,
+    message_id: str,
+    status: str,
+    content: str | None = None,
+) -> None:
+    """Update message status ('complete' or 'aborted') and optionally final content."""
+    async def _update(conn: Any) -> None:
+        if content is not None:
+            await conn.execute(
+                "UPDATE messages SET status = $1, content = $2, completed_at = NOW() WHERE id = $3::uuid",
+                status,
+                content,
+                message_id,
+            )
+        else:
+            await conn.execute(
+                "UPDATE messages SET status = $1, completed_at = NOW() WHERE id = $2::uuid",
+                status,
+                message_id,
+            )
+    await _with_conn(conn_or_pool, _update)
+
+
+async def get_active_conversation_with_messages(
+    conn_or_pool: Any, patient_id: str, limit: int = 50
+) -> dict[str, Any]:
+    """Retrieve the active conversation entity and its chronological messages for frontend hydration."""
+    conv = await resolve_active_conversation(conn_or_pool, patient_id)
+    if not conv or not conv.get("id"):
+        return {"conversation_id": None, "messages": [], "dialogue_state": {}}
+
+    conv_id = conv["id"]
+
+    async def _fetch_msgs(conn: Any) -> list[dict[str, Any]]:
+        rows = await conn.fetch(
+            "SELECT id, seq, role, channel, content, status, client_msg_id, created_at "
+            "FROM messages WHERE conversation_id = $1::uuid "
+            "ORDER BY seq ASC LIMIT $2",
+            str(conv_id),
+            limit,
+        )
+        return [
+            {
+                "id": str(r["id"]),
+                "seq": r["seq"],
+                "role": r["role"],
+                "channel": r["channel"],
+                "content": r["content"],
+                "status": r["status"],
+                "client_msg_id": r["client_msg_id"],
+                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+            }
+            for r in rows
+        ]
+
+    msgs = await _with_conn(conn_or_pool, _fetch_msgs) or []
+    return {
+        "conversation_id": str(conv_id),
+        "user_id": patient_id,
+        "created_at": conv["created_at"].isoformat() if conv.get("created_at") else None,
+        "last_message_at": conv["last_message_at"].isoformat() if conv.get("last_message_at") else None,
+        "messages": msgs,
+        "dialogue_state": {},
+    }
+
+
 async def store_patient_fact(
     conn_or_pool: Any,
     patient_id: str,

@@ -64,3 +64,12 @@ Every non-trivial modification to the repository must be recorded in this ledger
 - **Evidence/Metric**: Created 7 diagrams in `docs/architecture/` and built `scripts/diagram-check` validating all diagrams and components against real code symbols.
 - **Files**: `docs/architecture/*.md`, `scripts/diagram-check`
 - **Safety**: Eliminates architectural drift between documentation and production code.
+
+---
+
+### [CHANGE-008] Behavior Spec v1 Implementation & Zero-Drift Single Source of Truth
+- **Date**: 2026-11-10
+- **Reason**: Owner provided final Behavior Spec v1. Replaces bloated 1,446-token prompt, removes canned fallbacks, enforces History Triangle (C1), no-advice boundaries (C2), zero-echo (F1), single question (F2), and WhatsApp length (P6/F3).
+- **Evidence/Metric**: Created `data/behavior_rules.yaml`. Prompt rendered dynamically at 585 tokens (59.5% reduction) with version hash (`v1-9f113b222df1`). Added 25 unit tests in `tests/test_behavior_spec_v1.py` (all passing). Full test suite: 164 passed in 9.03s.
+- **Files**: `data/behavior_rules.yaml`, `disha_core/llm/client.py`, `disha_core/harness/perception.py`, `disha_core/harness/verifier.py`, `disha_core/harness/repair.py`, `disha_core/harness/harness.py`, `disha_core/services/chat_service.py`, `disha_core/main.py`, `disha_core/frontend/app.js`, `tests/test_behavior_spec_v1.py`, `docs/spec/*`.
+- **Safety**: Clinical safety invariants enforced deterministically; emergency breaker (<5ms) and C2 boundary tables validated before display. Gated by `BEHAVIOR_SPEC_V1` flag for instant rollback.

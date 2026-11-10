@@ -11,7 +11,48 @@ from urllib.parse import quote, urlsplit
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are Disha, an empathetic, intelligent personal health coach. Return plain text only without markdown formatting. Never claim to be a doctor, clinician, or human. Do not state prices or paid services unless verified pricing is provided in the current context. Never promise external delivery unless the current context confirms it.
+import hashlib as _hashlib
+from pathlib import Path as _Path
+
+def _load_behavior_rules() -> list[dict]:
+    """Load rules from data/behavior_rules.yaml at module import."""
+    rules_path = _Path(__file__).resolve().parent.parent.parent / "data" / "behavior_rules.yaml"
+    if not rules_path.exists():
+        # Fallback: try disha_core/data
+        rules_path = _Path(__file__).resolve().parent.parent / "data" / "behavior_rules.yaml"
+    if not rules_path.exists():
+        return []
+    try:
+        import yaml
+        with open(rules_path, encoding="utf-8") as f:
+            data = yaml.safe_load(f)
+        return data.get("rules", [])
+    except Exception:
+        return []
+
+def _render_spec_v1_prompt(rules: list[dict]) -> tuple[str, str]:
+    """Render ≤600-token system prompt from behavior_rules.yaml. Returns (prompt, hash)."""
+    prompt = (
+        "You are Disha, an AI health coach. Plain text only, no markdown.\n"
+        "RULES:\n"
+    )
+    for r in rules:
+        prompt += f"[{r['id']}] {r['text']}\n"
+    prompt += (
+        "\nPRECEDENCE: C3>honesty>C2>M2>C1>F5+C4>style.\n"
+        "CONTEXT: <USER_LANGUAGE>, <PATIENT_SLOTS>, <PEP_BRIEF>, <CLINICAL_GROUNDING>, <RELEVANT_PAST_CONVERSATION>.\n"
+        "Never hallucinate memories or invent facts.\n"
+        "{language_instruction}"
+    )
+    h = _hashlib.sha256(prompt.encode()).hexdigest()[:12]
+    prompt += f"\n# PROMPT_VERSION: v1-{h}"
+    return prompt, f"v1-{h}"
+
+_BEHAVIOR_RULES = _load_behavior_rules()
+_SPEC_V1_PROMPT, PROMPT_VERSION = _render_spec_v1_prompt(_BEHAVIOR_RULES) if _BEHAVIOR_RULES else ("", "v0-legacy")
+
+# Legacy prompt kept for rollback via BEHAVIOR_SPEC_V1=false
+_LEGACY_SYSTEM_PROMPT = """You are Disha, an empathetic, intelligent personal health coach. Return plain text only without markdown formatting. Never claim to be a doctor, clinician, or human. Do not state prices or paid services unless verified pricing is provided in the current context. Never promise external delivery unless the current context confirms it.
 
 RESPONSE LENGTH & TOKEN EFFICIENCY:
 - Keep responses short, concise, and token-efficient (typically 2 to 4 focused sentences). Never write lengthy walls of text.
@@ -66,6 +107,23 @@ INSTRUCTION HIERARCHY & PRIORITY DISCIPLINE:
 3. Conversational Context & Natural Flow: Maintain dialogue flow and acknowledge short replies (e.g. "okay", "haan", "hmm") without forcing questions.
 4. Accurate Profile Memory (PEP): Accurately reflect verified disclosures without inventing facts.
 5. Optional Onboarding Progress: Progressive profile gathering is strictly secondary to coaching. Never force an inquiry when the user is discussing an ongoing health topic."""
+
+def get_system_prompt(behavior_spec_v1: bool = True, language_mode: str = "hinglish") -> str:
+    """Return the active system prompt, with language instruction injected."""
+    if not behavior_spec_v1:
+        return _LEGACY_SYSTEM_PROMPT
+    lang_instructions = {
+        "hinglish": "LANGUAGE MODE: Hinglish (Roman script, casual code-mixed). No Devanagari. Stay casual.",
+        "en": "LANGUAGE MODE: English (casual, plain). No Hindi words. Stay casual.",
+        "english": "LANGUAGE MODE: English (casual, plain). No Hindi words. Stay casual.",
+        "hi": "LANGUAGE MODE: Hindi (Devanagari, casual spoken). Common English loanwords in Devanagari. No bookish register.",
+        "hindi": "LANGUAGE MODE: Hindi (Devanagari, casual spoken). Common English loanwords in Devanagari. No bookish register.",
+    }
+    lang_line = lang_instructions.get(language_mode, lang_instructions["hinglish"])
+    return _SPEC_V1_PROMPT.replace("{language_instruction}", f"\n{lang_line}\n")
+
+# Default export for backward compatibility
+SYSTEM_PROMPT = get_system_prompt()
 
 _RETIRED_MODELS = {
     "llama-3.3-70b-versatile": "openai/gpt-oss-120b",

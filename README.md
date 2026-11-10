@@ -89,12 +89,15 @@ The host must remain powered on, connected to the internet, and running the loca
 
 ## Documentation
 
+- **Docs Map:** [Complete Documentation Index](docs/README.md)
+- **Behavior Spec v1:** [Behavior Spec v1 (Owner Provided)](docs/spec/BEHAVIOR_SPEC.md) & [Enforcement Matrix](docs/spec/ENFORCEMENT_MATRIX.md)
+- **How It Works:** [System Execution & Port Tour](docs/HOW_IT_WORKS.md)
+- **Theory & Cognition:** [How Disha Thinks (Decision Pipeline)](docs/theory/HOW_DISHA_THINKS.md)
+- **Learnings & RCA:** [Consolidated Engineering Learnings](docs/LEARNINGS.md)
+- **Interview & QA:** [20 Engineering Questions & Answers](docs/interview/QA.md) and [Project Story](docs/interview/STORY.md)
 - [Architecture](docs/ARCHITECTURE.md)
 - [Deployment and local services](docs/DEPLOYMENT.md)
 - [Memory, onboarding, and PEP](docs/MEMORY_AND_PEP.md)
-- [Patient memory design archive (historical)](docs/PATIENT_MEMORY_SYSTEM.md)
-- [Knowledge inventory and limits](docs/knowledge/INVENTORY.md)
-- [Knowledge/RAG flow](docs/architecture/04_rag_ingestion_and_retrieval.md)
 - [Voice pipeline](docs/VOICE_PIPELINE.md)
 - [Security notes](docs/SECURITY.md)
 

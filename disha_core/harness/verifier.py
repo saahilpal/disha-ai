@@ -339,6 +339,202 @@ def check_pep_and_clinical_bounds(text: str, context: dict[str, Any]) -> list[Ve
     return violations
 
 
+# ---------------------------------------------------------------------------
+# Behavior Spec v1 Deterministic Verifiers (P3, P4, P6/F3, F1, F2, F4, C2)
+# ---------------------------------------------------------------------------
+
+DEVANAGARI_RE = re.compile(r"[\u0900-\u097F]")
+ROMAN_HINDI_COMMON_RE = re.compile(r"\b(aap|aapka|aapko|hai|hain|kripya|karein|karo|nahi|nhi|mein|batao|theek|kaisa|kaise|kyun|kya|hoga)\b", re.I)
+
+BANNED_HONORIFICS_RE = re.compile(
+    r"\b(ji\s+sir|ji\s+ma'?am|ji\s+madam|sir|ma'?am|madam|sahab|sahib|shrimaan|shreemati)\b|"
+    r"(?:जी\s*सर|जी\s*मैम|सर|मैम|मैडम|साहब|साहिब|श्रीमान|श्रीमती)",
+    re.I,
+)
+
+C2_MEDICATION_DOSE_RE = re.compile(r"\b\d+\s*(?:mg|ml|mcg|tablets?|capsules?|goli)\b", re.I)
+C2_MED_NAMES_RE = re.compile(r"\b(metformin|paracetamol|ibuprofen|aspirin|omeprazole|atorvastatin|amlodipine|insulin)\b", re.I)
+C2_DIAGNOSIS_RE = re.compile(
+    r"\b(?:you\s+have\s+(?:diabetes|hypertension|pcos|thyroid|asthma|depression|anxiety|gerd)|"
+    r"aapko\s+(?:diabetes|hypertension|pcos|thyroid|asthma|depression|anxiety|gerd)\s+hai)\b",
+    re.I,
+)
+C2_TREATMENT_PLAN_RE = re.compile(r"\b(?:treatment\s+plan|start\s+taking|stop\s+taking|double\s+the\s+dose|halve\s+the\s+dose)\b", re.I)
+
+
+def split_sentences_multilingual(text: str) -> list[str]:
+    """Split text into sentences handling '.', '?', '!', '।', and newlines."""
+    raw = re.split(r"(?<=[.?!।\n])\s+", text.strip())
+    return [s.strip() for s in raw if s.strip()]
+
+
+def check_p3_language_mode(text: str, language_mode: str = "hinglish") -> VerificationViolation | None:
+    """P3: Natural Hinglish in Roman script (no Devanagari); English (no Hindi/Devanagari); Hindi (mostly Devanagari)."""
+    lang = (language_mode or "hinglish").lower()
+    has_devanagari = bool(DEVANAGARI_RE.search(text))
+
+    if lang in ("hinglish", "en", "english"):
+        if has_devanagari:
+            return VerificationViolation(
+                check_name="p3_script_mismatch",
+                description=f"Response contains Devanagari script while language mode is {lang}",
+                specific_feedback=f"Use Roman script only for {lang}. Avoid Devanagari characters.",
+            )
+        if lang in ("en", "english"):
+            hindi_matches = ROMAN_HINDI_COMMON_RE.findall(text)
+            if len(hindi_matches) >= 2:
+                return VerificationViolation(
+                    check_name="p3_english_pure",
+                    description="Response contains Hindi words in English language mode",
+                    specific_feedback="Use clear, casual English without Hindi words in English mode.",
+                )
+    elif lang in ("hi", "hindi"):
+        # Hindi should use Devanagari script predominantly
+        chars = [c for c in text if c.isalpha()]
+        deva_chars = [c for c in text if "\u0900" <= c <= "\u097F"]
+        if chars and (len(deva_chars) / len(chars)) < 0.35:
+            return VerificationViolation(
+                check_name="p3_hindi_devanagari",
+                description="Hindi response must be primarily in Devanagari script",
+                specific_feedback="Write Hindi responses in Devanagari script with everyday words.",
+            )
+    return None
+
+
+def check_p4_honorifics(text: str) -> VerificationViolation | None:
+    """P4: No honorifics ('Ji sir/ma'am'), no rigid corporate templates."""
+    m = BANNED_HONORIFICS_RE.search(text)
+    if m:
+        return VerificationViolation(
+            check_name="p4_banned_honorific",
+            description=f"Response contains banned honorific '{m.group(0)}'",
+            specific_feedback="Do not use formal honorifics like 'sir', 'ma'am', 'ji', or rigid templates. Keep it casual and friendly.",
+        )
+    return None
+
+
+def check_p6_f3_length(text: str) -> VerificationViolation | None:
+    """P6 & F3: 1-3 sentences maximum; no lengthy paragraphs, fast WhatsApp exchange feel."""
+    sentences = split_sentences_multilingual(text)
+    if len(sentences) > 3:
+        return VerificationViolation(
+            check_name="p6_f3_sentence_count",
+            description=f"Response has {len(sentences)} sentences; maximum allowed is 3",
+            specific_feedback="Keep your response strictly to 1-3 sentences maximum. Be concise like a WhatsApp exchange.",
+        )
+    if len(text) > 450:
+        return VerificationViolation(
+            check_name="p6_f3_char_cap",
+            description=f"Response length {len(text)} exceeds 450 characters cap",
+            specific_feedback="Shorten your response. Keep it under 400 characters, fast and direct.",
+        )
+    return None
+
+
+def check_f1_zero_echo(text: str, context: dict[str, Any]) -> VerificationViolation | None:
+    """F1: Zero-echo - never repeat back facts the user gave (e.g. stated weight, age, or full echo)."""
+    user_input = str(context.get("user_input") or "").strip()
+    if not user_input:
+        return None
+
+    # Check for direct number + unit echoes (e.g., "62 kg", "62kg", "75 kg")
+    user_numbers = re.findall(r"\b(\d+(?:\.\d+)?)\s*(kg|kilos?|kgs?|years?|saal|ghante|hours?)\b", user_input, re.I)
+    for num, unit in user_numbers:
+        # Exempt emergency numbers
+        if num in ("112", "14416"):
+            continue
+        # If response repeats "aapka weight {num}" or "{num} {unit}"
+        pattern = re.compile(rf"\b(?:aapka|apka|your)\s+(?:weight|vajan|age|umra)\s+{re.escape(num)}\b|"
+                             rf"\b(?:weight|vajan)\s+{re.escape(num)}\s*{re.escape(unit)}\b", re.I)
+        if pattern.search(text):
+            return VerificationViolation(
+                check_name="f1_zero_echo",
+                description=f"Response echoed user-stated fact '{num} {unit}'",
+                specific_feedback=f"Do not repeat the user's stated facts back (e.g., do not say 'aapka weight {num}{unit}'). Acknowledge naturally and move forward.",
+            )
+
+    # Check for echo clause prefixes: "aapne bataya ki...", "as you mentioned..."
+    echo_prefix_re = re.compile(
+        r"^(?:(?:aapne|apne)\s+(?:bataya|kaha|likha)\s+(?:tha|hai)?\s*ki\s*|"
+        r"jaise\s+ki\s+aapne\s+(?:bataya|kaha)\s*[,]?\s*|"
+        r"as\s+you\s+(?:mentioned|said|noted|stated)\s*(?:that)?\s*)",
+        re.I,
+    )
+    if echo_prefix_re.search(text.strip()):
+        return VerificationViolation(
+            check_name="f1_zero_echo_prefix",
+            description="Response opens with an echo clause repeating user input",
+            specific_feedback="Never open by repeating what the user just said (e.g. 'aapne bataya ki...'). Jump straight into your natural response.",
+        )
+    return None
+
+
+def check_f2_at_most_one_question(text: str) -> VerificationViolation | None:
+    """F2: At most ONE question per response."""
+    q_count = text.count("?")
+    if q_count > 1:
+        return VerificationViolation(
+            check_name="f2_multiple_questions",
+            description=f"Response contains {q_count} question marks; maximum allowed is 1",
+            specific_feedback="Ask at most ONE question in your response. Remove any secondary questions.",
+        )
+    return None
+
+
+def check_f4_selective_empathy(text: str, context: dict[str, Any]) -> VerificationViolation | None:
+    """F4: Empathy only when user shares distress or physical struggle; no artificial cheerleading."""
+    distress = bool(context.get("distress_expressed", False))
+    if not distress:
+        # If user did NOT express distress, flag excessive boilerplate empathy
+        empathy_boilerplate = re.compile(
+            r"\b(?:main\s+aapka\s+dard\s+samajh\s+sakti\s+hoon|"
+            r"i\s+(?:deeply\s+)?understand\s+your\s+pain|"
+            r"sunkar\s+bahut\s+dukh\s+hua|"
+            r"it\s+must\s+be\s+so\s+hard\s+for\s+you)\b",
+            re.I,
+        )
+        if empathy_boilerplate.search(text):
+            return VerificationViolation(
+                check_name="f4_unprompted_boilerplate_empathy",
+                description="Boilerplate empathy used when user did not share distress",
+                specific_feedback="Do not use dramatic empathy boilerplate unless the user explicitly shared distress or struggle. Move forward naturally.",
+            )
+    return None
+
+
+def check_c2_clinical_boundary(text: str) -> list[VerificationViolation]:
+    """C2: No medication doses, diagnoses, or treatment plans on chat."""
+    violations: list[VerificationViolation] = []
+    if C2_MEDICATION_DOSE_RE.search(text):
+        violations.append(
+            VerificationViolation(
+                check_name="c2_medication_dose_advice",
+                description="Response specifies medication dose or quantity",
+                specific_feedback="Never specify medication dosages or prescription advice in chat. Direct the user to a clinical consultation.",
+                replacement_text=PRESCRIPTION_REPLACEMENT,
+            )
+        )
+    if C2_DIAGNOSIS_RE.search(text):
+        violations.append(
+            VerificationViolation(
+                check_name="c2_diagnosis_claim",
+                description="Response provides a definitive diagnosis",
+                specific_feedback="Never diagnose conditions on chat. Advise consulting a doctor for clinical assessment.",
+                replacement_text=DIAGNOSIS_REPLACEMENT,
+            )
+        )
+    if C2_TREATMENT_PLAN_RE.search(text):
+        violations.append(
+            VerificationViolation(
+                check_name="c2_treatment_plan",
+                description="Response outlines a treatment plan or medication alteration",
+                specific_feedback="Never outline treatment plans in chat. Withhold medical advice and recommend consulting a clinician.",
+                replacement_text=PRESCRIPTION_REPLACEMENT,
+            )
+        )
+    return violations
+
+
 def verify_response(text: str, context: dict[str, Any] | None = None) -> VerificationResult:
     """Run all 6 deterministic verification checks plus clinical guardrails."""
     ctx = context or {}
@@ -387,6 +583,48 @@ def verify_response(text: str, context: dict[str, Any] | None = None) -> Verific
         violations.append(v_clin)
         if v_clin.replacement_text:
             sanitized = v_clin.replacement_text
+
+    # Behavior Spec v1 checks (gated by config / context flag)
+    from disha_core.config import get_settings
+    settings = get_settings()
+    if getattr(settings, "behavior_spec_v1", True) or ctx.get("behavior_spec_v1", True):
+        lang = str(ctx.get("language") or ctx.get("user_language") or "hinglish")
+        
+        # P3: Language & script mode
+        v_p3 = check_p3_language_mode(sanitized, lang)
+        if v_p3:
+            violations.append(v_p3)
+            
+        # P4: Banned honorifics
+        v_p4 = check_p4_honorifics(sanitized)
+        if v_p4:
+            violations.append(v_p4)
+            
+        # P6 & F3: Length (1-3 sentences, char cap)
+        v_len = check_p6_f3_length(sanitized)
+        if v_len:
+            violations.append(v_len)
+            
+        # F1: Zero-echo
+        v_echo = check_f1_zero_echo(sanitized, ctx)
+        if v_echo:
+            violations.append(v_echo)
+            
+        # F2: At most one question
+        v_f2 = check_f2_at_most_one_question(sanitized)
+        if v_f2 and v_f2 not in violations:
+            violations.append(v_f2)
+            
+        # F4: Selective empathy
+        v_f4 = check_f4_selective_empathy(sanitized, ctx)
+        if v_f4:
+            violations.append(v_f4)
+            
+        # C2: No advice on chat (meds, diagnosis, treatment)
+        for v_c2 in check_c2_clinical_boundary(sanitized):
+            violations.append(v_c2)
+            if v_c2.replacement_text:
+                sanitized = v_c2.replacement_text
 
     return VerificationResult(
         is_valid=len(violations) == 0,
