@@ -3,6 +3,7 @@
 Enforces per-client and per-patient quotas to prevent credential brute-forcing,
 resource exhaustion, and denial of service.
 """
+
 from __future__ import annotations
 
 import os
@@ -67,6 +68,7 @@ def rate_limit_guard(
     window_seconds: float = 60.0,
 ) -> Callable[[Request], Any]:
     """FastAPI dependency for per-client sliding-window rate limiting."""
+
     async def dependency(request: Request) -> None:
         client_ip = request.client.host if request.client else "127.0.0.1"
         auth = request.headers.get("authorization", "")

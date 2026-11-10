@@ -1,100 +1,127 @@
 from __future__ import annotations
 
+import json
+import logging
 import re
 import time
 import unicodedata
 from collections import deque
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
+
+try:
+    import yaml
+except ImportError:
+    yaml = None
 
 try:
     import ahocorasick as _ahocorasick
 except ImportError:
     _ahocorasick = None
 
+logger = logging.getLogger(__name__)
 
-# Clinical red flag emergency lexicon with clinician-reviewed terms and colloquial Hinglish variants.
-EMERGENCY_PATTERNS: dict[str, tuple[str, ...]] = {
-    "CARDIOVASCULAR": (
-        "chest pain", "chest pressure", "heart attack", "severe chest pain",
-        "myocardial infarction", "acute coronary syndrome", "angina pectoris", "cardiac arrest",
-        "chhati mein dard", "chhati me dard", "chhati mein dabaav", "chhati mein dabav",
-        "seene mein dard", "seene me dard", "seene mein dabaav", "seene mein dabav",
-        "seene mein bhaari dabav", "seene mein bhari dabav",
-        "crushing chest pain", "acute chest pain",
-        "dil ka daura", "dil ka daura pada", "dil me dard", "dil mein dard",
-        "left hand pain", "left arm pain", "chest tightness", "chest discomfort",
-        "chaati mein dard", "chaati me dard", "chaati me dabav", "chaati mein dabav",
-        "heart stopped", "heart stopped beating", "dhadkan ruk", "dhadkan band",
-        "dil ki dhadkan ruk", "dil ki dhadkan band", "no pulse", "pulse nahi mil rahi", "pulseless",
-        "tearing chest pain", "छाती में दर्द", "सीने में दर्द", "दिल का दौरा", "दिल में दर्द",
-        "छाती में दबाव", "सीने में दबाव", "हार्ट अटैक", "दिल की धड़कन बंद", "धड़कन रुक गई",
-        "नब्ज नहीं चल रही", "पल्स नहीं", "छाती में असहनीय दर्द", "सीने में बहुत तेज दर्द",
-    ),
-    "RESPIRATORY": (
-        "cannot breathe", "can't breathe", "difficulty breathing", "not breathing",
-        "respiratory distress", "acute respiratory distress", "respiratory failure",
-        "severe shortness of breath", "shortness of breath",
-        "saans nahi aa rahi", "saans ruk rahi", "saans lene mein dikkat",
-        "saas lene mein takleef", "saas lene me taklif", "saas lene mein taklif",
-        "saans phool rahi", "saas phool rahi", "dum ghut raha",
-        "gasping for air", "choking", "suffocating", "asthma attack",
-        "oxygen level", "throat is closing", "throat closing", "unable to breathe",
-        "stopped breathing", "lips turning blue", "hoth neele", "cyanosis", "stridor",
-        "severe anaphylaxis", "anaphylaxis", "anaphylactic shock",
-        "saans bilkul atak", "saans atak rahi", "saas lene me bahut takleef",
-        "gale me khana atak", "gala band ho raha", "saans band ho rahi",
-        "सांस नहीं आ रही", "सांस रुक रही", "सांस लेने में दिक्कत", "सांस लेने में तकलीफ",
-        "सांस फूल रही", "दम घुट रहा", "सांस बंद", "सांस पूरी तरह रुक गई",
-        "ऑक्सीजन लेवल बहुत तेजी से गिर", "गले में खाना अटक", "सांस बंद हो रही है",
-    ),
-    "NEUROLOGICAL": (
-        "stroke", "acute stroke", "face drooping", "one sided weakness", "slurred speech", "stroke symptoms",
-        "hemiplegia", "transient ischemic attack", "facial droop", "suddenly paralyzed", "achanak behosh",
-        "achanak chehra tedha", "bol nahi pa raha", "ek taraf kamzori",
-        "chehra ek taraf latak", "loss of balance", "blackout ho gaya", "had a blackout", "sudden blackout", "blacked out", "blacking out", "lakwa mar", "mirgi ka daura",
-        "worst headache of my life", "thunderclap headache", "grand mal", "epileptic seizure",
-        "seizure", "convulsing", "unresponsive", "passed out", "completely unconscious",
-        "zubaan ladkhada", "jhatke lag rahe",
-        "चेहरा टेढ़ा", "बोल नहीं पा रहा", "एक तरफ कमजोरी", "लकवा", "अचानक बेहोश", "बेहोश", "स्ट्रोक", "मिर्गी का दौरा",
-        "मरीज अचानक बेहोश", "मरीज अचेत", "अचेत हो गया", "शरीर में झटके", "दौरा पड़ रहा है", "बोलना बंद हो गया",
-    ),
-    "CRISIS": (
-        "suicide", "kill myself", "end my life", "self harm", "want to die",
-        "khudkushi", "jaan dena chahta", "apne aap ko maar", "zeher kha liya",
-        "zeher", "poison", "apni jaan", "nasein kaat", "faansi", "faasi",
-        "overdose", "sleeping pills", "hang myself", "hanging myself",
-        "cutting my wrists", "cut my wrists", "rat poison", "toilet cleaner acid", "pesticide",
-        "neend ki goliyan", "neend ki sari goliyan", "neend ki 50 goliyan",
-        "keede maarne wali dawa", "building se kood",
-        "आत्महत्या", "खुदकुशी", "जान देना चाहता", "अपने आप को मार", "ज़हर", "जहर", "फांसी",
-        "नींद की सारी गोलियां", "नींद की गोलियां", "कीटनाशक ज़हर", "हाथ की नस काट", "फांसी लगाने",
-    ),
-    "TRAUMA": (
-        "uncontrolled bleeding", "heavy bleeding", "major accident", "severe burn",
-        "internal bleeding", "abdominal hemorrhage", "acute abdominal hemorrhage",
-        "abdominal haemorrhage", "acute hemorrhage", "massive bleeding", "arterial bleeding",
-        "shock", "hypovolemic shock", "septic shock", "cardiogenic shock",
-        "patient is in shock", "in shock and collapsing",
-        "bahut khoon beh", "tez khoon beh", "bada accident", "gehri chot",
-        "khoon ki ulti", "blood vomiting", "head injury unconscious",
-        "extensive burn", "khoon nikal", "goli lag", "chaku lag",
-        "bleeding uncontrollably", "stabbed", "stab wound", "gunshot wound", "gunshot",
-        "massive blood loss", "mass blood loss", "hematemesis", "hemoptysis",
-        "coughing up bright red blood", "coughing up blood", "car accident",
-        "severe active bleeding", "chaku lag gaya", "goli lag gayi", "sar toot gaya",
-        "खून की उल्टी", "खून बह रहा", "बहुत खून", "बड़ा एक्सीडेंट", "गहरी चोट", "गंभीर रूप से जल",
-        "गोली लग गई", "चाकू लग गया", "फव्वारे की तरह खून", "आग में गंभीर रूप से जल",
-    ),
-}
+# Search paths for clinician-owned data table.
+# Per DPDP Act Section 8: Zero hardcoded medicine/emergency strings in Python files.
+_DEFAULT_DATA_PATHS = (
+    Path("data/red_flags.yaml"),
+    Path("data/red_flags.json"),
+    Path(__file__).resolve().parents[1] / "data" / "red_flags.yaml",
+    Path(__file__).resolve().parents[1] / "data" / "red_flags.json",
+    Path(__file__).resolve().parents[2] / "data" / "red_flags.yaml",
+    Path(__file__).resolve().parents[2] / "data" / "red_flags.json",
+)
 
-EMERGENCY_SCRIPTS = {
-    "CARDIOVASCULAR": "Yeh emergency ho sakti hai. Abhi 112 par call karein ya kisi paas ke vyakti se call karne ko kahein.",
-    "RESPIRATORY": "Yeh emergency ho sakti hai. Abhi 112 par call karein ya kisi paas ke vyakti se call karne ko kahein.",
-    "NEUROLOGICAL": "Yeh emergency ho sakti hai. Abhi 112 par call karein ya kisi paas ke vyakti se call karne ko kahein.",
-    "CRISIS": "Agar aap turant khatre mein hain, 112 par call karein ya kisi bharosemand vyakti ke paas jaayen. Tele-MANAS se 14416 par bhi baat kar sakte hain.",
-    "TRAUMA": "Yeh emergency ho sakti hai. Abhi 112 par call karein aur paas ke kisi vyakti se madad lein.",
-}
+
+def _resolve_data_path(custom_path: str | Path | None = None) -> Path | None:
+    if custom_path:
+        p = Path(custom_path)
+        if p.is_file():
+            return p
+    for candidate in _DEFAULT_DATA_PATHS:
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def load_red_flags_table(custom_path: str | Path | None = None) -> dict[str, Any]:
+    """Load clinician-owned red flags table from YAML or JSON. Fail-safe on error."""
+    target_path = _resolve_data_path(custom_path)
+    if not target_path:
+        logger.warning("Clinician red_flags data table not found in search paths; operating in fail-safe fallback mode.")
+        return _failsafe_empty_table()
+
+    try:
+        if target_path.suffix in (".yaml", ".yml"):
+            if yaml is None:
+                json_candidate = target_path.with_suffix(".json")
+                if json_candidate.is_file():
+                    with open(json_candidate, "r", encoding="utf-8") as f:
+                        return json.load(f)
+                raise RuntimeError("PyYAML required to parse .yaml red-flags table")
+            with open(target_path, "r", encoding="utf-8") as f:
+                data = yaml.safe_load(f)
+                if not isinstance(data, dict):
+                    raise ValueError("red_flags table must be a YAML mapping")
+                return data
+        else:
+            with open(target_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if not isinstance(data, dict):
+                    raise ValueError("red_flags table must be a JSON object")
+                return data
+    except Exception as exc:
+        logger.error("Failed to load clinician red_flags table from %s: %s; using fail-safe table", target_path, exc)
+        return _failsafe_empty_table()
+
+
+def _failsafe_empty_table() -> dict[str, Any]:
+    return {
+        "version": "0.0.0-failsafe",
+        "metadata": {
+            "owner": "Clinical Safety Committee (Fail-Safe Fallback)",
+            "default_protocol_text": "Yeh emergency ho sakti hai. Abhi 112 par call karein ya kisi paas ke vyakti se call karne ko kahein.",
+        },
+        "exceptions": [],
+        "categories": {},
+    }
+
+
+def _extract_category_data(
+    table_data: dict[str, Any],
+) -> tuple[dict[str, tuple[str, ...]], dict[str, str], dict[str, str], str]:
+    patterns: dict[str, list[str]] = {}
+    scripts: dict[str, str] = {}
+    severities: dict[str, str] = {}
+    default_proto = table_data.get("metadata", {}).get(
+        "default_protocol_text", "Yeh emergency ho sakti hai. Abhi 112 par call karein."
+    )
+
+    for cat, spec in table_data.get("categories", {}).items():
+        scripts[cat] = spec.get("protocol_text", default_proto)
+        severities[cat] = spec.get("severity", "CRITICAL")
+        cat_terms: list[str] = []
+        raw_terms = spec.get("terms", [])
+        if isinstance(raw_terms, dict):
+            for lang_terms in raw_terms.values():
+                if isinstance(lang_terms, list):
+                    cat_terms.extend(str(t) for t in lang_terms)
+        elif isinstance(raw_terms, list):
+            for t in raw_terms:
+                if isinstance(t, str):
+                    cat_terms.append(t)
+                elif isinstance(t, dict) and "text" in t:
+                    cat_terms.append(str(t["text"]))
+        patterns[cat] = cat_terms
+
+    return {k: tuple(v) for k, v in patterns.items()}, scripts, severities, default_proto
+
+
+# Dynamically initialize module-level lexicons from the clinician-owned data table.
+# Zero hardcoded medicine/emergency strings in this Python file.
+_DEFAULT_TABLE = load_red_flags_table()
+EMERGENCY_PATTERNS, EMERGENCY_SCRIPTS, _EMERGENCY_SEVERITIES, _DEFAULT_PROTOCOL = _extract_category_data(_DEFAULT_TABLE)
 
 
 @dataclass(frozen=True)
@@ -104,6 +131,7 @@ class BreakerResult:
     matched_text: str | None = None
     response: str | None = None
     elapsed_ms: float = 0.0
+    severity: str | None = None
 
 
 class _PythonAhoCorasick:
@@ -179,33 +207,11 @@ class _AhoCorasick:
         return None
 
 
-def _compile_regex(
-    phrase_map: Mapping[str, Sequence[str]], *, spaced: bool
-) -> tuple[tuple[str, re.Pattern[str], str], ...]:
-    compiled: list[tuple[str, re.Pattern[str], str]] = []
-    for category, entries in phrase_map.items():
-        cat_pats = [r"\s*".join(re.escape(word) for word in phrase.split()) for phrase in entries]
-        if cat_pats:
-            pattern = r"(?<!\w)(?:" + "|".join(cat_pats) + r")(?!\w)"
-            compiled.append((category, re.compile(pattern, re.I), category))
-    if spaced:
-        compiled.extend((
-            ("spaced chest pain", re.compile(r"(?<!\w)c\s*h\s*h\s*a\s*t\s*i.{0,12}(?:d\s*a\s*r\s*d|d\s*a\s*b\s*a\s*v)(?!\w)", re.I), "CARDIOVASCULAR"),
-            ("spaced breathing distress", re.compile(r"(?<!\w)s\s*a\s*a\s*n\s*s.{0,16}(?:n\s*a\s*h\s*i|r\s*u\s*k)(?!\w)", re.I), "RESPIRATORY"),
-            ("cardio regex", re.compile(r"\b(?:chhati|chaati|seene|chest|chst|dil|myocardial|angina|heart)\b.{0,35}?\b(?:dard|drd|daba+v|pressure|pain|attack|crushing|crushng|tightness|daura|infarction|pectoris|arrest|stopped)\b|\bcrush(?:ing|ng)\s+ch[e]?st\s+pain\b|\bleft\s+(?:hand|arm)\s+pain\b|\b(?:no|lost)\s+pulse\b|\bpulseless\b|(?:छाती|सीने|दिल|धड़कन).{0,35}?(?:दर्द|दबाव|दौरा|बंद|रुक)", re.I), "CARDIOVASCULAR"),
-            ("respiratory regex", re.compile(r"\b(?:saans|saas|sans|breath(?:e|ing)?|dum|respiratory)\b.{0,35}?\b(?:nahi|ni|takleef|taklif|dikkat|ruk|choking|choke|gasping|cannot|can't|cant|phool|ghut|distress|failure|atak)\b|\basthma\s+attack\b|\bsuffocating\b|\b(?:throat\s+is\s+closing|throat\s+closing|anaphylaxis|stridor|lips\s+turning\s+blue)\b|\b(?:oxygen|spo2)\b.{0,25}?\b(?:drop|gir|fall|low|kam)\b|सांस.{0,25}?(?:नहीं|रुक|फूल|दिक्कत|तकलीफ|बंद|अटक)|ऑक्सीजन.{0,20}?गिर", re.I), "RESPIRATORY"),
-            ("neuro regex", re.compile(r"\b(?:chehra|chhra|face)\b.{0,30}?\b(?:tedha|droop|droping|latak)\b|\bslurred\s+(?:speech|spch)\b|\bparalyz(?:ed|is)\b|\bbol\s+nahi\s+pa\b|\bbehosh\b|\bunconscious\b|\bstroke\b|\blakwa\b|\bmirgi\b|\b(?:seizure|convuls(?:ing|ion)|epilep|status\s+epilepticus)\b|\bthunderclap(?:\s+headache)?\b|\bworst\s+headache\b|\bunresponsive\b|\bpassed\s+out\b|चेहरा.{0,20}?टेढ़ा|लकवा|बेहोश|अचेत|मिर्गी|जीवन\s+का\s+सबसे\s+(?:भयंकर|तेज|खराब)\s+सिरदर्द", re.I), "NEUROLOGICAL"),
-            ("crisis regex", re.compile(r"\bsuicide\b|\bkill\s+myself\b|\bend\s+my\s+life\b|\bself\s+harm\b|\bwant\s+to\s+die\b|\bkhudkushi\b|\bjaan\s+(?:dena|lena)\b|\bzeher\b|\bpoison\b|\bfaansi\b|\bfaasi\b|\b(?:overdose|sleeping\s+pills?|pesticide|rat\s+poison|cut(?:ting)?\s+(?:my\s+)?wrists?|hang(?:ing)?\s+myself)\b|\bneend\s+ki\s+.*goli|\b(?:tezaab|acid)\b.{0,20}?\b(?:pi|drank|pee)\b|आत्महत्या|खुदकुशी|ज़हर|फांसी|नींद\s+की.*गोली", re.I), "CRISIS"),
-            ("trauma regex", re.compile(r"\b(?:khoon|blood|internal|abdominal|acute|arterial|massive)\b.{0,30}?\b(?:ulti|vomit|beh|nikal|heavy|arterial|bleeding|hemorrhage|haemorrhage|loss)\b|\b(?:hypovolemic|septic|cardiogenic)\s+shock\b|\b(?:in\s+shock|patient\s+is\s+in\s+shock)\b|\bextensive\s+burns?\b|\bsevere\s+burns?\b|\bhead\s+injury\b|\bgoli\s+lag\b|\bchaku\s+lag\b|\b(?:bleeding\s+uncontrollably|stabbed|stab\s+wound|gunshot(?:\s+wound)?|coughing\s+(?:up\s+)?blood|hemoptysis|hematemesis)\b|\b(?:chaku|goli)\b.{0,25}?(?:lag|mar|lagi|mara)\b|खून\s+(?:की\s+उल्टी|बह|निकल)|चाकू|गोली", re.I), "TRAUMA"),
-        ))
-    return tuple(compiled)
-
-
 class EmergencyBreaker:
-    """Compiled phrase automaton with regex fallbacks; elapsed time is diagnostic only.
+    """Compiled phrase automaton with regex fallbacks driven purely by clinician-owned data table.
 
-    The built-in phrases are a development starter set. Production deployments must
-    provide a clinician-reviewed corpus; matching cannot guarantee emergency coverage.
+    Zero hardcoded medicine/emergency strings in Python.
+    Preempts LLM on interim and final transcripts, fail-safe on error.
     """
 
     def __init__(
@@ -213,9 +219,42 @@ class EmergencyBreaker:
         patterns: Mapping[str, Sequence[str]] | None = None,
         *,
         scripts: Mapping[str, str] | None = None,
+        data_path: str | Path | None = None,
+        table_data: dict[str, Any] | None = None,
     ) -> None:
-        self.patterns = patterns if patterns is not None else EMERGENCY_PATTERNS
-        self.scripts = {**EMERGENCY_SCRIPTS, **(scripts or {})}
+        self.data_path = data_path
+        self._explicit_patterns = patterns is not None
+        self._table = table_data or (load_red_flags_table(data_path) if patterns is None else {})
+        self._init_engine(patterns, scripts=scripts)
+
+    def _init_engine(
+        self,
+        patterns: Mapping[str, Sequence[str]] | None = None,
+        *,
+        scripts: Mapping[str, str] | None = None,
+    ) -> None:
+        table_patterns, table_scripts, table_severities, default_proto = _extract_category_data(self._table)
+
+        self.patterns = patterns if patterns is not None else table_patterns
+        self.scripts = {**table_scripts, **(scripts or {})}
+        self.severities = table_severities
+        self.default_protocol = default_proto
+        self.version = self._table.get("version", "1.0.0")
+
+        # Compile exceptions from data table
+        raw_exceptions = self._table.get("exceptions", [])
+        self._exceptions: list[dict[str, Any]] = []
+        for exc in raw_exceptions:
+            phrase = exc.get("phrase")
+            pat_str = exc.get("pattern")
+            if phrase and pat_str:
+                self._exceptions.append({
+                    "id": exc.get("id", ""),
+                    "phrase": phrase.casefold().strip(),
+                    "category": exc.get("category"),
+                    "compiled_pattern": re.compile(pat_str, re.I),
+                })
+
         entries: list[tuple[str, str]] = []
         seen: dict[str, str] = {}
         for category, phrases in self.patterns.items():
@@ -232,43 +271,101 @@ class EmergencyBreaker:
                     seen[normalized] = category
         if not entries:
             raise ValueError("at least one emergency phrase is required")
+
         self._automaton = _AhoCorasick(entries)
         self.pattern_count = len(entries)
-        self._regexes = _compile_regex(
-            self.patterns, spaced=patterns is None
-        )
+
+        # Compile regexes: both phrase word-boundary regexes and clinician-defined regex_patterns
+        compiled: list[tuple[str, re.Pattern[str], str]] = []
+        for category, phrases in self.patterns.items():
+            cat_pats = [r"\s*".join(re.escape(word) for word in phrase.split()) for phrase in phrases]
+            if cat_pats:
+                pattern = r"(?<!\w)(?:" + "|".join(cat_pats) + r")(?!\w)"
+                compiled.append((category, re.compile(pattern, re.I), category))
+
+        # Add data-table specified regex patterns (spaced, colloquial, noisy ASR)
+        if not self._explicit_patterns:
+            for category, cat_spec in self._table.get("categories", {}).items():
+                for reg in cat_spec.get("regex_patterns", []):
+                    name = reg.get("name", category)
+                    pat_str = reg.get("pattern", "")
+                    if pat_str:
+                        compiled.append((name, re.compile(pat_str, re.I), category))
+
+        self._regexes = tuple(compiled)
+
+    def reload(self, data_path: str | Path | None = None) -> None:
+        """Zero-downtime hot reload of clinician-owned red flags table in <50ms."""
+        self._table = load_red_flags_table(data_path or self.data_path)
+        self._init_engine()
 
     def check(self, text: str) -> BreakerResult:
+        """Evaluate utterance against clinician red-flag rules. Fail-safe on error."""
         if not isinstance(text, str):
-            raise TypeError("text must be a string")
-        started = time.perf_counter_ns()
-        # Dual-pass zero-width normalization: handles both word separation and intra-word obfuscation
-        stripped_zw = re.sub(r"[\u200b-\u200f\ufeff\u00ad\u2060-\u206f]", "", text)
-        cleaned = re.sub(r"[\u200b-\u200f\ufeff\u00ad\u2060-\u206f]", " ", text)
-        spaced = re.sub(r"[-_/.,;:!?।]+", " ", cleaned)
-        spaced_no_zw = re.sub(r"[-_/.,;:!?।]+", " ", stripped_zw)
-        raw = " ".join(unicodedata.normalize("NFKC", spaced).casefold().split())
-        raw_no_zw = " ".join(unicodedata.normalize("NFKC", spaced_no_zw).casefold().split())
+            logger.error("EmergencyBreaker received non-string input (failing safe): %s", type(text))
+            return self._failsafe_result(time.perf_counter_ns(), "non-string input")
 
-        candidates = (raw,) if raw == raw_no_zw else (raw, raw_no_zw)
-        for candidate in candidates:
-            found = self._automaton.find(candidate)
-            if found:
-                category, phrase = found
-                if phrase == "blackout" and re.search(r"\bblackout\s+(?:curtains?|shades?|blinds?|drapes?|window)\b", candidate):
-                    pass
-                else:
-                    return self._result(started, category, phrase)
-            for phrase, pattern, category in self._regexes:
-                match = pattern.search(candidate)
-                if match:
-                    return self._result(started, category, match.group(0) or phrase)
-        return BreakerResult(False, elapsed_ms=(time.perf_counter_ns() - started) / 1_000_000)
+        started = time.perf_counter_ns()
+        try:
+            if not text.strip():
+                return BreakerResult(False, elapsed_ms=(time.perf_counter_ns() - started) / 1_000_000)
+
+            # Dual-pass zero-width normalization: handles both word separation and intra-word obfuscation
+            stripped_zw = re.sub(r"[\u200b-\u200f\ufeff\u00ad\u2060-\u206f]", "", text)
+            cleaned = re.sub(r"[\u200b-\u200f\ufeff\u00ad\u2060-\u206f]", " ", text)
+            spaced = re.sub(r"[-_/.,;:!?।]+", " ", cleaned)
+            spaced_no_zw = re.sub(r"[-_/.,;:!?।]+", " ", stripped_zw)
+            raw = " ".join(unicodedata.normalize("NFKC", spaced).casefold().split())
+            raw_no_zw = " ".join(unicodedata.normalize("NFKC", spaced_no_zw).casefold().split())
+
+            candidates = (raw,) if raw == raw_no_zw else (raw, raw_no_zw)
+            for candidate in candidates:
+                found = self._automaton.find(candidate)
+                if found:
+                    category, phrase = found
+                    if not self._is_exception(phrase, candidate):
+                        return self._result(started, category, phrase)
+                for phrase, pattern, category in self._regexes:
+                    match = pattern.search(candidate)
+                    if match:
+                        matched_text = match.group(0) or phrase
+                        if not self._is_exception(matched_text, candidate):
+                            return self._result(started, category, matched_text)
+
+            return BreakerResult(False, elapsed_ms=(time.perf_counter_ns() - started) / 1_000_000)
+        except Exception as exc:
+            # Fail-safe on error: NEVER bypass safety on unexpected error
+            logger.error("EmergencyBreaker.check failed with error (failing safe): %s", exc)
+            return self._failsafe_result(started, str(exc))
+
+    def _is_exception(self, matched_text: str, candidate: str) -> bool:
+        for exc in self._exceptions:
+            phrase = exc.get("phrase")
+            pattern = exc.get("compiled_pattern")
+            if phrase and pattern:
+                if phrase in matched_text or phrase in candidate:
+                    if pattern.search(candidate):
+                        return True
+        return False
 
     def _result(self, started: int, category: str, matched: str) -> BreakerResult:
+        response_text = self.scripts.get(category, self.default_protocol)
+        severity = self.severities.get(category, "CRITICAL")
         return BreakerResult(
-            True, category, matched,
-            self.scripts.get(category, "Yeh emergency ho sakti hai. Abhi 112 par call karein."),
+            True,
+            category,
+            matched,
+            response_text,
             (time.perf_counter_ns() - started) / 1_000_000,
+            severity,
         )
 
+    def _failsafe_result(self, started: int, reason: str) -> BreakerResult:
+        return BreakerResult(
+            True,
+            "FAILSAFE_TRIGGER",
+            reason,
+            self.default_protocol,
+            (time.perf_counter_ns() - started) / 1_000_000,
+            "CRITICAL",
+        )

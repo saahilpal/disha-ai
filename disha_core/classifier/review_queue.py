@@ -6,6 +6,7 @@ Implements:
 3. Persistent SQLite-backed review queue with WAL mode and atomic state transitions.
 4. Dataset export capabilities for offline retraining and benchmark promotion.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -60,7 +61,10 @@ class ZeroPHIScrubber:
     MRN_REGEX = re.compile(r"\b(?:MRN|UHID|PATIENT|IPD|OPD)[#:\-\s]*[A-Za-z0-9]{4,15}\b", re.IGNORECASE)
     # Direct self-identifications (e.g. "My name is X", "Mera naam X hai")
     NAME_PATTERNS = [
-        re.compile(r"\b(?:my name is|i am|mera naam|naam hai|patient name is)\s+([A-Za-z]{2,25}(?:\s+[A-Za-z]{2,25})?)", re.IGNORECASE),
+        re.compile(
+            r"\b(?:my name is|i am|mera naam|naam hai|patient name is)\s+([A-Za-z]{2,25}(?:\s+[A-Za-z]{2,25})?)",
+            re.IGNORECASE,
+        ),
         re.compile(r"\b(?:patient|shri|smt|mr|mrs|dr)\.?\s+([A-Za-z]{2,25}(?:\s+[A-Za-z]{2,25})?)", re.IGNORECASE),
     ]
 
@@ -77,7 +81,7 @@ class ZeroPHIScrubber:
 
     def scrub(self, text: str) -> tuple[str, bool]:
         """Scrubs text of direct personal identifiers.
-        
+
         Returns:
             tuple[str, bool]: (scrubbed_text, was_modified)
         """
@@ -109,6 +113,7 @@ class ZeroPHIScrubber:
 
         # 5. Scrub direct name introductions
         for pat in self.NAME_PATTERNS:
+
             def _replace_name(match: re.Match[str]) -> str:
                 full_matched = match.group(0)
                 name_portion = match.group(1)
@@ -180,9 +185,7 @@ class ReviewQueueManager:
                     db_path = Path("/tmp/review_queue.db")
         self.db_path = Path(db_path)
         self._mem_conn: sqlite3.Connection | None = (
-            sqlite3.connect(":memory:", check_same_thread=False)
-            if str(self.db_path) == ":memory:"
-            else None
+            sqlite3.connect(":memory:", check_same_thread=False) if str(self.db_path) == ":memory:" else None
         )
         self._init_db()
 
@@ -379,7 +382,9 @@ class ReviewQueueManager:
 
         item.review_status = ReviewStatus.ANNOTATED
         item.clinician_annotation = annotation
-        logger.info("ReviewItem %s annotated by %s: ground_truth_intent=%s", review_id, reviewer_id, ground_truth_intent)
+        logger.info(
+            "ReviewItem %s annotated by %s: ground_truth_intent=%s", review_id, reviewer_id, ground_truth_intent
+        )
         return item
 
     def approve_for_training(self, review_id: str) -> ReviewItem:

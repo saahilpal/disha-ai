@@ -1,4 +1,5 @@
 """Full-duplex WebSocket conversational voice and barge-in endpoints."""
+
 from __future__ import annotations
 
 import asyncio
@@ -22,9 +23,10 @@ async def voice(websocket: WebSocket) -> None:
 
     await websocket.accept()
     auth_frame_received = False
-    token = websocket.query_params.get("token") or (
-        websocket.headers.get("authorization") or ""
-    ).removeprefix("Bearer ").strip()
+    token = (
+        websocket.query_params.get("token")
+        or (websocket.headers.get("authorization") or "").removeprefix("Bearer ").strip()
+    )
 
     if not token:
         try:
@@ -90,16 +92,12 @@ async def voice(websocket: WebSocket) -> None:
                     await websocket.send_json({"type": "silence", "message": "Silence detected"})
                 return
             with suppress(Exception):
-                await websocket.send_json(
-                    {"type": "error", "message": "Voice turn unavailable; please try again."}
-                )
+                await websocket.send_json({"type": "error", "message": "Voice turn unavailable; please try again."})
         finally:
             if transcript:
                 app_main._enqueue_audit(
                     getattr(websocket.app.state, "ledger", None),
-                    AuditRecord(
-                        patient_id, transcript, " ".join(output), state.breaker_status, state.validator_status
-                    ),
+                    AuditRecord(patient_id, transcript, " ".join(output), state.breaker_status, state.validator_status),
                 )
 
     async def process_text(text: str) -> None:
@@ -122,16 +120,12 @@ async def voice(websocket: WebSocket) -> None:
             raise
         except Exception:
             with suppress(Exception):
-                await websocket.send_json(
-                    {"type": "error", "message": "Voice turn unavailable; please try again."}
-                )
+                await websocket.send_json({"type": "error", "message": "Voice turn unavailable; please try again."})
         finally:
             if text:
                 app_main._enqueue_audit(
                     getattr(websocket.app.state, "ledger", None),
-                    AuditRecord(
-                        patient_id, text, " ".join(output), state.breaker_status, state.validator_status
-                    ),
+                    AuditRecord(patient_id, text, " ".join(output), state.breaker_status, state.validator_status),
                 )
 
     try:
@@ -151,9 +145,7 @@ async def voice(websocket: WebSocket) -> None:
                             is_interrupt = True
                         elif msg_type == "auth":
                             with suppress(Exception):
-                                await websocket.send_json(
-                                    {"type": "authenticated", "patient_id": patient_id}
-                                )
+                                await websocket.send_json({"type": "authenticated", "patient_id": patient_id})
                             continue
                         elif msg_type == "audio" and parsed.get("data"):
                             import base64
@@ -161,15 +153,31 @@ async def voice(websocket: WebSocket) -> None:
                             audio = base64.b64decode(parsed["data"])
                         elif msg_type == "text" and parsed.get("text"):
                             text_input = str(parsed["text"]).strip()
+                        elif msg_type in ("interim_transcript", "interim", "partial_transcript") and parsed.get("text"):
+                            interim_text = str(parsed["text"]).strip()
+                            if interim_text:
+                                router = getattr(websocket.app.state, "router", None)
+                                breaker = getattr(router, "breaker", None) if router else None
+                                if breaker:
+                                    emergency = breaker.check(interim_text)
+                                    if emergency.triggered:
+                                        await cancel_active_turn()
+                                        resp_text = emergency.response or breaker.default_protocol
+                                        with suppress(Exception):
+                                            await websocket.send_json({"type": "transcript", "text": interim_text, "is_interim": True})
+                                            await websocket.send_json({"type": "sentence", "text": resp_text})
+                                            await websocket.send_json({"type": "done", "status": f"triggered:{emergency.category}"})
+                                        sent_lang = detect_turn_language(resp_text)
+                                        with suppress(Exception):
+                                            await session.speak(resp_text, websocket.send_bytes, language=sent_lang)
+                                        continue
 
             if is_interrupt:
                 await cancel_active_turn()
                 continue
 
             if audio is None and text_input is None:
-                await websocket.send_json(
-                    {"type": "error", "message": "Send audio bytes or json turn payload."}
-                )
+                await websocket.send_json({"type": "error", "message": "Send audio bytes or json turn payload."})
                 continue
             if audio is not None and len(audio) > app_main.MAX_VOICE_TURN_BYTES:
                 await websocket.close(code=1009, reason="Audio turn exceeds 10 MB")

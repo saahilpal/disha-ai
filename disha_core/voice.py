@@ -20,13 +20,52 @@ ENGLISH_VOICE = "en-IN-NeerjaNeural"
 QWEN3_DEFAULT_VOICE = "disha-warm-hinglish"
 QWEN3_DEFAULT_MODEL = "qwen3-tts"
 
-HINDI_MARKERS = frozenset({
-    "aap", "aapka", "aaj", "accha", "aur", "hai", "hain", "hoon", "hun", "ka", "ki",
-    "kya", "kyun", "mein", "mera", "meri", "mujhe", "nahi", "nhi", "par", "se", "theek",
-    "karein", "kijiye", "lejiye", "rakhein", "batayein", "khayein", "peeyein",
-    "bahut", "bohot", "halka", "dard", "saunf", "jeera", "khichdi", "daliya",
-    "namaste", "namaskar", "kripya", "dhanyawad", "shukriya",
-})
+HINDI_MARKERS = frozenset(
+    {
+        "aap",
+        "aapka",
+        "aaj",
+        "accha",
+        "aur",
+        "hai",
+        "hain",
+        "hoon",
+        "hun",
+        "ka",
+        "ki",
+        "kya",
+        "kyun",
+        "mein",
+        "mera",
+        "meri",
+        "mujhe",
+        "nahi",
+        "nhi",
+        "par",
+        "se",
+        "theek",
+        "karein",
+        "kijiye",
+        "lejiye",
+        "rakhein",
+        "batayein",
+        "khayein",
+        "peeyein",
+        "bahut",
+        "bohot",
+        "halka",
+        "dard",
+        "saunf",
+        "jeera",
+        "khichdi",
+        "daliya",
+        "namaste",
+        "namaskar",
+        "kripya",
+        "dhanyawad",
+        "shukriya",
+    }
+)
 
 # Dictionary of Roman Hindi and Indian clinical/dietary terms for natural pronunciation
 HINGLISH_PHONETIC_MAP = {
@@ -78,75 +117,77 @@ HINGLISH_PHONETIC_MAP = {
     "peeyein": "peeyein",
 }
 
-WHISPER_SILENCE_HALLUCINATIONS = frozenset({
-    "thank you",
-    "thank you very much",
-    "thank you so much",
-    "thank you for your time",
-    "thank you for watching",
-    "thank you for watching this video",
-    "thank you for listening",
-    "thanks for watching",
-    "thanks for watching this video",
-    "thanks for listening",
-    "thanks for tuning in",
-    "please subscribe",
-    "please like and subscribe",
-    "like and subscribe",
-    "like share and subscribe",
-    "subscribe to my channel",
-    "subscribe to the channel",
-    "subscribe to our channel",
-    "subtitles by",
-    "subtitles by the amara org community",
-    "subtitles by the amara.org community",
-    "subtitles by opensubtitles",
-    "closed captions by",
-    "captions by",
-    "amara org",
-    "amara.org",
-    "opensubtitles",
-    "transcribed by",
-    "translated by",
-    "swagat hai",
-    "swagat hai aapka",
-    "aapka swagat hai",
-    "namaskar",
-    "namaste",
-    "shukriya",
-    "dhanyawad",
-    "obrigado",
-    "obrigada",
-    "muito obrigado",
-    "gracias",
-    "muchas gracias",
-    "merci",
-    "merci beaucoup",
-    "danke",
-    "dankeschon",
-    "tack",
-    "tack sa mycket",
-    "bye",
-    "goodbye",
-    "see you next time",
-    "see you in the next video",
-    "see you in the next one",
-    "see you soon",
-    "until next time",
-    "welcome back to my channel",
-    "welcome to my channel",
-    "you",
-    "mbc",
-    "silence",
-    "applause",
-    "music",
-    "laughter",
-    "cough",
-    "throat clearing",
-    "sigh",
-    "watching",
-    "video",
-})
+WHISPER_SILENCE_HALLUCINATIONS = frozenset(
+    {
+        "thank you",
+        "thank you very much",
+        "thank you so much",
+        "thank you for your time",
+        "thank you for watching",
+        "thank you for watching this video",
+        "thank you for listening",
+        "thanks for watching",
+        "thanks for watching this video",
+        "thanks for listening",
+        "thanks for tuning in",
+        "please subscribe",
+        "please like and subscribe",
+        "like and subscribe",
+        "like share and subscribe",
+        "subscribe to my channel",
+        "subscribe to the channel",
+        "subscribe to our channel",
+        "subtitles by",
+        "subtitles by the amara org community",
+        "subtitles by the amara.org community",
+        "subtitles by opensubtitles",
+        "closed captions by",
+        "captions by",
+        "amara org",
+        "amara.org",
+        "opensubtitles",
+        "transcribed by",
+        "translated by",
+        "swagat hai",
+        "swagat hai aapka",
+        "aapka swagat hai",
+        "namaskar",
+        "namaste",
+        "shukriya",
+        "dhanyawad",
+        "obrigado",
+        "obrigada",
+        "muito obrigado",
+        "gracias",
+        "muchas gracias",
+        "merci",
+        "merci beaucoup",
+        "danke",
+        "dankeschon",
+        "tack",
+        "tack sa mycket",
+        "bye",
+        "goodbye",
+        "see you next time",
+        "see you in the next video",
+        "see you in the next one",
+        "see you soon",
+        "until next time",
+        "welcome back to my channel",
+        "welcome to my channel",
+        "you",
+        "mbc",
+        "silence",
+        "applause",
+        "music",
+        "laughter",
+        "cough",
+        "throat clearing",
+        "sigh",
+        "watching",
+        "video",
+    }
+)
 
 HALLUCINATION_PATTERN = re.compile(
     r"^(?:"
@@ -230,13 +271,23 @@ def is_silence_hallucination(text: str) -> bool:
     cleaned_ascii = unicodedata.normalize("NFKD", cleaned_words).encode("ascii", "ignore").decode("ascii").strip()
     cleaned_ascii = re.sub(r"\s+", " ", cleaned_ascii)
 
-    if cleaned_words in WHISPER_SILENCE_HALLUCINATIONS or (cleaned_ascii and cleaned_ascii in WHISPER_SILENCE_HALLUCINATIONS):
+    if cleaned_words in WHISPER_SILENCE_HALLUCINATIONS or (
+        cleaned_ascii and cleaned_ascii in WHISPER_SILENCE_HALLUCINATIONS
+    ):
         return True
     if HALLUCINATION_PATTERN.match(cleaned_words) or (cleaned_ascii and HALLUCINATION_PATTERN.match(cleaned_ascii)):
         return True
-    if any(phrase in cleaned_words or (cleaned_ascii and phrase in cleaned_ascii) for phrase in (
-        "amara org", "subtitles by", "opensubtitles", "transcribed by", "captioned by", "closed captions"
-    )):
+    if any(
+        phrase in cleaned_words or (cleaned_ascii and phrase in cleaned_ascii)
+        for phrase in (
+            "amara org",
+            "subtitles by",
+            "opensubtitles",
+            "transcribed by",
+            "captioned by",
+            "closed captions",
+        )
+    ):
         return True
     words = cleaned_words.split()
     if len(words) >= 3 and len(set(words)) == 1:
@@ -330,8 +381,10 @@ def route_tts(
     engine_pref = (preferred_engine or os.getenv("TTS_ENGINE", "auto")).casefold().strip()
 
     if _local_only() or engine_pref in {"mlx", "local", "local-mlx"}:
-        voice = os.getenv("LOCAL_TTS_HINDI_VOICE", "Hindi (Female)") if lang == "hi" else os.getenv(
-            "LOCAL_TTS_ENGLISH_VOICE", "English (Indian) (Female)"
+        voice = (
+            os.getenv("LOCAL_TTS_HINDI_VOICE", "Hindi (Female)")
+            if lang == "hi"
+            else os.getenv("LOCAL_TTS_ENGLISH_VOICE", "English (Indian) (Female)")
         )
         return ("mlx", voice)
 
@@ -364,13 +417,17 @@ def _local_only() -> bool:
 def _is_local_url(url: str) -> bool:
     parsed = urlsplit(url)
     return parsed.scheme in {"http", "https"} and parsed.hostname in {
-        "localhost", "127.0.0.1", "::1", "host.docker.internal"
+        "localhost",
+        "127.0.0.1",
+        "::1",
+        "host.docker.internal",
     }
 
 
 async def transcribe_groq(
     audio: bytes,
     *,
+    language: str | None = None,
     filename: str = "turn.webm",
     content_type: str = "audio/webm",
     client_factory: Any = None,
@@ -408,11 +465,19 @@ async def transcribe_groq(
     factory = client_factory or httpx.AsyncClient
     headers = {"Authorization": f"Bearer {key}"} if key else {}
     async with factory(timeout=timeout) as client:
+        stt_data: dict[str, Any] = {"model": model, "response_format": "json"}
+        if language:
+            lang_clean = str(language).lower()
+            if lang_clean in ("hi", "hindi", "hinglish"):
+                stt_data["language"] = "hi"
+            elif lang_clean in ("en", "english"):
+                stt_data["language"] = "en"
+
         response = await client.post(
             url,
             headers=headers,
             files={"file": (filename, audio, content_type)},
-            data={"model": model, "response_format": "json"},
+            data=stt_data,
         )
     if response.status_code >= 400:
         raise RuntimeError(f"{backend} Whisper returned HTTP {response.status_code}")
@@ -573,15 +638,19 @@ async def synthesize_speech_stream(
             qwen_failed = True
 
         if qwen_failed:
-            fallback_voice = selected_voice if selected_voice.endswith("Neural") else (
-                HINDI_VOICE if detect_turn_language(text, language) == "hi" else ENGLISH_VOICE
+            fallback_voice = (
+                selected_voice
+                if selected_voice.endswith("Neural")
+                else (HINDI_VOICE if detect_turn_language(text, language) == "hi" else ENGLISH_VOICE)
             )
             async for chunk in stream_edge_tts(text, fallback_voice):
                 if chunk:
                     yield chunk
     else:
-        edge_voice = selected_voice if selected_voice.endswith("Neural") else (
-            HINDI_VOICE if detect_turn_language(text, language) == "hi" else ENGLISH_VOICE
+        edge_voice = (
+            selected_voice
+            if selected_voice.endswith("Neural")
+            else (HINDI_VOICE if detect_turn_language(text, language) == "hi" else ENGLISH_VOICE)
         )
         async for chunk in stream_edge_tts(text, edge_voice):
             if chunk:
@@ -608,9 +677,7 @@ class VoiceSession:
     ) -> None:
         await self.barge_in()
         routed_engine, routed_voice = route_tts(validated_text, language, preferred_engine=engine)
-        task = asyncio.create_task(
-            self._emit(validated_text, send_audio, routed_voice, routed_engine)
-        )
+        task = asyncio.create_task(self._emit(validated_text, send_audio, routed_voice, routed_engine))
         self._active = task
         try:
             await task
@@ -685,11 +752,13 @@ async def execute_voice_turn(
             await session.speak(sentence, send_audio, language=sent_lang)
 
     if send_json is not None:
-        await send_json({
-            "type": "done",
-            "status": turn_state.validator_status,
-            "evidence_ids": turn_state.evidence_ids,
-            "retrieval_status": turn_state.retrieval_status,
-        })
+        await send_json(
+            {
+                "type": "done",
+                "status": turn_state.validator_status,
+                "evidence_ids": turn_state.evidence_ids,
+                "retrieval_status": turn_state.retrieval_status,
+            }
+        )
 
     return output

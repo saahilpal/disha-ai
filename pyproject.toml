@@ -37,10 +37,20 @@ ignore = [
     "F841",  # Local variable assigned but unused
 ]
 
-[tool.mypy]
-python_version = "3.12"
-ignore_missing_imports = true
-warn_unused_configs = true
-disallow_untyped_defs = false
-check_untyped_defs = false
-disable_error_code = ["attr-defined", "arg-type", "override", "assignment", "var-annotated"]
+[tool.pyright]
+include = ["disha_core"]
+venvPath = "."
+venv = ".venv"
+pythonVersion = "3.12"
+typeCheckingMode = "basic"
+reportMissingImports = false
+reportAttributeAccessIssue = false
+reportArgumentType = false
+reportOptionalMemberAccess = false
+reportOptionalSubscript = false
+reportReturnType = false
+reportTypedDictNotRequiredAccess = false
+reportGeneralTypeIssues = false
+reportAssignmentType = false
+reportCallIssue = false
+reportIndexIssue = false

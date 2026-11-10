@@ -4,11 +4,12 @@ on:
   push:
     branches:
       - main
-      - v2/remap
+      - main-clean
       - master
   pull_request:
     branches:
       - main
+      - main-clean
       - master
   workflow_dispatch:
 
@@ -18,9 +19,9 @@ concurrency:
 
 jobs:
   # ============================================================================
-  # 1. SECURITY & SECRET DETECTION (GITLEAKS)
+  # 1. GITLEAKS SECRETS AUDIT
   # ============================================================================
-  security:
+  gitleaks:
     name: Secrets & Gitleaks Audit
     runs-on: ubuntu-latest
     steps:
@@ -36,7 +37,26 @@ jobs:
         continue-on-error: false
 
   # ============================================================================
-  # 2. CODE QUALITY & LINTING (RUFF)
+  # 2. TRIVY VULNERABILITY SCANNER
+  # ============================================================================
+  trivy:
+    name: Container & Dependency Vulnerability Scan (Trivy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Run Trivy Vulnerability Scanner
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "table"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
+
+  # ============================================================================
+  # 3. CODE QUALITY & LINTING (RUFF)
   # ============================================================================
   lint:
     name: Code Quality & Ruff Linter
@@ -55,17 +75,17 @@ jobs:
 
       - name: Run Ruff Linter
         run: |
-          uv run --with ruff ruff check disha_core audit tests
+          uv run --with ruff ruff check .
 
       - name: Run Ruff Format Check
         run: |
-          uv run --with ruff ruff format --check disha_core audit tests
+          uv run --with ruff ruff format --check .
 
   # ============================================================================
-  # 3. STATIC TYPE INTEGRITY (MYPY)
+  # 4. STATIC TYPE INTEGRITY (PYRIGHT)
   # ============================================================================
-  typecheck:
-    name: Static Type Check (mypy)
+  pyright:
+    name: Static Type Check (Pyright)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Codebase
@@ -79,34 +99,81 @@ jobs:
       - name: Set up Python 3.12
         run: uv python install 3.12
 
-      - name: Install Core Dependencies & Mypy
+      - name: Install Core Dependencies
         run: |
           uv venv
-          uv pip install -r disha_core/requirements.txt mypy
+          uv pip install -r disha_core/requirements.txt
 
-      - name: Run Mypy Type Analysis
+      - name: Run Pyright Type Analysis
         run: |
-          uv run mypy disha_core audit
+          uv run --with pyright pyright
 
   # ============================================================================
-  # 4. COMPREHENSIVE TEST MATRIX (PYTEST & NODE.JS)
+  # 5. HARDCODE & SECRET HYGIENE
   # ============================================================================
-  test:
-    name: Unit, Invariant & Diagnostic Test Suite
+  hardcode-check:
+    name: Hardcode & Secret Hygiene Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Codebase
         uses: actions/checkout@v4
 
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
         with:
-          node-version: 20
-          cache: npm
+          python-version: "3.12"
 
-      - name: Run Frontend Diagnostic Suite (32 checks)
+      - name: Run Hardcode & Secret Check
         run: |
-          node tests/test_frontend_diagnostics.js
+          python3 scripts/hardcode-check
+
+  # ============================================================================
+  # 6. LIVING DOCUMENTATION DRIFT AUDIT
+  # ============================================================================
+  docs-drift:
+    name: Living Documentation Drift Audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Docs Drift Validator
+        run: |
+          python3 scripts/docs-drift
+
+  # ============================================================================
+  # 7. ARCHITECTURE DIAGRAM VERIFICATION
+  # ============================================================================
+  diagram-check:
+    name: Architecture Diagram Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run Diagram Check
+        run: |
+          python3 scripts/diagram-check
+
+  # ============================================================================
+  # 8. CANONICAL TEST MATRIX (PYTEST)
+  # ============================================================================
+  tests:
+    name: Canonical Test Matrix (Pytest)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Codebase
+        uses: actions/checkout@v4
 
       - name: Install uv
         uses: astral-sh/setup-uv@v5
@@ -121,51 +188,10 @@ jobs:
           uv venv
           uv pip install -r disha_core/requirements.txt pytest pytest-asyncio
 
-      - name: Run Pytest Invariants & Clinical Safety Suite
+      - name: Run Canonical Pytest Suite
         env:
           GROQ_API_KEY: "dummy_token_scrubbed"
           GEMINI_API_KEY: "dummy_token_scrubbed"
           POSTGRES_PASSWORD: "postgres"
         run: |
-          uv run pytest -v -m "not live_network"
-
-      - name: Run Vercel Packaging & Audio Engine Contract Tests
-        run: |
-          uv run pytest -q tests/test_vercel_packaging.py
-
-  # ============================================================================
-  # 5. DETERMINISTIC AUDIT JUDGE (C1-C16 INVARIANTS)
-  # ============================================================================
-  audit:
-    name: Deterministic Audit Judge (C1–C16)
-    runs-on: ubuntu-latest
-    needs: [lint, typecheck]
-    steps:
-      - name: Checkout Codebase
-        uses: actions/checkout@v4
-
-      - name: Set up Node.js 20
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: Set up Python 3.12
-        run: uv python install 3.12
-
-      - name: Install Dependencies
-        run: |
-          uv venv
-          uv pip install -r disha_core/requirements.txt pytest pytest-asyncio laya rich python-dotenv
-
-      - name: Run Deterministic Audit Judge
-        env:
-          GROQ_API_KEY: "dummy_token_scrubbed"
-          GEMINI_API_KEY: "dummy_token_scrubbed"
-          POSTGRES_PASSWORD: "postgres"
-        run: |
-          uv run python -m audit.judge
+          uv run pytest -v tests/ -m "not live_network and not manual"

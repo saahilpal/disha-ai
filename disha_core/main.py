@@ -7,6 +7,7 @@ Orchestrates clean layered architecture:
 - Adapters: Database pool adapter and lifecycle management
 - Zero-PHI Logging: Structured logging scrubbing all sensitive identifiers
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -14,6 +15,7 @@ import json
 import logging
 import os
 import re
+import uuid
 from contextlib import asynccontextmanager, suppress
 from datetime import datetime
 from pathlib import Path
@@ -32,19 +34,11 @@ from disha_core.classifier.adapter import LayaClassifierAdapter
 from disha_core.compliance.ledger import AuditLedger, AuditRecord
 from disha_core.config import get_settings
 from disha_core.engine.context_builder import (
-    add_approved_remedy_constraints,
     build_patient_context,
-    determine_length_policy,
-    normalize_preferred_language,
     render_user_payload,
 )
-from disha_core.engine.normalizer import (
-    UNSUPPORTED_LANGUAGE_REPLACEMENT,
-    is_prescribed_meal_query,
-    is_unsupported_language,
-    normalize,
-)
-from disha_core.engine.retriever import retrieve_chunks
+from disha_core.engine.retriever import retrieve_chunks  # noqa: F401
+from disha_core.harness import ResponseHarness, format_system_error
 from disha_core.llm.client import DualProviderClient
 from disha_core.llm.sentence_buffer import validated_sentences
 from disha_core.logging_config import setup_structured_logging
@@ -58,13 +52,10 @@ from disha_core.models.schemas import (
     TurnRequest,
     TurnState,
 )
-from disha_core.pep.exercise_safety import extract_patient_health_tags
-from disha_core.pipeline.router import Intent, IntentRouter, LayaIntentClassifier
+from disha_core.models.turn_context import TurnContext
+from disha_core.pipeline.router import IntentRouter, LayaIntentClassifier
 from disha_core.pipeline.validator import (
-    MEAL_NOT_FOUND_REPLACEMENT,
-    PEP_REPLACEMENT,
     SentenceValidator,
-    knowledge_unavailable_response,
 )
 from disha_core.security.rate_limiter import limiter
 from disha_core.services.auth_service import (
@@ -73,7 +64,7 @@ from disha_core.services.auth_service import (
     register_patient,
 )
 from disha_core.services.patient_service import fetch_patient_profile, update_patient_profile
-from disha_core.voice import VoiceSession, execute_voice_turn, transcribe_groq
+from disha_core.voice import VoiceSession, detect_turn_language, execute_voice_turn, transcribe_groq
 
 MAX_VOICE_TURN_BYTES = 10 * 1024 * 1024  # 10 MB limit for voice turns
 logger = logging.getLogger(__name__)
@@ -150,370 +141,22 @@ async def _turn_sentences(
     payload: TurnRequest,
     state: TurnState,
 ) -> AsyncIterator[str]:
-    """Execute pipeline routing, retrieval, LLM streaming, and sentence validation."""
+    """Execute pipeline routing, retrieval, LLM streaming, and sentence validation via ResponseHarness."""
     app_state = getattr(request, "app", request).state
-    router = app_state.router
+    harness = getattr(app_state, "harness", None)
+    if harness is None:
+        validator = getattr(app_state, "validator", None) or SentenceValidator()
+        llm = getattr(app_state, "llm", None) or DualProviderClient()
+        harness = ResponseHarness(llm, validator)
 
-    pep_risk = 0
-    skip_retrieval = False
-    if hasattr(router, "async_route_decision"):
-        decision = await router.async_route_decision(payload.text)
-        emergency = decision.breaker
-        intent = decision.intent
-        pep_risk = decision.pep_risk
-        skip_retrieval = decision.skip_retrieval
-    elif hasattr(router, "async_route"):
-        emergency, intent = await router.async_route(payload.text)
-        pep_risk = getattr(router, "last_pep_risk", 0)
-        skip_retrieval = intent in {Intent.GENERAL_COACHING, Intent.APP_META, Intent.GREETING}
-    else:
-        emergency, intent = router.route(payload.text)
-        pep_risk = getattr(router, "last_pep_risk", 0)
-        skip_retrieval = intent in {Intent.GENERAL_COACHING, Intent.APP_META, Intent.GREETING}
+    turn_ctx = TurnContext(patient_id=patient_id)
+    if hasattr(request, "state"):
+        request.state.turn_context = turn_ctx
 
-    emitted = False
-    generated_sentences: list[str] = []
-
-    if emergency.triggered:
-        state.breaker_status = f"triggered:{emergency.category}"
-        text = emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein."
-        generated_sentences.append(text)
-        yield text
-        return
-
-    # Language Boundary Check: Deflect non-supported languages politely
-    if is_unsupported_language(payload.text):
-        state.validator_status = "deflected:unsupported_language"
-        generated_sentences.append(UNSUPPORTED_LANGUAGE_REPLACEMENT)
-        yield UNSUPPORTED_LANGUAGE_REPLACEMENT
-        return
-
-    day = app_state.today_ist()
-    prescribed_meal_query = is_prescribed_meal_query(payload.text)
-    pool = getattr(app_state, "pool", None)
-    try:
-        if pool is None:
-            context = await build_patient_context(
-                None,
-                patient_id,
-                day,
-                payload.meal_type if prescribed_meal_query else None,
-                user_input=payload.text,
-                intent=intent.value if intent else None,
-            )
-        else:
-            async with pool.acquire() as connection:
-                context = await build_patient_context(
-                    connection,
-                    patient_id,
-                    day,
-                    payload.meal_type if prescribed_meal_query else None,
-                    user_input=payload.text,
-                    intent=intent.value if intent else None,
-                )
-    except (asyncpg.PostgresError, ConnectionError, OSError, RuntimeError) as exc:
-        logger.warning("Database unavailable in _turn_sentences: %s", exc)
-        state.validator_status = "deflected:db_unavailable"
-        state.retrieval_status = "unavailable"
-        deflection_msg = "Disha abhi technical samasya ke kaaran database se connect nahi kar paa rahi. Kripya thodi der baad koshish karein."
-        generated_sentences.append(deflection_msg)
-        yield deflection_msg
-        return
-    normalized = normalize(payload.text)
-    context["clinical_tags"] = normalized.tags
-    context["intent"] = intent.value if intent else Intent.UNKNOWN.value
-    context["pep_risk"] = pep_risk
-    context["user_input"] = payload.text
-    context["meal_relevant"] = normalized.is_meal_query or intent == Intent.MEAL_QUERY
-    context["exercise_relevant"] = normalized.is_exercise_query or intent == Intent.EXERCISE_QUERY
-    context["length_policy"] = determine_length_policy(
-        payload.text,
-        intent.value if intent else None,
-        is_emergency=emergency.triggered,
-    )
-
-    if prescribed_meal_query and payload.meal_type is None:
-        state.validator_status = "deflected:meal_window_required"
-        yield "Aap apne prescribed plan mein kaunsa meal dekhna chahte hain: breakfast, lunch, ya dinner?"
-        return
-
-    if prescribed_meal_query and context.get("diet_status") == "NOT_FOUND":
-        state.validator_status = "rewritten:meal_not_found"
-        generated_sentences.append(MEAL_NOT_FOUND_REPLACEMENT)
-        yield MEAL_NOT_FOUND_REPLACEMENT
-        return
-    if prescribed_meal_query and context.get("diet_status") != "FOUND":
-        state.validator_status = "deflected:meal_plan_unavailable"
-        yield "Main abhi aapka saved meal plan access nahi kar paa rahi. Kripya thodi der baad phir koshish karein."
-        return
-
-    # Early PEP Risk Triage via Laya System 1:
-    pep = context.get("pep") or {}
-    restricted = {str(item).replace("_", " ").casefold() for item in pep.get("restricted_modalities") or ()}
-    hypertension_stage = str(pep.get("hypertension_stage") or "").casefold().replace("_", " ")
-    diagnosed = " ".join(str(item) for item in pep.get("diagnosed_conditions") or ()).casefold()
-    has_cardiac_htn = hypertension_stage in {"stage 1", "stage 2", "crisis"} or any(
-        condition in diagnosed for condition in ("cardiac", "heart", "coronary", "arrhythmia")
-    )
-    if pep_risk >= 2 and (restricted or has_cardiac_htn):
-        state.validator_status = "rewritten:pep_restriction"
-        generated_sentences.append(PEP_REPLACEMENT)
-        yield PEP_REPLACEMENT
-        return
-
-    if not hasattr(app_state, "conversation_history"):
-        app_state.conversation_history = {}
-
-    db_history = context.get("conversation_history") or []
-    if patient_id not in app_state.conversation_history or not app_state.conversation_history[patient_id]:
-        if db_history:
-            app_state.conversation_history[patient_id] = list(db_history)
-        else:
-            app_state.conversation_history[patient_id] = []
-
-    history = app_state.conversation_history.get(patient_id, [])[-8:]
-    context["has_history"] = bool(history)
-
-    # 5-Stage Patient Journey & Retrieval Routing via single acquired connection
-    channel = "voice" if hasattr(request, "client_state") or "WebSocket" in str(type(request)) else "chat"
-    chunks = ()
-    if getattr(app_state, "pool", None) is not None:
-        try:
-            async with app_state.pool.acquire() as connection:
-                with suppress(Exception):
-                    from disha_core.journey import (
-                        extract_patient_disclosures,
-                        load_or_create_journey,
-                        record_field_answer,
-                        select_next_question,
-                    )
-                    lang = normalize_preferred_language(
-                        (context.get("pep") or {}).get("language")
-                    )
-                    lang = {"english": "en", "hindi": "hi"}.get(lang, "hinglish")
-                    # 1. Multi-field extraction from user input
-                    disclosures = extract_patient_disclosures(payload.text, lang=lang)
-                    for f_id, f_val in disclosures.items():
-                        await record_field_answer(
-                            patient_id=patient_id,
-                            field_id=f_id,
-                            raw_value=f_val,
-                            raw_text=payload.text,
-                            channel=channel,
-                            conn=connection,
-                            lang=lang,
-                        )
-
-                    # 2. Sync / load journey state
-                    journey_state = await load_or_create_journey(patient_id, conn=connection, channel=channel)
-                    context["journey_state"] = journey_state
-
-                    # 3. Off-topic check (e.g. general nutrition query vs answering onboarding question)
-                    is_off_topic = bool(
-                        normalized.is_meal_query 
-                        or normalized.is_exercise_query 
-                        or intent in {Intent.MEAL_QUERY, Intent.EXERCISE_QUERY, Intent.SYMPTOM_COMPLAINT}
-                    ) and not disclosures
-
-                    # 4. Schedule next question
-                    scheduled_q = await select_next_question(
-                        patient_id=patient_id,
-                        journey_state=journey_state,
-                        user_turn_text=payload.text,
-                        channel=channel,
-                        is_emergency=emergency.triggered,
-                        is_off_topic_query=is_off_topic,
-                        conn=connection,
-                        preferred_lang=lang,
-                    )
-                    if scheduled_q:
-                        context["scheduled_question"] = scheduled_q.text
-
-                # Retrieval Routing:
-                # Health-domain questions retrieve even when the intent router calls them general coaching.
-                should_retrieve = not prescribed_meal_query and (
-                    bool(normalized.tags)
-                    or normalized.is_meal_query
-                    or normalized.is_exercise_query
-                    or normalized.is_recommendation_request
-                    or (
-                        not skip_retrieval
-                        and intent not in {Intent.GENERAL_COACHING, Intent.APP_META, Intent.GREETING}
-                    )
-                )
-                if should_retrieve:
-                    pep_context = context.get("pep") or {}
-                    contextual_terms: list[str] = []
-                    if normalized.is_meal_query:
-                        contextual_terms.extend(
-                            str(value)
-                            for value in (
-                                pep_context.get("dietary_preference"),
-                                pep_context.get("primary_focus"),
-                                *(pep_context.get("diagnosed_conditions") or ()),
-                            )
-                            if value
-                        )
-                    if normalized.is_exercise_query:
-                        contextual_terms.extend(
-                            str(value)
-                            for value in (
-                                pep_context.get("user_reported_concerns"),
-                                *(pep_context.get("restricted_modalities") or ()),
-                                *(pep_context.get("diagnosed_conditions") or ()),
-                            )
-                            if value
-                        )
-                    retrieval_query = " ".join((normalized.normalized, *contextual_terms))
-                    profile_tags = normalize(" ".join(contextual_terms)).tags
-                    target_tags = list(dict.fromkeys((*normalized.tags, *profile_tags)))
-                    chunks = await retrieve_chunks(
-                        connection, retrieval_query, patient_id=patient_id, tags=target_tags
-                    )
-                    state.retrieval_status = "retrieved" if chunks else "no_results"
-                    state.evidence_ids = [
-                        str(getter("chunk_id"))
-                        for chunk in chunks
-                        if (getter := (
-                            chunk.get
-                            if hasattr(chunk, "get")
-                            else lambda key, default=None: getattr(chunk, key, default)
-                        ))("chunk_id", None) is not None
-                    ]
-                    if len(state.evidence_ids) != len(chunks):
-                        logger.error("Retrieved health guidance without complete chunk provenance")
-                        state.retrieval_status = "invalid_provenance"
-                        chunks = ()
-                        state.evidence_ids = []
-                    else:
-                        context["retrieved_evidence_ids"] = state.evidence_ids
-                    if getattr(app_state, "sync_history", False) and not app_state.conversation_history[patient_id]:
-                        with suppress(Exception):
-                            from disha_core.services.chat_service import load_conversation_history
-                            loaded = await load_conversation_history(connection, patient_id, 8)
-                            if loaded:
-                                app_state.conversation_history[patient_id] = loaded
-                                history = loaded[-8:]
-        except (asyncpg.PostgresError, ConnectionError, OSError, RuntimeError) as exc:
-            logger.warning("Database retrieval unavailable: %s", exc)
-            state.retrieval_status = "unavailable"
-            chunks = ()
-    elif normalized.tags or intent in {
-        Intent.MEAL_QUERY,
-        Intent.EXERCISE_QUERY,
-        Intent.SYMPTOM_COMPLAINT,
-    }:
-        state.retrieval_status = "unavailable"
-
-    requires_grounding = (
-        bool(normalized.tags)
-        or normalized.is_meal_query
-        or normalized.is_exercise_query
-        or normalized.is_recommendation_request
-        or intent in {
-        Intent.MEAL_QUERY,
-        Intent.EXERCISE_QUERY,
-        Intent.SYMPTOM_COMPLAINT,
-        }
-    )
-    if prescribed_meal_query and context.get("diet_status") == "FOUND":
-        requires_grounding = False
-    if requires_grounding and not chunks:
-        state.validator_status = "deflected:knowledge_unavailable"
-        preferred_language = (context.get("pep") or {}).get("language")
-        yield knowledge_unavailable_response(preferred_language)
-        return
-
-    if normalized.is_exercise_query and normalized.is_recommendation_request:
-        pep_context = context.get("pep") or {}
-        slot_values = [
-            str(slot.get("slot_value", ""))
-            for slot in context.get("patient_slots") or ()
-            if isinstance(slot, dict)
-        ]
-        safety_text = " ".join(
-            str(value)
-            for value in (
-                payload.text,
-                pep_context.get("user_reported_concerns"),
-                *(pep_context.get("restricted_modalities") or ()),
-                *(pep_context.get("diagnosed_conditions") or ()),
-                *slot_values,
-            )
-            if value
-        )
-        safety_tags = extract_patient_health_tags(
-            pep_data=pep_context,
-            reported_symptoms=[
-                payload.text,
-                str(pep_context.get("user_reported_concerns") or ""),
-            ],
-            physical_limitations=pep_context.get("restricted_modalities") or (),
-            diagnosed_conditions=pep_context.get("diagnosed_conditions") or (),
-        )
-        has_recorded_safety_context = bool(
-            pep_context.get("user_reported_concerns")
-            or pep_context.get("restricted_modalities")
-            or pep_context.get("diagnosed_conditions")
-            or (pep_context.get("hypertension_stage") or "").casefold()
-            not in {"", "unknown", "none"}
-            or EXPLICIT_NO_EXERCISE_LIMITATION_RE.search(safety_text)
-        )
-        if safety_tags:
-            state.validator_status = "deflected:exercise_suitability_uncertain"
-            yield (
-                "Aapke bataye hue ya saved health context ke saath main abhi workout ya alternate movement "
-                "recommend nahi karungi, kyunki uski suitability establish nahi hui. Aap apni limitation "
-                "aur jis activity ke baare mein pooch rahe hain woh batayein; zarurat par clinician se "
-                "suitability confirm karein."
-            )
-            return
-        if not has_recorded_safety_context:
-            state.validator_status = "deflected:exercise_context_required"
-            yield (
-                "Personalized exercise suggestion se pehle batayein ki aapko pain, injury, recent surgery, "
-                "mobility difficulty, heart condition, ya exercise restriction hai ya nahi. Bina is context "
-                "ke main workout recommend nahi karungi."
-            )
-            return
-
-    add_approved_remedy_constraints(context, chunks)
-    prompt = render_user_payload(normalized.normalized, context, chunks)
-
-    try:
-        llm_stream = app_state.llm.stream(prompt, messages=history)
-    except TypeError:
-        llm_stream = app_state.llm.stream(prompt)
-
-    try:
-        async for sentence in validated_sentences(
-            llm_stream, app_state.validator, context
-        ):
-            emitted = True
-            generated_sentences.append(sentence)
-            yield sentence
-    except Exception as exc:
-        logger.exception("LLM generation stream failed: %s", exc)
-        state.validator_status = "provider_unavailable"
-        if not emitted:
-            yield "Disha abhi jawab nahi de paa rahi. Kripya thodi der baad phir koshish karein."
-    finally:
-        if state.validator_status == "accepted":
-            state.validator_status = "validated"
-        if generated_sentences:
-            full_reply = " ".join(generated_sentences)
-            if patient_id not in app_state.conversation_history:
-                app_state.conversation_history[patient_id] = []
-            app_state.conversation_history[patient_id].append({"role": "user", "content": payload.text})
-            app_state.conversation_history[patient_id].append({"role": "assistant", "content": full_reply})
-            app_state.conversation_history[patient_id] = app_state.conversation_history[patient_id][-16:]
-
-            if getattr(app_state, "pool", None) is not None:
-                with suppress(Exception):
-                    from disha_core.services.chat_service import persist_patient_disclosure, store_conversation_turn
-                    async with app_state.pool.acquire() as save_conn:
-                        await store_conversation_turn(save_conn, patient_id, payload.text, full_reply)
-                        await persist_patient_disclosure(save_conn, patient_id, payload.text)
+    async for sentence in harness.execute_turn(
+        request, patient_id, payload, legacy_state=state, turn_context=turn_ctx
+    ):
+        yield sentence
 
 
 def create_app() -> FastAPI:
@@ -527,6 +170,7 @@ def create_app() -> FastAPI:
         classifier_adapter = LayaClassifierAdapter()
         try:
             from disha_core.classifier.review_queue import ReviewQueueManager
+
             review_queue = ReviewQueueManager()
             classifier_adapter.set_review_queue(review_queue)
             app.state.review_queue = review_queue
@@ -537,6 +181,7 @@ def create_app() -> FastAPI:
         app.state.router = IntentRouter(LayaIntentClassifier(classifier_adapter))
         app.state.validator = SentenceValidator()
         app.state.llm = DualProviderClient()
+        app.state.harness = ResponseHarness(app.state.llm, app.state.validator)
 
         # 2. Database connection pool
         pool = await create_database_pool(
@@ -714,13 +359,70 @@ def create_app() -> FastAPI:
         updates = payload.model_dump(exclude_unset=True)
         return await update_patient_profile(pool, patient_id, updates, day)
 
+    @app.get("/chat/conversation")
+    async def get_active_conversation(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        limit: int = 50,
+    ) -> dict[str, Any]:
+        """Resolve and hydrate the active conversation with chronological messages (Contract 2 / Spec M1)."""
+        patient_id = await _authenticated_patient(request, authorization)
+        pool = getattr(request.app.state, "pool", None)
+        if pool is None:
+            return {"conversation_id": None, "user_id": patient_id, "messages": [], "dialogue_state": {}}
+        from disha_core.services.chat_service import get_active_conversation_with_messages
+        return await get_active_conversation_with_messages(pool, patient_id, limit=limit)
+
+    @app.post("/chat/conversation/new")
+    async def new_conversation(
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> dict[str, Any]:
+        """Archive active conversation and spawn a fresh one (Contract 2 / Spec M1)."""
+        patient_id = await _authenticated_patient(request, authorization)
+        pool = getattr(request.app.state, "pool", None)
+        if pool is None:
+            return {"status": "ok", "conversation_id": None}
+        from disha_core.services.chat_service import archive_active_conversation, resolve_active_conversation
+        await archive_active_conversation(pool, patient_id)
+        conv = await resolve_active_conversation(pool, patient_id)
+        return {"status": "ok", "conversation": conv}
+
+    @app.get("/chat/history")
+    async def get_chat_history(
+        request: Request,
+        authorization: str | None = Header(default=None),
+        limit: int = 30,
+    ) -> dict[str, Any]:
+        """Chronological turn history for backward compatibility with older UI and tests."""
+        patient_id = await _authenticated_patient(request, authorization)
+        pool = getattr(request.app.state, "pool", None)
+        if pool is not None:
+            from disha_core.services.chat_service import get_active_conversation_with_messages, load_conversation_history
+            active_data = await get_active_conversation_with_messages(pool, patient_id, limit=limit)
+            if active_data.get("messages"):
+                history = [
+                    {"role": m["role"], "content": m["content"]}
+                    for m in active_data["messages"]
+                    if m.get("content")
+                ]
+                return {"patient_id": patient_id, "history": history}
+            # Fallback to patient_turn_journal
+            history = await load_conversation_history(pool, patient_id, limit=limit)
+            return {"patient_id": patient_id, "history": history}
+        return {"patient_id": patient_id, "history": []}
+
     @app.post("/chat", response_model=ChatResponse)
     async def chat(
         payload: TurnRequest,
         request: Request,
         authorization: str | None = Header(default=None),
     ) -> dict[str, Any]:
-        client_key = authorization.removeprefix("Bearer ").strip() if authorization else (request.client.host if request.client else "127.0.0.1")
+        client_key = (
+            authorization.removeprefix("Bearer ").strip()
+            if authorization
+            else (request.client.host if request.client else "127.0.0.1")
+        )
         allowed, _, retry_after = limiter.is_allowed(f"chat_{client_key[:16]}", "chat", limit=60, window_seconds=60.0)
         if not allowed:
             raise HTTPException(
@@ -731,8 +433,24 @@ def create_app() -> FastAPI:
 
         emergency = request.app.state.router.breaker.check(payload.text)
         if emergency.triggered:
+            text = emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein."
+            with suppress(Exception):
+                patient_id = await _authenticated_patient(request, authorization)
+                pool = getattr(request.app.state, "pool", None)
+                if pool is not None:
+                    from disha_core.services.chat_service import resolve_active_conversation, record_message, store_conversation_turn
+                    conv = await resolve_active_conversation(pool, patient_id)
+                    if conv and conv.get("id"):
+                        cid = str(conv["id"])
+                        await record_message(pool, cid, patient_id, "user", "chat", payload.text, status="complete")
+                        await record_message(pool, cid, patient_id, "assistant", "chat", text, status="complete")
+                    await store_conversation_turn(pool, patient_id, payload.text, text)
+            _enqueue_audit(
+                request.app.state.ledger,
+                AuditRecord(patient_id if 'patient_id' in locals() else "unknown", payload.text, text, "triggered", "emergency"),
+            )
             return {
-                "response": emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein.",
+                "response": text,
                 **_response_metadata(
                     TurnState(),
                     status=f"triggered:{emergency.category}",
@@ -744,7 +462,7 @@ def create_app() -> FastAPI:
         except HTTPException as he:
             if he.status_code == 503:
                 return {
-                    "response": "Disha abhi technical samasya ke kaaran database se connect nahi kar paa rahi. Kripya thodi der baad koshish karein.",
+                    "response": format_system_error("Database connection unavailable", "Kripya thodi der baad koshish karein."),
                     **_response_metadata(
                         TurnState(retrieval_status="unavailable"),
                         status="deflected:db_unavailable",
@@ -754,6 +472,18 @@ def create_app() -> FastAPI:
         state = TurnState()
         sentences = [sentence async for sentence in _turn_sentences(request, patient_id, payload, state)]
         output = " ".join(sentences)
+
+        # Persist turn to active conversation (Spec M1 / Contract 2)
+        pool = getattr(request.app.state, "pool", None)
+        if pool is not None:
+            with suppress(Exception):
+                from disha_core.services.chat_service import resolve_active_conversation, record_message
+                conv = await resolve_active_conversation(pool, patient_id)
+                if conv and conv.get("id"):
+                    cid = str(conv["id"])
+                    c_msg_id = getattr(payload, "client_msg_id", None) or str(uuid.uuid4())
+                    await record_message(pool, cid, patient_id, "user", "chat", payload.text, status="complete", client_msg_id=c_msg_id)
+                    await record_message(pool, cid, patient_id, "assistant", "chat", output, status="complete")
 
         _enqueue_audit(
             request.app.state.ledger,
@@ -770,7 +500,11 @@ def create_app() -> FastAPI:
         request: Request,
         authorization: str | None = Header(default=None),
     ) -> StreamingResponse:
-        client_key = authorization.removeprefix("Bearer ").strip() if authorization else (request.client.host if request.client else "127.0.0.1")
+        client_key = (
+            authorization.removeprefix("Bearer ").strip()
+            if authorization
+            else (request.client.host if request.client else "127.0.0.1")
+        )
         allowed, _, retry_after = limiter.is_allowed(f"chat_{client_key[:16]}", "chat", limit=60, window_seconds=60.0)
         if not allowed:
             raise HTTPException(
@@ -782,6 +516,21 @@ def create_app() -> FastAPI:
         emergency = request.app.state.router.breaker.check(payload.text)
         if emergency.triggered:
             text = emergency.response or "Yeh emergency ho sakti hai. Abhi 112 par call karein."
+            with suppress(Exception):
+                patient_id = await _authenticated_patient(request, authorization)
+                pool = getattr(request.app.state, "pool", None)
+                if pool is not None:
+                    from disha_core.services.chat_service import resolve_active_conversation, record_message, store_conversation_turn
+                    conv = await resolve_active_conversation(pool, patient_id)
+                    if conv and conv.get("id"):
+                        cid = str(conv["id"])
+                        await record_message(pool, cid, patient_id, "user", "chat", payload.text, status="complete")
+                        await record_message(pool, cid, patient_id, "assistant", "chat", text, status="complete")
+                    await store_conversation_turn(pool, patient_id, payload.text, text)
+            _enqueue_audit(
+                request.app.state.ledger,
+                AuditRecord(patient_id if 'patient_id' in locals() else "unknown", payload.text, text, "triggered", "emergency"),
+            )
             metadata = _response_metadata(
                 TurnState(),
                 status=f"triggered:{emergency.category}",
@@ -805,7 +554,7 @@ def create_app() -> FastAPI:
             patient_id = await _authenticated_patient(request, authorization)
         except HTTPException as he:
             if he.status_code == 503:
-                text = "Disha abhi technical samasya ke kaaran database se connect nahi kar paa rahi. Kripya thodi der baad koshish karein."
+                text = format_system_error("Database connection unavailable", "Kripya thodi der baad koshish karein.")
                 metadata = _response_metadata(
                     TurnState(retrieval_status="unavailable"),
                     status="deflected:db_unavailable",
@@ -826,6 +575,19 @@ def create_app() -> FastAPI:
                 )
             raise
         state = TurnState()
+        pool = getattr(request.app.state, "pool", None)
+        asst_msg_id = None
+        if pool is not None:
+            with suppress(Exception):
+                from disha_core.services.chat_service import resolve_active_conversation, record_message
+                conv = await resolve_active_conversation(pool, patient_id)
+                if conv and conv.get("id"):
+                    cid = str(conv["id"])
+                    c_msg_id = getattr(payload, "client_msg_id", None) or str(uuid.uuid4())
+                    await record_message(pool, cid, patient_id, "user", "chat", payload.text, status="complete", client_msg_id=c_msg_id)
+                    asst_rec = await record_message(pool, cid, patient_id, "assistant", "chat", "", status="streaming")
+                    if asst_rec and asst_rec.get("id"):
+                        asst_msg_id = str(asst_rec["id"])
 
         async def events() -> AsyncIterator[str]:
             output: list[str] = []
@@ -839,9 +601,18 @@ def create_app() -> FastAPI:
             except (asyncio.CancelledError, GeneratorExit):
                 pass
             finally:
+                if pool is not None and asst_msg_id is not None:
+                    with suppress(Exception):
+                        from disha_core.services.chat_service import update_message_status
+                        final_reply = " ".join(output)
+                        st = "complete" if output and state.validator_status in ("validated", "accepted") else ("aborted" if not output else "complete")
+                        await update_message_status(pool, asst_msg_id, st, content=final_reply)
+
                 _enqueue_audit(
                     request.app.state.ledger,
-                    AuditRecord(patient_id, payload.text, " ".join(output), state.breaker_status, state.validator_status),
+                    AuditRecord(
+                        patient_id, payload.text, " ".join(output), state.breaker_status, state.validator_status
+                    ),
                 )
 
         return StreamingResponse(
@@ -859,9 +630,10 @@ def create_app() -> FastAPI:
     async def voice(websocket: WebSocket) -> None:
         await websocket.accept()
         auth_frame_received = False
-        token = websocket.query_params.get("token") or (
-            websocket.headers.get("authorization") or ""
-        ).removeprefix("Bearer ").strip()
+        token = (
+            websocket.query_params.get("token")
+            or (websocket.headers.get("authorization") or "").removeprefix("Bearer ").strip()
+        )
 
         if not token:
             try:
@@ -900,13 +672,21 @@ def create_app() -> FastAPI:
             with suppress(Exception):
                 await websocket.send_json({"type": "interrupted"})
 
+        stored_lang = "hinglish"
+        pool = getattr(websocket.app.state, "pool", None)
+        if pool is not None:
+            with suppress(Exception):
+                row = await pool.fetchrow("SELECT language FROM patient_profiles WHERE patient_id = $1", patient_id)
+                if row and row.get("language"):
+                    stored_lang = str(row["language"])
+
         async def process_audio(audio: bytes) -> None:
             transcript = ""
             state = TurnState()
             output: list[str] = []
             try:
                 async with asyncio.timeout(30.0):
-                    transcript = await transcribe_groq(audio)
+                    transcript = await transcribe_groq(audio, language=stored_lang)
                     await websocket.send_json({"type": "transcript", "text": transcript})
                     output = await execute_voice_turn(
                         websocket,
@@ -921,9 +701,7 @@ def create_app() -> FastAPI:
                 raise
             except (asyncio.TimeoutError, TimeoutError):
                 with suppress(Exception):
-                    await websocket.send_json(
-                        {"type": "error", "message": "Voice processing timed out."}
-                    )
+                    await websocket.send_json({"type": "error", "message": "Voice processing timed out."})
             except Exception as exc:
                 err_str = str(exc)
                 if "filtered silence hallucination" in err_str or "silent audio frame" in err_str:
@@ -931,11 +709,20 @@ def create_app() -> FastAPI:
                         await websocket.send_json({"type": "silence", "message": "Silence detected"})
                     return
                 with suppress(Exception):
-                    await websocket.send_json(
-                        {"type": "error", "message": "Voice turn unavailable; please try again."}
-                    )
+                    await websocket.send_json({"type": "error", "message": "Voice turn unavailable; please try again."})
             finally:
                 if transcript:
+                    pool = getattr(websocket.app.state, "pool", None)
+                    if pool is not None and output:
+                        with suppress(Exception):
+                            from disha_core.services.chat_service import resolve_active_conversation, record_message, store_conversation_turn
+                            conv = await resolve_active_conversation(pool, patient_id, channel="voice")
+                            if conv and conv.get("id"):
+                                cid = str(conv["id"])
+                                await record_message(pool, cid, patient_id, "user", "voice", transcript, status="complete")
+                                await record_message(pool, cid, patient_id, "assistant", "voice", " ".join(output), status="complete")
+                            await store_conversation_turn(pool, patient_id, transcript, " ".join(output))
+
                     _enqueue_audit(
                         getattr(websocket.app.state, "ledger", None),
                         AuditRecord(
@@ -962,21 +749,26 @@ def create_app() -> FastAPI:
                 raise
             except (asyncio.TimeoutError, TimeoutError):
                 with suppress(Exception):
-                    await websocket.send_json(
-                        {"type": "error", "message": "Text processing timed out."}
-                    )
+                    await websocket.send_json({"type": "error", "message": "Text processing timed out."})
             except Exception:
                 with suppress(Exception):
-                    await websocket.send_json(
-                        {"type": "error", "message": "Voice turn unavailable; please try again."}
-                    )
+                    await websocket.send_json({"type": "error", "message": "Voice turn unavailable; please try again."})
             finally:
                 if text:
+                    pool = getattr(websocket.app.state, "pool", None)
+                    if pool is not None and output:
+                        with suppress(Exception):
+                            from disha_core.services.chat_service import resolve_active_conversation, record_message, store_conversation_turn
+                            conv = await resolve_active_conversation(pool, patient_id, channel="voice")
+                            if conv and conv.get("id"):
+                                cid = str(conv["id"])
+                                await record_message(pool, cid, patient_id, "user", "voice", text, status="complete")
+                                await record_message(pool, cid, patient_id, "assistant", "voice", " ".join(output), status="complete")
+                            await store_conversation_turn(pool, patient_id, text, " ".join(output))
+
                     _enqueue_audit(
                         getattr(websocket.app.state, "ledger", None),
-                        AuditRecord(
-                            patient_id, text, " ".join(output), state.breaker_status, state.validator_status
-                        ),
+                        AuditRecord(patient_id, text, " ".join(output), state.breaker_status, state.validator_status),
                     )
 
         try:
@@ -1002,9 +794,7 @@ def create_app() -> FastAPI:
                                 is_interrupt = True
                             elif msg_type == "auth":
                                 with suppress(Exception):
-                                    await websocket.send_json(
-                                        {"type": "authenticated", "patient_id": patient_id}
-                                    )
+                                    await websocket.send_json({"type": "authenticated", "patient_id": patient_id})
                                 continue
                             elif msg_type == "audio" and parsed.get("data"):
                                 import base64
@@ -1012,15 +802,31 @@ def create_app() -> FastAPI:
                                 audio = base64.b64decode(parsed["data"])
                             elif msg_type == "text" and parsed.get("text"):
                                 text_input = str(parsed["text"]).strip()
+                            elif msg_type in ("interim_transcript", "interim", "partial_transcript") and parsed.get("text"):
+                                interim_text = str(parsed["text"]).strip()
+                                if interim_text:
+                                    router = getattr(websocket.app.state, "router", None)
+                                    breaker = getattr(router, "breaker", None) if router else None
+                                    if breaker:
+                                        emergency = breaker.check(interim_text)
+                                        if emergency.triggered:
+                                            await cancel_active_turn()
+                                            resp_text = emergency.response or breaker.default_protocol
+                                            with suppress(Exception):
+                                                await websocket.send_json({"type": "transcript", "text": interim_text, "is_interim": True})
+                                                await websocket.send_json({"type": "sentence", "text": resp_text})
+                                                await websocket.send_json({"type": "done", "status": f"triggered:{emergency.category}"})
+                                            sent_lang = detect_turn_language(resp_text)
+                                            with suppress(Exception):
+                                                await session.speak(resp_text, websocket.send_bytes, language=sent_lang)
+                                            continue
 
                 if is_interrupt:
                     await cancel_active_turn()
                     continue
 
                 if audio is None and text_input is None:
-                    await websocket.send_json(
-                        {"type": "error", "message": "Send audio bytes or json turn payload."}
-                    )
+                    await websocket.send_json({"type": "error", "message": "Send audio bytes or json turn payload."})
                     continue
                 if audio is not None and len(audio) > MAX_VOICE_TURN_BYTES:
                     await websocket.close(code=1009, reason="Audio turn exceeds 10 MB")

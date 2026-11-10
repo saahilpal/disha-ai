@@ -9,9 +9,67 @@ Style Standard: Strict technical precision, zero emojis.
 
 ---
 
+## [1.3.0] - 2026-11-10
+
+### Added
+- **Behavior Spec v1 (Owner-Provided Implementation)**:
+  - Added `data/behavior_rules.yaml` as the canonical single source of truth for all 18 rules (P1-P6, F1-F5, C1-C4, M1-M3).
+  - Added deterministic system prompt generation rendering `data/behavior_rules.yaml` into ≤600-token prompt (585 tokens) with version hash (`v1-9f113b222df1`) in `disha_core/llm/client.py`.
+  - Added `TurnPerception` schema and deterministic precedence move selector in `disha_core/harness/perception.py`.
+  - Added multilingual behavior rule verifiers in `disha_core/harness/verifier.py`: P3 (script & language mode), P4 (banned honorifics), P6/F3 (sentence count ≤3, char cap ≤450), F1 (zero-echo cross-script), F2 (at most 1 question), F4 (selective empathy gated on distress), and C2 (clinical boundary table).
+  - Added `tests/test_behavior_spec_v1.py` with 25 unit tests validating all rules, precedence chain, and flag rollback.
+  - Added first-run one-tap language choice modal in `disha_core/frontend/app.js` with localized options for Hinglish, हिन्दी, and English.
+  - Added D5 silent 2-turn language switch in `disha_core/harness/harness.py`.
+  - Added unified persistence endpoints `GET /chat/conversation` and `POST /chat/conversation/new` in `disha_core/main.py`.
+  - Wired message and conversation recording for SSE streams (`POST /chat/stream`), sync turns (`POST /chat`), and voice WebSocket (`/voice`).
+  - Added `data/i18n/{en,hi,hinglish}.yaml` and `data/c2_boundary.yaml` data catalogs.
+
+### Changed
+- Replaced 1,446-token prompt with 585-token versioned prompt, achieving a 59.5% token reduction.
+- Replaced sentence-by-sentence chat streaming verification with whole-draft verification, guaranteeing turn-level conformance.
+- Replaced canned answer-shaped fallback strings with LLM-only repair loop (max 2 attempts + 1 strict constrained regeneration).
+
+---
+
+## [1.2.0] - 2026-11-09
+
+### Added
+- **Onboarding State, Repetition Elimination & Conversational Empathy Suite**:
+  - Added 10-scenario regression test suite in `tests/test_onboarding_conversation_rep.py` covering negative medical history, repeated meal requests, acknowledgments, direct demands, previously collected information deduplication, Hinglish phonetic parsing, cross-session persistence, stage progression UI isolation, emotional empathy for struggles, and token-efficient prompt discipline.
+  - Added non-hardcoded provider API rate-limit advisory pill (`#call-advisory-pill`) on voice call screen with localized strings in `disha_core/frontend/locales/` (`en.json`, `hi.json`, `hinglish.json`).
+  - Added granular field state classification in `load_or_create_journey`: `not_asked`, `asked_unanswered`, `answered_negatively`, `answered_positively`, `needs_clarification`.
+
+### Fixed
+- **Critical Medical Condition Question Loop & State Loss**:
+  - Resolved root cause where negative responses (`"nhi"`, `"nahi"`, `"no"`, `"nope"`, `"na"`, `"nothing"`, `"kuch nahi"`) to pending onboarding questions were dropped by the disclosure extractor.
+  - `extract_patient_disclosures` now resolves negative answers against `pending_field` contextually, storing `{"diagnosed_conditions": ["none"]}`.
+  - `sync_known_fields_from_db` now queries `journey_question_history` for confirmed answered fields, preventing empty lists or missing fields from triggering repeated questions.
+  - `record_field_answer` now updates both `patient_pep` and `patient_profiles` and marks all asked questions for the target field as `status = 'answered'`.
+  - Question scheduler now enforces strict deduplication: answered questions (required or optional) are permanently excluded from candidate selection, preventing repeated questions.
+  - Suppressed onboarding questions during active health/coaching inquiries (meal queries, symptoms, exercise) to address user's immediate need first.
+- **Conversational Tone, Empathy & Response Discipline**:
+  - Enhanced Structured Turn Planner in `disha_core/harness/planner.py` to perceive emotional struggles (stress, low motivation, guilt, cheat meals, setbacks) and schedule validation with genuine empathy while avoiding toxic positivity or blame.
+  - Added repetition avoidance move: when user repeats inquiries (e.g. repeated "breakfast" requests), planner instructs fresh variety and alternatives rather than echoing identical food items.
+  - Added clean handling for simple acknowledgments ("okay", "theek hai") to avoid re-explaining advice or spamming questions.
+  - Added immediate execution for direct demands ("nhi jo hai de do") with concrete recommendations and zero follow-up preference questions.
+  - Updated `SYSTEM_PROMPT` in `disha_core/llm/client.py` enforcing concise, token-efficient responses (2–4 focused sentences), sincere concern, warm Indian coaching voice, and zero robotic canned intros.
+- **Chat UI Cleanliness & Telemetry Metadata Removal**:
+  - Removed visible 5-stage onboarding progress indicator (`#chat-journey-banner`) from the chat shell; progression is now purely backend-driven.
+  - Stripped internal retrieval and telemetry metadata (`Retrieval: ...`, `Sources: ...`) from user-facing chat bubbles via `.source-trace { display: none !important; }` and DOM suppression in `renderMessageProvenance`.
+
+---
+
 ## [1.1.0] - 2026-11-09
 
 ### Added
+- **Repository Architecture, Git Hygiene & CI/CD Hardening**:
+  - Consolidated canonical test matrix into unified top-level `tests/` tree, deprecating scattered `disha_core/tests/` hierarchy.
+  - Multi-stage GitHub Actions CI workflow in `.github/workflows/ci.yml` executing lint (Ruff), static typing (Pyright), tests (Pytest), secret audit (Gitleaks), vulnerability scan (Trivy), hardcode hygiene, docs drift, and architecture diagram checks.
+  - Extended `scripts/hardcode-check` with an AST scanner flagging unexternalized user-facing natural language string literals in Python code outside `data/` and `i18n/`.
+  - Added repository-wide code review governance in `.github/CODEOWNERS` and `CODEOWNERS`.
+  - Added root `SECURITY.md` with vulnerability triage SLAs, responsible disclosure guidelines, and key rotation protocols.
+  - Documented complete GitHub branch protection policy and click-path in `docs/runbooks/branch_protection.md`.
+  - Prepared `main-clean` orphan branch structured with clean logical conventional commits.
 - **Final Fix Order v5 Execution Framework**:
   - Expanded 16-specialist strike team roster in `agent/ROSTER.md` with owned globs, assigned skills, and step budgets.
   - Asynchronous agent coordination board in `agent/board/board.jsonl`, `scripts/board`, and auto-updating `agent/BOARD.md`.

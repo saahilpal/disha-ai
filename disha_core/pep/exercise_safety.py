@@ -1,4 +1,5 @@
 """Deterministic exercise-risk tagging and fail-closed suitability checks."""
+
 from __future__ import annotations
 
 import re

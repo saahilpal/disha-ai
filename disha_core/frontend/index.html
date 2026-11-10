@@ -124,7 +124,10 @@
 
             <div class="form-group">
               <label for="password-input" class="form-label">Password</label>
-              <input type="password" id="password-input" name="password" class="form-input" placeholder="Password" required autocomplete="current-password" />
+              <div class="password-input-wrapper">
+                <input type="password" id="password-input" name="password" class="form-input" placeholder="Password" required autocomplete="current-password" />
+                <button type="button" id="toggle-login-password" class="password-toggle-btn" aria-label="Toggle password visibility">Show</button>
+              </div>
               <div id="password-error" class="field-feedback error" role="alert"></div>
             </div>
 
@@ -133,7 +136,9 @@
             </button>
           </form>
 
-
+          <p class="auth-switch-text">
+            New to Disha? <button type="button" class="auth-switch-link" id="switch-to-register">Create an account</button>
+          </p>
         </div>
 
         <!-- 1B: Clean 3-Step Profile Onboarding -->
@@ -259,7 +264,10 @@
 
               <div class="form-group">
                 <label for="onboard-password" class="form-label">Password</label>
-                <input type="password" id="onboard-password" class="form-input" placeholder="At least 6 characters" required autocomplete="new-password" />
+                <div class="password-input-wrapper">
+                  <input type="password" id="onboard-password" class="form-input" placeholder="At least 6 characters" required autocomplete="new-password" />
+                  <button type="button" id="toggle-onboard-password" class="password-toggle-btn" aria-label="Toggle password visibility">Show</button>
+                </div>
                 <div id="onboard-password-error" class="field-feedback error" role="alert"></div>
               </div>
 
@@ -269,6 +277,10 @@
               </div>
             </div>
           </form>
+
+          <p class="auth-switch-text">
+            Already have an account? <button type="button" class="auth-switch-link" id="switch-to-login">Sign in here</button>
+          </p>
         </div>
       </div>
     </main>
@@ -286,12 +298,46 @@
             </div>
           </div>
           <div class="chat-top-actions">
+            <div id="chat-offline-banner" class="chat-offline-pill" style="display: none;" role="status" aria-live="polite">
+              <span class="offline-dot" aria-hidden="true"></span>
+              <span>Offline — queued</span>
+            </div>
             <button type="button" id="header-call-btn" class="voice-call-trigger-btn" title="Start voice session">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
               </svg>
               <span>Voice Call</span>
             </button>
+          </div>
+        </div>
+
+        <!-- Clinical AI Health Coach Disclosure & Consent Modal -->
+        <div class="consent-modal" id="consent-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="consent-modal-title">
+          <div class="consent-modal-dialog">
+            <div class="consent-modal-header">
+              <h3 id="consent-modal-title" class="consent-title">Clinical AI Health Coach Disclosure &amp; Consent</h3>
+            </div>
+            <div class="consent-modal-body">
+              <div class="consent-disclosure-card">
+                <p class="disclosure-main">
+                  <strong>Disha AI</strong> is your personalized lifestyle, nutrition, and habit health coach.
+                </p>
+                <ul class="disclosure-points">
+                  <li><strong>AI Coach Disclosure:</strong> Disha is an artificial intelligence health coach, not a licensed medical doctor or clinical practitioner.</li>
+                  <li><strong>No Prescriptions:</strong> Disha cannot diagnose illnesses, alter doctor-prescribed medication dosages, or prescribe pharmaceuticals.</li>
+                  <li><strong>Emergency Protocol:</strong> If you or someone with you experiences chest pain, acute breathlessness, or severe trauma, call <strong>112</strong> or <strong>108</strong> immediately.</li>
+                  <li><strong>Voice Processing Consent:</strong> Audio is captured for speech-to-text processing solely to conduct this consultation session.</li>
+                </ul>
+              </div>
+              <label class="consent-checkbox-label" for="medical-consent-checkbox">
+                <input type="checkbox" id="medical-consent-checkbox" />
+                <span>I understand Disha is an AI health coach and consent to voice consultation processing.</span>
+              </label>
+            </div>
+            <div class="consent-modal-footer">
+              <button type="button" id="consent-cancel-btn" class="secondary-btn">Stay in Chat</button>
+              <button type="button" id="consent-accept-btn" class="primary-btn" disabled>Accept &amp; Start Call</button>
+            </div>
           </div>
         </div>
 
@@ -303,6 +349,10 @@
                 <h2 id="call-modal-title" class="call-modal-title">Live Voice Call</h2>
                 <div class="call-timer-display font-mono" id="call-duration">00:00</div>
                 <span id="recording-time" style="display:none">00:00</span>
+              </div>
+              <div class="telephony-status-pill" id="telephony-status-pill" role="status" aria-live="polite">
+                <span class="indicator-dot idle"></span>
+                <span class="status-label font-sans" id="telephony-status-text">Ready for consultation</span>
               </div>
               <button type="button" id="call-modal-close-btn" class="modal-close-icon" aria-label="Return to chat view" title="Return to chat">&times;</button>
             </div>
@@ -320,13 +370,33 @@
               <canvas id="waveform-canvas" height="1" width="1" style="display:none" aria-hidden="true"></canvas>
             </div>
 
-            <!-- Live Spoken Subtitles Box -->
-            <div class="voice-subtitles-box" id="voice-subtitles-card">
+            <!-- Responsive Microphone Audio Level Meter -->
+            <div class="call-mic-meter-wrapper" id="call-mic-meter-wrapper" aria-label="Microphone input level">
+              <div class="mic-meter-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
+                  <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                  <line x1="12" y1="19" x2="12" y2="23"></line>
+                  <line x1="8" y1="23" x2="16" y2="23"></line>
+                </svg>
+              </div>
+              <div class="mic-meter-track" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="mic-audio-meter">
+                <div class="mic-meter-fill" id="mic-meter-fill" style="width: 0%;"></div>
+              </div>
+              <span class="mic-meter-value font-mono" id="mic-meter-value" aria-hidden="true">0%</span>
+            </div>
+
+            <!-- Live Spoken Subtitles & Captions Box -->
+            <div class="voice-subtitles-box" id="voice-subtitles-card" role="region" aria-label="Live Call Captions" aria-live="polite">
+              <div class="subtitles-header">
+                <span class="captions-badge">LIVE CAPTIONS</span>
+                <span class="captions-speaker" id="voice-captions-speaker">Disha AI</span>
+              </div>
               <p class="subtitles-text" id="voice-subtitles-text">Listening… speak naturally.</p>
             </div>
 
             <div class="call-actions-row">
-              <button type="button" id="mute-mic-btn" class="call-action-btn secondary" title="Mute/Unmute microphone">
+              <button type="button" id="mute-mic-btn" class="call-action-btn secondary" title="Mute/Unmute microphone" aria-label="Toggle mute microphone">
                 <span id="mic-icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                     <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path>
@@ -338,7 +408,7 @@
                 <span id="mic-label">Mute</span>
               </button>
 
-              <button type="button" id="call-btn" class="call-action-btn end-call" title="End Call">
+              <button type="button" id="call-btn" class="call-action-btn end-call" title="End Call" aria-label="End voice consultation and return to chat">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                   <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path>
                   <line x1="23" y1="1" x2="1" y2="23"></line>
@@ -346,7 +416,7 @@
                 <span id="call-btn-label">End Call</span>
               </button>
 
-              <button type="button" id="switch-to-chat-btn" class="call-action-btn secondary" title="Switch to text view">
+              <button type="button" id="switch-to-chat-btn" class="call-action-btn secondary" title="Switch to text view" aria-label="Return to chat preserving state">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                 </svg>
@@ -355,12 +425,19 @@
 
               <button id="mic-btn" style="display:none"></button>
             </div>
+
+            <div class="call-disclaimer-notice font-sans">
+              <span>Disha AI Health Coach &bull; Lifestyle guidance only &bull; In an emergency, dial 112</span>
+            </div>
+            <div class="call-advisory-notice font-sans" id="call-advisory-pill" role="note" data-i18n="telephony.call_api_limit_advisory">
+              Live voice calls may experience latency due to provider quotas. Feel free to switch to chat anytime.
+            </div>
           </div>
         </div>
 
         <!-- Chat Messages Stream -->
-        <div class="chat-messages-area">
-          <div id="chat-stream" class="chat-stream" role="log" aria-live="polite">
+        <div class="chat-messages-area" id="chat-messages-area">
+          <div id="chat-stream" class="chat-stream" role="log" aria-live="polite" aria-atomic="false">
             <div class="chat-message assistant">
               <div class="msg-avatar" aria-hidden="true">D</div>
               <div class="msg-bubble">
@@ -368,25 +445,46 @@
               </div>
             </div>
           </div>
+          <!-- Floating stick-to-bottom / Jump to latest pill -->
+          <button type="button" id="jump-to-latest-btn" class="jump-to-latest-pill" style="display: none;" aria-label="Jump to latest message">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span>Jump to latest</span>
+          </button>
         </div>
 
         <!-- Chat Input Form -->
         <div class="chat-composer-bar">
-          <form id="text-turn-form" class="chat-form">
-            <input
-              type="text"
-              id="user-text-input"
-              class="chat-input-field"
-              placeholder="Ask Disha about nutrition, meals, exercise, or health habits…"
-              autocomplete="off"
-            />
-            <button type="submit" id="send-turn-btn" class="chat-submit-btn" aria-label="Send message">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="22" y1="2" x2="11" y2="13"></line>
-                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-              </svg>
-            </button>
-          </form>
+          <div class="chat-composer-inner">
+            <form id="text-turn-form" class="chat-form">
+              <textarea
+                id="user-text-input"
+                class="chat-input-field"
+                placeholder="Ask Disha about nutrition, meals, exercise, or health habits…"
+                rows="1"
+                autocomplete="off"
+                aria-label="Message Disha"
+              ></textarea>
+              <div class="composer-actions">
+                <button type="button" id="stop-stream-btn" class="chat-stop-btn" style="display: none;" aria-label="Stop generation">
+                  <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                    <rect x="6" y="6" width="12" height="12" rx="2"></rect>
+                  </svg>
+                  <span>Stop</span>
+                </button>
+                <button type="submit" id="send-turn-btn" class="chat-submit-btn" aria-label="Send message">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                </button>
+              </div>
+            </form>
+            <div class="composer-hint" aria-hidden="true">
+              <span><kbd>Enter</kbd> sends &middot; <kbd>Shift+Enter</kbd> newline</span>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -481,6 +579,10 @@
             <div class="safety-detail-row">
               <span class="safety-label">Restricted:</span>
               <span class="safety-value warning-text" id="profile-page-restricted-modalities">--</span>
+            </div>
+            <div class="safety-detail-row">
+              <span class="safety-label">Hypertension Status:</span>
+              <span class="badge-mini" id="disp-htn-badge">Not assessed</span>
             </div>
           </div>
 

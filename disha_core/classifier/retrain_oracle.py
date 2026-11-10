@@ -9,6 +9,7 @@ Enforces Senior AI Systems Engineering principles:
 6. Invariant 5: Latency SLA enforcement (P50 <= 150ms, P95 <= 300ms).
 7. Synthetic defect injection: Proves the oracle rejects defective candidates.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -65,7 +66,8 @@ def calculate_ece(confidences: Sequence[float], matches: Sequence[bool], num_bin
         bin_upper = (i + 1) / num_bins
 
         indices = [
-            idx for idx, c in enumerate(confidences)
+            idx
+            for idx, c in enumerate(confidences)
             if (bin_lower <= c < bin_upper) or (i == num_bins - 1 and bin_lower <= c <= bin_upper)
         ]
         if not indices:
@@ -207,7 +209,7 @@ class LayaPromotionOracle:
         baseline_metrics: EvaluationMetrics,
     ) -> PromotionReport:
         """Determines whether candidate model qualifies for production promotion.
-        
+
         Strict Invariants:
         1. Emergency Recall MUST be 100.0% (1.0). Zero tolerance for missed acute emergencies.
         2. Candidate Accuracy >= Baseline Accuracy.
@@ -255,7 +257,10 @@ class LayaPromotionOracle:
                 decision = PromotionDecision.REJECTED_CALIBRATION_DRIFT
 
         # Invariant 5: Latency SLA
-        if candidate_metrics.p50_latency_ms > self.max_p50_latency or candidate_metrics.p95_latency_ms > self.max_p95_latency:
+        if (
+            candidate_metrics.p50_latency_ms > self.max_p50_latency
+            or candidate_metrics.p95_latency_ms > self.max_p95_latency
+        ):
             reasons.append(
                 f"Latency SLA violation: Candidate P50={candidate_metrics.p50_latency_ms}ms (max {self.max_p50_latency}ms), "
                 f"P95={candidate_metrics.p95_latency_ms}ms (max {self.max_p95_latency}ms)"
@@ -263,12 +268,16 @@ class LayaPromotionOracle:
             if decision == PromotionDecision.APPROVED:
                 decision = PromotionDecision.REJECTED_LATENCY_SLA
 
-        promoted = (decision == PromotionDecision.APPROVED)
+        promoted = decision == PromotionDecision.APPROVED
         if promoted:
-            reasons.append("All promotion invariants satisfied: 100% emergency recall, higher accuracy, verified calibration, and SLA compliance.")
+            reasons.append(
+                "All promotion invariants satisfied: 100% emergency recall, higher accuracy, verified calibration, and SLA compliance."
+            )
 
         # Cryptographic audit hash
-        audit_payload = f"{decision.value}|{promoted}|{candidate_metrics.evaluation_hash}|{baseline_metrics.evaluation_hash}"
+        audit_payload = (
+            f"{decision.value}|{promoted}|{candidate_metrics.evaluation_hash}|{baseline_metrics.evaluation_hash}"
+        )
         audit_hash = hashlib.sha256(audit_payload.encode("utf-8")).hexdigest()
 
         return PromotionReport(
@@ -282,7 +291,7 @@ class LayaPromotionOracle:
 
     def verify_defect_injection(self, baseline_metrics: EvaluationMetrics) -> dict[str, bool]:
         """Synthetic defect injection test proving the Oracle cannot be fooled.
-        
+
         Injects:
         1. Defect A: Missing an emergency case -> Must result in REJECTED_SAFETY_BREACH.
         2. Defect B: Sub-baseline accuracy -> Must result in REJECTED_ACCURACY_DROP.
@@ -306,7 +315,9 @@ class LayaPromotionOracle:
             evaluation_hash="defect_emg_hash",
         )
         rep_a = self.evaluate_promotion(defective_emg, baseline_metrics)
-        results["catches_emergency_defect"] = (rep_a.decision == PromotionDecision.REJECTED_SAFETY_BREACH and not rep_a.promoted)
+        results["catches_emergency_defect"] = (
+            rep_a.decision == PromotionDecision.REJECTED_SAFETY_BREACH and not rep_a.promoted
+        )
 
         # 2. Defect B: Accuracy Drop
         defective_acc = EvaluationMetrics(
@@ -314,7 +325,9 @@ class LayaPromotionOracle:
             total_cases=baseline_metrics.total_cases,
             correct_cases=int(baseline_metrics.total_cases * 0.50),
             accuracy=0.50,
-            accuracy_wilson=calculate_wilson_interval(int(baseline_metrics.total_cases * 0.50), baseline_metrics.total_cases),
+            accuracy_wilson=calculate_wilson_interval(
+                int(baseline_metrics.total_cases * 0.50), baseline_metrics.total_cases
+            ),
             emergency_cases=baseline_metrics.emergency_cases,
             emergency_caught=baseline_metrics.emergency_caught,
             emergency_recall=1.0,
@@ -324,7 +337,9 @@ class LayaPromotionOracle:
             evaluation_hash="defect_acc_hash",
         )
         rep_b = self.evaluate_promotion(defective_acc, baseline_metrics)
-        results["catches_accuracy_defect"] = (rep_b.decision == PromotionDecision.REJECTED_ACCURACY_DROP and not rep_b.promoted)
+        results["catches_accuracy_defect"] = (
+            rep_b.decision == PromotionDecision.REJECTED_ACCURACY_DROP and not rep_b.promoted
+        )
 
         # 3. Defect C: Latency Blowout
         defective_lat = EvaluationMetrics(
@@ -342,6 +357,8 @@ class LayaPromotionOracle:
             evaluation_hash="defect_lat_hash",
         )
         rep_c = self.evaluate_promotion(defective_lat, baseline_metrics)
-        results["catches_latency_defect"] = (rep_c.decision == PromotionDecision.REJECTED_LATENCY_SLA and not rep_c.promoted)
+        results["catches_latency_defect"] = (
+            rep_c.decision == PromotionDecision.REJECTED_LATENCY_SLA and not rep_c.promoted
+        )
 
         return results

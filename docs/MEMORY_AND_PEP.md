@@ -22,9 +22,9 @@ During chat/voice turns, `disha_core.journey` may extract multiple answers, upda
 
 ## Short-term conversation context
 
-`patient_turn_journal` stores user and assistant utterances in PostgreSQL. On a turn, `build_patient_context` loads up to the latest eight messages and the prompt path uses at most the latest eight messages. The per-process `app.state.conversation_history` cache is keyed by patient and capped at sixteen messages (up to eight user/assistant pairs). Completed generated turns are appended to the database journal and the in-memory cache.
+`patient_turn_journal` stores user and assistant utterances in PostgreSQL. On every turn, `build_patient_context` loads up to the latest sixteen messages and the prompt path supplies them chronologically to the LLM. All turns (including normal generation, safety deflections, meal prompts, and provider errors) commit to `patient_turn_journal` and update in-memory state. Older relevant exchanges outside the recent active window are supplemented via conversation history RAG without duplicating recent turns.
 
-The current shared turn path uses the default session unless a caller supplies a `session_id` or `call_id`; chat and voice should therefore not be assumed to have separate conversation windows. The in-memory cache is not shared across workers and is lost on restart; the database journal is used to rehydrate a recent window. The journal is ordinary application storage, not a database-enforced immutable log, and the code shown here does not implement a retention or deletion policy.
+The shared turn path uses PostgreSQL `patient_turn_journal` as the single authoritative source of truth across sessions, chat, and voice calls. The frontend `/chat/history` endpoint hydrates the visible conversation stream on login or page refresh, eliminating context loss.
 
 ## Persistent context tables
 

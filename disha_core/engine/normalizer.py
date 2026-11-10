@@ -8,16 +8,81 @@ from functools import lru_cache
 ALIASES: dict[str, tuple[str, ...]] = {
     "GI_SYMPTOM_ACUTE": ("pet dard", "paet dard", "dast", "loose motions", "paet kharab", "पेट दर्द", "दस्त", "पेट खराब"),
     "GI_BLOATING": ("bloating", "gas", "pet phoolna", "paet phoolna", "pet fulna", "गैस", "अफारा", "पेट फूलना"),
-    "GI_ACIDITY": ("acidity", "acid reflux", "heartburn", "khatti dakar", "seene me jalan", "sine me jalan", "chest burning", "amlapitta", "एसिडिटी", "खट्टी डकार", "सीने में जलन", "अम्लपित्त"),
-    "KNEE_PAIN": ("knee pain", "knees hurt", "ghutno ka dard", "ghutne me dard", "knee stiffness", "sandhivata", "joint pain", "घुटनों का दर्द", "घुटने में दर्द", "जोड़ों का दर्द"),
-    "COUGH_COLD": ("cough", "khansi", "cold", "sardi", "throat irritation", "gale me kharash", "kasa", "खांसी", "जुकाम", "सर्दी", "गले में खराश"),
+    "GI_ACIDITY": (
+        "acidity",
+        "acid reflux",
+        "heartburn",
+        "khatti dakar",
+        "seene me jalan",
+        "sine me jalan",
+        "chest burning",
+        "amlapitta",
+        "एसिडिटी",
+        "खट्टी डकार",
+        "सीने में जलन",
+        "अम्लपित्त",
+    ),
+    "KNEE_PAIN": (
+        "knee pain",
+        "knees hurt",
+        "ghutno ka dard",
+        "ghutne me dard",
+        "knee stiffness",
+        "sandhivata",
+        "joint pain",
+        "घुटनों का दर्द",
+        "घुटने में दर्द",
+        "जोड़ों का दर्द",
+    ),
+    "COUGH_COLD": (
+        "cough",
+        "khansi",
+        "cold",
+        "sardi",
+        "throat irritation",
+        "gale me kharash",
+        "kasa",
+        "खांसी",
+        "जुकाम",
+        "सर्दी",
+        "गले में खराश",
+    ),
     "FEVER": ("fever", "bukhar", "tap", "jwara", "बुखार", "ताप", "ज्वर"),
     "DIABETES": ("sugar", "diabetes", "blood sugar", "madhumeh", "prameha", "शुगर", "डायबिटीज", "मधुमेह"),
-    "HYPERTENSION": ("bp", "blood pressure", "hypertension", "high bp", "high blood pressure", "बीपी", "हाई बीपी", "रक्तचाप", "ब्लड प्रेशर", "हाई ब्लड प्रेशर"),
-    "INSOMNIA_SLEEP": ("insomnia", "neend nahi", "sleep issue", "poor sleep", "sleeplessness", "sleep hygiene", "neend", "नींद", "अनिद्रा"),
+    "HYPERTENSION": (
+        "bp",
+        "blood pressure",
+        "hypertension",
+        "high bp",
+        "high blood pressure",
+        "बीपी",
+        "हाई बीपी",
+        "रक्तचाप",
+        "ब्लड प्रेशर",
+        "हाई ब्लड प्रेशर",
+    ),
+    "INSOMNIA_SLEEP": (
+        "insomnia",
+        "neend nahi",
+        "sleep issue",
+        "poor sleep",
+        "sleeplessness",
+        "sleep hygiene",
+        "neend",
+        "नींद",
+        "अनिद्रा",
+    ),
     "FRUIT_MODERATION": ("mango", "mangoes", "aam", "alphonso", "seasonal fruit", "seasonal fruits", "आम", "अल्फांसो"),
     "HYDRATION": ("hydration", "dehydration", "water intake", "paani kitna", "pani kitna", "पानी कितना", "जलयोजन"),
-    "WEIGHT_MANAGEMENT": ("weight loss", "lose weight", "weight management", "weight gain", "वजन घटाना", "वज़न घटाना", "वजन कम"),
+    "WEIGHT_MANAGEMENT": (
+        "weight loss",
+        "lose weight",
+        "weight management",
+        "weight gain",
+        "वजन घटाना",
+        "वज़न घटाना",
+        "वजन कम",
+    ),
 }
 
 HINDI_CLINICAL_TRANSLITERATION: dict[str, str] = {
@@ -205,7 +270,6 @@ def is_unsupported_language(text: str) -> bool:
     if FOREIGN_LATIN_LANG_RE.search(clean):
         return True
     return False
-
 
 
 def is_meal_query(text: str) -> bool:

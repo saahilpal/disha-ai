@@ -7,6 +7,7 @@ or local in-process Agent), enforcing:
 3. Safe fallback on classifier timeout, failure, or sub-threshold confidence.
 4. Non-PHI routing telemetry and live status tracking for /ready and /internal/classifier.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -261,6 +262,7 @@ class LayaClassifierAdapter:
         # If in-process, verify package is importable or fallback mode permitted
         try:
             import laya  # noqa: F401
+
             return True
         except ImportError:
             return os.getenv("ALLOW_CLASSIFIER_FALLBACK", "true").lower() in ("1", "true", "yes")
@@ -363,7 +365,7 @@ class LayaClassifierAdapter:
 
     async def classify(self, text: str) -> LayaClassificationResult:
         """Main classification entry point.
-        
+
         Performs:
         1. Deterministic red-flag safety check ahead of ML layer.
         2. High-speed LRU query cache lookup (<0.5ms).
@@ -438,9 +440,7 @@ class LayaClassifierAdapter:
 
         if raw_output is None:
             self.circuit_breaker.record_failure()
-            return self._fallback_classification(
-                text, f"inference_error: {type(last_exc).__name__}", latency_ms
-            )
+            return self._fallback_classification(text, f"inference_error: {type(last_exc).__name__}", latency_ms)
 
         self.inference_count += 1
         try:

@@ -18,14 +18,18 @@ CHANNEL_RE = re.compile(
 )
 AMOUNT = r"\d[\d,]*(?:\.\d+)?"
 AMOUNT_END = r"(?![\d,]|\.\d)"
-CURRENCY = r"(?:₹|[$€£¥₩₽]|rs\.?|rupees?|rupaye|inr|usd|eur|gbp|jpy|cny|rmb|cad|aud|nzd|sgd|hkd|chf|krw|rub|aed|sar|रुपये|रुपए)"
+CURRENCY = (
+    r"(?:₹|[$€£¥₩₽]|rs\.?|rupees?|rupaye|inr|usd|eur|gbp|jpy|cny|rmb|cad|aud|nzd|sgd|hkd|chf|krw|rub|aed|sar|रुपये|रुपए)"
+)
 INR_CURRENCIES = frozenset({"₹", "rs", "rs.", "rupee", "rupees", "rupaye", "inr", "रुपये", "रुपए"})
 PRICE_RE = re.compile(
     rf"(?:(?P<currency_before>{CURRENCY})\s*(?P<amount_before>{AMOUNT}){AMOUNT_END}|"
-    rf"(?P<amount_after>{AMOUNT}){AMOUNT_END}\s*(?P<currency_after>{CURRENCY})(?![A-Za-z]))", re.I,
+    rf"(?P<amount_after>{AMOUNT}){AMOUNT_END}\s*(?P<currency_after>{CURRENCY})(?![A-Za-z]))",
+    re.I,
 )
 PRICE_CONTEXT_RE = re.compile(
-    rf"(?:price|cost|subscription|paid\s+plan|subscription\s+plan|pricing\s+plan|nutritionist\s+plan|plan\s+(?:ki\s+)?(?:fees?|price|cost|charges?)|kitne\s+ka|kitni\s+hai|charge|fee).{{0,45}}?\b({AMOUNT}){AMOUNT_END}", re.I,
+    rf"(?:price|cost|subscription|paid\s+plan|subscription\s+plan|pricing\s+plan|nutritionist\s+plan|plan\s+(?:ki\s+)?(?:fees?|price|cost|charges?)|kitne\s+ka|kitni\s+hai|charge|fee).{{0,45}}?\b({AMOUNT}){AMOUNT_END}",
+    re.I,
 )
 
 BENIGN_CURRENCY_CONTEXT_RE = re.compile(
@@ -40,9 +44,7 @@ COMMERCIAL_PRICING_INDICATOR_RE = re.compile(
     r"(?:kitne\s+ka|kitni\s+fees|kitna\s+charge|rupaye\s+lagenge|free\s+hai|paid\s+hai)",
     re.I,
 )
-FOREIGN_LANG_RE = re.compile(
-    r"\b(?:obrigad[oa]|gracias|de\s+nada|por\s+favor)\b|[\uac00-\ud7af]", re.I
-)
+FOREIGN_LANG_RE = re.compile(r"\b(?:obrigad[oa]|gracias|de\s+nada|por\s+favor)\b|[\uac00-\ud7af]", re.I)
 ROBOTIC_GREETING_PREFIX_RE = re.compile(
     r"^(?:namaste!?(?:\s+main\s+disha\s+hoon[^\.\!\?]*)?[\.\!\?]?\s*|"
     r"aapka\s+swagat\s+hai[^\.\!\?]*[\.\!\?]?\s*|"
@@ -86,17 +88,24 @@ PRESCRIPTION_RE = re.compile(
 )
 RECIPE_RE = re.compile(
     r"\b(?:recipe|ingredients|cook|prepare|make|banao|banaye|khaane\s+mein|meal\s+suggestion)\b|"
-    r"\b(?:breakfast|lunch|dinner)\s+(?:mein|for)\b|\b(?:breakfast|lunch|dinner)\s*[:=-]", re.I,
+    r"\b(?:breakfast|lunch|dinner)\s+(?:mein|for)\b|\b(?:breakfast|lunch|dinner)\s*[:=-]",
+    re.I,
 )
 SODIUM_RE = re.compile(
     r"\b(?:papad|achaa?r|pickles?|namkeen|extra\s+salt|zyada\s+namak|chips|sev|high\s+sodium)\b|"
-    r"पापड़|अचार|नमकीन", re.I,
+    r"पापड़|अचार|नमकीन",
+    re.I,
 )
 ACTIVITY_PATTERNS = {
     "brisk_walking": re.compile(r"\b(?:brisk\s+walking|brisk\s+walk|walking)\b|ब्रिस्क\s*वॉक|टहलना", re.I),
     "yoga": re.compile(r"\byoga\b|योग|योगासन", re.I),
-    "light_strength": re.compile(r"\b(?:light\s+(?:strength|weights?)|bodyweight)\b|(?<!heavy\s)(?<!power\s)\b(?:weight\s+lifting|weight\s+training)\b|हल्का\s*व्यायाम", re.I),
-    "heavy_weightlifting": re.compile(r"\b(?:heavy\s+(?:weight\s*lifting|weights?|lifting)|power\s*lifting)\b|भारी\s*वजन|वेटलिफ्टिंग|पावरलिफ्टिंग", re.I),
+    "light_strength": re.compile(
+        r"\b(?:light\s+(?:strength|weights?)|bodyweight)\b|(?<!heavy\s)(?<!power\s)\b(?:weight\s+lifting|weight\s+training)\b|हल्का\s*व्यायाम",
+        re.I,
+    ),
+    "heavy_weightlifting": re.compile(
+        r"\b(?:heavy\s+(?:weight\s*lifting|weights?|lifting)|power\s*lifting)\b|भारी\s*वजन|वेटलिफ्टिंग|पावरलिफ्टिंग", re.I
+    ),
     "heavy_deadlifts": re.compile(r"\b(?:heavy\s+)?deadlifts?\b|डेडलिफ्ट", re.I),
     "high_intensity_sprints": re.compile(r"\b(?:high\s+intensity|sprints?|sprinting)\b|स्प्रिंट|तेज\s*दौड़", re.I),
     "hiit": re.compile(r"\b(?:hiit|high\s*intensity\s*(?:interval\s+training|training|workout|exercise)?)\b", re.I),
@@ -133,12 +142,16 @@ def knowledge_unavailable_response(language: str | None) -> str:
     if normalized in {"hi", "hindi"}:
         return "इस बारे में मेरे पास भरोसेमंद स्वास्थ्य जानकारी नहीं है, इसलिए मैं अंदाज़ा लगाकर सलाह नहीं दूँगी। कृपया अपने डॉक्टर से इसकी पुष्टि करें।"
     return KNOWLEDGE_UNAVAILABLE_REPLACEMENT
+
+
 PRICING_REPLACEMENT = DEFAULT_PRICING_REPLACEMENT
 PEP_REPLACEMENT = "Main aapke exercise permissions ke andar safe activity chunne mein madad kar sakti hoon."
 REMEDY_UNAVAILABLE = "Is symptom ke liye verified advice mere paas available nahi hai; apne clinician se poochhein."
 DIAGNOSIS_REPLACEMENT = "Main ek AI coach hoon aur koi medical diagnosis nahi de sakti; kripya diagnosis ke liye clinician se consult karein."
 PRESCRIPTION_REPLACEMENT = "Main dawaiyon ki dose ya prescription badalne ke liye authorized nahi hoon; kripya apne prescribing clinician se salah lein."
-HYPERTENSION_SODIUM_REPLACEMENT = "Hypertension mein high-sodium khana jaise papad, achaar, aur namkeen avoid karein; low-salt diet lein."
+HYPERTENSION_SODIUM_REPLACEMENT = (
+    "Hypertension mein high-sodium khana jaise papad, achaar, aur namkeen avoid karein; low-salt diet lein."
+)
 DIETARY_MISMATCH_REPLACEMENT = "Aapki dietary preference ke liye verified alternative mujhe abhi available nahi hai, isliye main substitute suggest nahi karungi."
 
 # Clinical Permission Guard: LLM-written clinical permissions = 0
@@ -166,6 +179,28 @@ LLM_CLINICAL_PERMISSION_REPLACEMENT = (
     "Main ek AI coach hoon aur medical clearance ya doctor restrictions badalne ke liye authorized nahi hoon; "
     "kripya clearance ke liye apne prescribing clinician se consult karein."
 )
+
+FALSE_MEMORY_RE = re.compile(
+    r"\b(?:as\s+you\s+(?:mentioned|said|told\s+me)\s+(?:yesterday|earlier|before)|"
+    r"as\s+we\s+discussed\s+(?:last\s+time|yesterday|earlier|before)|"
+    r"jaise\s+aapne\s+(?:pehle|kal|last\s+time)\s+(?:bataya|kaha)|"
+    r"jaise\s+humne\s+(?:pehle|kal|last\s+time)\s+baat\s+ki\s+thi|"
+    r"kal\s+(?:jo\s+)?aapne\s+bataya\s+tha|"
+    r"aapne\s+pehle\s+kaha\s+tha|"
+    r"humne\s+pichli\s+baar\s+(?:decide|tay|baat)\s+kiya\s+tha)\b|"
+    r"जैसे\s+आपने\s+(?:पहले|कल)\s+(?:बताया|कहा)|"
+    r"जैसे\s+हमने\s+पिछली\s+बार\s+बात\s+की\s+थी",
+    re.I,
+)
+
+
+def false_memory_replacement(language: str | None = None) -> str:
+    lang = str(language or "").strip().casefold()
+    if lang in {"en", "english"}:
+        return "I don't have a record of our previous discussion in my notes; could you remind me what we discussed?"
+    if lang in {"hi", "hindi"}:
+        return "मुझे हमारी पिछली बातचीत का रिकॉर्ड नहीं मिल रहा है; क्या आप बताएंगे कि हमने क्या चर्चा की थी?"
+    return "Mujhe hamari pichli baat ka record nahi mil raha; kya aap batayenge ki humne kya discuss kiya tha?"
 
 
 @dataclass(frozen=True)
@@ -239,7 +274,8 @@ def _allowed_price(match: re.Match[str], text: str, context: dict[str, Any] | No
 
     # Check for commercial pricing indicators in user query or assistant text
     user_asked_pricing = any(
-        term in user_input for term in ("fee", "price", "cost", "charge", "subscription", "plan", "kitne", "paid", "rupaye")
+        term in user_input
+        for term in ("fee", "price", "cost", "charge", "subscription", "plan", "kitne", "paid", "rupaye")
     )
     sentence_has_commercial = bool(COMMERCIAL_PRICING_INDICATOR_RE.search(text))
 
@@ -318,12 +354,24 @@ class SentenceValidator:
             text = LLM_CLINICAL_PERMISSION_REPLACEMENT
             reasons.append("llm_clinical_permission_grant_blocked")
 
+        # Defect 4: False Memory claims (claiming prior conversations or targets when no history/memory exists)
+        has_memory_evidence = bool(
+            context.get("conversation_history")
+            or context.get("has_history")
+            or context.get("patient_facts")
+            or context.get("patient_slots")
+            or (context.get("pep") and context.get("pep").get("habits"))
+        )
+        if not has_memory_evidence and FALSE_MEMORY_RE.search(text):
+            user_lang = (context.get("pep") or context).get("language")
+            text = false_memory_replacement(user_lang)
+            reasons.append("false_memory")
+
         ctx = context or {}
         pep_ctx = ctx.get("pep") or ctx
         htn_stage = str(pep_ctx.get("hypertension_stage", "")).casefold()
         has_htn = htn_stage in {"stage 1", "stage 2"} or any(
-            "hypertension" in str(condition).casefold()
-            for condition in ctx.get("conditions", ())
+            "hypertension" in str(condition).casefold() for condition in ctx.get("conditions", ())
         )
         if has_htn and SODIUM_RE.search(text):
             text = HYPERTENSION_SODIUM_REPLACEMENT
@@ -341,8 +389,7 @@ class SentenceValidator:
                 except InvalidOperation:
                     amount = Decimal(-1)
                 quoted = any(
-                    Decimal(_amount(match)[0].replace(",", "")) == amount
-                    and _allowed_price(match, text, context)
+                    Decimal(_amount(match)[0].replace(",", "")) == amount and _allowed_price(match, text, context)
                     for match in PRICE_RE.finditer(text)
                 )
                 if not quoted:
@@ -351,9 +398,7 @@ class SentenceValidator:
 
         raw_intent = context.get("intent", "")
         intent = str(getattr(raw_intent, "value", raw_intent)).upper()
-        if context.get("diet_status") == "NOT_FOUND" and (
-            intent in {"MEAL_QUERY", "RECIPE"} or RECIPE_RE.search(text)
-        ):
+        if context.get("diet_status") == "NOT_FOUND" and (intent in {"MEAL_QUERY", "RECIPE"} or RECIPE_RE.search(text)):
             text = MEAL_NOT_FOUND_REPLACEMENT
             reasons.append("meal_not_found")
 
@@ -370,12 +415,15 @@ class SentenceValidator:
             allowed = {str(item).replace("_", " ").casefold() for item in pep.get("allowed_modalities") or ()}
             diag_conditions = {str(d).casefold() for d in pep.get("diagnosed_conditions") or ()}
             htn_stage = str(pep.get("hypertension_stage", "")).casefold()
-            is_cardiac = any(any(c in d for c in ("cardiac", "heart", "cad", "angina", "coronary", "arrhythmia", "mi")) for d in diag_conditions)
+            is_cardiac = any(
+                any(c in d for c in ("cardiac", "heart", "cad", "angina", "coronary", "arrhythmia", "mi"))
+                for d in diag_conditions
+            )
             is_htn_severe = "stage 2" in htn_stage or "crisis" in htn_stage
             if is_cardiac or is_htn_severe:
-                restricted.update({
-                    "heavy weightlifting", "heavy deadlifts", "hiit", "high intensity sprints", "valsalva maneuver"
-                })
+                restricted.update(
+                    {"heavy weightlifting", "heavy deadlifts", "hiit", "high intensity sprints", "valsalva maneuver"}
+                )
 
             mentioned = {tag for tag, pattern in ACTIVITY_PATTERNS.items() if pattern.search(text)}
             blocked = any(tag.replace("_", " ") in restricted for tag in mentioned)
@@ -406,17 +454,19 @@ class SentenceValidator:
 
         result = self.validate_sentence(text, context)
         value, reasons = result.text, list(result.reasons)
-        clinical_tags = context.get("clinical_tags") or ()
-        if not clinical_tags:
+        clinical_tags = {str(t).upper() for t in (context.get("clinical_tags") or ())}
+        symptom_tags = {"GI_BLOATING", "GI_ACIDITY", "GI_SYMPTOM_ACUTE", "KNEE_PAIN", "FEVER", "COUGH_COLD"}
+        has_symptom = bool(clinical_tags & symptom_tags)
+        if not has_symptom and not context.get("protocol_approved"):
             return result
 
-        tokens = tuple(str(token).casefold().strip() for token in context.get("required_remedy_tokens", ()) if str(token).strip())
+        tokens = tuple(
+            str(token).casefold().strip() for token in context.get("required_remedy_tokens", ()) if str(token).strip()
+        )
         approved_text = str(context.get("approved_remedy_text", "")).strip()
         if not context.get("protocol_approved") or not tokens:
             return ValidationResult(REMEDY_UNAVAILABLE, "rewritten", tuple(reasons + ["remedy_not_configured"]))
-        if all(
-            re.search(rf"(?<!\w){re.escape(token)}(?!\w)", value, re.I) for token in tokens
-        ):
+        if all(re.search(rf"(?<!\w){re.escape(token)}(?!\w)", value, re.I) for token in tokens):
             return result
         if approved_text:
             return ValidationResult(approved_text, "rewritten", tuple(reasons + ["remedy_assertion"]))
@@ -426,9 +476,9 @@ class SentenceValidator:
     def sanitize_for_tts(text: str) -> str:
         text = _strip_markdown(text)
         text = "".join(
-            char for char in text
-            if unicodedata.category(char) not in {"So", "Sk"}
-            and char not in {"\u200d", "\ufe0e", "\ufe0f", "\u20e3"}
+            char
+            for char in text
+            if unicodedata.category(char) not in {"So", "Sk"} and char not in {"\u200d", "\ufe0e", "\ufe0f", "\u20e3"}
         )
         text = re.sub(r"\s+([.,!?।])", r"\1", text)
         return re.sub(r"\s+", " ", text).strip()
@@ -465,32 +515,37 @@ def evaluate_patient_claims(
         user_lower = user_utterance.lower()
 
         claims_gym_or_heavy = any(
-            w in user_lower for w in ("gym", "heavy", "deadlift", "weightlifting", "lifting", "hiit", "restriction", "clearance")
+            w in user_lower
+            for w in ("gym", "heavy", "deadlift", "weightlifting", "lifting", "hiit", "restriction", "clearance")
         )
         if not gym_clearance and claims_gym_or_heavy:
-            contradictions.append({
-                "slot_key": "physical_activity_clearance",
-                "claimed_value": user_utterance,
-                "source_authority": "PATIENT_REPORTED",
-                "required_authority": SourceAuthority.PEP_DOCTOR.value,
-                "pep_restriction": "gym_clearance = False",
-                "reason": "Patient claimed doctor clearance for gym/heavy exertion, but official PEP gym_clearance is False.",
-                "flagged_for_review": True,
-                "action": "FLAG_CLINICIAN_REVIEW_MAINTAIN_RESTRICTION",
-            })
-
-        for restr in restricted:
-            if restr.replace("_", " ") in user_lower or restr in user_lower:
-                contradictions.append({
+            contradictions.append(
+                {
                     "slot_key": "physical_activity_clearance",
                     "claimed_value": user_utterance,
                     "source_authority": "PATIENT_REPORTED",
                     "required_authority": SourceAuthority.PEP_DOCTOR.value,
-                    "pep_restriction": f"restricted_modality: {restr}",
-                    "reason": f"Patient claimed permission for '{restr}', which is restricted by doctor PEP.",
+                    "pep_restriction": "gym_clearance = False",
+                    "reason": "Patient claimed doctor clearance for gym/heavy exertion, but official PEP gym_clearance is False.",
                     "flagged_for_review": True,
                     "action": "FLAG_CLINICIAN_REVIEW_MAINTAIN_RESTRICTION",
-                })
+                }
+            )
+
+        for restr in restricted:
+            if restr.replace("_", " ") in user_lower or restr in user_lower:
+                contradictions.append(
+                    {
+                        "slot_key": "physical_activity_clearance",
+                        "claimed_value": user_utterance,
+                        "source_authority": "PATIENT_REPORTED",
+                        "required_authority": SourceAuthority.PEP_DOCTOR.value,
+                        "pep_restriction": f"restricted_modality: {restr}",
+                        "reason": f"Patient claimed permission for '{restr}', which is restricted by doctor PEP.",
+                        "flagged_for_review": True,
+                        "action": "FLAG_CLINICIAN_REVIEW_MAINTAIN_RESTRICTION",
+                    }
+                )
 
     # 2. Check each extracted slot for PEP contradiction
     for slot_key, slot_val in extracted.items():
@@ -498,15 +553,19 @@ def evaluate_patient_claims(
             continue
         res = DEFAULT_SLOT_REGISTRY.check_pep_contradiction(slot_key, slot_val, pep_data)
         if res.is_contradiction:
-            contradictions.append({
-                "slot_key": slot_key,
-                "claimed_value": slot_val,
-                "source_authority": "PATIENT_REPORTED",
-                "required_authority": SourceAuthority.PEP_DOCTOR.value if slot_key == "physical_activity_clearance" else "CLINICIAN",
-                "pep_restriction": res.pep_restriction,
-                "reason": res.reason,
-                "flagged_for_review": res.flagged_for_review,
-                "action": "FLAG_CLINICIAN_REVIEW_MAINTAIN_RESTRICTION",
-            })
+            contradictions.append(
+                {
+                    "slot_key": slot_key,
+                    "claimed_value": slot_val,
+                    "source_authority": "PATIENT_REPORTED",
+                    "required_authority": SourceAuthority.PEP_DOCTOR.value
+                    if slot_key == "physical_activity_clearance"
+                    else "CLINICIAN",
+                    "pep_restriction": res.pep_restriction,
+                    "reason": res.reason,
+                    "flagged_for_review": res.flagged_for_review,
+                    "action": "FLAG_CLINICIAN_REVIEW_MAINTAIN_RESTRICTION",
+                }
+            )
 
     return contradictions

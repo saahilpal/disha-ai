@@ -1,4 +1,5 @@
 """Database adapter for PostgreSQL pool connection management."""
+
 from __future__ import annotations
 
 import asyncio

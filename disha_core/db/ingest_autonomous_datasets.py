@@ -7,6 +7,7 @@ Import constraints:
 - Context headers specify clinical scope and institutional authority.
 - English and Hinglish trigger terms are stored for PostgreSQL text/trigram retrieval.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -246,14 +247,16 @@ def _extract_pcos_hf_guidelines() -> list[dict[str, Any]]:
                 triggers = re.sub(r"[^\w\s]", " ", user_q.lower())
                 triggers = f"pcod pcos {triggers} diet meal food"
 
-                records.append({
-                    "condition_tag": "PCOS_DIET",
-                    "trigger_terms": " ".join(triggers.split()[:16]),
-                    "context_header": "[Scope: PCOS Indian Dietary Protocol; Authority: Clinical Nutrition Dataset]",
-                    "guideline_content": asst_a,
-                    "required_remedy_tokens": ["pcos", "diet"],
-                    "source_citation": "HuggingFace: Khyatimirani/pcos-indian-diet-guidelines",
-                })
+                records.append(
+                    {
+                        "condition_tag": "PCOS_DIET",
+                        "trigger_terms": " ".join(triggers.split()[:16]),
+                        "context_header": "[Scope: PCOS Indian Dietary Protocol; Authority: Clinical Nutrition Dataset]",
+                        "guideline_content": asst_a,
+                        "required_remedy_tokens": ["pcos", "diet"],
+                        "source_citation": "HuggingFace: Khyatimirani/pcos-indian-diet-guidelines",
+                    }
+                )
     except Exception as e:
         print(f"Warning: Could not fetch HF PCOS guidelines: {e}")
     return records
@@ -280,14 +283,16 @@ def _extract_pcos_clinical_nutrition() -> list[dict[str, Any]]:
                     triggers = re.sub(r"[^\w\s]", " ", user_q.lower())
                     triggers = f"pcod pcos {triggers} symptoms nutrition"
 
-                    records.append({
-                        "condition_tag": "PCOS_NUTRITION",
-                        "trigger_terms": " ".join(triggers.split()[:16]),
-                        "context_header": "[Scope: PCOS Clinical Nutrition; Authority: Clinical Endocrinology Protocols]",
-                        "guideline_content": asst_a,
-                        "required_remedy_tokens": ["pcos", "nutrition"],
-                        "source_citation": "HuggingFace: Khyatimirani/pcos-clinical-diet-nutrition",
-                    })
+                    records.append(
+                        {
+                            "condition_tag": "PCOS_NUTRITION",
+                            "trigger_terms": " ".join(triggers.split()[:16]),
+                            "context_header": "[Scope: PCOS Clinical Nutrition; Authority: Clinical Endocrinology Protocols]",
+                            "guideline_content": asst_a,
+                            "required_remedy_tokens": ["pcos", "nutrition"],
+                            "source_citation": "HuggingFace: Khyatimirani/pcos-clinical-diet-nutrition",
+                        }
+                    )
                 except Exception:
                     continue
     except Exception as e:
@@ -369,20 +374,33 @@ async def run_autonomous_ingestion() -> dict[str, Any]:
     """)
 
     for chunk in valid_chunks:
-        src_id = 'src_hf_pcos_nutrition_2024' if 'HuggingFace' in chunk.get('source_citation', '') or chunk.get('condition_tag', '').startswith('PCOS') else 'src_icmr_nin_2024'
-        domain = 'womens_health' if 'PCOS' in chunk.get('condition_tag', '') else 'clinical_nutrition'
-        await conn.execute("""
+        src_id = (
+            "src_hf_pcos_nutrition_2024"
+            if "HuggingFace" in chunk.get("source_citation", "") or chunk.get("condition_tag", "").startswith("PCOS")
+            else "src_icmr_nin_2024"
+        )
+        domain = "womens_health" if "PCOS" in chunk.get("condition_tag", "") else "clinical_nutrition"
+        await conn.execute(
+            """
             INSERT INTO knowledge_chunks (source_id, domain, condition_tags, diet_tags, language, script, content, derived)
             VALUES ($1, $2, $3, $4, 'hinglish', 'latin', $5, FALSE)
             ON CONFLICT DO NOTHING
-        """, src_id, domain, [chunk["condition_tag"]], ["dietary_guideline"], chunk["guideline_content"])
+        """,
+            src_id,
+            domain,
+            [chunk["condition_tag"]],
+            ["dietary_guideline"],
+            chunk["guideline_content"],
+        )
 
     print(f"[INGESTION] Successfully inserted {inserted_count} new clinical micro-chunks.")
 
     # 4. Ingest Patient Profiles, Diet Schedules, and Bearer Tokens
     # 4. Database Verification Queries
     total_chunks = await conn.fetchval("SELECT COUNT(*) FROM clinical_knowledge_base")
-    total_approved = await conn.fetchval("SELECT COUNT(*) FROM clinical_knowledge_base WHERE approval_status = 'approved'")
+    total_approved = await conn.fetchval(
+        "SELECT COUNT(*) FROM clinical_knowledge_base WHERE approval_status = 'approved'"
+    )
     over_50_count = await conn.fetchval(
         "SELECT COUNT(*) FROM clinical_knowledge_base WHERE cardinality(regexp_split_to_array(btrim(guideline_content), E'\\s+')) >= 50"
     )

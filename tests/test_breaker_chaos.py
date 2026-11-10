@@ -41,6 +41,7 @@ from __future__ import annotations
 import asyncio
 import io
 import json
+import math
 import struct
 import time
 import unicodedata
@@ -65,7 +66,7 @@ from disha_core.main import (
     create_app,
 )
 from disha_core.models.slots import DEFAULT_SLOT_REGISTRY, SourceAuthority
-from disha_core.pipeline.breaker import EmergencyBreaker
+from disha_core.pipeline.breaker import EmergencyBreaker, load_red_flags_table
 from disha_core.pipeline.router import IntentRouter
 from disha_core.pipeline.validator import (
     IDENTITY_REPLACEMENT,
@@ -1373,3 +1374,244 @@ class TestEightCoreFailureScenariosBenchmark:
         assert overall_pass_rate >= 90.0, f"Failure benchmark below 90%: {overall_pass_rate}%"
         for sc_name, r in results.items():
             assert r["passed"], f"Failure scenario failed: {sc_name} (Details: {r})"
+
+
+# ==============================================================================
+# PILLAR 12: CLINICIAN DATA-DRIVEN SAFETY ENGINE & 200+ VARIANTS BENCHMARK
+# ==============================================================================
+
+class TestClinicianDataDrivenSafetyEngineAnd200PlusVariants:
+    """Validates clinician-owned data table (data/red_flags.yaml) migration per Section 8:
+    1. Zero hardcoded medicine/emergency strings in disha_core/pipeline/breaker.py.
+    2. Data table schema integrity (version, terms, languages, scripts, negation patterns, severity, protocol text).
+    3. 200+ variants benchmark (160 acute emergencies across Romanized Hinglish, Devanagari Hindi, Noisy ASR, English;
+       40 negations; 40 benign controls).
+    4. 100% recall on core red flags (0 false negatives / 0 escapes allowed).
+    5. 95% one-sided Wilson upper bound on miss rate <= 2.0%.
+    6. 0% false alarm rate on benign controls.
+    7. Fail-safe on unexpected error (preempts LLM with emergency protocol, never crashes).
+    8. Preempts LLM on interim and final transcripts.
+    9. Zero-downtime hot reload under 50ms.
+    """
+
+    def test_clinician_data_table_schema_and_version(self) -> None:
+        """Verify data/red_flags.yaml schema, clinician ownership metadata, version, and categories."""
+        table = load_red_flags_table()
+        assert table.get("version") == "1.0.0", f"Expected version 1.0.0, got {table.get('version')}"
+        meta = table.get("metadata", {})
+        assert "Clinical Safety Committee" in meta.get("owner", "")
+        assert "default_protocol_text" in meta
+        assert "112" in meta["default_protocol_text"]
+
+        categories = table.get("categories", {})
+        expected_cats = {"CARDIOVASCULAR", "RESPIRATORY", "NEUROLOGICAL", "CRISIS", "TRAUMA"}
+        assert expected_cats.issubset(set(categories.keys())), f"Missing categories: {expected_cats - set(categories.keys())}"
+
+        for cat_name, cat_spec in categories.items():
+            assert "severity" in cat_spec
+            assert cat_spec["severity"] in ("CRITICAL", "EMERGENCY_CRISIS")
+            assert "protocol_text" in cat_spec
+            assert "112" in cat_spec["protocol_text"]
+            if cat_name == "CRISIS":
+                assert "14416" in cat_spec["protocol_text"]
+            assert "terms" in cat_spec
+            assert "languages" in cat_spec
+            assert "scripts" in cat_spec
+            assert "regex_patterns" in cat_spec
+            assert "negation_patterns" in cat_spec
+
+        # Exceptions check
+        exceptions = table.get("exceptions", [])
+        assert len(exceptions) >= 1
+        exc_phrases = [e["phrase"] for e in exceptions]
+        assert "blackout" in exc_phrases
+
+    def test_zero_hardcoded_emergency_strings_in_breaker_source(self) -> None:
+        """AUDIT: Enforce zero hardcoded clinical medicine/emergency phrases in disha_core/pipeline/breaker.py."""
+        breaker_file = Path("disha_core/pipeline/breaker.py")
+        assert breaker_file.is_file()
+        content = breaker_file.read_text(encoding="utf-8")
+
+        # Explicitly verify no hardcoded emergency dictionaries or tuples
+        forbidden_hardcoded_literals = (
+            '"chest pain"',
+            '"heart attack"',
+            '"myocardial infarction"',
+            '"chhati mein dard"',
+            '"seene mein dard"',
+            '"छाती में दर्द"',
+            '"saans nahi aa rahi"',
+            '"cannot breathe"',
+            '"stroke"',
+            '"suicide"',
+            '"kill myself"',
+            '"zeher"',
+            '"uncontrolled bleeding"',
+        )
+        for term in forbidden_hardcoded_literals:
+            assert term not in content, (
+                f"SECTION 8 VIOLATION: Hardcoded clinical emergency string {term} found in {breaker_file}!\n"
+                "All red flags must reside solely in the clinician-owned data table (data/red_flags.yaml)."
+            )
+
+    def test_200_plus_variants_evaluation_metrics(self) -> None:
+        """CRITICAL AUDIT: 200+ variants (160 acute emergencies, 40 negations, 40 benign controls).
+
+        Enforces:
+        - 100.0% Recall on core red flags (0 False Negatives allowed)
+        - 95% Wilson one-sided upper bound on miss rate <= 2.0%
+        - 0.0% False Alarm rate on benign controls
+        - P99 latency < 5.0ms
+        """
+        variants_path = Path("tests/fixtures/emergency_variants_240.json")
+        assert variants_path.is_file(), f"Variants fixture missing at {variants_path}"
+        with open(variants_path, encoding="utf-8") as f:
+            variants = json.load(f)
+
+        assert len(variants) >= 200, f"Expected >= 200 variants, found {len(variants)}"
+
+        acute_cases = [v for v in variants if v.get("is_emergency")]
+        negation_cases = [v for v in variants if v.get("type") == "negation"]
+        benign_cases = [v for v in variants if v.get("type") == "benign"]
+
+        assert len(acute_cases) >= 160, f"Expected >= 160 acute cases, found {len(acute_cases)}"
+        assert len(negation_cases) >= 40, f"Expected >= 40 negation cases, found {len(negation_cases)}"
+        assert len(benign_cases) >= 40, f"Expected >= 40 benign cases, found {len(benign_cases)}"
+
+        breaker = EmergencyBreaker()
+        latencies_ms: list[float] = []
+
+        # 1. Acute Emergencies Evaluation
+        missed: list[dict[str, Any]] = []
+        for item in acute_cases:
+            t0 = time.perf_counter_ns()
+            res = breaker.check(item["text"])
+            lat = (time.perf_counter_ns() - t0) / 1_000_000
+            latencies_ms.append(lat)
+
+            if not res.triggered:
+                missed.append(item)
+
+        total_acute = len(acute_cases)
+        true_positives = total_acute - len(missed)
+        recall_pct = (true_positives / total_acute) * 100.0
+
+        # One-sided Wilson upper bound at 95% confidence (z = 1.6448536)
+        z = 1.6448536269514722
+        failures = len(missed)
+        p = failures / total_acute
+        z2 = z * z
+        wilson_upper_miss_rate = (
+            p + z2 / (2 * total_acute) + z * math.sqrt(p * (1 - p) / total_acute + z2 / (4 * total_acute**2))
+        ) / (1 + z2 / total_acute)
+
+        # 2. Benign Controls Evaluation (Must be 0% false alarms)
+        benign_false_alarms: list[dict[str, Any]] = []
+        for item in benign_cases:
+            t0 = time.perf_counter_ns()
+            res = breaker.check(item["text"])
+            lat = (time.perf_counter_ns() - t0) / 1_000_000
+            latencies_ms.append(lat)
+            if res.triggered:
+                benign_false_alarms.append(item)
+
+        benign_false_alarm_rate = (len(benign_false_alarms) / len(benign_cases)) * 100.0
+
+        # 3. Negations Evaluation (Audited conservative rate)
+        negation_alarms: list[dict[str, Any]] = []
+        for item in negation_cases:
+            t0 = time.perf_counter_ns()
+            res = breaker.check(item["text"])
+            lat = (time.perf_counter_ns() - t0) / 1_000_000
+            latencies_ms.append(lat)
+            if res.triggered:
+                negation_alarms.append(item)
+
+        avg_lat = sum(latencies_ms) / len(latencies_ms)
+        p99_lat = sorted(latencies_ms)[int(len(latencies_ms) * 0.99)]
+
+        print(
+            f"\n[Safety Engine 240+ Benchmark]\n"
+            f"  Total Variants Evaluated: {len(variants)}\n"
+            f"  Acute Emergencies Tested: {total_acute}\n"
+            f"  Core Recall:              {recall_pct:.2f}% ({true_positives}/{total_acute})\n"
+            f"  False Negatives (Misses): {len(missed)}\n"
+            f"  Wilson 95% Upper Bound:   {wilson_upper_miss_rate * 100.0:.4f}% miss rate (Limit: <= 2.0%)\n"
+            f"  Benign False Alarm Rate:  {benign_false_alarm_rate:.2f}% ({len(benign_false_alarms)}/{len(benign_cases)})\n"
+            f"  Negation Alarms:          {len(negation_alarms)}/{len(negation_cases)} (Conservative Safe Triage)\n"
+            f"  Latency:                  Mean={avg_lat:.4f}ms | P99={p99_lat:.4f}ms\n"
+        )
+
+        # Hard Acceptance Gates
+        assert len(missed) == 0, (
+            f"CRITICAL SAFETY GATE FAILURE: {len(missed)} acute emergencies escaped breaker detection!\n"
+            + "\n".join(f"[{m['id']}] {m['category']}: '{m['text']}'" for m in missed)
+        )
+        assert recall_pct == 100.0, f"Recall was {recall_pct}%, required 100.0%"
+        assert wilson_upper_miss_rate <= 0.02, (
+            f"Wilson 95% upper bound {wilson_upper_miss_rate * 100.0:.2f}% exceeded 2.0% threshold"
+        )
+        assert len(benign_false_alarms) == 0, (
+            f"FALSE POSITIVE REGRESSION: {len(benign_false_alarms)} benign controls triggered emergency breaker!"
+        )
+        assert p99_lat < 5.0, f"P99 latency {p99_lat:.2f}ms exceeded 5.0ms SLA"
+
+    def test_failsafe_on_unexpected_error_and_corrupt_data(self) -> None:
+        """Fail-Safe Invariant: Internal errors during evaluation FAIL SAFE into emergency preemption."""
+        breaker = EmergencyBreaker()
+
+        # 1. Non-string input fails safe
+        res_non_string = breaker.check(12345)  # type: ignore[arg-type]
+        assert res_non_string.triggered is True
+        assert res_non_string.category == "FAILSAFE_TRIGGER"
+        assert "112" in (res_non_string.response or "")
+
+        # 2. Simulated internal exception in matching engine fails safe without crashing
+        with patch.object(breaker._automaton, "find", side_effect=RuntimeError("Simulated memory error")):
+            res_err = breaker.check("Some test query")
+            assert res_err.triggered is True
+            assert res_err.category == "FAILSAFE_TRIGGER"
+            assert "112" in (res_err.response or "")
+
+    def test_zero_downtime_hot_reload_under_50ms(self) -> None:
+        """Clinician Operations: Breaker supports atomic hot reload in <50ms without process restart."""
+        breaker = EmergencyBreaker()
+        initial_count = breaker.pattern_count
+        assert initial_count >= 240
+
+        t0 = time.perf_counter()
+        breaker.reload()
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+
+        assert breaker.pattern_count == initial_count
+        assert elapsed_ms < 50.0, f"Hot reload took {elapsed_ms:.2f}ms, exceeding 50.0ms SLA"
+
+    def test_websocket_interim_transcript_emergency_preemption(self, configured_app) -> None:
+        """WebSocket Invariant: An interim transcript containing an emergency red flag preempts LLM immediately."""
+        async def fake_speak(*args: Any, **kwargs: Any) -> None:
+            pass
+
+        client = TestClient(configured_app)
+        with patch.object(VoiceSession, "speak", fake_speak):
+            with client.websocket_connect("/ws/conversation?token=pt_test_01_valid_token") as ws:
+                ws.send_text(json.dumps({
+                    "type": "interim_transcript",
+                    "text": "Severe crushing chest pain radiating to left arm 112",
+                }))
+
+                f1 = ws.receive_json()
+                assert f1["type"] == "interrupted"
+
+                f2 = ws.receive_json()
+                assert f2["type"] == "transcript"
+                assert f2.get("is_interim") is True
+                assert "chest pain" in f2["text"].lower()
+
+                f3 = ws.receive_json()
+                assert f3["type"] == "sentence"
+                assert "112" in f3["text"]
+
+                f4 = ws.receive_json()
+                assert f4["type"] == "done"
+                assert f4["status"] == "triggered:CARDIOVASCULAR"
+

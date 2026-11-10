@@ -113,12 +113,9 @@ test-ux: ## Run Playwright browser automated UX verification suite
 	@echo "$(BOLD)[+] Executing Playwright Browser Automated UX Suite (8 core workflows)...$(RESET)"
 	@$(NODE) tests/test_playwright_ux.js
 
-test: ## Run full pytest and node diagnostic suites
-	@echo "$(BOLD)[+] Executing Node.js Frontend Diagnostics Suite (32 checks)...$(RESET)"
-	@$(NODE) tests/test_frontend_diagnostics.js
-	@echo ""
-	@echo "$(BOLD)[+] Executing Pytest Core Invariants and Safety Suite (115+ tests)...$(RESET)"
-	@$(PYTEST) -v disha_core/tests tests/test_clinical_safety_and_ledger.py tests/test_laya_integration.py tests/test_laya_contract.py tests/test_audit_security_and_edge_cases.py tests/test_vercel_packaging.py
+test: ## Run full core pytest suite
+	@echo "$(BOLD)[+] Executing Pytest Core Invariants and Safety Suite...$(RESET)"
+	@$(PYTEST) -v tests
 	@echo ""
 	@echo "$(GREEN)$(BOLD)✓ All automated test suites PASSED successfully.$(RESET)"
 

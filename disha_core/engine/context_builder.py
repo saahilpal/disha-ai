@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html
+import json
 import logging
 from contextlib import suppress
 from dataclasses import dataclass
@@ -24,7 +25,7 @@ class ContextConnection(Protocol):
 PEP_SQL = """
 SELECT hypertension_stage, gym_clearance, allowed_modalities, restricted_modalities,
        primary_focus, secondary_focuses, user_reported_concerns, diagnosed_conditions,
-       language, dietary_preference
+       language, dietary_preference, habits, habits_version
 FROM patient_pep WHERE patient_id = $1
 """
 DIET_SQL = """
@@ -70,6 +71,8 @@ def normalize_preferred_language(language: Any) -> str:
         "hindi": "hindi",
         "hinglish": "hinglish",
     }.get(normalized, "hinglish")
+
+
 WEEKDAYS = {"monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"}
 
 
@@ -114,10 +117,7 @@ def diet_slot_xml(meal_type: str, items: str | None) -> str:
     meal = html.escape(meal_type, quote=True)
     if not isinstance(items, str) or not items.strip():
         return '<DIET_SLOT status="NOT_FOUND"/>'
-    return (
-        f'<DIET_SLOT meal="{meal}" status="FOUND">'
-        f'{html.escape(items)}</DIET_SLOT>'
-    )
+    return f'<DIET_SLOT meal="{meal}" status="FOUND">{html.escape(items)}</DIET_SLOT>'
 
 
 async def build_patient_context(
@@ -158,12 +158,52 @@ async def build_patient_context(
             patient_facts = [dict(r) for r in fact_rows]
             slot_rows = await connection.fetch(SLOTS_SQL, patient_id)
             patient_slots = [dict(r) for r in slot_rows]
+            with suppress(Exception):
+                habit_rows = await connection.fetch(
+                    """SELECT slot_key, value_norm, source FROM habit_current_state
+                       WHERE patient_id = $1 AND valid_to IS NULL ORDER BY created_at ASC""",
+                    patient_id,
+                )
+                existing_keys = {s.get("slot_key") for s in patient_slots}
+                for h in habit_rows:
+                    if h["slot_key"] not in existing_keys:
+                        patient_slots.append({
+                            "slot_key": h["slot_key"],
+                            "slot_value": h["value_norm"],
+                            "source_authority": "PATIENT_REPORTED",
+                            "category": "lifestyle",
+                            "sensitive_flag": False,
+                        })
+                        existing_keys.add(h["slot_key"])
+            if pep_dict and pep_dict.get("habits"):
+                raw_h = pep_dict["habits"]
+                habits_data = json.loads(raw_h) if isinstance(raw_h, str) else raw_h
+                if isinstance(habits_data, dict):
+                    slots_dict = habits_data.get("slots", {})
+                    existing_keys = {s.get("slot_key") for s in patient_slots}
+                    for k, v in slots_dict.items():
+                        if k not in existing_keys:
+                            val = (
+                                v.get("value_norm")
+                                or v.get("value")
+                                or v.get("val")
+                                or ""
+                            ) if isinstance(v, dict) else str(v)
+                            patient_slots.append({
+                                "slot_key": k,
+                                "slot_value": val,
+                                "source_authority": "PATIENT_REPORTED",
+                                "category": "lifestyle",
+                                "sensitive_flag": False,
+                            })
+                            existing_keys.add(k)
+            hist_rows = []
             if call_id:
-                hist_rows = await connection.fetch(HISTORY_CALL_SQL, patient_id, call_id, 8)
+                hist_rows = await connection.fetch(HISTORY_CALL_SQL, patient_id, call_id, 16)
             elif session_id:
-                hist_rows = await connection.fetch(HISTORY_SESSION_SQL, patient_id, session_id, 8)
-            else:
-                hist_rows = await connection.fetch(HISTORY_SQL, patient_id, 8)
+                hist_rows = await connection.fetch(HISTORY_SESSION_SQL, patient_id, session_id, 16)
+            if not hist_rows:
+                hist_rows = await connection.fetch(HISTORY_SQL, patient_id, 16)
             for r in reversed(hist_rows):
                 speaker = str(r["speaker"]).lower()
                 role = "assistant" if speaker in ("assistant", "coach") else "user"
@@ -175,6 +215,7 @@ async def build_patient_context(
     contradictions: list[dict[str, Any]] = []
     if user_input and check_contradictions and pep_dict:
         from disha_core.pipeline.validator import evaluate_patient_claims
+
         contradictions = evaluate_patient_claims(user_input, pep_dict)
 
     length_policy = None
@@ -274,12 +315,50 @@ async def rehydrate_session_state(
         with suppress(Exception):
             slot_rows = await connection.fetch(SLOTS_SQL, patient_id)
             patient_slots = [dict(r) for r in slot_rows]
+            habit_rows = await connection.fetch(
+                """SELECT slot_key, value_norm, source FROM habit_current_state
+                   WHERE patient_id = $1 AND valid_to IS NULL ORDER BY created_at ASC""",
+                patient_id,
+            )
+            existing_keys = {s.get("slot_key") for s in patient_slots}
+            for h in habit_rows:
+                if h["slot_key"] not in existing_keys:
+                    patient_slots.append({
+                        "slot_key": h["slot_key"],
+                        "slot_value": h["value_norm"],
+                        "source_authority": "PATIENT_REPORTED",
+                        "category": "lifestyle",
+                        "sensitive_flag": False,
+                    })
+                    existing_keys.add(h["slot_key"])
+            if pep_dict and pep_dict.get("habits"):
+                raw_h = pep_dict["habits"]
+                habits_data = json.loads(raw_h) if isinstance(raw_h, str) else raw_h
+                if isinstance(habits_data, dict):
+                    slots_dict = habits_data.get("slots", {})
+                    for k, v in slots_dict.items():
+                        if k not in existing_keys:
+                            val = (
+                                v.get("value_norm")
+                                or v.get("value")
+                                or v.get("val")
+                                or ""
+                            ) if isinstance(v, dict) else str(v)
+                            patient_slots.append({
+                                "slot_key": k,
+                                "slot_value": val,
+                                "source_authority": "PATIENT_REPORTED",
+                                "category": "lifestyle",
+                                "sensitive_flag": False,
+                            })
+                            existing_keys.add(k)
         with suppress(Exception):
+            hist_rows = []
             if call_id:
                 hist_rows = await connection.fetch(HISTORY_CALL_SQL, patient_id, call_id, limit)
             elif session_id:
                 hist_rows = await connection.fetch(HISTORY_SESSION_SQL, patient_id, session_id, limit)
-            else:
+            if not hist_rows:
                 hist_rows = await connection.fetch(HISTORY_SQL, patient_id, limit)
             for r in reversed(hist_rows):
                 speaker = str(r["speaker"]).lower()
@@ -303,7 +382,21 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
     focus_xml = ""
     diet_rule_xml = ""
     pep_rule_xml = ""
+    brief_xml = ""
     if pep:
+        habits_raw = pep.get("habits")
+        if habits_raw:
+            try:
+                habits_data = json.loads(habits_raw) if isinstance(habits_raw, str) else habits_raw
+                if isinstance(habits_data, dict) and (habits_data.get("slots") or habits_data.get("trends")):
+                    from disha_core.pep.habits_engine import render_pep_brief
+
+                    brief = render_pep_brief({"core": pep, "habits": habits_data})
+                    if brief:
+                        brief_xml = f"<PEP_BRIEF>{html.escape(brief)}</PEP_BRIEF>"
+            except Exception as exc:
+                logger.debug("Failed rendering PEP brief: %s", exc)
+
         allowed = html.escape(", ".join(map(str, pep.get("allowed_modalities") or ())), quote=True)
         restricted = html.escape(", ".join(map(str, pep.get("restricted_modalities") or ())), quote=True)
         htn = html.escape(str(pep.get("hypertension_stage") or "unknown"), quote=True)
@@ -321,9 +414,9 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
         if restricted:
             pep_rule_xml = (
                 f'<PEP_RESTRICTION_RULES FORBIDDEN="{restricted}">'
-                f'Do not recommend the listed restricted modalities. '
-                f'Patient-recorded allowed modalities: {allowed}.'
-                f'</PEP_RESTRICTION_RULES>'
+                f"Do not recommend the listed restricted modalities. "
+                f"Patient-recorded allowed modalities: {allowed}."
+                f"</PEP_RESTRICTION_RULES>"
             )
 
         valid_lang = normalize_preferred_language(pep.get("language"))
@@ -349,7 +442,7 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
             if k and v:
                 fact_elements.append(f'<FACT category="{cat}" key="{k}">{v}</FACT>')
         if fact_elements:
-            facts_xml = f'<PATIENT_FACTS>{"".join(fact_elements)}</PATIENT_FACTS>'
+            facts_xml = f"<PATIENT_FACTS>{''.join(fact_elements)}</PATIENT_FACTS>"
 
     clinical_parts = []
     for chunk in chunks:
@@ -360,8 +453,9 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
         content = html.escape(str(getter("guideline_content", "")))
         clinical_parts.append(f'<CHUNK id="{chunk_id}" source="{citation}">{header} {content}</CHUNK>')
     clinical_xml = (
-        f'<CLINICAL_GROUNDING>{"".join(clinical_parts)}</CLINICAL_GROUNDING>'
-        if clinical_parts else '<CLINICAL_GROUNDING status="NOT_FOUND"/>'
+        f"<CLINICAL_GROUNDING>{''.join(clinical_parts)}</CLINICAL_GROUNDING>"
+        if clinical_parts
+        else '<CLINICAL_GROUNDING status="NOT_FOUND"/>'
     )
     diet_xml = context.get("diet_slot_xml", "")
     if not isinstance(diet_xml, str):
@@ -371,8 +465,12 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
     length_xml = ""
     if policy:
         category = html.escape(str(getattr(policy, "category", "") or policy.get("category", "")), quote=True)
-        min_s = str(getattr(policy, "min_sentences", 2) if hasattr(policy, "min_sentences") else policy.get("min_sentences", 2))
-        max_s = str(getattr(policy, "max_sentences", 4) if hasattr(policy, "max_sentences") else policy.get("max_sentences", 4))
+        min_s = str(
+            getattr(policy, "min_sentences", 2) if hasattr(policy, "min_sentences") else policy.get("min_sentences", 2)
+        )
+        max_s = str(
+            getattr(policy, "max_sentences", 4) if hasattr(policy, "max_sentences") else policy.get("max_sentences", 4)
+        )
         length_xml = f'<RESPONSE_TARGET category="{category}" min_sentences="{min_s}" max_sentences="{max_s}"/>'
 
     contradiction_xml = ""
@@ -388,10 +486,10 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
             )
         contradiction_xml = (
             f'<PEP_CONTRADICTION_NOTICE status="FLAGGED_FOR_CLINICIAN_REVIEW" action="MAINTAIN_RESTRICTIONS">'
-            f'{"".join(c_parts)}'
-            f'Patient reported claims contradicting official PEP clinical restrictions. '
-            f'LLM-written clinical permissions are 0. Do NOT grant or affirm medical clearance.'
-            f'</PEP_CONTRADICTION_NOTICE>'
+            f"{''.join(c_parts)}"
+            f"Patient reported claims contradicting official PEP clinical restrictions. "
+            f"LLM-written clinical permissions are 0. Do NOT grant or affirm medical clearance."
+            f"</PEP_CONTRADICTION_NOTICE>"
         )
 
     slots_xml = ""
@@ -404,9 +502,9 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
             val = html.escape(str(s.get("slot_value", "")))
             slot_parts.append(f'<SLOT key="{k}" authority="{auth}">{val}</SLOT>')
         if slot_parts:
-            slots_xml = f'<PATIENT_SLOTS>{"".join(slot_parts)}</PATIENT_SLOTS>'
+            slots_xml = f"<PATIENT_SLOTS>{''.join(slot_parts)}</PATIENT_SLOTS>"
 
-    return f'<PATIENT_PROFILE>{pep_xml}{pep_rule_xml}{focus_xml}{lang_xml}{diet_rule_xml}{facts_xml}{slots_xml}{contradiction_xml}{diet_xml}</PATIENT_PROFILE>{length_xml}{clinical_xml}'
+    return f"<PATIENT_PROFILE>{pep_xml}{pep_rule_xml}{brief_xml}{focus_xml}{lang_xml}{diet_rule_xml}{facts_xml}{slots_xml}{contradiction_xml}{diet_xml}</PATIENT_PROFILE>{length_xml}{clinical_xml}"
 
 
 def add_approved_remedy_constraints(context: dict[str, Any], chunks: Any) -> None:
@@ -453,14 +551,55 @@ def render_user_payload(user_input: str, context: dict[str, Any], chunks: Any = 
     if scheduled_q:
         scheduled_text = html.escape(str(scheduled_q))
         scheduled_xml = (
-            f'<SCHEDULED_ONBOARDING_INQUIRY instruction="After addressing the patient above, naturally ask this single question at the end:">'
-            f'{scheduled_text}'
-            f'</SCHEDULED_ONBOARDING_INQUIRY>'
+            f'<ONBOARDING_INQUIRY_SUGGESTION guidance="If conversation flow naturally permits after addressing the patient, you may inquire about this unknown field. Prioritize the user\'s immediate question and do not force this inquiry if changing topics or if the user gave a simple acknowledgment:">'
+            f"{scheduled_text}"
+            f"</ONBOARDING_INQUIRY_SUGGESTION>"
+        )
+
+    # Conversational state: identify follow-ups, short responses, and last assistant utterance
+    user_lower = user_input.strip().casefold()
+    is_followup = bool(
+        user_lower in {"same", "same thing", "that", "why", "okay", "ok", "haan", "nhi", "nah", "yes", "no", "kal se"}
+        or user_lower.startswith(("why", "kyun", "what about", "aur", "phir", "same", "that"))
+        or len(user_lower.split()) <= 3
+    )
+    history_turns = context.get("conversation_history") or []
+    last_assistant_turn = ""
+    for turn in reversed(history_turns):
+        if turn.get("role") in ("assistant", "coach"):
+            last_assistant_turn = str(turn.get("content", ""))
+            break
+
+    conversation_state_xml = ""
+    if last_assistant_turn or is_followup:
+        last_esc = html.escape(last_assistant_turn[:300]) if last_assistant_turn else "None"
+        conversation_state_xml = (
+            f'<CONVERSATION_STATE is_followup_or_short_reply="{str(is_followup).lower()}">'
+            f'<LAST_ASSISTANT_UTTERANCE>{last_esc}</LAST_ASSISTANT_UTTERANCE>'
+            f'<INSTRUCTION>Treat this conversation as an ongoing, continuous discussion. If user utterance refers to previous message (e.g. "that", "same", "why", "okay"), interpret it using the conversation history above.</INSTRUCTION>'
+            f'</CONVERSATION_STATE>'
+        )
+
+    older_turns = context.get("retrieved_older_turns") or []
+    older_turns_xml = ""
+    if older_turns:
+        parts = []
+        for turn in older_turns:
+            spk = html.escape(str(turn.get("role", "user")), quote=True)
+            txt = html.escape(str(turn.get("content", "")))
+            parts.append(f'<PAST_TURN speaker="{spk}">{txt}</PAST_TURN>')
+        older_turns_xml = (
+            f'<RELEVANT_PAST_CONVERSATION note="Older conversation context retrieved via search. '
+            f'Recent conversation in message history takes priority:">'
+            f"{''.join(parts)}"
+            f"</RELEVANT_PAST_CONVERSATION>"
         )
 
     return (
         f"{render_context_xml(context, chunks)}"
         f"{discipline_xml}"
         f"{scheduled_xml}"
+        f"{conversation_state_xml}"
+        f"{older_turns_xml}"
         f"<USER_UTTERANCE>{html.escape(user_input)}</USER_UTTERANCE>"
     )

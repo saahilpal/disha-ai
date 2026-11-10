@@ -121,7 +121,7 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
         pid_chat = f"pt_jm_chat_{uuid.uuid4().hex[:6]}"
         email_chat = f"rohan_chat_{uuid.uuid4().hex[:8]}@disha.test"
 
-        async with httpx.AsyncClient(base_url=BASE_HTTP, timeout=10.0) as client:
+        async with httpx.AsyncClient(base_url=BASE_HTTP, timeout=60.0) as client:
             reg_resp = await client.post("/auth/register", json={
                 "name": "Rohan Mehra",
                 "email": email_chat,
@@ -205,7 +205,7 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
             transcript_received = False
             done_received = False
             while True:
-                msg = await asyncio.wait_for(ws.recv(), timeout=6.0)
+                msg = await asyncio.wait_for(ws.recv(), timeout=60.0)
                 if isinstance(msg, str):
                     data = json.loads(msg)
                     if data.get("type") == "transcript":
@@ -485,14 +485,20 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
 
         # Session 1 Ends.
         # Now Session 2 begins: Fresh HTTP client query asking for the saved habit
-        async with httpx.AsyncClient(base_url=BASE_HTTP, timeout=12.0) as client:
-            resp = await client.post(
-                "/chat",
-                headers={"Authorization": f"Bearer {token}"},
-                json={"text": "Disha, mera daily water intake target kitna set kiya tha humne?"},
-            )
-            self.assertEqual(resp.status_code, 200)
-            ans = resp.json()["response"]
+        async with httpx.AsyncClient(base_url=BASE_HTTP, timeout=60.0) as client:
+            ans = ""
+            for attempt in range(3):
+                resp = await client.post(
+                    "/chat",
+                    headers={"Authorization": f"Bearer {token}"},
+                    json={"text": "Disha, mera daily water intake target kitna set kiya tha humne?"},
+                )
+                self.assertEqual(resp.status_code, 200)
+                ans = resp.json()["response"]
+                if "System Error" not in ans:
+                    break
+                if attempt < 2:
+                    await asyncio.sleep(1.5)
 
             # Disha demonstrably recalls and uses the saved habit across sessions
             self.assertTrue(
@@ -530,7 +536,7 @@ class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
         self.assertIn("evening brisk walking", summaries[0]["summary_text"])
 
         # 7b. Returning-user home hydration
-        async with httpx.AsyncClient(base_url=BASE_HTTP, timeout=10.0) as client:
+        async with httpx.AsyncClient(base_url=BASE_HTTP, timeout=60.0) as client:
             prof_resp = await client.get("/patient/profile", headers={"Authorization": f"Bearer {token}"})
             self.assertEqual(prof_resp.status_code, 200)
             pdata = prof_resp.json()

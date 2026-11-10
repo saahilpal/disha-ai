@@ -122,17 +122,17 @@ def strip_echo_prefix(sentence: str, user_text: str | None = None) -> str:
         match = pattern.match(text)
         if match:
             prefix = match.group(0)
-            remainder = text[len(prefix):].strip()
+            remainder = text[len(prefix) :].strip()
             # If the remainder starts with user statement echo + connector, handle it
             if user_text:
                 norm_user = " ".join(user_text.casefold().split())
                 user_tokens = norm_user.split()
                 if len(user_tokens) >= 3:
-                    user_phrase = " ".join(user_tokens[:min(6, len(user_tokens))])
+                    user_phrase = " ".join(user_tokens[: min(6, len(user_tokens))])
                     if remainder.casefold().startswith(user_phrase):
                         boundary_match = re.search(r"[,!?।]\s*", remainder)
                         if boundary_match and boundary_match.start() < len(user_phrase) + 30:
-                            remainder = remainder[boundary_match.end():].strip()
+                            remainder = remainder[boundary_match.end() :].strip()
             # Strip connector after echo (e.g. "toh", "so")
             remainder = POST_ECHO_CONNECTORS.sub("", remainder).strip()
             if remainder:
@@ -144,7 +144,7 @@ def strip_echo_prefix(sentence: str, user_text: str | None = None) -> str:
         cleaned_user = re.sub(r"[^\w\s]", "", norm_user).strip()
         norm_sent = text.casefold()
         if len(cleaned_user) > 10 and norm_sent.startswith(cleaned_user):
-            after_user = text[len(cleaned_user):].strip()
+            after_user = text[len(cleaned_user) :].strip()
             after_user = re.sub(r"^[,:\-\s]+", "", after_user).strip()
             after_user = POST_ECHO_CONNECTORS.sub("", after_user).strip()
             if after_user:

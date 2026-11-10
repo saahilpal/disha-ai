@@ -103,6 +103,13 @@ VALUES
         'Tele-MANAS Mental Health Helpline',
         '{"service": "Tele-MANAS National Tele-Mental Health Programme", "number": "14416", "statement": "Tele-MANAS se 14416 par bhi baat kar sakte hain."}'::jsonb,
         'Government of India 24x7 toll-free mental health psychological support helpline.'
+    ),
+    (
+        'expert_call',
+        'clinical_outcome',
+        '10-Minute Expert Consultation Call',
+        '{"duration_minutes": 10, "contact": null, "link": null, "status": "unconfigured"}'::jsonb,
+        'Configurable 10-minute expert clinical consultation CTA.'
     )
 ON CONFLICT (fact_key) DO UPDATE SET
     fact_value = EXCLUDED.fact_value,

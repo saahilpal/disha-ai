@@ -10,6 +10,7 @@ Implements:
 4. Asynchronous post-call extraction signal detector (0 overhead on live turns).
 5. Consolidation routine for nightly sleep-time batch job.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -221,9 +222,7 @@ async def commit_habit_slot(
 
     try:
         # 1. Authority Guard
-        is_valid_auth, auth_err = DEFAULT_SLOT_REGISTRY.validate_authority(
-            slot_key, SourceAuthority.PATIENT_REPORTED
-        )
+        is_valid_auth, auth_err = DEFAULT_SLOT_REGISTRY.validate_authority(slot_key, SourceAuthority.PATIENT_REPORTED)
         if not is_valid_auth:
             logger.warning("Clinical boundary rejected slot write %s: %s", slot_key, auth_err)
             return {"status": "rejected", "reason": auth_err}

@@ -23,16 +23,21 @@ _SENSITIVE_AUDIT_PATTERNS = [
     (re.compile(r"\bpt_live_[0-9a-fA-F]+", re.IGNORECASE), "pt_live_[REDACTED]"),
     (re.compile(r"\bpt_test_[A-Za-z0-9_]+_token", re.IGNORECASE), "pt_test_[REDACTED]"),
     (re.compile(r"(?i)\b(?:password|passwd|pwd)\s*[:=]\s*[^\s,]+"), "password=[REDACTED]"),
-    (re.compile(r"(?i)\b(?:token|api_key|apikey|secret)\s*[:=]\s*['\"]?[A-Za-z0-9_\-\.]{8,}['\"]?"), "token=[REDACTED]"),
+    (
+        re.compile(r"(?i)\b(?:token|api_key|apikey|secret)\s*[:=]\s*['\"]?[A-Za-z0-9_\-\.]{8,}['\"]?"),
+        "token=[REDACTED]",
+    ),
     (re.compile(r"AIza[0-9A-Za-z\-_]{30,40}"), "[GOOGLE_API_KEY_REDACTED]"),
     (re.compile(r"gsk_[a-zA-Z0-9]{20,}"), "[GROQ_API_KEY_REDACTED]"),
     (re.compile(r"sk-[a-zA-Z0-9]{20,}"), "[API_KEY_REDACTED]"),
-
     # Direct personal identifiers / PII / PHI
     (re.compile(r"\b\d{4}[\s\-]\d{4}[\s\-]\d{4}\b"), "[AADHAAR_REDACTED]"),
     (re.compile(r"(?:\+91[\-\s]?)?[6789]\d{9}\b|\b\d{5}[\-\s]?\d{5}\b"), "[PHONE_REDACTED]"),
     (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b"), "[EMAIL_REDACTED]"),
-    (re.compile(r"\b(?:MRN|UHID|PATIENT[_\s-]?ID|PATIENT#|IPD|OPD)[#:\-\s]*[A-Za-z0-9_\-]{4,20}\b", re.IGNORECASE), "[MRN_REDACTED]"),
+    (
+        re.compile(r"\b(?:MRN|UHID|PATIENT[_\s-]?ID|PATIENT#|IPD|OPD)[#:\-\s]*[A-Za-z0-9_\-]{4,20}\b", re.IGNORECASE),
+        "[MRN_REDACTED]",
+    ),
 ]
 
 
@@ -65,10 +70,7 @@ class AuditRecord:
 
 
 def current_hash(prev_hash: str, record: AuditRecord) -> str:
-    payload = (
-        f"{prev_hash}|{record.patient_id}|{record.user_input}|"
-        f"{record.llm_output}|{record.status}"
-    )
+    payload = f"{prev_hash}|{record.patient_id}|{record.user_input}|{record.llm_output}|{record.status}"
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
@@ -421,13 +423,14 @@ class AuditLedger:
                        (event_id, patient_id, user_input, llm_output, breaker_status,
                         validator_status, prev_hash, current_hash)
                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)""",
-                    record.event_id, record.patient_id, record.user_input,
-                    record.llm_output, record.breaker_status, record.validator_status,
-                    str(prev_hash), digest,
+                    record.event_id,
+                    record.patient_id,
+                    record.user_input,
+                    record.llm_output,
+                    record.breaker_status,
+                    record.validator_status,
+                    str(prev_hash),
+                    digest,
                 )
-                await connection.execute(
-                    "UPDATE audit_chain_head SET current_hash = $1 WHERE singleton = TRUE", digest
-                )
+                await connection.execute("UPDATE audit_chain_head SET current_hash = $1 WHERE singleton = TRUE", digest)
         self._remove_wal(record.event_id)
-
-

@@ -6,6 +6,7 @@ Distinguishes between:
 - Permanent lifestyle habits vs one-off deviations.
 - Captures multiple fields in a single turn.
 """
+
 from __future__ import annotations
 
 import re
@@ -22,9 +23,23 @@ from disha_core.models.slots import (
 
 # Symptom words that are transient complaints rather than diagnosed diseases
 TRANSIENT_SYMPTOM_WORDS = (
-    "pet kharab", "loose motion", "bloating", "gas", "acidity",
-    "sir dard", "headache", "fever", "bukhar", "body pain", "badan dard",
-    "vomiting", "ulti", "weakness", "chakkar", "thakan", "tired",
+    "pet kharab",
+    "loose motion",
+    "bloating",
+    "gas",
+    "acidity",
+    "sir dard",
+    "headache",
+    "fever",
+    "bukhar",
+    "body pain",
+    "badan dard",
+    "vomiting",
+    "ulti",
+    "weakness",
+    "chakkar",
+    "thakan",
+    "tired",
 )
 
 # Clinical condition patterns
@@ -34,8 +49,20 @@ CONDITION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
     (re.compile(r"\b(?:thyroid|hypothyroid|hyperthyroid)\b", re.I), "thyroid"),
     (re.compile(r"\b(?:pcod|pcos)\b", re.I), "pcod"),
     (re.compile(r"\b(?:heart\s+disease|cardiac|heart\s+attack|dil\s+ki\s+bimari)\b", re.I), "cardiac_history"),
-    (re.compile(r"\b(?:none|no\s+conditions?|koi\s+bimari\s+nahi|kuch\s+nahi|sab\s+theek\s+hai)\b", re.I), "none"),
+    (
+        re.compile(
+            r"\b(?:none|no\s+conditions?|koi\s+bimari\s+nahi|kuch\s+nahi|kuch\s+ni|sab\s+theek\s+hai|koi\s+dikkat\s+nahi|koi\s+issue\s+nahi|bilkul\s+nahi|not\s+diagnosed)\b",
+            re.I,
+        ),
+        "none",
+    ),
 ]
+
+# Generalized negative responses to closed questions
+NEGATIVE_AFFIRMATION_PATTERN = re.compile(
+    r"^\s*(?:nhi|nahi|nah|no|nope|na|nothing|none|kuch\s+nahi|kuch\s+ni|bilkul\s+nahi|not\s+really|koi\s+bhi\s+nahi|aisa\s+kuch\s+nahi|kuch\s+bhi\s+nahi|no\s+issue|all\s+good|sab\s+theek\s+hai)\b",
+    re.I,
+)
 
 # Medication patterns
 MEDICATION_PATTERN = re.compile(
@@ -52,13 +79,40 @@ WORK_SCHEDULE_PATTERNS = [
 ]
 
 
-def extract_patient_disclosures(text: str, lang: str = "hinglish") -> dict[str, Any]:
-    """Parse a user utterance and return a mapping of extracted journey fields."""
+def extract_patient_disclosures(
+    text: str,
+    lang: str = "hinglish",
+    pending_field: str | None = None,
+) -> dict[str, Any]:
+    """Parse a user utterance and return a mapping of extracted journey fields.
+
+    If pending_field is provided, contextually interprets direct affirmations
+    and negative responses (e.g. 'nhi', 'nahi', 'no', 'haan') towards that field.
+    """
     if not text:
         return {}
 
     extracted: dict[str, Any] = {}
-    lower = text.lower()
+    lower = text.strip().lower()
+
+    # Contextual resolution for negative affirmations when answering pending questions
+    is_negative = bool(NEGATIVE_AFFIRMATION_PATTERN.search(lower))
+    if pending_field and is_negative:
+        if pending_field in ("diagnosed_conditions", "health_conditions"):
+            extracted["diagnosed_conditions"] = ["none"]
+            return extracted
+        if pending_field == "medications":
+            extracted["medications"] = ["none"]
+            return extracted
+        if pending_field in ("allergies_intolerances", "dietary_restrictions"):
+            extracted["allergies_intolerances"] = ["none"]
+            return extracted
+        if pending_field == "injuries_or_limitations":
+            extracted["injuries_or_limitations"] = ["none"]
+            return extracted
+        if pending_field == "disliked_foods":
+            extracted["disliked_foods"] = ["none"]
+            return extracted
 
     # 1. Transient symptoms vs Diagnosed conditions
     # Check transient symptoms first
@@ -82,6 +136,8 @@ def extract_patient_disclosures(text: str, lang: str = "hinglish") -> dict[str, 
             extracted["diagnosed_conditions"] = ["none"]
         else:
             extracted["diagnosed_conditions"] = [c for c in found_conditions if c != "none"]
+    elif pending_field in ("diagnosed_conditions", "health_conditions") and is_negative:
+        extracted["diagnosed_conditions"] = ["none"]
 
     # 2. Medications
     meds = MEDICATION_PATTERN.findall(lower)
@@ -122,16 +178,27 @@ def extract_patient_disclosures(text: str, lang: str = "hinglish") -> dict[str, 
     if sleep_match:
         raw_sleep = sleep_match.group(1)
         # Contextual morning/night cues
-        if ("morning" in lower or "subah" in lower) and "am" not in raw_sleep and "pm" not in raw_sleep and "raat" not in raw_sleep:
+        if (
+            ("morning" in lower or "subah" in lower)
+            and "am" not in raw_sleep
+            and "pm" not in raw_sleep
+            and "raat" not in raw_sleep
+        ):
             raw_sleep = f"{raw_sleep} am"
-        elif ("night" in lower or "raat" in lower or "shaam" in lower) and "am" not in raw_sleep and "pm" not in raw_sleep:
+        elif (
+            ("night" in lower or "raat" in lower or "shaam" in lower)
+            and "am" not in raw_sleep
+            and "pm" not in raw_sleep
+        ):
             raw_sleep = f"{raw_sleep} pm"
         norm_sleep = normalize_time(raw_sleep, lang)
         if norm_sleep:
             extracted["sleep_time"] = norm_sleep
 
     # 5. Water Intake
-    water_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:liter|litre|l\b|liters|litres|glass|gilas|glasses)\s*(?:water|paani|pani)?", lower)
+    water_match = re.search(
+        r"(\d+(?:\.\d+)?)\s*(?:liter|litre|l\b|liters|litres|glass|gilas|glasses)\s*(?:water|paani|pani)?", lower
+    )
     if not water_match:
         water_match = re.search(r"(?:water|paani|pani).{0,15}?(\d+(?:\.\d+)?)\s*(?:liter|litre|l\b|glass)", lower)
     if water_match:
@@ -150,15 +217,24 @@ def extract_patient_disclosures(text: str, lang: str = "hinglish") -> dict[str, 
             extracted["dietary_preference"] = diet_norm
 
     # 8. Allergies / Restrictions
-    if any(w in lower for w in ("allergy", "allergic", "lactose", "gluten", "pyaaz", "lehsun", "onion", "garlic", "nuts", "peanuts")):
+    if any(
+        w in lower
+        for w in ("allergy", "allergic", "lactose", "gluten", "pyaaz", "lehsun", "onion", "garlic", "nuts", "peanuts")
+    ):
         restrs = normalize_dietary_restrictions(text, lang)
         if restrs:
             extracted["allergies_intolerances"] = restrs
 
     # 9. Disliked Foods
-    dislike_match = re.search(r"(?:karela|tinda|baingan|lauki|tori|palak|milk|doodh).{0,35}?(?:pasand\s+nahi|dislike|hate|nahi\s+khata|nahi\s+khati)", lower)
+    dislike_match = re.search(
+        r"(?:karela|tinda|baingan|lauki|tori|palak|milk|doodh).{0,35}?(?:pasand\s+nahi|dislike|hate|nahi\s+khata|nahi\s+khati)",
+        lower,
+    )
     if not dislike_match:
-        dislike_match = re.search(r"(?:pasand\s+nahi|dislike|hate|nahi\s+khata|nahi\s+khati).{0,35}?(karela|tinda|baingan|lauki|tori|palak|milk|doodh)", lower)
+        dislike_match = re.search(
+            r"(?:pasand\s+nahi|dislike|hate|nahi\s+khata|nahi\s+khati).{0,35}?(karela|tinda|baingan|lauki|tori|palak|milk|doodh)",
+            lower,
+        )
     if dislike_match:
         food_item = "karela" if "karela" in lower else ("tinda" if "tinda" in lower else "baingan")
         extracted["disliked_foods"] = [food_item]
@@ -177,17 +253,28 @@ def extract_patient_disclosures(text: str, lang: str = "hinglish") -> dict[str, 
         extracted["daily_movement_level"] = normalize_steps_target(steps_match.group(1), lang)
 
     # 12. Basic Profile (Height, Weight, Age, Name)
-    wt_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kilograms?)", lower)
-    if wt_match:
-        extracted["weight_kg"] = float(wt_match.group(1))
+    wt_matches = list(re.finditer(r"(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kilograms?)", lower))
+    if wt_matches:
+        # In corrections or multi-weight statements, the latter number represents the current/updated weight
+        extracted["weight_kg"] = float(wt_matches[-1].group(1))
 
-    ht_match = re.search(r"(\d{2,3})\s*(?:cm|centimeters?)", lower)
-    if ht_match:
-        extracted["height_cm"] = float(ht_match.group(1))
+    ht_matches = list(re.finditer(r"(\d{2,3})\s*(?:cm|centimeters?)", lower))
+    if ht_matches:
+        extracted["height_cm"] = float(ht_matches[-1].group(1))
 
-    age_match = re.search(r"\b(\d{1,2})\s*(?:years?\s+old|saal\s+ka|saal\s+ki|varsh)\b", lower)
+    age_match = (
+        re.search(r"\b(\d{1,2})\s*(?:years?(?:\s+old)?|yrs?(?:\s+old)?|yo\b|saal(?:\s+ka|\s+ki)?|varsh|sal)\b", lower)
+        or re.search(
+            r"\b(?:i\s+am|i\'m|\bim\b|am|my\s+age(?:\s+is)?|age(?:\s+is)?|umer(?:\s+hai|\s+is)?|umar(?:\s+hai|\s+is)?|meri\s+(?:umar|age)(?:\s+hai|\s+bhi)?)\s*(?:is|hai|:|-)?\s*(\d{1,2})\b",
+            lower,
+        )
+        or re.search(r"\b(?:around|turning|about)\s*(\d{1,2})\b", lower)
+        or (re.match(r"^\s*(?:age\s*)?(\d{1,2})\s*$", lower.strip()))
+    )
     if age_match:
-        extracted["age"] = int(age_match.group(1))
+        val = int(age_match.group(1))
+        if 10 <= val <= 110:
+            extracted["age"] = val
 
     name_match = re.search(r"(?:mera\s+naam|my\s+name\s+is|i\s+am)\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)", text, re.I)
     if name_match:

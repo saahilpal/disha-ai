@@ -81,13 +81,24 @@ class LayaIntentClassifier:
 class RuleIntentClassifier:
     def classify(self, text: str) -> Intent:
         value = text.casefold()
-        if re.search(r"\b(who are you|koun ho|what is disha|subscription|price|pricing|fees?|cost|charges?|how to use (?:the |this )?app|settings|profile(?:\s+tab|\s+page|\s+update)?)\b|दिशा क्या है|सब्सक्रिप्शन|कीमत|फीस|प्रोफाइल", value):
+        if re.search(
+            r"\b(who are you|koun ho|what is disha|subscription|price|pricing|fees?|cost|charges?|how to use (?:the |this )?app|settings|profile(?:\s+tab|\s+page|\s+update)?)\b|दिशा क्या है|सब्सक्रिप्शन|कीमत|फीस|प्रोफाइल",
+            value,
+        ):
             return Intent.APP_META
-        if re.search(r"\b(gym|workout|workouts|deadlifts?|weights?|lifting|bench press|squats?|sprints?|sprinting|hiit|crossfit|bodybuilding|kasrat)\b|जिम|कसरत|व्यायाम|डंबल|डेडलिफ्ट", value):
+        if re.search(
+            r"\b(gym|workout|workouts|deadlifts?|weights?|lifting|bench press|squats?|sprints?|sprinting|hiit|crossfit|bodybuilding|kasrat)\b|जिम|कसरत|व्यायाम|डंबल|डेडलिफ्ट",
+            value,
+        ):
             return Intent.EXERCISE_QUERY
-        if re.search(r"\b(dinner|breakfast|lunch|meal|khaana|khana|recipe|diet chart|aam|fruit)\b|नाश्ता|खाना|भोजन|डाइट", value):
+        if re.search(
+            r"\b(dinner|breakfast|lunch|meal|khaana|khana|recipe|diet chart|aam|fruit)\b|नाश्ता|खाना|भोजन|डाइट", value
+        ):
             return Intent.MEAL_QUERY
-        if re.search(r"\b(pain|dard|bloating|gas|fever|dizziness|symptom|pet phool|acidity|vomit|nausea)\b|दर्द|गैस|बुखार|चक्कर|उल्टी|सूजन", value):
+        if re.search(
+            r"\b(pain|dard|bloating|gas|fever|dizziness|symptom|pet phool|acidity|vomit|nausea)\b|दर्द|गैस|बुखार|चक्कर|उल्टी|सूजन",
+            value,
+        ):
             return Intent.SYMPTOM_COMPLAINT
         if re.search(r"^(?:namaste|hello|hi|hey|good morning|kaise ho)\b|नमस्ते|प्रणाम", value):
             return Intent.GREETING
@@ -129,9 +140,7 @@ class OnnxIntentClassifier:
 
 
 class IntentRouter:
-    def __init__(
-        self, classifier: IntentClassifier | None = None, breaker: EmergencyBreaker | None = None
-    ) -> None:
+    def __init__(self, classifier: IntentClassifier | None = None, breaker: EmergencyBreaker | None = None) -> None:
         self.breaker = breaker or EmergencyBreaker()
         self.classifier = classifier if classifier is not None else LayaIntentClassifier()
         self.last_pep_risk: int = 0
@@ -183,7 +192,7 @@ class IntentRouter:
                 res = None
                 pep_risk = getattr(self.classifier, "last_pep_risk", 0)
                 conf = 1.0
-                is_emg = (intent == Intent.EMERGENCY_TRIAGE)
+                is_emg = intent == Intent.EMERGENCY_TRIAGE
 
             self.last_pep_risk = pep_risk
             skip_retrieval = intent in {
@@ -219,6 +228,3 @@ class IntentRouter:
         if decision.breaker.triggered:
             return decision.breaker, None
         return decision.breaker, decision.intent
-
-
-

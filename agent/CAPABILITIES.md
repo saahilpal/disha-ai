@@ -1,60 +1,55 @@
-# DISHA AI — CAPABILITY DISCOVERY & ENVIRONMENT AUDIT
-**Date**: 2026-11-08  
-**Platform**: macOS Darwin arm64 (Apple M5, Metal / MPS Supported)  
-**Orchestrator**: BossEmployee (Lead AI Architect & Engineering Manager)
+# Verified Agent Capabilities
 
----
+**Checked:** 2026-11-09
+**Rule:** This file records observed tools only. Older machine, model, test, deployment, and score claims were not carried forward because they were not re-verified.
 
-## 1. Machine & CLI Tools
+## Host and repository
 
-| Capability / Category | Tool / Binary | Location | Smoke-Test Command | Result / Status | Assigned Roles |
-|---|---|---|---|---|---|
-| **Structural Code Index** | Synapse (`synap`) | `/Users/nitrousoxide/.local/bin/synap` | `synap status` | ✓ Active (284 files, 742 symbols indexed) | Architect, Skeptic, All Agents |
-| **Container Engine** | Docker & Compose | `/usr/local/bin/docker` | `docker ps` | ✓ Healthy (Postgres 5432, Backend 8000, Nginx 8080) | Backend/DB Engineer, Breaker |
-| **Local LLM Runtime** | Ollama | `/usr/local/bin/ollama` | `ollama list` | ✓ Running (`qwen2.5:7b`, `llama3.2:3b`, `qwen2.5-coder:14b`, `nomic-embed-text`) | Architect, Conv Policy, Eval |
-| **Python Package / Env** | uv | `/Users/nitrousoxide/.local/bin/uv` | `uv run python --version` | ✓ Python 3.12.13 in isolated uv venv | All Python Builders |
-| **Test Runner** | pytest | uv managed | `uv run pytest --version` | ✓ pytest 9.2.0 (anyio, asyncio plugins) | Eval/QA Engineer, Breaker |
-| **Python Linter / Formatter** | ruff | `/Users/nitrousoxide/.local/bin/ruff` | `ruff --version` | ✓ ruff 0.17.4 | Repo Cleaner, Backend |
-| **Static Type Checker** | pyright | `/Users/nitrousoxide/.local/bin/pyright` | `pyright --version` | ✓ pyright 1.1.408 | Backend, Architect |
-| **Secret Scanner** | gitleaks | `/opt/homebrew/bin/gitleaks` | `gitleaks version` | ✓ v8.30.0 | Repo Cleaner, Safety |
-| **Vulnerability Scanner** | trivy | `/opt/homebrew/bin/trivy` | `trivy --version` | ✓ Installed | Safety, Backend |
-| **Dockerfile Linter** | hadolint | `/opt/homebrew/bin/hadolint` | `hadolint --version` | ✓ v2.14.0 | Repo Cleaner |
-| **Load Testing** | k6 | `/opt/homebrew/bin/k6` | `k6 version` | ✓ v1.6.1 | Breaker |
-| **Audio Processing** | ffmpeg | `/opt/homebrew/bin/ffmpeg` | `ffmpeg -version` | ✓ ffmpeg 8.1 | Speech Engineer |
-| **Web Performance Audit** | lighthouse | `/opt/homebrew/bin/lighthouse` | `lighthouse --version` | ✓ v13.0.3 | Art Director, Frontend |
-| **Accessibility Audit** | axe CLI | `/opt/homebrew/bin/axe` | `axe --version` | ✓ Installed | Frontend, Art Director |
-| **Edge Tunnel / Proxy** | cloudflared | `/opt/homebrew/bin/cloudflared` | `cloudflared --version` | ✓ Installed | Backend, Breaker |
-| **Browser Automation** | Playwright | npx managed | `npx playwright --version` | ✓ v1.65.0 (Chromium, Firefox, WebKit) | Frontend, Eval/QA |
-| **Hardware Acceleration** | Apple Metal MPS | PyTorch MPS | `torch.backends.mps.is_available()` | ✓ True (M5 GPU Acceleration Active) | Speech, Eval, Architect |
+| Capability | Observed state |
+|---|---|
+| Host architecture | macOS, `arm64`; exact hardware model not verified in this session |
+| Current branch | `main` |
+| Working tree | 33 uncommitted files before this priority interrupt; preserve them |
+| Frontend source | `disha_core/frontend/index.html`, `app.js`, `style.css`; plain JavaScript, no Vite/TypeScript/framework in package manifests |
+| Root package | npm scripts for sync, diagnostics, UX script, Vercel packaging, and duplication scan; no declared frontend framework |
+| Runtime versions | Node v26.0.0, npm 11.12.1, Python 3.15.0, Docker 29.6.2, cloudflared 2026.9.3 |
+| Chrome | `/Applications/Google Chrome.app` exists |
+| Playwright | Node package resolves as `playwright@1.65.0`, marked extraneous by npm; browser launch still needs verification |
+| Axe | `axe-core` does not resolve from the root package |
+| Framework packages | `vite`, `svelte`, and `react` do not resolve from the root package |
+| Docker services | Existing backend, Postgres, and proxy containers are running; database is persistent and must not receive destructive or synthetic test mutations |
+| External install policy | No global installs. Any new project dependency must be pinned, justified, and documented. |
 
----
+## Structural navigation and memory
 
-## 2. Model & Voice Capabilities
+- Synap CLI exists at `/Users/nitrousoxide/.local/bin/synap`.
+- `synap status`: daemon stopped; local index reports 357 files and 1,103 symbols; zero approved lessons; no checkpoint on `main`.
+- `synap search` returned structural results, but its local LLM path failed with “Operation not permitted”; structural-only results were available.
+- `synap context` failed while reading the dirty diff (`git diff-tree` error followed by SQLite “unrecognized token: #”). No checkpoint or lessons were found by their read-only commands.
+- No Synapse MCP tools are connected in this session. The CLI is the available fallback; do not claim MCP navigation/checkpoint calls succeeded.
 
-| Modality | Engine / Model | Hardware Target | Supported Languages | Status / Role |
-|---|---|---|---|---|
-| **Local LLM (Fast)** | Ollama `qwen2.5:7b` | Apple M5 Metal | EN, HI, Hinglish | ✓ Verified healthy on `host.docker.internal:11434` |
-| **Local LLM (Coder/Judge)**| Ollama `qwen2.5-coder:14b` | Apple M5 Metal | Code, Eval Judge | ✓ Verified available in local Ollama |
-| **Speech-to-Text (STT)** | Whisper / Cloud STT | Local / Hosted | EN, HI, Hinglish | ✓ VAD + interim transcription pipeline verified |
-| **Text-to-Speech (TTS) - HI**| Edge-TTS `hi-IN-SwaraNeural` | Async / Cloud | Hindi (Devanagari & Romanized), Hinglish | ✓ Tested & verified (~230ms streaming packet) |
-| **Text-to-Speech (TTS) - EN**| Qwen3-TTS / Local TTS | MPS / Metal | EN, Technical terms | ⚠ Note: Official card lacks Hindi; dual-engine routed |
-| **Embeddings** | `nomic-embed-text` | Ollama Local | 768-dim multi-lingual | ✓ Available for hybrid semantic search |
+## MCP and documentation tools
 
----
+- Connected tools include web search, Codex thread/worktree management, and document/app utilities.
+- Context7 MCP and Chrome DevTools MCP are not connected.
+- Official web documentation can be checked through the connected web search tool.
+- No direct browser automation MCP is connected. Use installed Chrome and the existing Playwright package only after verifying it launches.
+- `modern-web-guidance` local skill requests `npx` network retrieval; it has not been run because the sandbox requires explicit network approval.
 
-## 3. Database & Persistence Capabilities
+## Relevant local skills inspected
 
-| Subsystem | Technology | Port / URI | Smoke Test |
-|---|---|---|---|
-| **RDBMS** | PostgreSQL 16 Alpine | 5432 (`localhost:5432`) | ✓ Docker container running healthy, tables seeded |
-| **Full-Text Search** | PostgreSQL `tsvector` + GIN index | Internal DB | ✓ Supports Hindi / English stemming & keyword queries |
-| **Connection Pool** | `asyncpg` | Async Pool (20 conns) | ✓ Verified in `disha_core/adapters/db.py` |
+- `~/.gemini/config/skills/ui-styling/SKILL.md`
+- `~/.gemini/config/skills/design-system/SKILL.md`
+- `~/.gemini/config/plugins/modern-web-guidance-plugin/skills/modern-web-guidance/SKILL.md`
+- `~/.agents/skills/browser-qa/SKILL.md`
+- `~/.agents/skills/e2e-testing/SKILL.md`
+- `~/.agents/skills/tdd-workflow/SKILL.md`
 
----
+No matching local skill named `frontend-design` or `webapp-testing` was found in the searched roots. The selected skills emphasize truthful browser evidence, responsive/accessibility checks, network approval for the modern guidance CLI, and tests before implementation. Do not add unrequested UI kits.
 
-## 4. MCP Servers & IDE Tooling
+## Verification still required
 
-- **Synapse CLI (`synap`)**: Codebase structural AST indexing, token-efficient `skeleton`, `outline`, and `search`.
-- **Chrome DevTools / Playwright**: Real headless & headed browser test harness with visual screenshots and axe accessibility.
-- **Agent Skills**: `frontend-design`, `backend-patterns`, `python-patterns`, `python-testing`, `security-review`, `coding-standards`.
-
+- Confirm Chrome/Playwright can open the running local app and save baseline screenshots.
+- Inspect every required viewport and state, including 320px, 1920px, dark mode, keyboard, offline, errors, and live-call lifecycle.
+- Verify the current app stack and dependencies before choosing a replacement frontend.
+- Do not report live Cloudflare, model, or database mutation tests from container status alone.

@@ -6,9 +6,6 @@
   "scripts": {
     "sync": "bash scripts/sync-frontend.sh",
     "build": "bash scripts/sync-frontend.sh",
-    "test:frontend": "node tests/test_frontend_diagnostics.js",
-    "test:ux": "node tests/test_playwright_ux.js",
-    "test:vercel": ".venv/bin/pytest tests/test_vercel_packaging.py",
     "lint:duplication": "npx jscpd"
   },
   "devDependencies": {

@@ -4,6 +4,7 @@ Determines the single most useful next question based on current journey state,
 missing information, clinical priorities, and cross-channel history.
 Enforces strict deduplication and conversational naturalness.
 """
+
 from __future__ import annotations
 
 import logging
@@ -40,6 +41,7 @@ async def select_next_question(
     is_off_topic_query: bool = False,
     conn: asyncpg.Connection | None = None,
     preferred_lang: str = "hinglish",
+    auto_record: bool = True,
 ) -> ScheduledQuestion | None:
     """Select the single best next question to advance the patient's journey.
 
@@ -64,26 +66,41 @@ async def select_next_question(
 
     # 1. Fetch recent question history to prevent repeats
     asked_qids: set[str] = set()
+    answered_qids: set[str] = set()
+    answered_targets: set[str] = set()
+    recent_asked_targets: list[str] = []
     if conn is not None:
         rows = await conn.fetch(
-            """SELECT question_id FROM journey_question_history
-               WHERE patient_id = $1 AND (status = 'asked' OR status = 'skipped')""",
+            """SELECT question_id, target_field, status FROM journey_question_history
+               WHERE patient_id = $1
+               ORDER BY asked_at DESC LIMIT 30""",
             patient_id,
         )
-        asked_qids = {r["question_id"] for r in rows}
+        for r in rows:
+            qid = r["question_id"]
+            tf = r["target_field"]
+            st = r["status"]
+            if st in ("asked", "skipped"):
+                asked_qids.add(qid)
+                if tf:
+                    recent_asked_targets.append(tf)
+            elif st == "answered":
+                answered_qids.add(qid)
+                if tf:
+                    answered_targets.add(tf)
 
     # 2. Gather candidates
     candidates: list[JourneyQuestion] = []
     for q in QUESTION_CATALOG:
         target = q.target_field
-        # Never ask if already known/completed
-        if target in completed_fields:
+        # Never ask if already known, completed, or answered in history
+        if target in completed_fields or target in answered_targets or q.question_id in answered_qids:
             continue
         # Don't ask if skipped unless required safety field
         if target in skipped_fields and not q.required:
             continue
-        # Don't repeat if already asked recently
-        if q.question_id in asked_qids and not q.required:
+        # Never repeat if already asked recently or awaiting answer
+        if q.question_id in asked_qids or target in recent_asked_targets[:5]:
             continue
 
         # Check stage relevance: prioritize current stage, but allow other stages if safety critical
@@ -91,9 +108,15 @@ async def select_next_question(
             candidates.append(q)
 
     if not candidates:
-        # Check any remaining uncompleted required fields across all stages
+        # Check any remaining uncompleted required fields that have not been asked or answered
         for q in QUESTION_CATALOG:
-            if q.target_field not in completed_fields and q.required:
+            if (
+                q.target_field not in completed_fields
+                and q.target_field not in answered_targets
+                and q.question_id not in asked_qids
+                and q.question_id not in answered_qids
+                and q.required
+            ):
                 candidates.append(q)
 
     if not candidates:
@@ -108,8 +131,8 @@ async def select_next_question(
     lang_key = "hi" if preferred_lang == "hi" else ("en" if preferred_lang == "en" else "hinglish")
     q_text = selected.phrasings.get(lang_key) or selected.phrasings.get("hinglish") or selected.phrasings["en"]
 
-    # 5. Record asked question in history if connection provided
-    if conn is not None:
+    # 5. Record asked question in history if connection provided and auto_record is True
+    if conn is not None and auto_record:
         await record_question_asked(
             patient_id=patient_id,
             question_id=selected.question_id,

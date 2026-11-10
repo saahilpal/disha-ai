@@ -141,12 +141,13 @@ from collections import defaultdict
 from pathlib import Path
 
 ignore_dirs = {
-    ".git", ".venv", "node_modules", ".ruff_cache",
-    ".pytest_cache", ".mypy_cache", ".synap", "audit_wal.db",
+    ".git", ".venv", ".venv-mlx-audio", "node_modules", ".ruff_cache",
+    ".pytest_cache", ".mypy_cache", ".synap", ".synapse", ".agent", "audit_wal.db",
     "review_queue.db", "models", "baseline", "docs/screenshots"
 }
 allowed_identical = {
-    ".cursorrules", "AGENTS.md", "CLAUDE.md", "__init__.py"
+    ".cursorrules", "AGENTS.md", "CLAUDE.md", "__init__.py", "CODEOWNERS",
+    "red_flags.json", "red_flags.yaml", "behavior_policies.yaml"
 }
 dead_extensions = (".tmp", ".bak", ".orig", ".rej")
 dead_names = {".DS_Store", "Thumbs.db", "ehthumbs.db"}
@@ -207,10 +208,10 @@ fi
 # ------------------------------------------------------------------------------
 # 7. TEST SUITE CHECK (Pytest Full Suites)
 # ------------------------------------------------------------------------------
-log_step "7/7" "Test Suite Check (uv run pytest disha_core/tests/ & tests/)"
+log_step "7/7" "Test Suite Check (uv run pytest tests/)"
 
-echo "[+] Executing: uv run pytest disha_core/tests/ tests/ -k 'not manual'"
-if uv run pytest disha_core/tests/ tests/ -k "not manual"; then
+echo "[+] Executing: uv run pytest tests/ -k 'not manual'"
+if uv run pytest tests/ -k "not manual"; then
   log_pass "All core unit, invariant, integration, and safety tests passed."
 else
   log_fail "Test suite execution failed."

@@ -39,7 +39,9 @@ async def issue_token(patient_id: str, expires_days: int) -> str:
     try:
         await pool.execute(
             "INSERT INTO patient_access_tokens(token_hash, patient_id, expires_at) VALUES($1, $2, $3)",
-            token_hash(token), patient_id.strip(), expiry,
+            token_hash(token),
+            patient_id.strip(),
+            expiry,
         )
     finally:
         await pool.close()

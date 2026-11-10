@@ -1,4 +1,5 @@
 """Compatibility exports for the former static exercise engine."""
+
 from disha_core.pep.exercise_safety import (
     ExerciseEvaluation,
     SuitabilityCategory,

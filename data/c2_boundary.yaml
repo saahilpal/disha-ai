@@ -1,0 +1,60 @@
+# C2 Boundary Table (D3) — Owner-editable
+# Forbidden: medication names/doses, diagnosis statements, treatment plans
+# Allowed: general, dataset-grounded lifestyle information after C1 History Triangle is satisfied
+
+forbidden_categories:
+  medication:
+    description: "Specific medication names, dosages, or administration instructions"
+    patterns:
+      - "\\b\\d+\\s*mg\\b"
+      - "\\b\\d+\\s*ml\\b"
+      - "\\btablet\\b"
+      - "\\bcapsule\\b"
+      - "\\bdose\\b"
+      - "\\bdosage\\b"
+      - "\\bprescri"
+      - "\\bmetformin\\b"
+      - "\\bparacetamol\\b"
+      - "\\bibuprofen\\b"
+      - "\\basin\\b"
+      - "\\baspirin\\b"
+      - "\\bomeprazole\\b"
+      - "\\batorvastatin\\b"
+      - "\\bamlodipine\\b"
+      - "\\binsulin\\b"
+      - "\\bsteroid\\b"
+      - "\\bantibiotic\\b"
+      - "\\bdawai\\b"
+      - "\\bgoli\\b"
+      - "\\bdawa\\b"
+
+  diagnosis:
+    description: "Definitive medical diagnoses or clinical labels"
+    patterns:
+      - "\\byou have\\b.*\\b(?:disease|disorder|syndrome|deficiency|infection)\\b"
+      - "\\baapko\\b.*\\b(?:hai|ho)\\b.*\\b(?:rog|bimari|disease)\\b"
+      - "\\bdiagnos"
+      - "\\bthis is\\b.*\\b(?:condition|disease|disorder)\\b"
+      - "\\byou are suffering from\\b"
+
+  treatment_plan:
+    description: "Specific treatment protocols or medical action plans"
+    patterns:
+      - "\\btreatment plan\\b"
+      - "\\bilaj\\b"
+      - "\\bsurgery\\b"
+      - "\\boperation\\b"
+      - "\\btherapy\\b.*\\bsession"
+      - "\\bstart taking\\b"
+      - "\\bstop taking\\b"
+      - "\\bincrease.*dose\\b"
+      - "\\bdecrease.*dose\\b"
+      - "\\bdouble.*dose\\b"
+
+allowed_after_triangle:
+  - "general dietary guidance (e.g. eat more vegetables, stay hydrated)"
+  - "sleep hygiene tips"
+  - "general exercise suggestions (walk, stretch)"
+  - "stress management basics (breathing, routine)"
+  - "hydration reminders"
+

@@ -1,4 +1,5 @@
 """Authentication and identity service for Disha AI Core."""
+
 from __future__ import annotations
 
 import hashlib
@@ -96,7 +97,7 @@ async def register_patient(pool: Any, payload: OnboardingRequest) -> dict[str, A
         other_focus = (payload.health_focus_other or "").strip()
         primary_focus = focuses[0] if focuses else ""
         secondary_focuses = focuses[1:] if len(focuses) > 1 else []
-        reported_conditions = list(payload.conditions or [])
+        reported_conditions = list(payload.conditions) if payload.conditions is not None else None
 
         await conn.execute(
             """INSERT INTO patient_profiles (

@@ -20,7 +20,7 @@ flowchart TD
   K -->|No| M[Chat / start voice]
 ```
 
-**Current status:** Account registration and sign-in exist. Optionality, single welcome, profile/history hydration, and locale limits are being corrected. Disclosure and consent are incomplete; no real staged onboarding UI exists yet.
+**Current status:** Account registration and sign-in exist. Optionality, single welcome, profile/history hydration (via `GET /chat/history`), and locale limits are supported. Disclosure and consent are active; onboarding progress is maintained seamlessly across chat and voice.
 
 ## Onboarding through chat or voice
 

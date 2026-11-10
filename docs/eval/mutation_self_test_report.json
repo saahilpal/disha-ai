@@ -1,0 +1,49 @@
+{
+  "timestamp": "2026-11-09T13:47:34Z",
+  "total_mutations": 5,
+  "caught_count": 5,
+  "mutation_catch_rate_pct": 100.0,
+  "all_gates_fail_closed": true,
+  "results": [
+    {
+      "mutation_id": "MUT-01-HARDCODED-REPLY",
+      "defect_description": "Planted disallowed price string '\u20b9 1,499' in disha_core/pipeline/validator.py",
+      "gate_tested": "scripts/hardcode-check",
+      "exit_code": 1,
+      "caught": true,
+      "evidence": "[+] Scanned 203 production and config files.\n\n\u274c HARDCODE / SECRET CHECK FAILED (1 violation(s)):\n  - [Hardcoded commercial price string \u20b91,499 in core logic] found in disha_core/pipeline/validator.py"
+    },
+    {
+      "mutation_id": "MUT-02-SECRET-LEAK",
+      "defect_description": "Planted fake Groq key pattern in disha_core/admin.py",
+      "gate_tested": "scripts/hardcode-check",
+      "exit_code": 1,
+      "caught": true,
+      "evidence": "[+] Scanned 203 production and config files.\n\n\u274c HARDCODE / SECRET CHECK FAILED (1 violation(s)):\n  - [Groq API Key pattern] found in disha_core/admin.py: gsk_xxxxxxxxxxxxxxxx..."
+    },
+    {
+      "mutation_id": "MUT-03-DEAD-FILE",
+      "defect_description": "Planted dead temporary artifact 'disha_core/orphaned_debug.tmp'",
+      "gate_tested": "scripts/repo-check (Dead File Scanner)",
+      "exit_code": 1,
+      "caught": true,
+      "evidence": "Found dead files: ['disha_core/orphaned_debug.tmp']"
+    },
+    {
+      "mutation_id": "MUT-04-DUPLICATE-OVERLAP",
+      "defect_description": "Planted duplicate copy of admin.py as disha_core/duplicate_admin.py",
+      "gate_tested": "scripts/repo-check (Duplicate Scanner)",
+      "exit_code": 1,
+      "caught": true,
+      "evidence": "Duplicates detected: [['tests/test_behavior_policies.py', 'disha_core/tests/test_behavior_policies.py'], ['.venv-mlx-audio/lib/python3.12/site-packages/packaging/licenses/_spdx.py', '.venv-mlx-audio/lib/python3.12/site-packages/setuptools/_vendor/packaging/licenses/_spdx.py'], ['disha_core/admin.py', 'disha_core/duplicate_admin.py']]"
+    },
+    {
+      "mutation_id": "MUT-05-DELETED-TEST",
+      "defect_description": "Simulated drop of test count from 433 to 420 without approved logged deprecation",
+      "gate_tested": "Section 11 Test Count Invariant Gate",
+      "exit_code": 1,
+      "caught": true,
+      "evidence": "TEST LOSS REGRESSION: Test count dropped from baseline 433 to 420 (-13 tests)"
+    }
+  ]
+}

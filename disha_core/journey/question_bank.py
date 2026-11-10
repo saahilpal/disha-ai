@@ -3,6 +3,7 @@
 Provides trilingual natural conversational phrasings (English, Hindi, Hinglish),
 priorities, target field links, clarification prompts, and eligibility predicates.
 """
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -102,7 +103,6 @@ QUESTION_CATALOG: list[JourneyQuestion] = [
             "hinglish": "Aapka current weight kitne kg hai?",
         },
     ),
-
     # -------------------------------------------------------------
     # Stage 2: Health Background and Safety
     # -------------------------------------------------------------
@@ -163,7 +163,6 @@ QUESTION_CATALOG: list[JourneyQuestion] = [
             "hinglish": "Kya aapko joints pain, back problem ya koi physical limitation hai jo exercise mein dikkat kare?",
         },
     ),
-
     # -------------------------------------------------------------
     # Stage 3: Lifestyle and Daily Routine
     # -------------------------------------------------------------
@@ -245,7 +244,6 @@ QUESTION_CATALOG: list[JourneyQuestion] = [
             "hinglish": "Aap din mein kitni cup chai ya coffee lete hain?",
         },
     ),
-
     # -------------------------------------------------------------
     # Stage 4: Goals, Diet and Personal Preferences
     # -------------------------------------------------------------
@@ -301,7 +299,6 @@ QUESTION_CATALOG: list[JourneyQuestion] = [
             "hinglish": "Kya aap kisi particular regional khane ko prefer karte hain, jaise North Indian, South Indian ya Gujarati?",
         },
     ),
-
     # -------------------------------------------------------------
     # Stage 5: Validation, Missing Gaps & Personalisation Readiness
     # -------------------------------------------------------------
@@ -327,4 +324,3 @@ QUESTION_BY_FIELD: dict[str, JourneyQuestion] = {q.target_field: q for q in QUES
 
 def get_question_for_field(field_id: str) -> JourneyQuestion | None:
     return QUESTION_BY_FIELD.get(field_id)
-

@@ -3,6 +3,7 @@
 Defines each journey field, its associated stage, data type, requirement level,
 safety flags, destination table/column, and normalization/validation rules.
 """
+
 from __future__ import annotations
 
 import re
@@ -149,7 +150,6 @@ JOURNEY_FIELDS: dict[str, JourneyField] = {
         data_type="str",
         validator=_validate_str,
     ),
-
     # -------------------------------------------------------------
     # Stage 2: Health Background and Safety
     # -------------------------------------------------------------
@@ -224,7 +224,6 @@ JOURNEY_FIELDS: dict[str, JourneyField] = {
         dest_column="gym_clearance",
         data_type="bool",
     ),
-
     # -------------------------------------------------------------
     # Stage 3: Lifestyle and Daily Routine
     # -------------------------------------------------------------
@@ -312,7 +311,6 @@ JOURNEY_FIELDS: dict[str, JourneyField] = {
         data_type="dict",
         validator=normalize_tea_coffee_frequency,
     ),
-
     # -------------------------------------------------------------
     # Stage 4: Goals, Diet and Personal Preferences
     # -------------------------------------------------------------
@@ -388,7 +386,6 @@ JOURNEY_FIELDS: dict[str, JourneyField] = {
         data_type="str",
         validator=_validate_str,
     ),
-
     # -------------------------------------------------------------
     # Stage 5: Validation, Missing Gaps & Personalisation Readiness
     # -------------------------------------------------------------

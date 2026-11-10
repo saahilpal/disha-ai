@@ -3,6 +3,7 @@
 Reads runtime configuration from shell environment variables with secure defaults.
 Supports dynamic override during tests and isolated container execution.
 """
+
 from __future__ import annotations
 
 import os
@@ -54,6 +55,11 @@ class Settings:
     rate_limit_enabled: bool = True
     password_salt: str = "disha_salt_v1"
 
+    # Behavior Spec v1 feature flag (rollback to legacy by setting env BEHAVIOR_SPEC_V1=false)
+    behavior_spec_v1: bool = True
+    confirm_critical_values: bool = False  # D2: confirm allergies/medicines/doses; default OFF
+    language_switch_threshold: int = 2     # D5: consecutive msgs before silent language switch
+
     @classmethod
     def from_env(cls) -> Settings:
         """Dynamically load settings from current os.environ."""
@@ -74,13 +80,20 @@ class Settings:
             groq_model=os.getenv("GROQ_MODEL", "openai/gpt-oss-120b"),
             groq_health_data_authorized=os.getenv("GROQ_HEALTH_DATA_AUTHORIZED", "false").casefold() == "true",
             groq_usage_charges_authorized=os.getenv("GROQ_USAGE_CHARGES_AUTHORIZED", "false").casefold() == "true",
-            groq_health_data_processing_approved=os.getenv("GROQ_HEALTH_DATA_PROCESSING_APPROVED", "false").casefold() == "true",
+            groq_health_data_processing_approved=os.getenv("GROQ_HEALTH_DATA_PROCESSING_APPROVED", "false").casefold()
+            == "true",
             gemini_api_key=os.getenv("GEMINI_API_KEY", ""),
             gemini_model=os.getenv("GEMINI_MODEL", "gemini-3.6-flash"),
             gemini_health_data_authorized=os.getenv("GEMINI_HEALTH_DATA_AUTHORIZED", "false").casefold() == "true",
             gemini_paid_or_contracted=os.getenv("GEMINI_PAID_OR_CONTRACTED", "false").casefold() == "true",
-            edge_tts_health_data_processing_approved=os.getenv("EDGE_TTS_HEALTH_DATA_PROCESSING_APPROVED", "false").casefold() == "true",
-            qwen3_tts_health_data_processing_approved=os.getenv("QWEN3_TTS_HEALTH_DATA_PROCESSING_APPROVED", "false").casefold() == "true",
+            edge_tts_health_data_processing_approved=os.getenv(
+                "EDGE_TTS_HEALTH_DATA_PROCESSING_APPROVED", "false"
+            ).casefold()
+            == "true",
+            qwen3_tts_health_data_processing_approved=os.getenv(
+                "QWEN3_TTS_HEALTH_DATA_PROCESSING_APPROVED", "false"
+            ).casefold()
+            == "true",
             qwen3_tts_url=os.getenv("QWEN3_TTS_URL", "http://localhost:8880/v1/audio/speech"),
             qwen3_tts_model=os.getenv("QWEN3_TTS_MODEL", "qwen3-tts"),
             qwen3_tts_voice=os.getenv("QWEN3_TTS_VOICE", "disha-warm-hinglish"),
@@ -91,6 +104,9 @@ class Settings:
             max_request_body_bytes=int(os.getenv("MAX_REQUEST_BODY_BYTES", str(2 * 1024 * 1024))),
             rate_limit_enabled=os.getenv("RATE_LIMIT_ENABLED", "true").casefold() != "false",
             password_salt=os.getenv("PASSWORD_SALT", "disha_salt_v1"),
+            behavior_spec_v1=os.getenv("BEHAVIOR_SPEC_V1", "true").casefold() == "true",
+            confirm_critical_values=os.getenv("CONFIRM_CRITICAL_VALUES", "false").casefold() == "true",
+            language_switch_threshold=int(os.getenv("LANGUAGE_SWITCH_THRESHOLD", "2")),
         )
 
 

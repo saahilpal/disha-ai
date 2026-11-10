@@ -1,4 +1,5 @@
 """Patient profile and diet/PEP aggregation service for Disha AI Core."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -50,11 +51,7 @@ async def fetch_patient_profile(pool: Any, patient_id: str, day: str) -> dict[st
             patient_id,
         )
 
-    name = (
-        profile_row["name"]
-        if profile_row
-        else patient_id
-    )
+    name = profile_row["name"] if profile_row else patient_id
 
     return {
         "patient_id": patient_id,
@@ -72,7 +69,9 @@ async def fetch_patient_profile(pool: Any, patient_id: str, day: str) -> dict[st
             "diagnosed_conditions": list(_pep_val(pep_row, "diagnosed_conditions", [])),
         },
         "today_diet": diet_map,
-        "journey": dict(journey_row) if journey_row else {
+        "journey": dict(journey_row)
+        if journey_row
+        else {
             "current_stage": 1,
             "overall_status": "in_progress",
             "last_completed_stage": 0,
@@ -92,8 +91,17 @@ async def update_patient_profile(pool: Any, patient_id: str, updates: dict[str, 
             values = []
             idx = 1
             for key in (
-                "name", "age", "gender", "height_cm", "weight_kg", "dietary_preference",
-                "health_goals", "language", "health_focuses", "health_focus_other", "health_conditions"
+                "name",
+                "age",
+                "gender",
+                "height_cm",
+                "weight_kg",
+                "dietary_preference",
+                "health_goals",
+                "language",
+                "health_focuses",
+                "health_focus_other",
+                "health_conditions",
             ):
                 if key in updates and updates[key] is not None:
                     fields.append(f"{key} = ${idx}")
@@ -214,6 +222,7 @@ async def update_patient_profile(pool: Any, patient_id: str, updates: dict[str, 
 
         try:
             from disha_core.journey import sync_known_fields_from_db
+
             await sync_known_fields_from_db(patient_id, conn)
         except Exception:
             pass

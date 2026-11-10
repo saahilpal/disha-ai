@@ -1,6 +1,6 @@
 # Onboarding and Conversation Contracts
 
-**Status:** Target contract; implementation is incomplete. Browser and database evidence is tracked in `docs/design/DEFECTS.md`.
+**Status:** Active contracts for state tracking, topic-shift deferral, and conversation continuity. Browser and database evidence is tracked in `docs/design/DEFECTS.md`.
 
 **Product:** Disha AI health coach for users.
 

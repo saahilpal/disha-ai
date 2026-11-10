@@ -1,4 +1,5 @@
 """User habit context and fail-closed exercise safety helpers."""
+
 from __future__ import annotations
 
 from disha_core.pep.exercise_safety import (

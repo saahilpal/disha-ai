@@ -73,12 +73,13 @@ async def validated_sentences(
 
     # Dynamic length targeting policy
     policy = context.get("length_policy")
+    max_sentences: int = 4
     if policy is not None:
-        max_sentences = getattr(policy, "max_sentences", None) or (
-            policy.get("max_sentences") if isinstance(policy, dict) else 4
+        val = getattr(policy, "max_sentences", None) or (
+            policy.get("max_sentences") if isinstance(policy, dict) else None
         )
-    else:
-        max_sentences = 4
+        if isinstance(val, int) and val > 0:
+            max_sentences = val
 
     buffer = SentenceBuffer()
     first_sentence = True
@@ -96,7 +97,8 @@ async def validated_sentences(
 
             result = (
                 validator.validate_turn(sentence, context)
-                if first_sentence else validator.validate_sentence(sentence, context)
+                if first_sentence
+                else validator.validate_sentence(sentence, context)
             )
             sanitized = validator.sanitize_for_tts(result.text)
             if not sanitized or sanitized == last_emitted:
@@ -108,7 +110,11 @@ async def validated_sentences(
             yield sanitized
 
             # If we've reached max_sentences, check if an essential clinical safety statement is pending
-            if emitted >= max_sentences or "remedy_assertion" in result.reasons or "remedy_not_configured" in result.reasons:
+            if (
+                emitted >= max_sentences
+                or "remedy_assertion" in result.reasons
+                or "remedy_not_configured" in result.reasons
+            ):
                 if "remedy_assertion" in result.reasons or "remedy_not_configured" in result.reasons:
                     await _close(chunks)
                     return
@@ -148,7 +154,8 @@ async def validated_sentences(
         else:
             result = (
                 validator.validate_turn(remainder, context)
-                if first_sentence else validator.validate_sentence(remainder, context)
+                if first_sentence
+                else validator.validate_sentence(remainder, context)
             )
             sanitized = validator.sanitize_for_tts(result.text)
             if sanitized and sanitized != last_emitted:

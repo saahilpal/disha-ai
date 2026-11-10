@@ -67,6 +67,10 @@
     wakeLock: null,
     selectedAudioInputId: (typeof localStorage !== 'undefined' ? localStorage.getItem('disha_selected_audio_input') : null) || 'default',
     selectedAudioOutputId: (typeof localStorage !== 'undefined' ? localStorage.getItem('disha_selected_audio_output') : null) || 'default',
+    activeStreamAbortController: null,
+    offlineQueue: [],
+    lastUserQuery: '',
+    isScrolledUp: false,
   };
 
   // RFC 5322 Standard Email Regex with strict dot-atom local part (no leading, trailing, or consecutive dots)
@@ -278,9 +282,13 @@
 
     // Transcript & Text Input
     chatStream: typeof document !== 'undefined' ? document.getElementById('chat-stream') : null,
+    chatMessagesArea: typeof document !== 'undefined' ? document.getElementById('chat-messages-area') : null,
     userTextInput: typeof document !== 'undefined' ? document.getElementById('user-text-input') : null,
     textTurnForm: typeof document !== 'undefined' ? document.getElementById('text-turn-form') : null,
     sendTurnBtn: typeof document !== 'undefined' ? document.getElementById('send-turn-btn') : null,
+    stopStreamBtn: typeof document !== 'undefined' ? document.getElementById('stop-stream-btn') : null,
+    jumpToLatestBtn: typeof document !== 'undefined' ? document.getElementById('jump-to-latest-btn') : null,
+    chatOfflineBanner: typeof document !== 'undefined' ? document.getElementById('chat-offline-banner') : null,
     wsStatusDot: typeof document !== 'undefined' ? document.getElementById('ws-status-dot') : null,
     wsStatusText: typeof document !== 'undefined' ? document.getElementById('ws-status-text') : null,
 
@@ -332,6 +340,20 @@
     saveBackendUrlBtn: typeof document !== 'undefined' ? document.getElementById('save-backend-url-btn') : null,
     testBackendBtn: typeof document !== 'undefined' ? document.getElementById('test-backend-btn') : null,
     backendConnStatus: typeof document !== 'undefined' ? document.getElementById('backend-conn-status') : null,
+
+    // Live Captions & Mic Audio Meter
+    voiceSubtitlesCard: typeof document !== 'undefined' ? document.getElementById('voice-subtitles-card') : null,
+    voiceSubtitlesText: typeof document !== 'undefined' ? document.getElementById('voice-subtitles-text') : null,
+    voiceCaptionsSpeaker: typeof document !== 'undefined' ? document.getElementById('voice-captions-speaker') : null,
+    micAudioMeter: typeof document !== 'undefined' ? document.getElementById('mic-audio-meter') : null,
+    micMeterFill: typeof document !== 'undefined' ? document.getElementById('mic-meter-fill') : null,
+    micMeterValue: typeof document !== 'undefined' ? document.getElementById('mic-meter-value') : null,
+
+    // In-Chat Onboarding 5-Stage Banner
+    chatJourneyBanner: typeof document !== 'undefined' ? document.getElementById('chat-journey-banner') : null,
+    chatStagePill: typeof document !== 'undefined' ? document.getElementById('chat-stage-pill') : null,
+    chatStageName: typeof document !== 'undefined' ? document.getElementById('chat-stage-name') : null,
+    chatProgressDots: typeof document !== 'undefined' ? document.getElementById('chat-progress-dots') : null,
 
     // Header & Drawer Action Controls
     headerCallBtn: typeof document !== 'undefined' ? document.getElementById('header-call-btn') : null,
@@ -396,13 +418,40 @@
     });
   }
 
+  async function updateI18nTexts(lang) {
+    if (typeof document === 'undefined' || typeof fetch === 'undefined') return;
+    const l = ['hi', 'hinglish', 'en'].includes(lang) ? lang : 'hinglish';
+    try {
+      const res = await fetch(`/locales/${l}.json`);
+      if (res.ok) {
+        const data = await res.json();
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+          const key = el.getAttribute('data-i18n');
+          if (!key) return;
+          const parts = key.split('.');
+          let val = data;
+          for (const p of parts) {
+            val = val ? val[p] : undefined;
+          }
+          if (typeof val === 'string') {
+            el.textContent = val;
+          }
+        });
+      }
+    } catch (e) {
+      // Graceful fallback
+    }
+  }
+
   // --- LANGUAGE INITIALIZATION & SYNCHRONIZATION ---
   const savedLang = state.language;
   state.language = savedLang;
+  updateI18nTexts(savedLang);
   if (dom.onboardLanguage) {
     dom.onboardLanguage.value = savedLang;
     dom.onboardLanguage.addEventListener('change', () => {
       state.language = dom.onboardLanguage.value;
+      updateI18nTexts(state.language);
       try {
         localStorage.setItem('disha_language', state.language);
       } catch (e) {}
@@ -435,6 +484,7 @@
         }
 
         state.language = language;
+        updateI18nTexts(language);
         try {
           localStorage.setItem('disha_language', language);
         } catch (error) {
@@ -566,7 +616,31 @@
         }
       });
     });
+
+    const switchToRegisterBtn = typeof document !== 'undefined' ? document.getElementById('switch-to-register') : null;
+    if (switchToRegisterBtn) {
+      switchToRegisterBtn.addEventListener('click', () => switchTab('onboard'));
+    }
+    const switchToLoginBtn = typeof document !== 'undefined' ? document.getElementById('switch-to-login') : null;
+    if (switchToLoginBtn) {
+      switchToLoginBtn.addEventListener('click', () => switchTab('login'));
+    }
   }
+
+  function setupPasswordToggle(toggleBtnId, inputId) {
+    const btn = typeof document !== 'undefined' ? document.getElementById(toggleBtnId) : null;
+    const input = typeof document !== 'undefined' ? document.getElementById(inputId) : null;
+    if (btn && input) {
+      btn.addEventListener('click', () => {
+        const isPassword = input.type === 'password';
+        input.type = isPassword ? 'text' : 'password';
+        btn.textContent = isPassword ? 'Hide' : 'Show';
+        btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+      });
+    }
+  }
+  setupPasswordToggle('toggle-login-password', 'password-input');
+  setupPasswordToggle('toggle-onboard-password', 'onboard-password');
 
   function formatProfileBmi(profile) {
     if (!profile) return '--';
@@ -1030,7 +1104,6 @@
       const healthFocuses = [focusVal];
       const conditions = [];
       const activity = 'moderate';
-      const gymClearance = true;
       const restrictions = [];
       const language = dom.onboardLanguage ? dom.onboardLanguage.value : state.language;
       const healthFocusOther = '';
@@ -1054,7 +1127,6 @@
             weight_kg: weight,
             conditions,
             hypertension_stage: htnStage,
-            gym_clearance: gymClearance,
             activity_level: activity,
             movement_restrictions: restrictions,
             dietary_preference: dietPref,
@@ -1090,6 +1162,7 @@
         }
 
         await transitionToDashboard();
+        triggerPersonalizedFirstConsultation(name, goals, htnStage);
       } catch (err) {
         showAlert(err.message);
       } finally {
@@ -1097,6 +1170,42 @@
         if (dom.onboardSubmitBtn) dom.onboardSubmitBtn.disabled = false;
       }
     });
+  }
+
+  function triggerPersonalizedFirstConsultation(name, goals, htnStage) {
+    const chatStream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
+    if (!chatStream) return;
+
+    const firstName = name ? name.split(' ')[0] : 'friend';
+    const goalsSummary = goals && goals.length ? goals.slice(0, 2).join(' and ') : 'daily wellness';
+
+    const welcomeMsg = `Namaste ${firstName}! I am Disha, your personal AI health coach. I provide grounded lifestyle, habit, and nutrition guidance. I am not a doctor and cannot diagnose medical emergencies.\n\nHow are you feeling today? Would you like to review today’s nutrition plan or discuss your wellness goals?`;
+
+    // Add proactive companion welcome bubble
+    const msgEl = document.createElement('div');
+    msgEl.className = 'chat-message assistant';
+    msgEl.innerHTML = `
+      <div class="msg-avatar" aria-hidden="true">D</div>
+      <div class="msg-content-wrapper">
+        <div class="msg-bubble">
+          <p class="msg-text">${escapeHtml(welcomeMsg).replace(/\n\n/g, '<br><br>')}</p>
+        </div>
+      </div>
+    `;
+
+    chatStream.appendChild(msgEl);
+    const wrapper = chatStream.closest('.chat-messages-area') || chatStream;
+    wrapper.scrollTop = wrapper.scrollHeight;
+    updateInChatJourneyBanner(1, false);
+  }
+
+  function updateInChatJourneyBanner(stageNum, isComplete) {
+    // Journey progression is purely tracked in the backend;
+    // banner is kept hidden for a clean conversational experience.
+    const banner = dom.chatJourneyBanner || (typeof document !== 'undefined' ? document.getElementById('chat-journey-banner') : null);
+    if (banner) {
+      banner.style.display = 'none';
+    }
   }
 
   function saveSession(token, patientId, patientName) {
@@ -1108,6 +1217,7 @@
         localStorage.setItem('disha_token', token);
         localStorage.setItem('disha_patient_id', patientId);
         localStorage.setItem('disha_patient_name', patientName);
+        localStorage.setItem('disha_medical_consent_accepted', 'true');
       } catch (e) {}
     }
     if (typeof sessionStorage !== 'undefined') {
@@ -1134,6 +1244,133 @@
     navigate('chat');
     initSpectrumVisualizer();
     await fetchPatientProfile();
+    const hasHistory = await fetchChatHistory();
+
+    if (!hasHistory) {
+      const chosenLang = (typeof localStorage !== 'undefined' && localStorage.getItem('disha_language_chosen'));
+      if (!chosenLang) {
+        showFirstRunLanguageModal();
+      } else if (state.patientName) {
+        const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
+        if (stream) {
+          const streamText = stream.innerText || stream.textContent || '';
+          if (!streamText.includes(`Namaste ${state.patientName}`)) {
+            appendChatMessage('assistant', `Namaste ${state.patientName}! Main Disha hoon, aapki personal AI health coach. Aaj aap kaisa mehsoos kar rahe hain?`);
+          }
+        }
+      }
+    }
+  }
+
+  function showFirstRunLanguageModal() {
+    if (typeof document === 'undefined') return;
+    const existing = document.getElementById('first-run-lang-modal');
+    if (existing) return;
+
+    const modal = document.createElement('div');
+    modal.id = 'first-run-lang-modal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(4px);';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:16px;padding:28px;max-width:420px;width:90%;box-shadow:0 20px 40px rgba(0,0,0,0.2);text-align:center;">
+        <h3 style="margin:0 0 8px;font-size:20px;color:#1a202c;">Choose your language</h3>
+        <p style="margin:0 0 20px;font-size:14px;color:#718096;">अपनी भाषा चुनें / Select your coaching language</p>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <button type="button" class="lang-opt-btn" data-lang="hinglish" style="padding:14px;border:2px solid #e2e8f0;border-radius:12px;background:#f7fafc;font-size:16px;font-weight:600;cursor:pointer;color:#2d3748;transition:all 0.2s;">
+            Hinglish <span style="font-size:12px;color:#718096;display:block;font-weight:normal;">(Default — Mix of Hindi & English)</span>
+          </button>
+          <button type="button" class="lang-opt-btn" data-lang="hindi" style="padding:14px;border:2px solid #e2e8f0;border-radius:12px;background:#f7fafc;font-size:16px;font-weight:600;cursor:pointer;color:#2d3748;transition:all 0.2s;">
+            हिन्दी <span style="font-size:12px;color:#718096;display:block;font-weight:normal;">(Devanagari Hindi)</span>
+          </button>
+          <button type="button" class="lang-opt-btn" data-lang="english" style="padding:14px;border:2px solid #e2e8f0;border-radius:12px;background:#f7fafc;font-size:16px;font-weight:600;cursor:pointer;color:#2d3748;transition:all 0.2s;">
+            English <span style="font-size:12px;color:#718096;display:block;font-weight:normal;">(Clear, casual English)</span>
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    const buttons = modal.querySelectorAll('.lang-opt-btn');
+    buttons.forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const selected = btn.getAttribute('data-lang') || 'hinglish';
+        state.language = selected;
+        try {
+          localStorage.setItem('disha_language', selected);
+          localStorage.setItem('disha_language_chosen', 'true');
+        } catch (e) {}
+        if (dom.onboardLanguage) dom.onboardLanguage.value = selected;
+        if (dom.languageSelect) dom.languageSelect.value = selected;
+
+        if (state.token) {
+          const config = getBackendConfig();
+          try {
+            await fetch(`${config.httpBase}/patient/profile`, {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${state.token}`
+              },
+              body: JSON.stringify({ language: selected })
+            });
+          } catch (err) {
+            console.warn('Failed to save language to backend:', err);
+          }
+        }
+        modal.remove();
+
+        const greetings = {
+          hinglish: `Namaste ${state.patientName || ''}! Main Disha hoon, aapki personal AI health coach. Aaj aap kaisa feel kar rahe hain?`,
+          hindi: `नमस्ते ${state.patientName || ''}! मैं दिशा हूँ, आपकी पर्सनल AI हेल्थ कोच। आज आप कैसा महसूस कर रहे हैं?`,
+          english: `Hello ${state.patientName || ''}! I'm Disha, your personal AI health coach. How are you feeling today?`
+        };
+        const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
+        if (stream && !stream.innerText.trim()) {
+          appendChatMessage('assistant', greetings[selected] || greetings.hinglish);
+        }
+      });
+    });
+  }
+
+  async function fetchChatHistory() {
+    if (!state.token) return false;
+    try {
+      const config = getBackendConfig();
+      // Hydrate from active conversation endpoint first (Contract 2 / Spec M1)
+      let res = await fetch(`${config.httpBase}/chat/conversation?limit=50`, {
+        headers: {
+          'Authorization': `Bearer ${state.token}`
+        }
+      });
+      if (!res.ok) {
+        res = await fetch(`${config.httpBase}/chat/history?limit=30`, {
+          headers: {
+            'Authorization': `Bearer ${state.token}`
+          }
+        });
+      }
+      if (res.ok) {
+        const data = await res.json();
+        if (data.conversation_id) {
+          state.conversationId = data.conversation_id;
+        }
+        const history = data.messages || data.history || [];
+        const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
+        if (stream && history.length > 0) {
+          stream.innerHTML = '';
+          for (const turn of history) {
+            const role = turn.role === 'assistant' ? 'assistant' : 'user';
+            const content = turn.content || '';
+            if (content) {
+              appendChatMessage(role, content);
+            }
+          }
+          return true;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load chat history:', e);
+    }
+    return false;
   }
 
   async function fetchPatientProfile() {
@@ -1192,19 +1429,20 @@
       if (dom.dispBmi) dom.dispBmi.textContent = '--';
     }
 
+    const dispHtn = dom.dispHtnBadge || (typeof document !== 'undefined' ? document.getElementById('disp-htn-badge') : null);
     if (data.pep) {
       const pep = data.pep;
-      if (dom.dispHtnBadge) {
+      if (dispHtn) {
         const stage = pep.hypertension_stage ? String(pep.hypertension_stage).toLowerCase() : 'unknown';
         if (stage.includes('stage 2') || stage.includes('2')) {
-          dom.dispHtnBadge.textContent = 'HTN Stage 2';
-          dom.dispHtnBadge.className = 'badge-mini danger';
+          dispHtn.textContent = 'HTN Stage 2';
+          dispHtn.className = 'badge-mini danger';
         } else if (stage.includes('stage 1') || stage.includes('1')) {
-          dom.dispHtnBadge.textContent = 'HTN Stage 1';
-          dom.dispHtnBadge.className = 'badge-mini warning';
+          dispHtn.textContent = 'HTN Stage 1';
+          dispHtn.className = 'badge-mini warning';
         } else {
-          dom.dispHtnBadge.textContent = stage === 'normal' ? 'No hypertension recorded' : 'Not assessed';
-          dom.dispHtnBadge.className = 'badge-mini';
+          dispHtn.textContent = stage === 'normal' ? 'No hypertension recorded' : 'Not assessed';
+          dispHtn.className = 'badge-mini';
         }
       }
       if (dom.dispAllowedModalities) {
@@ -1214,7 +1452,7 @@
         dom.dispRestrictedModalities.textContent = (pep.restricted_modalities || []).join(', ') || 'Not recorded';
       }
     } else {
-      if (dom.dispHtnBadge) dom.dispHtnBadge.textContent = 'Not assessed';
+      if (dispHtn) dispHtn.textContent = 'Not assessed';
       if (dom.dispAllowedModalities) dom.dispAllowedModalities.textContent = 'Not recorded';
       if (dom.dispRestrictedModalities) dom.dispRestrictedModalities.textContent = 'Not recorded';
     }
@@ -1277,6 +1515,9 @@
       }
     }
 
+    if (data.journey) {
+      updateInChatJourneyBanner(data.journey.current_stage || 1, data.journey.overall_status === 'completed');
+    }
     if (typeof populateMealsView === 'function') populateMealsView();
     if (typeof populateProfileView === 'function') populateProfileView();
   }
@@ -1444,14 +1685,23 @@
     }
 
     if (data.type === 'transcript') {
+      if (data.is_text_echo || (state.transcriptHistory && state.transcriptHistory.length && state.transcriptHistory[state.transcriptHistory.length - 1].role === 'user' && state.transcriptHistory[state.transcriptHistory.length - 1].text === data.text)) {
+        setTelephonyStatus('processing');
+        return;
+      }
       appendChatMessage('user', data.text);
+      updateLiveCaptions('user', data.text);
       setTelephonyStatus('processing');
     } else if (data.type === 'sentence') {
       appendChatMessage('assistant', data.text, 'Validated & Grounded');
+      updateLiveCaptions('assistant', data.text);
       setTelephonyStatus('speaking');
     } else if (data.type === 'done') {
       setTextTurnPending(false);
       applyMessageProvenance(state.lastAssistantMessageElement, state.lastAssistantHistoryEntry, data);
+      if (data.journey_stage || data.current_stage) {
+        updateInChatJourneyBanner(data.journey_stage || data.current_stage, data.overall_status === 'completed');
+      }
       if (data.merkle_hash && dom.latestMerkleHash) {
         const rawHash = String(data.merkle_hash).trim();
         const truncated = rawHash.length > 24
@@ -1505,12 +1755,16 @@
       trace = document.createElement('small');
       trace.className = 'source-trace';
       trace.setAttribute('aria-label', 'Response source trace');
+      trace.setAttribute('hidden', 'true');
+      trace.style.display = 'none';
       bubble.appendChild(trace);
     }
     const parts = [];
     if (evidenceIds.length) parts.push(`Sources: ${evidenceIds.join(', ')}`);
     if (retrievalStatus) parts.push(`Retrieval: ${retrievalStatus}`);
     trace.textContent = parts.join(' · ');
+    trace.style.display = 'none';
+    trace.setAttribute('hidden', 'true');
   }
 
   function applyMessageProvenance(messageElement, historyEntry, payload) {
@@ -1520,8 +1774,270 @@
     return provenance;
   }
 
+  function renderLightMarkdown(rawText) {
+    if (!rawText) return '';
+    let safe = escapeHtml(rawText);
+
+    // Fenced code blocks ```code```
+    safe = safe.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+
+    // Inline code `code`
+    safe = safe.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+    // Bold **text**
+    safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+
+    // Italic *text* or _text_
+    safe = safe.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    safe = safe.replace(/(^|\s)_([^_]+)_(?=\s|$)/g, '$1<em>$2</em>');
+
+    // Blockquotes > quote
+    safe = safe.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>');
+
+    // Paragraphs & Lists
+    const paragraphs = safe.split(/\n{2,}/);
+    const formatted = paragraphs.map(para => {
+      const trimmed = para.trim();
+      if (!trimmed) return '';
+      const lines = trimmed.split('\n');
+      if (lines.length > 0 && lines.every(l => /^[-*]\s+/.test(l))) {
+        const items = lines.map(l => `<li>${l.replace(/^[-*]\s+/, '')}</li>`).join('');
+        return `<ul>${items}</ul>`;
+      }
+      if (lines.length > 0 && lines.every(l => /^\d+\.\s+/.test(l))) {
+        const items = lines.map(l => `<li>${l.replace(/^\d+\.\s+/, '')}</li>`).join('');
+        return `<ol>${items}</ol>`;
+      }
+      return `<p>${trimmed.replace(/\n/g, '<br>')}</p>`;
+    }).filter(Boolean).join('');
+
+    return formatted || `<p>${safe}</p>`;
+  }
+
+  function scrollChatToBottom(smooth = false) {
+    const area = dom.chatMessagesArea || (dom.chatStream ? (typeof dom.chatStream.closest === 'function' ? dom.chatStream.closest('.chat-messages-area') : dom.chatStream) : null);
+    if (!area) return;
+    if (smooth && typeof area.scrollTo === 'function') {
+      area.scrollTo({ top: area.scrollHeight, behavior: 'smooth' });
+    } else {
+      area.scrollTop = area.scrollHeight;
+    }
+    state.isScrolledUp = false;
+    const jumpBtn = dom.jumpToLatestBtn || (typeof document !== 'undefined' ? document.getElementById('jump-to-latest-btn') : null);
+    if (jumpBtn && jumpBtn.style) jumpBtn.style.display = 'none';
+  }
+
+  function handleChatScroll() {
+    const area = dom.chatMessagesArea || (dom.chatStream ? (typeof dom.chatStream.closest === 'function' ? dom.chatStream.closest('.chat-messages-area') : dom.chatStream) : null);
+    if (!area) return;
+    const dist = (area.scrollHeight || 0) - (area.scrollTop || 0) - (area.clientHeight || 0);
+    const isUp = dist > 64;
+    state.isScrolledUp = isUp;
+    const jumpBtn = dom.jumpToLatestBtn || (typeof document !== 'undefined' ? document.getElementById('jump-to-latest-btn') : null);
+    if (jumpBtn && jumpBtn.style) {
+      jumpBtn.style.display = isUp ? 'inline-flex' : 'none';
+    }
+  }
+
+  let currentTypingIndicatorEl = null;
+
+  function showTypingIndicator() {
+    hideTypingIndicator();
+    const chatStream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
+    if (!chatStream) return;
+    const el = document.createElement('div');
+    el.className = 'chat-message assistant typing';
+    if (typeof el.setAttribute === 'function') el.setAttribute('aria-label', 'Disha is thinking');
+    el.innerHTML = `
+      <div class="msg-avatar" aria-hidden="true">D</div>
+      <div class="msg-content-wrapper">
+        <div class="msg-bubble">
+          <div class="typing-indicator" aria-hidden="true">
+            <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+            <span class="typing-indicator-text">Disha is thinking…</span>
+          </div>
+        </div>
+      </div>
+    `;
+    chatStream.appendChild(el);
+    currentTypingIndicatorEl = el;
+    if (!state.isScrolledUp) scrollChatToBottom();
+  }
+
+  function hideTypingIndicator() {
+    if (currentTypingIndicatorEl && currentTypingIndicatorEl.parentNode) {
+      currentTypingIndicatorEl.parentNode.removeChild(currentTypingIndicatorEl);
+    }
+    currentTypingIndicatorEl = null;
+  }
+
+  function appendAssistantActions(messageElement, text) {
+    if (!messageElement || typeof document === 'undefined') return;
+    const wrapper = (typeof messageElement.querySelector === 'function' ? messageElement.querySelector('.msg-content-wrapper') : null) || messageElement;
+    if (typeof wrapper.querySelector === 'function' && wrapper.querySelector('.msg-actions')) return;
+
+    const actions = document.createElement('div');
+    actions.className = 'msg-actions';
+
+    const copyBtn = document.createElement('button');
+    copyBtn.type = 'button';
+    copyBtn.className = 'msg-action-btn copy-btn';
+    copyBtn.title = 'Copy response';
+    if (typeof copyBtn.setAttribute === 'function') copyBtn.setAttribute('aria-label', 'Copy response text');
+    copyBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+      </svg>
+      <span>Copy</span>
+    `;
+
+    if (typeof copyBtn.addEventListener === 'function') {
+      copyBtn.addEventListener('click', async () => {
+        try {
+          if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text);
+          } else {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.opacity = '0';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+          }
+          if (copyBtn.classList && typeof copyBtn.classList.add === 'function') copyBtn.classList.add('copied');
+          const span = typeof copyBtn.querySelector === 'function' ? copyBtn.querySelector('span') : null;
+          if (span) span.textContent = 'Copied';
+          setTimeout(() => {
+            if (copyBtn.classList && typeof copyBtn.classList.remove === 'function') copyBtn.classList.remove('copied');
+            if (span) span.textContent = 'Copy';
+          }, 2000);
+        } catch (err) {}
+      });
+    }
+
+    const retryBtn = document.createElement('button');
+    retryBtn.type = 'button';
+    retryBtn.className = 'msg-action-btn retry-btn';
+    retryBtn.title = 'Retry last prompt';
+    if (typeof retryBtn.setAttribute === 'function') retryBtn.setAttribute('aria-label', 'Retry last prompt');
+    retryBtn.innerHTML = `
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <polyline points="1 4 1 10 7 10"></polyline>
+        <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+      </svg>
+      <span>Retry</span>
+    `;
+
+    if (typeof retryBtn.addEventListener === 'function') {
+      retryBtn.addEventListener('click', () => {
+        if (state.lastUserQuery) {
+          dispatchTurn(state.lastUserQuery);
+        }
+      });
+    }
+
+    if (typeof actions.appendChild === 'function') {
+      actions.appendChild(copyBtn);
+      actions.appendChild(retryBtn);
+    }
+    if (typeof wrapper.appendChild === 'function') {
+      wrapper.appendChild(actions);
+    }
+  }
+
+  function appendInlineError(errorMessage, retryQuery) {
+    hideTypingIndicator();
+    const chatStream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
+    if (!chatStream) return;
+
+    const errorEl = document.createElement('div');
+    errorEl.className = 'chat-message assistant error-turn';
+    errorEl.innerHTML = `
+      <div class="msg-avatar" aria-hidden="true">D</div>
+      <div class="msg-content-wrapper">
+        <div class="msg-bubble">
+          <div class="chat-error-inline" role="alert">
+            <div style="display:flex;align-items:center;gap:6px;">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>
+              <span>${escapeHtml(errorMessage || 'Service unavailable. Please verify connection and retry.')}</span>
+            </div>
+            ${retryQuery ? '<button type="button" class="inline-retry-btn" aria-label="Retry message">Retry</button>' : ''}
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (retryQuery) {
+      const btn = typeof errorEl.querySelector === 'function' ? errorEl.querySelector('.inline-retry-btn') : null;
+      if (btn && typeof btn.addEventListener === 'function') {
+        btn.addEventListener('click', () => {
+          if (typeof errorEl.remove === 'function') errorEl.remove();
+          dispatchTurn(retryQuery);
+        });
+      }
+    }
+
+    chatStream.appendChild(errorEl);
+    if (!state.isScrolledUp) scrollChatToBottom();
+  }
+
+  function updateOnlineStatusUI() {
+    const isOnline = typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean'
+      ? navigator.onLine
+      : true;
+    const banner = dom.chatOfflineBanner || (typeof document !== 'undefined' ? document.getElementById('chat-offline-banner') : null);
+    if (banner && banner.style) {
+      banner.style.display = isOnline ? 'none' : 'inline-flex';
+    }
+    return isOnline;
+  }
+
+  async function flushOfflineQueue() {
+    if (!state.offlineQueue || !state.offlineQueue.length) return;
+    if (typeof navigator !== 'undefined' && typeof navigator.onLine === 'boolean' && !navigator.onLine) return;
+    const queue = [...state.offlineQueue];
+    state.offlineQueue = [];
+    for (const text of queue) {
+      await dispatchTurn(text);
+    }
+  }
+
+  function stopActiveStream() {
+    if (state.activeStreamAbortController) {
+      try {
+        state.activeStreamAbortController.abort();
+      } catch (e) {}
+      state.activeStreamAbortController = null;
+    }
+    hideTypingIndicator();
+    if (state.lastAssistantMessageElement) {
+      const textP = typeof state.lastAssistantMessageElement.querySelector === 'function'
+        ? state.lastAssistantMessageElement.querySelector('.msg-text')
+        : null;
+      if (textP && textP.classList && typeof textP.classList.remove === 'function') {
+        textP.classList.remove('streaming-cursor');
+      }
+      appendAssistantActions(state.lastAssistantMessageElement, textP ? textP.textContent : '');
+    }
+    setTextTurnPending(false);
+    setTelephonyStatus('idle');
+  }
+
   function appendChatMessage(role, text, meta = '') {
     if (!state.transcriptHistory) state.transcriptHistory = [];
+    if (role === 'user' && state.transcriptHistory.length > 0) {
+      const last = state.transcriptHistory[state.transcriptHistory.length - 1];
+      if (last.role === 'user' && last.text === text && (Date.now() - (last.timestamp || 0)) < 2500) {
+        return null; // Suppress duplicate user message bubble within 2.5s
+      }
+    }
     const historyEntry = { role, text, meta, timestamp: Date.now() };
     state.transcriptHistory.push(historyEntry);
     state.turnCount = (state.turnCount || 0) + 1;
@@ -1537,16 +2053,27 @@
     const safeRole = role === 'assistant' ? 'assistant' : 'user';
     const msgEl = document.createElement('div');
     msgEl.className = `chat-message ${safeRole}`;
+
+    const contentHtml = safeRole === 'assistant' ? renderLightMarkdown(text) : escapeHtml(text);
+
     msgEl.innerHTML = `
       <div class="msg-avatar" aria-hidden="true">${safeRole === 'assistant' ? 'D' : 'P'}</div>
-      <div class="msg-bubble">
-        <p class="msg-text">${escapeHtml(text)}</p>
+      <div class="msg-content-wrapper">
+        <div class="msg-bubble">
+          <p class="msg-text">${contentHtml}</p>
+        </div>
       </div>
     `;
+
+    if (safeRole === 'assistant') {
+      appendAssistantActions(msgEl, text);
+      state.lastAssistantMessageElement = msgEl;
+    }
+
     chatStream.appendChild(msgEl);
-    if (role === 'assistant') state.lastAssistantMessageElement = msgEl;
-    const scrollContainer = chatStream.closest('.chat-messages-area') || chatStream;
-    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+    if (!state.isScrolledUp) {
+      scrollChatToBottom();
+    }
     return msgEl;
   }
 
@@ -1561,11 +2088,23 @@
   }
 
   // --- DEDICATED TELEPHONY CALL ENGINE ---
+  function updateLiveCaptions(speaker, text) {
+    const subtitlesEl = dom.voiceSubtitlesText || (typeof document !== 'undefined' ? document.getElementById('voice-subtitles-text') : null);
+    const speakerEl = dom.voiceCaptionsSpeaker || (typeof document !== 'undefined' ? document.getElementById('voice-captions-speaker') : null);
+    if (!subtitlesEl) return;
+    if (speakerEl) {
+      speakerEl.textContent = speaker === 'user' ? 'You' : (speaker === 'system' ? 'System' : 'Disha AI');
+    }
+    subtitlesEl.textContent = text || 'Listening… speak naturally.';
+  }
+
   function setTelephonyStatus(status) {
     state.telephonyStatus = status;
-    if (!dom.telephonyStatusText || !dom.telephonyStatusPill) return;
+    const statusTextEl = dom.telephonyStatusText || (typeof document !== 'undefined' ? document.getElementById('telephony-status-text') : null);
+    const statusPillEl = dom.telephonyStatusPill || (typeof document !== 'undefined' ? document.getElementById('telephony-status-pill') : null);
+    if (!statusTextEl || !statusPillEl) return;
 
-    const dot = dom.telephonyStatusPill.querySelector('.indicator-dot');
+    const dot = statusPillEl.querySelector('.indicator-dot');
     if (dot) dot.className = `indicator-dot ${status}`;
 
     if (dom.spectrumBars) {
@@ -1583,8 +2122,10 @@
       speaking: 'Disha speaking...',
       interrupting: 'Interrupted...',
       interrupted: 'Interrupted...',
+      muted: 'Microphone muted',
+      ended: 'Call ended',
     };
-    dom.telephonyStatusText.textContent = labels[status] || 'Ready for consultation';
+    statusTextEl.textContent = labels[status] || 'Ready for consultation';
   }
 
   // Primary Call Action Button Click Handler
@@ -1596,13 +2137,30 @@
   }
 
   async function startCall() {
+    // Permission pre-flight check
+    if (typeof navigator !== 'undefined' && navigator.permissions && navigator.permissions.query) {
+      try {
+        const permStatus = await navigator.permissions.query({ name: 'microphone' });
+        if (permStatus && permStatus.state === 'denied') {
+          showAlert('Microphone permission is blocked in your browser settings. Please allow microphone access in your browser address bar permissions, then click Start Voice Consultation again.');
+          return;
+        }
+      } catch (permErr) {
+        // Some browser engines throw on querying microphone permission; proceed with getUserMedia
+      }
+    }
+
     const consentGiven = typeof localStorage !== 'undefined' && localStorage.getItem('disha_medical_consent_accepted') === 'true';
     if (!consentGiven && dom.consentModal) {
       dom.consentModal.style.display = 'flex';
       return;
     }
 
+    const callOverlayEl = typeof document !== 'undefined' ? document.getElementById('call-overlay-modal') : null;
+    if (callOverlayEl) callOverlayEl.style.display = 'flex';
+
     setTelephonyStatus('connecting');
+    updateLiveCaptions('system', 'Connecting to Disha Core…');
     if (dom.callBtn) {
       dom.callBtn.className = 'telephony-call-btn state-connecting';
       if (dom.callBtnLabel) dom.callBtnLabel.textContent = 'Connecting to Disha Core...';
@@ -1681,6 +2239,7 @@
       if (callOverlayEl) callOverlayEl.style.display = 'flex';
 
       setTelephonyStatus('listening');
+      updateLiveCaptions('system', 'Listening… speak naturally.');
     } catch (err) {
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
         showAlert('Microphone permission denied. Please allow microphone access in your browser address bar permissions, then click Start Voice Consultation again.');
@@ -1694,87 +2253,102 @@
   }
 
   function endCall() {
-    const wasInCall = state.isInCall;
-    const callStartTime = state.callStartTime;
-    const turnCount = state.turnCount || 0;
-    const durationSec = callStartTime ? Math.max(0, Math.floor((Date.now() - callStartTime) / 1000)) : 0;
-    const durationMm = String(Math.floor(durationSec / 60)).padStart(2, '0');
-    const durationSs = String(durationSec % 60).padStart(2, '0');
-    const formattedDuration = `${durationMm}:${durationSs}`;
+    if (state.isEndingCall) return;
+    state.isEndingCall = true;
+    try {
+      const wasInCall = state.isInCall;
+      const callStartTime = state.callStartTime;
+      const turnCount = state.turnCount || 0;
+      const durationSec = callStartTime ? Math.max(0, Math.floor((Date.now() - callStartTime) / 1000)) : 0;
+      const durationMm = String(Math.floor(durationSec / 60)).padStart(2, '0');
+      const durationSs = String(durationSec % 60).padStart(2, '0');
+      const formattedDuration = `${durationMm}:${durationSs}`;
 
-    state.isInCall = false;
-    state.isRecording = false;
-    releaseWakeLock();
-    populateSummaryView();
-    stopCallTimer();
-    stopAudioPlayback();
+      state.isInCall = false;
+      state.isRecording = false;
+      releaseWakeLock();
+      populateSummaryView();
+      stopCallTimer();
+      stopAudioPlayback();
 
-    // Natural voice call end indicator without clinical EHR paperwork
-    if ((wasInCall || turnCount > 0 || durationSec > 2) && dom.chatStream) {
-      const endPill = document.createElement('div');
-      endPill.className = 'chat-call-end-pill';
-      endPill.innerHTML = `
-        <span class="call-end-pill-inner">
-          <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-          </svg>
-          <span>Voice call ended &bull; ${escapeHtml(formattedDuration)}</span>
-        </span>
-      `;
-      dom.chatStream.appendChild(endPill);
-      dom.chatStream.scrollTop = dom.chatStream.scrollHeight;
-    }
-
-    const callOverlayEl = typeof document !== 'undefined' ? document.getElementById('call-overlay-modal') : null;
-    if (callOverlayEl) callOverlayEl.style.display = 'none';
-
-    if (state.spectrumAnimId) {
-      cancelAnimationFrame(state.spectrumAnimId);
-      state.spectrumAnimId = null;
-    }
-    if (state.sourceNode) {
-      try { state.sourceNode.disconnect(); } catch (e) {}
-      state.sourceNode = null;
-    }
-    if (state.analyserNode) {
-      try { state.analyserNode.disconnect(); } catch (e) {}
-      state.analyserNode = null;
-    }
-    if (state.ttsAnalyser) {
-      try { state.ttsAnalyser.disconnect(); } catch (e) {}
-      state.ttsAnalyser = null;
-    }
-    if (state.vadInterval) {
-      clearInterval(state.vadInterval);
-      state.vadInterval = null;
-    }
-    if (state.micStream) {
-      try {
-        state.micStream.getTracks().forEach(t => t.stop());
-      } catch (e) {}
-      state.micStream = null;
-    }
-    if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
-      try { state.mediaRecorder.stop(); } catch (e) {}
-    }
-    state.mediaRecorder = null;
-
-    if (dom.callBtn) {
-      dom.callBtn.className = 'telephony-call-btn state-idle';
-      if (dom.callBtnLabel) dom.callBtnLabel.textContent = 'Start Voice Consultation';
-      const callIconEl = document.getElementById('call-icon');
-      if (callIconEl) {
-        callIconEl.innerHTML = `<svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`;
+      // Natural voice call end indicator without clinical EHR paperwork
+      if ((wasInCall || turnCount > 0 || durationSec > 2) && dom.chatStream) {
+        const endPill = document.createElement('div');
+        endPill.className = 'chat-call-end-pill';
+        endPill.innerHTML = `
+          <span class="call-end-pill-inner">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+            <span>Voice call ended &bull; ${escapeHtml(formattedDuration)}</span>
+          </span>
+        `;
+        dom.chatStream.appendChild(endPill);
+        dom.chatStream.scrollTop = dom.chatStream.scrollHeight;
       }
-    }
-    if (dom.muteMicBtn) {
-      dom.muteMicBtn.disabled = true;
-      dom.muteMicBtn.classList.remove('is-muted');
-    }
-    if (dom.callDuration) dom.callDuration.textContent = '00:00';
 
-    setTelephonyStatus('idle');
-    resetSpectrumVisualizer();
+      const callOverlayEl = typeof document !== 'undefined' ? document.getElementById('call-overlay-modal') : null;
+      if (callOverlayEl) callOverlayEl.style.display = 'none';
+
+      if (state.spectrumAnimId) {
+        cancelAnimationFrame(state.spectrumAnimId);
+        state.spectrumAnimId = null;
+      }
+      if (state.sourceNode) {
+        try { state.sourceNode.disconnect(); } catch (e) {}
+        state.sourceNode = null;
+      }
+      if (state.analyserNode) {
+        try { state.analyserNode.disconnect(); } catch (e) {}
+        state.analyserNode = null;
+      }
+      if (state.ttsAnalyser) {
+        try { state.ttsAnalyser.disconnect(); } catch (e) {}
+        state.ttsAnalyser = null;
+      }
+      if (state.vadInterval) {
+        clearInterval(state.vadInterval);
+        state.vadInterval = null;
+      }
+      if (state.micStream) {
+        try {
+          state.micStream.getTracks().forEach(t => t.stop());
+        } catch (e) {}
+        state.micStream = null;
+      }
+      if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+        try { state.mediaRecorder.stop(); } catch (e) {}
+      }
+      state.mediaRecorder = null;
+
+      if (dom.callBtn) {
+        dom.callBtn.className = 'telephony-call-btn state-idle';
+        if (dom.callBtnLabel) dom.callBtnLabel.textContent = 'Start Voice Consultation';
+        const callIconEl = document.getElementById('call-icon');
+        if (callIconEl) {
+          callIconEl.innerHTML = `<svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>`;
+        }
+      }
+      if (dom.muteMicBtn) {
+        dom.muteMicBtn.disabled = true;
+        dom.muteMicBtn.classList.remove('is-muted');
+      }
+      if (dom.callDuration) dom.callDuration.textContent = '00:00';
+
+      const micFill = dom.micMeterFill || (typeof document !== 'undefined' ? document.getElementById('mic-meter-fill') : null);
+      const micVal = dom.micMeterValue || (typeof document !== 'undefined' ? document.getElementById('mic-meter-value') : null);
+      const micMeter = dom.micAudioMeter || (typeof document !== 'undefined' ? document.getElementById('mic-audio-meter') : null);
+      if (micFill) micFill.style.width = '0%';
+      if (micVal) micVal.textContent = '0%';
+      if (micMeter) micMeter.setAttribute('aria-valuenow', '0');
+      updateLiveCaptions('system', 'Call ended.');
+      state.isMuted = false;
+
+      setTelephonyStatus('idle');
+      resetSpectrumVisualizer();
+    } finally {
+      state.isEndingCall = false;
+    }
   }
 
   // Call Duration Timer
@@ -1813,7 +2387,18 @@
           ? `<svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"></line><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`
           : `<svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>`;
       }
-      if (dom.micLabel) dom.micLabel.textContent = state.isMuted ? 'Unmute Mic' : 'Mute Mic';
+      if (dom.micLabel) dom.micLabel.textContent = state.isMuted ? 'Unmute' : 'Mute';
+      if (state.isMuted) {
+        setTelephonyStatus('muted');
+        updateLiveCaptions('system', 'Microphone muted. Tap Unmute to speak.');
+        const micFill = dom.micMeterFill || (typeof document !== 'undefined' ? document.getElementById('mic-meter-fill') : null);
+        const micVal = dom.micMeterValue || (typeof document !== 'undefined' ? document.getElementById('mic-meter-value') : null);
+        if (micFill) micFill.style.width = '0%';
+        if (micVal) micVal.textContent = '0%';
+      } else {
+        setTelephonyStatus(state.isPlayingAudio ? 'speaking' : 'listening');
+        updateLiveCaptions('system', 'Listening… speak naturally.');
+      }
     });
   }
 
@@ -1985,6 +2570,17 @@
             drawStethoscopeVisualizer(avg);
           }
 
+          // Responsive Microphone Audio Level Meter
+          const micFill = dom.micMeterFill || (typeof document !== 'undefined' ? document.getElementById('mic-meter-fill') : null);
+          const micVal = dom.micMeterValue || (typeof document !== 'undefined' ? document.getElementById('mic-meter-value') : null);
+          const micMeter = dom.micAudioMeter || (typeof document !== 'undefined' ? document.getElementById('mic-audio-meter') : null);
+          if (micFill && micVal) {
+            const levelPct = (state.isMuted || !state.isInCall) ? 0 : Math.min(100, Math.max(0, Math.round((avg / 96) * 100)));
+            micFill.style.width = `${levelPct}%`;
+            micVal.textContent = `${levelPct}%`;
+            if (micMeter) micMeter.setAttribute('aria-valuenow', String(levelPct));
+          }
+
           if (avg > ENERGY_THRESHOLD) {
             if (state.isPlayingAudio) {
               if (avg > BARGE_IN_THRESHOLD) {
@@ -2154,42 +2750,95 @@
     resetSpectrumVisualizer();
   }
 
-  // --- TEXT TURN SUBMISSION & FAST SCENARIOS ---
+  // --- TEXT TURN SUBMISSION, COMPOSER AUTO-GROW & FAST SCENARIOS ---
+  if (dom.userTextInput) {
+    dom.userTextInput.addEventListener('input', () => {
+      dom.userTextInput.style.height = 'auto';
+      const newHeight = Math.min(Math.max(dom.userTextInput.scrollHeight, 24), 140);
+      dom.userTextInput.style.height = `${newHeight}px`;
+    });
+  }
+
   if (dom.textTurnForm && dom.userTextInput) {
     dom.textTurnForm.addEventListener('submit', (e) => {
       e.preventDefault();
       if (state.textTurnInFlight) return;
       const query = dom.userTextInput.value.trim();
       if (!query) return;
-      dispatchTurn(query);
       dom.userTextInput.value = '';
+      dom.userTextInput.style.height = 'auto';
+      dispatchTurn(query);
+    });
+
+    dom.userTextInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        if (state.textTurnInFlight) return;
+        const query = dom.userTextInput.value.trim();
+        if (!query) return;
+        dom.userTextInput.value = '';
+        dom.userTextInput.style.height = 'auto';
+        dispatchTurn(query);
+      }
+    });
+  }
+
+  if (dom.stopStreamBtn) {
+    dom.stopStreamBtn.addEventListener('click', stopActiveStream);
+  }
+
+  if (dom.jumpToLatestBtn) {
+    dom.jumpToLatestBtn.addEventListener('click', () => {
+      scrollChatToBottom(true);
+    });
+  }
+
+  const messagesArea = dom.chatMessagesArea || (typeof document !== 'undefined' ? document.getElementById('chat-messages-area') : null);
+  if (messagesArea) {
+    messagesArea.addEventListener('scroll', handleChatScroll, { passive: true });
+  }
+
+  if (typeof window !== 'undefined') {
+    window.addEventListener('online', () => {
+      updateOnlineStatusUI();
+      flushOfflineQueue();
+    });
+    window.addEventListener('offline', () => {
+      updateOnlineStatusUI();
     });
   }
 
   async function dispatchTurn(text) {
     if (state.textTurnInFlight) return;
-    state.textTurnInFlight = true;
-    const sendButton = dom.sendTurnBtn || (typeof document !== 'undefined' ? document.getElementById('send-turn-btn') : null);
-    if (sendButton) sendButton.disabled = true;
+    state.lastUserQuery = text;
+
+    const isOnline = updateOnlineStatusUI();
+    if (!isOnline) {
+      appendChatMessage('user', text + ' (Queued offline)');
+      state.offlineQueue.push(text);
+      if (typeof showAlert === 'function') showAlert('You are offline. Message has been queued.');
+      setTextTurnPending(false);
+      return;
+    }
+
+    setTextTurnPending(true);
     appendChatMessage('user', text);
     setTelephonyStatus('processing');
 
     const chatStream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
-    const scrollContainer = chatStream ? (chatStream.closest('.chat-messages-area') || chatStream) : null;
 
     if (state.ws && state.ws.readyState === WebSocket.OPEN) {
       try {
         state.ws.send(JSON.stringify({ type: 'text', text: text }));
       } catch (err) {
         setTextTurnPending(false);
-        showAlert('Message could not be sent. Please try again.');
+        appendInlineError('Message could not be sent. Please retry.', text);
       }
       return;
     }
 
     const config = getBackendConfig();
 
-    // Prepare assistant message bubble for live streaming
     let assistantMsgEl = null;
     let assistantTextP = null;
     let accumulatedText = '';
@@ -2201,30 +2850,47 @@
       assistantMsgEl.className = 'chat-message assistant';
       assistantMsgEl.innerHTML = `
         <div class="msg-avatar" aria-hidden="true">D</div>
-        <div class="msg-bubble">
-          <p class="msg-text streaming-cursor"></p>
+        <div class="msg-content-wrapper">
+          <div class="msg-bubble">
+            <p class="msg-text streaming-cursor"></p>
+          </div>
         </div>
       `;
       chatStream.appendChild(assistantMsgEl);
-      assistantTextP = assistantMsgEl.querySelector('.msg-text');
+      assistantTextP = typeof assistantMsgEl.querySelector === 'function' ? assistantMsgEl.querySelector('.msg-text') : null;
       state.lastAssistantMessageElement = assistantMsgEl;
       state.lastAssistantHistoryEntry = null;
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
+      if (!state.isScrolledUp) scrollChatToBottom();
     }
 
-    try {
-      const res = await fetch(`${config.httpBase}/chat/stream`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${state.token}`,
-        },
-        body: JSON.stringify({ text: text }),
-      });
+    state.activeStreamAbortController = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const fetchSignal = state.activeStreamAbortController ? state.activeStreamAbortController.signal : undefined;
 
-      if (!res.ok || !res.body) {
+    const clientMsgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+    const turnPayload = {
+      text: text,
+      client_msg_id: clientMsgId,
+      conversation_id: state.conversationId || undefined
+    };
+
+    try {
+      let res;
+      try {
+        res = await fetch(`${config.httpBase}/chat/stream`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${state.token}`,
+          },
+          body: JSON.stringify(turnPayload),
+          signal: fetchSignal,
+        });
+      } catch (fetchErr) {
+        if (fetchErr.name === 'AbortError') throw fetchErr;
+        res = null;
+      }
+
+      if (!res || !res.ok || !res.body) {
         // Fallback to standard /chat endpoint
         const fallbackRes = await fetch(`${config.httpBase}/chat`, {
           method: 'POST',
@@ -2232,17 +2898,25 @@
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${state.token}`,
           },
-          body: JSON.stringify({ text: text }),
+          body: JSON.stringify(turnPayload),
+          signal: fetchSignal,
         });
         if (!fallbackRes.ok) {
           throw new Error(`Chat request failed: ${fallbackRes.status}`);
         }
         const fallbackData = await fallbackRes.json();
         accumulatedText = fallbackData.response || '';
+
         if (assistantTextP) {
-          assistantTextP.textContent = accumulatedText;
-          assistantTextP.classList.remove('streaming-cursor');
+          if (assistantTextP.classList && typeof assistantTextP.classList.remove === 'function') {
+            assistantTextP.classList.remove('streaming-cursor');
+          }
+          assistantTextP.innerHTML = renderLightMarkdown(accumulatedText);
         }
+        if (assistantMsgEl) {
+          appendAssistantActions(assistantMsgEl, accumulatedText);
+        }
+
         assistantProvenance = applyMessageProvenance(assistantMsgEl, null, fallbackData);
         if (!state.transcriptHistory) state.transcriptHistory = [];
         assistantHistoryEntry = {
@@ -2256,13 +2930,14 @@
         state.lastAssistantHistoryEntry = assistantHistoryEntry;
         state.turnCount = (state.turnCount || 0) + 1;
         setTelephonyStatus('idle');
-        if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+        if (!state.isScrolledUp) scrollChatToBottom();
         return;
       }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder('utf-8');
       let buffer = '';
+
       const processSseBlock = (block) => {
         const lines = block.split('\n');
         const dataLines = [];
@@ -2274,8 +2949,10 @@
           const parsed = JSON.parse(dataLines.join('\n'));
           if (parsed.sentence) {
             accumulatedText = accumulatedText ? `${accumulatedText} ${parsed.sentence}` : parsed.sentence;
-            if (assistantTextP) assistantTextP.textContent = accumulatedText;
-            if (scrollContainer) scrollContainer.scrollTop = scrollContainer.scrollHeight;
+            if (assistantTextP) {
+              assistantTextP.textContent = accumulatedText;
+            }
+            if (!state.isScrolledUp) scrollChatToBottom();
           }
           assistantProvenance = mergeMessageProvenance(assistantProvenance, parsed);
           renderMessageProvenance(assistantMsgEl, assistantProvenance);
@@ -2297,7 +2974,13 @@
       if (buffer.trim()) processSseBlock(buffer);
 
       if (assistantTextP) {
-        assistantTextP.classList.remove('streaming-cursor');
+        if (assistantTextP.classList && typeof assistantTextP.classList.remove === 'function') {
+          assistantTextP.classList.remove('streaming-cursor');
+        }
+        assistantTextP.innerHTML = renderLightMarkdown(accumulatedText);
+      }
+      if (assistantMsgEl) {
+        appendAssistantActions(assistantMsgEl, accumulatedText);
       }
 
       if (!state.transcriptHistory) state.transcriptHistory = [];
@@ -2312,17 +2995,31 @@
       state.lastAssistantHistoryEntry = assistantHistoryEntry;
       state.turnCount = (state.turnCount || 0) + 1;
       setTelephonyStatus('idle');
-      if (scrollContainer) {
-        scrollContainer.scrollTop = scrollContainer.scrollHeight;
-      }
+      if (!state.isScrolledUp) scrollChatToBottom();
     } catch (err) {
-      if (assistantTextP) {
-        assistantTextP.textContent = 'Service unavailable. Please verify connection and retry.';
-        assistantTextP.classList.remove('streaming-cursor');
+      if (err.name === 'AbortError') {
+        if (assistantTextP) {
+          if (assistantTextP.classList && typeof assistantTextP.classList.remove === 'function') {
+            assistantTextP.classList.remove('streaming-cursor');
+          }
+          assistantTextP.innerHTML = renderLightMarkdown(accumulatedText);
+        }
+        if (assistantMsgEl) {
+          appendAssistantActions(assistantMsgEl, accumulatedText);
+        }
+      } else {
+        if (assistantTextP && accumulatedText) {
+          if (assistantTextP.classList && typeof assistantTextP.classList.remove === 'function') {
+            assistantTextP.classList.remove('streaming-cursor');
+          }
+          assistantTextP.innerHTML = renderLightMarkdown(accumulatedText);
+          appendAssistantActions(assistantMsgEl, accumulatedText);
+        }
+        appendInlineError(err.message || 'Service unavailable. Please retry.', text);
       }
-      showAlert('Query failed: ' + err.message);
       setTelephonyStatus('idle');
     } finally {
+      state.activeStreamAbortController = null;
       setTextTurnPending(false);
     }
   }
@@ -2330,7 +3027,19 @@
   function setTextTurnPending(pending) {
     state.textTurnInFlight = pending;
     const sendButton = dom.sendTurnBtn || (typeof document !== 'undefined' ? document.getElementById('send-turn-btn') : null);
-    if (sendButton) sendButton.disabled = pending;
+    const stopButton = dom.stopStreamBtn || (typeof document !== 'undefined' ? document.getElementById('stop-stream-btn') : null);
+    if (sendButton) {
+      sendButton.disabled = pending;
+      if (sendButton.style) sendButton.style.display = pending ? 'none' : 'inline-flex';
+    }
+    if (stopButton && stopButton.style) {
+      stopButton.style.display = pending ? 'inline-flex' : 'none';
+    }
+    const inputField = dom.userTextInput || (typeof document !== 'undefined' ? document.getElementById('user-text-input') : null);
+    if (inputField) {
+      inputField.disabled = pending;
+      if (!pending && typeof inputField.focus === 'function') inputField.focus();
+    }
   }
 
   // Quick Chips
@@ -2402,6 +3111,18 @@
     let target = cleanRoute;
     if (target === 'consultation' || target === 'home' || target === '') {
       target = state.token ? 'chat' : 'signin';
+    }
+    const protectedRoutes = ['chat', 'consultation', 'meals', 'profile', 'settings'];
+    if (!state.token && protectedRoutes.includes(target)) {
+      target = 'signin';
+      if (typeof window !== 'undefined' && window.location.hash !== '#/signin') {
+        window.location.hash = '#/signin';
+      }
+    } else if (state.token && (target === 'signin' || target === 'auth')) {
+      target = 'chat';
+      if (typeof window !== 'undefined' && window.location.hash !== '#/chat') {
+        window.location.hash = '#/chat';
+      }
     }
     const targetKey = views[target] ? target : (state.token ? 'chat' : 'signin');
 
@@ -3207,6 +3928,15 @@
     switchToChatBtn.addEventListener('click', () => {
       const callModal = typeof document !== 'undefined' ? document.getElementById('call-overlay-modal') : null;
       if (callModal) callModal.style.display = 'none';
+      if (typeof switchView === 'function') {
+        switchView('chat');
+      } else if (typeof navigate === 'function') {
+        navigate('#/chat');
+      }
+      const inputEl = dom.userTextInput || (typeof document !== 'undefined' ? document.getElementById('user-text-input') : null);
+      if (inputEl && typeof inputEl.focus === 'function') {
+        setTimeout(() => inputEl.focus(), 50);
+      }
     });
   }
 
@@ -3395,6 +4125,15 @@
     toggleClinicalDrawer,
     openProfileEditModal,
     closeProfileEditModal,
+    renderLightMarkdown,
+    scrollChatToBottom,
+    stopActiveStream,
+    flushOfflineQueue,
+    startCall,
+    setTelephonyStatus,
+    updateLiveCaptions,
+    updateInChatJourneyBanner,
+    triggerPersonalizedFirstConsultation,
   };
 
   if (typeof window !== 'undefined') {

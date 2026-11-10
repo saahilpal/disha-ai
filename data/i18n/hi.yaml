@@ -1,0 +1,24 @@
+# Hindi — Devanagari, casual spoken Hindi with everyday words and common English loanwords in Devanagari
+language: hindi
+label: "हिन्दी"
+
+emergency_text: "यह इमरजेंसी हो सकती है। अभी 112 पर कॉल करें या नज़दीकी हॉस्पिटल जाएं। किसी को साथ रखें।"
+unsupported_language_text: "माफ़ कीजिए, मैं सिर्फ़ English, हिन्दी और Hinglish समझती हूँ।"
+system_error_text: "[सिस्टम एरर: कृपया थोड़ी देर बाद कोशिश करें।]"
+language_choice_prompt: "आप किस भाषा में बात करना चाहेंगे?"
+expert_call_cta: "एक 10 मिनट की एक्सपर्ट कॉल से आपको बेहतर गाइडेंस मिल सकती है।"
+
+banned_honorifics:
+  - "जी"
+  - "सर"
+  - "मैम"
+  - "मैडम"
+  - "साहब"
+  - "श्रीमान"
+  - "श्रीमती"
+
+language_choice_labels:
+  english: "English"
+  hindi: "हिन्दी"
+  hinglish: "Hinglish"
+

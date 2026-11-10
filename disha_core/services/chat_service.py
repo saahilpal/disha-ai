@@ -1,4 +1,5 @@
 """Chat orchestration, multi-turn persistent memory, and turn processing service for Disha AI Core."""
+
 from __future__ import annotations
 
 import json
@@ -60,33 +61,48 @@ async def _store_turn_on_conn(
 ) -> None:
     max_idx = await conn.fetchval(
         "SELECT COALESCE(MAX(turn_index), -1) FROM patient_turn_journal WHERE patient_id = $1 AND session_id = $2",
-        patient_id, session_id,
+        patient_id,
+        session_id,
     )
     turn_idx = int(max_idx if max_idx is not None else -1) + 1
     if call_id is not None:
         await conn.execute(
             """INSERT INTO patient_turn_journal (patient_id, session_id, turn_index, speaker, raw_utterance, call_id)
                VALUES ($1, $2, $3, 'user', $4, $5)""",
-            patient_id, session_id, turn_idx, user_text, call_id,
+            patient_id,
+            session_id,
+            turn_idx,
+            user_text,
+            call_id,
         )
     else:
         await conn.execute(
             """INSERT INTO patient_turn_journal (patient_id, session_id, turn_index, speaker, raw_utterance)
                VALUES ($1, $2, $3, 'user', $4)""",
-            patient_id, session_id, turn_idx, user_text,
+            patient_id,
+            session_id,
+            turn_idx,
+            user_text,
         )
     if assistant_text:
         if call_id is not None:
             await conn.execute(
                 """INSERT INTO patient_turn_journal (patient_id, session_id, turn_index, speaker, raw_utterance, call_id)
                    VALUES ($1, $2, $3, 'assistant', $4, $5)""",
-                patient_id, session_id, turn_idx + 1, assistant_text, call_id,
+                patient_id,
+                session_id,
+                turn_idx + 1,
+                assistant_text,
+                call_id,
             )
         else:
             await conn.execute(
                 """INSERT INTO patient_turn_journal (patient_id, session_id, turn_index, speaker, raw_utterance)
                    VALUES ($1, $2, $3, 'assistant', $4)""",
-                patient_id, session_id, turn_idx + 1, assistant_text,
+                patient_id,
+                session_id,
+                turn_idx + 1,
+                assistant_text,
             )
 
 
@@ -123,27 +139,198 @@ async def _load_history_on_conn(
             """SELECT speaker, raw_utterance FROM patient_turn_journal
                WHERE patient_id = $1 AND call_id = $2
                ORDER BY timestamp_utc DESC LIMIT $3""",
-            patient_id, call_id, limit,
+            patient_id,
+            call_id,
+            limit,
         )
     elif session_id:
         rows = await conn.fetch(
             """SELECT speaker, raw_utterance FROM patient_turn_journal
                WHERE patient_id = $1 AND session_id = $2
                ORDER BY timestamp_utc DESC LIMIT $3""",
-            patient_id, session_id, limit,
+            patient_id,
+            session_id,
+            limit,
         )
     else:
         rows = await conn.fetch(
             """SELECT speaker, raw_utterance FROM patient_turn_journal
                WHERE patient_id = $1
                ORDER BY timestamp_utc DESC LIMIT $2""",
-            patient_id, limit,
+            patient_id,
+            limit,
         )
     for r in reversed(rows):
         speaker = str(r["speaker"]).lower()
         role = "assistant" if speaker in ("assistant", "coach") else "user"
         history.append({"role": role, "content": str(r["raw_utterance"])})
     return history
+
+
+# ---------------------------------------------------------------------------
+# Active Conversations & Unified Messages Persistence (Contract 2 / Spec M1)
+# ---------------------------------------------------------------------------
+
+async def _with_conn(conn_or_pool: Any, coro_func: Any, *args: Any, **kwargs: Any) -> Any:
+    if conn_or_pool is None:
+        return None
+    if hasattr(conn_or_pool, "acquire") and callable(conn_or_pool.acquire):
+        acq = conn_or_pool.acquire()
+        if hasattr(acq, "__aenter__"):
+            async with acq as conn:
+                return await coro_func(conn, *args, **kwargs)
+        elif hasattr(acq, "__await__"):
+            conn = await acq
+            return await coro_func(conn, *args, **kwargs)
+    return await coro_func(conn_or_pool, *args, **kwargs)
+
+
+async def resolve_active_conversation(
+    conn_or_pool: Any, patient_id: str, channel: str = "chat"
+) -> dict[str, Any]:
+    """Atomically find or create the active (unarchived) conversation for patient_id."""
+    async def _resolve(conn: Any) -> dict[str, Any]:
+        row = await conn.fetchrow(
+            "SELECT id, user_id, channel, created_at, last_message_at, archived "
+            "FROM conversations WHERE user_id = $1 AND archived = FALSE",
+            patient_id,
+        )
+        if row:
+            return dict(row)
+        # Create new active conversation
+        new_row = await conn.fetchrow(
+            "INSERT INTO conversations (user_id, channel, archived) "
+            "VALUES ($1, $2, FALSE) "
+            "ON CONFLICT (user_id) WHERE (archived = FALSE) "
+            "DO UPDATE SET last_message_at = NOW() "
+            "RETURNING id, user_id, channel, created_at, last_message_at, archived",
+            patient_id,
+            channel,
+        )
+        return dict(new_row) if new_row else {}
+
+    return await _with_conn(conn_or_pool, _resolve)
+
+
+async def archive_active_conversation(conn_or_pool: Any, patient_id: str) -> None:
+    """Archive current active conversation for patient."""
+    async def _archive(conn: Any) -> None:
+        await conn.execute(
+            "UPDATE conversations SET archived = TRUE WHERE user_id = $1 AND archived = FALSE",
+            patient_id,
+        )
+    await _with_conn(conn_or_pool, _archive)
+
+
+async def record_message(
+    conn_or_pool: Any,
+    conversation_id: str,
+    patient_id: str,
+    role: str,
+    channel: str,
+    content: str,
+    status: str = "complete",
+    client_msg_id: str | None = None,
+    meta: dict | None = None,
+) -> dict[str, Any]:
+    """Insert a message with auto-incrementing seq and client_msg_id idempotency."""
+    async def _insert(conn: Any) -> dict[str, Any]:
+        max_seq = await conn.fetchval(
+            "SELECT COALESCE(MAX(seq), 0) FROM messages WHERE conversation_id = $1::uuid",
+            conversation_id,
+        )
+        next_seq = int(max_seq or 0) + 1
+        meta_json = json.dumps(meta or {})
+        row = await conn.fetchrow(
+            """INSERT INTO messages (conversation_id, user_id, seq, role, channel, content, status, client_msg_id, meta)
+               VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
+               ON CONFLICT (conversation_id, client_msg_id) 
+               DO UPDATE SET content = EXCLUDED.content, status = EXCLUDED.status
+               RETURNING id, conversation_id, seq, role, channel, content, status, client_msg_id, created_at""",
+            conversation_id,
+            patient_id,
+            next_seq,
+            role,
+            channel,
+            content,
+            status,
+            client_msg_id,
+            meta_json,
+        )
+        await conn.execute(
+            "UPDATE conversations SET last_message_at = NOW() WHERE id = $1::uuid",
+            conversation_id,
+        )
+        return dict(row) if row else {}
+
+    return await _with_conn(conn_or_pool, _insert)
+
+
+async def update_message_status(
+    conn_or_pool: Any,
+    message_id: str,
+    status: str,
+    content: str | None = None,
+) -> None:
+    """Update message status ('complete' or 'aborted') and optionally final content."""
+    async def _update(conn: Any) -> None:
+        if content is not None:
+            await conn.execute(
+                "UPDATE messages SET status = $1, content = $2, completed_at = NOW() WHERE id = $3::uuid",
+                status,
+                content,
+                message_id,
+            )
+        else:
+            await conn.execute(
+                "UPDATE messages SET status = $1, completed_at = NOW() WHERE id = $2::uuid",
+                status,
+                message_id,
+            )
+    await _with_conn(conn_or_pool, _update)
+
+
+async def get_active_conversation_with_messages(
+    conn_or_pool: Any, patient_id: str, limit: int = 50
+) -> dict[str, Any]:
+    """Retrieve the active conversation entity and its chronological messages for frontend hydration."""
+    conv = await resolve_active_conversation(conn_or_pool, patient_id)
+    if not conv or not conv.get("id"):
+        return {"conversation_id": None, "messages": [], "dialogue_state": {}}
+
+    conv_id = conv["id"]
+
+    async def _fetch_msgs(conn: Any) -> list[dict[str, Any]]:
+        rows = await conn.fetch(
+            "SELECT id, seq, role, channel, content, status, client_msg_id, created_at "
+            "FROM messages WHERE conversation_id = $1::uuid "
+            "ORDER BY seq ASC LIMIT $2",
+            str(conv_id),
+            limit,
+        )
+        return [
+            {
+                "id": str(r["id"]),
+                "seq": r["seq"],
+                "role": r["role"],
+                "channel": r["channel"],
+                "content": r["content"],
+                "status": r["status"],
+                "client_msg_id": r["client_msg_id"],
+                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+            }
+            for r in rows
+        ]
+
+    msgs = await _with_conn(conn_or_pool, _fetch_msgs) or []
+    return {
+        "conversation_id": str(conv_id),
+        "user_id": patient_id,
+        "created_at": conv["created_at"].isoformat() if conv.get("created_at") else None,
+        "last_message_at": conv["last_message_at"].isoformat() if conv.get("last_message_at") else None,
+        "messages": msgs,
+        "dialogue_state": {},
+    }
 
 
 async def store_patient_fact(
@@ -176,12 +363,17 @@ async def _store_fact_on_conn(
     await conn.execute(
         """UPDATE patient_temporal_facts SET epistemic_status = 'superseded', valid_to = NOW()
            WHERE patient_id = $1 AND fact_key = $2 AND epistemic_status = 'active'""",
-        patient_id, fact_key,
+        patient_id,
+        fact_key,
     )
     await conn.execute(
         """INSERT INTO patient_temporal_facts (patient_id, category, fact_key, fact_value, epistemic_status)
            VALUES ($1, $2, $3, $4, $5)""",
-        patient_id, category, fact_key, fact_value, epistemic_status,
+        patient_id,
+        category,
+        fact_key,
+        fact_value,
+        epistemic_status,
     )
 
 
@@ -209,6 +401,40 @@ async def _load_facts_on_conn(conn: Any, patient_id: str) -> list[dict[str, Any]
     return [dict(r) for r in rows]
 
 
+async def validate_evidence_quote_in_journal(
+    conn_or_pool: Any,
+    patient_id: str,
+    raw_quote: str,
+) -> bool:
+    """Validator checking that an asserted evidence quote actually exists in patient_turn_journal."""
+    if not raw_quote or not patient_id:
+        return True
+    q = raw_quote.strip()
+    if not q:
+        return True
+    try:
+        if hasattr(conn_or_pool, "acquire"):
+            async with conn_or_pool.acquire() as conn:
+                res = await conn.fetchval(
+                    "SELECT 1 FROM patient_turn_journal WHERE patient_id = $1 AND (raw_utterance ILIKE $2 OR $3 ILIKE '%' || raw_utterance || '%') LIMIT 1",
+                    patient_id,
+                    f"%{q[:80]}%",
+                    q,
+                )
+                return bool(res)
+        else:
+            res = await conn_or_pool.fetchval(
+                "SELECT 1 FROM patient_turn_journal WHERE patient_id = $1 AND (raw_utterance ILIKE $2 OR $3 ILIKE '%' || raw_utterance || '%') LIMIT 1",
+                patient_id,
+                f"%{q[:80]}%",
+                q,
+            )
+            return bool(res)
+    except Exception as exc:
+        logger.debug("Journal evidence quote verification error: %s", exc)
+        return True
+
+
 async def store_memory_item(
     conn_or_pool: Any,
     patient_id: str,
@@ -232,13 +458,35 @@ async def store_memory_item(
         if hasattr(conn_or_pool, "acquire"):
             async with conn_or_pool.acquire() as conn:
                 await _store_memory_item_on_conn(
-                    conn, patient_id, slot_key, val_json, category, source_authority,
-                    epistemic_status, sensitive_flag, confidence, raw_quote, language, session_id, call_id,
+                    conn,
+                    patient_id,
+                    slot_key,
+                    val_json,
+                    category,
+                    source_authority,
+                    epistemic_status,
+                    sensitive_flag,
+                    confidence,
+                    raw_quote,
+                    language,
+                    session_id,
+                    call_id,
                 )
         else:
             await _store_memory_item_on_conn(
-                conn_or_pool, patient_id, slot_key, val_json, category, source_authority,
-                epistemic_status, sensitive_flag, confidence, raw_quote, language, session_id, call_id,
+                conn_or_pool,
+                patient_id,
+                slot_key,
+                val_json,
+                category,
+                source_authority,
+                epistemic_status,
+                sensitive_flag,
+                confidence,
+                raw_quote,
+                language,
+                session_id,
+                call_id,
             )
 
 
@@ -261,7 +509,8 @@ async def _store_memory_item_on_conn(
         await conn.execute(
             """UPDATE memory_items SET epistemic_status = 'superseded', valid_to = NOW(), updated_at = NOW()
                WHERE patient_id = $1 AND slot_key = $2 AND epistemic_status = 'active'""",
-            patient_id, slot_key,
+            patient_id,
+            slot_key,
         )
     await conn.execute(
         """INSERT INTO memory_items (
@@ -269,9 +518,18 @@ async def _store_memory_item_on_conn(
                epistemic_status, sensitive_flag, confidence, raw_quote, language,
                session_id, call_id
            ) VALUES ($1, $2, $3::jsonb, $4, $5, $6, $7, $8, $9, $10, $11, $12)""",
-        patient_id, slot_key, slot_value_json, category, source_authority,
-        epistemic_status, sensitive_flag, confidence, raw_quote, language,
-        session_id, call_id,
+        patient_id,
+        slot_key,
+        slot_value_json,
+        category,
+        source_authority,
+        epistemic_status,
+        sensitive_flag,
+        confidence,
+        raw_quote,
+        language,
+        session_id,
+        call_id,
     )
 
 
@@ -307,7 +565,9 @@ async def _load_memory_items_on_conn(
                FROM memory_items
                WHERE patient_id = $1 AND slot_key = $2 AND epistemic_status = $3
                ORDER BY created_at DESC""",
-            patient_id, slot_key, epistemic_status,
+            patient_id,
+            slot_key,
+            epistemic_status,
         )
     else:
         rows = await conn.fetch(
@@ -316,7 +576,8 @@ async def _load_memory_items_on_conn(
                FROM memory_items
                WHERE patient_id = $1 AND epistemic_status = $2
                ORDER BY created_at ASC""",
-            patient_id, epistemic_status,
+            patient_id,
+            epistemic_status,
         )
     result = []
     for r in rows:
@@ -364,9 +625,16 @@ async def store_call_summary(
                            habits_disclosed = EXCLUDED.habits_disclosed,
                            contradictions_detected = EXCLUDED.contradictions_detected,
                            duration_seconds = EXCLUDED.duration_seconds""",
-                    call_id, session_id, patient_id, duration_seconds,
-                    summary_text, action_json, habits_json,
-                    contradictions_json, sentiment, language,
+                    call_id,
+                    session_id,
+                    patient_id,
+                    duration_seconds,
+                    summary_text,
+                    action_json,
+                    habits_json,
+                    contradictions_json,
+                    sentiment,
+                    language,
                 )
         else:
             await conn_or_pool.execute(
@@ -381,9 +649,16 @@ async def store_call_summary(
                        habits_disclosed = EXCLUDED.habits_disclosed,
                        contradictions_detected = EXCLUDED.contradictions_detected,
                        duration_seconds = EXCLUDED.duration_seconds""",
-                call_id, session_id, patient_id, duration_seconds,
-                summary_text, action_json, habits_json,
-                contradictions_json, sentiment, language,
+                call_id,
+                session_id,
+                patient_id,
+                duration_seconds,
+                summary_text,
+                action_json,
+                habits_json,
+                contradictions_json,
+                sentiment,
+                language,
             )
 
 
@@ -405,7 +680,8 @@ async def load_call_summaries(
                        FROM call_summaries
                        WHERE patient_id = $1
                        ORDER BY created_at DESC LIMIT $2""",
-                    patient_id, limit,
+                    patient_id,
+                    limit,
                 )
                 summaries = [dict(r) for r in rows]
         else:
@@ -415,7 +691,8 @@ async def load_call_summaries(
                    FROM call_summaries
                    WHERE patient_id = $1
                    ORDER BY created_at DESC LIMIT $2""",
-                patient_id, limit,
+                patient_id,
+                limit,
             )
             summaries = [dict(r) for r in rows]
     return summaries
@@ -440,12 +717,14 @@ async def persist_patient_disclosure(
     # Slot registry trilingual extraction
     try:
         from disha_core.models.slots import DEFAULT_SLOT_REGISTRY, SourceAuthority
+
         extracted = DEFAULT_SLOT_REGISTRY.extract_slots_from_text(text)
         for slot_key, slot_val in extracted.items():
             if slot_key == "patient_claimed_clearance":
                 # Contradictory clearance claim quarantined for clinician review; NEVER grant or overwrite PEP!
                 await store_memory_item(
-                    conn_or_pool, patient_id,
+                    conn_or_pool,
+                    patient_id,
                     slot_key="physical_activity_clearance",
                     slot_value={"claimed_clearance": str(slot_val)},
                     source_authority=SourceAuthority.PATIENT_REPORTED.value,
@@ -462,7 +741,8 @@ async def persist_patient_disclosure(
             if not auth_ok or contradiction.is_contradiction:
                 # Contradiction flagged for clinician review; NEVER silently overwrite PEP!
                 await store_memory_item(
-                    conn_or_pool, patient_id,
+                    conn_or_pool,
+                    patient_id,
                     slot_key=slot_key,
                     slot_value=slot_val,
                     source_authority=SourceAuthority.PATIENT_REPORTED.value,
@@ -474,7 +754,8 @@ async def persist_patient_disclosure(
                 )
             else:
                 await store_memory_item(
-                    conn_or_pool, patient_id,
+                    conn_or_pool,
+                    patient_id,
                     slot_key=slot_key,
                     slot_value=slot_val,
                     source_authority=SourceAuthority.PATIENT_REPORTED.value,
@@ -484,13 +765,50 @@ async def persist_patient_disclosure(
                     session_id=session_id,
                     call_id=call_id,
                 )
+                # Commit low-risk habits to PEP with user_reported provenance
+                low_risk_slots = {
+                    "wake_time",
+                    "sleep_time",
+                    "water_intake_target",
+                    "daily_steps_target",
+                    "tea_coffee_frequency",
+                    "meal_preferences",
+                    "dietary_restrictions",
+                    "work_schedule",
+                }
+                if slot_key in low_risk_slots:
+                    with suppress(Exception):
+                        from disha_core.pep.habits_engine import commit_habit_slot
+
+                        if hasattr(conn_or_pool, "acquire"):
+                            async with conn_or_pool.acquire() as h_conn:
+                                await commit_habit_slot(
+                                    patient_id=patient_id,
+                                    slot_key=slot_key,
+                                    raw_value=slot_val,
+                                    raw_text=text,
+                                    source="user_reported",
+                                    evidence_ref=f"chat:{session_id}",
+                                    conn=h_conn,
+                                )
+                        else:
+                            await commit_habit_slot(
+                                patient_id=patient_id,
+                                slot_key=slot_key,
+                                raw_value=slot_val,
+                                raw_text=text,
+                                source="user_reported",
+                                evidence_ref=f"chat:{session_id}",
+                                conn=conn_or_pool,
+                            )
     except Exception as exc:
         logger.debug("Slot extraction non-blocking error: %s", exc)
 
     # 1. Shift work / circadian disclosures
     if any(k in text_lower for k in ("night shift", "raat ki shift", "night duty", "rotational shift", "shift worker")):
         await store_patient_fact(
-            conn_or_pool, patient_id,
+            conn_or_pool,
+            patient_id,
             category="lifestyle",
             fact_key="shift_schedule",
             fact_value="Night shift (works at night, sleeps during daytime)",
@@ -510,16 +828,21 @@ async def persist_patient_disclosure(
             if clean_item and len(clean_item) > 2:
                 key = f"food_dislike_{clean_item.replace(' ', '_')}"
                 await store_patient_fact(
-                    conn_or_pool, patient_id,
+                    conn_or_pool,
+                    patient_id,
                     category="dietary_preference",
                     fact_key=key,
                     fact_value=f"Dislikes/avoids {clean_item}",
                 )
 
     # 3. Musculoskeletal / Joint complaints
-    if any(k in text_lower for k in ("knee pain", "ghutno ka dard", "ghutne me dard", "joint pain", "knee surgery", "arthritis")):
+    if any(
+        k in text_lower
+        for k in ("knee pain", "ghutno ka dard", "ghutne me dard", "joint pain", "knee surgery", "arthritis")
+    ):
         await store_patient_fact(
-            conn_or_pool, patient_id,
+            conn_or_pool,
+            patient_id,
             category="medical_history",
             fact_key="joint_condition",
             fact_value="Knee pain / joint stiffness reported",
@@ -528,7 +851,8 @@ async def persist_patient_disclosure(
     # 4. Chronic health conditions
     if any(k in text_lower for k in ("high bp", "hypertension", "bp high rehta", "heart patient", "cardiac")):
         await store_patient_fact(
-            conn_or_pool, patient_id,
+            conn_or_pool,
+            patient_id,
             category="medical_history",
             fact_key="chronic_diagnosis",
             fact_value="Hypertension / Cardiovascular risk",

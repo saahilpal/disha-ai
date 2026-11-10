@@ -1,4 +1,5 @@
 """Health and readiness probing endpoints."""
+
 from __future__ import annotations
 
 from typing import Any

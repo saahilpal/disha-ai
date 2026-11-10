@@ -11,6 +11,7 @@ Import constraints:
 - Clean required_remedy_tokens.
 - Trigger terms are stored for PostgreSQL trigram and text search.
 """
+
 from __future__ import annotations
 
 import asyncio
@@ -104,14 +105,16 @@ def fetch_ayush_herbs() -> list[dict[str, Any]]:
 
                 tag = f"AYUSH_{re.sub(r'[^A-Z0-9]', '_', name.upper())}"[:64]
 
-                records.append({
-                    "condition_tag": tag,
-                    "trigger_terms": trigger_clean,
-                    "context_header": f"[Scope: {name} ({eng_name or bot_name}); Authority: AYUSH Pharmacopoeia]",
-                    "guideline_content": content,
-                    "required_remedy_tokens": tokens,
-                    "source_citation": f"Ayurvedic Pharmacopoeia of India (API): {name}",
-                })
+                records.append(
+                    {
+                        "condition_tag": tag,
+                        "trigger_terms": trigger_clean,
+                        "context_header": f"[Scope: {name} ({eng_name or bot_name}); Authority: AYUSH Pharmacopoeia]",
+                        "guideline_content": content,
+                        "required_remedy_tokens": tokens,
+                        "source_citation": f"Ayurvedic Pharmacopoeia of India (API): {name}",
+                    }
+                )
     except Exception as e:
         print(f"Warning: Failed to fetch AYUSH herb database: {e}")
     return records
@@ -259,13 +262,25 @@ async def run_ingestion() -> dict[str, Any]:
     """)
 
     for chunk in valid_chunks:
-        src_id = 'src_mohfw_protocols' if 'National Health Portal' in chunk.get('source_citation', '') or 'MoHFW' in chunk.get('source_citation', '') else 'src_ayush_remedies_2024'
-        domain = 'ayush_integrative_health' if 'AYUSH' in chunk.get('condition_tag', '') else 'gastrointestinal'
-        await conn.execute("""
+        src_id = (
+            "src_mohfw_protocols"
+            if "National Health Portal" in chunk.get("source_citation", "")
+            or "MoHFW" in chunk.get("source_citation", "")
+            else "src_ayush_remedies_2024"
+        )
+        domain = "ayush_integrative_health" if "AYUSH" in chunk.get("condition_tag", "") else "gastrointestinal"
+        await conn.execute(
+            """
             INSERT INTO knowledge_chunks (source_id, domain, condition_tags, diet_tags, language, script, content, derived)
             VALUES ($1, $2, $3, $4, 'hinglish', 'latin', $5, FALSE)
             ON CONFLICT DO NOTHING
-        """, src_id, domain, [chunk["condition_tag"]], ["home_remedy"], chunk["guideline_content"])
+        """,
+            src_id,
+            domain,
+            [chunk["condition_tag"]],
+            ["home_remedy"],
+            chunk["guideline_content"],
+        )
 
     total_count = await conn.fetchval("SELECT COUNT(*) FROM clinical_knowledge_base WHERE approval_status = 'approved'")
     total_tags = await conn.fetchval("SELECT COUNT(DISTINCT condition_tag) FROM clinical_knowledge_base")

@@ -3,6 +3,7 @@
 Manages persistent multi-stage onboarding state, field completion tracking,
 stage transitions, database synchronization, and cross-channel persistence.
 """
+
 from __future__ import annotations
 
 import json
@@ -57,7 +58,7 @@ async def sync_known_fields_from_db(patient_id: str, conn: asyncpg.Connection) -
             known["dietary_preference"] = p_row["dietary_preference"]
         if p_row["health_goals"]:
             known["primary_health_goal"] = p_row["health_goals"]
-        if p_row["health_conditions"]:
+        if p_row["health_conditions"] is not None:
             known["diagnosed_conditions"] = list(p_row["health_conditions"])
 
     # 2. patient_pep
@@ -69,7 +70,7 @@ async def sync_known_fields_from_db(patient_id: str, conn: asyncpg.Connection) -
         patient_id,
     )
     if pep_row:
-        if pep_row["diagnosed_conditions"] and not known.get("diagnosed_conditions"):
+        if pep_row["diagnosed_conditions"] is not None and "diagnosed_conditions" not in known:
             known["diagnosed_conditions"] = list(pep_row["diagnosed_conditions"])
         if pep_row["primary_focus"] and not known.get("primary_health_goal"):
             known["primary_health_goal"] = pep_row["primary_focus"]
@@ -134,6 +135,29 @@ async def sync_known_fields_from_db(patient_id: str, conn: asyncpg.Connection) -
         elif "cuisine" in fk:
             known["cultural_regional_preferences"] = fv
 
+    # 5. Check answered questions in journey_question_history
+    try:
+        answered_q_rows = await conn.fetch(
+            """SELECT DISTINCT target_field, extracted_value FROM journey_question_history
+               WHERE patient_id = $1 AND status = 'answered'""",
+            patient_id,
+        )
+        for aq in answered_q_rows:
+            tf = aq["target_field"]
+            if tf and tf not in known:
+                ev = aq["extracted_value"]
+                if ev is not None:
+                    if isinstance(ev, dict) and "value" in ev:
+                        known[tf] = ev["value"]
+                    elif isinstance(ev, list) and len(ev) == 0:
+                        known[tf] = ["none"]
+                    else:
+                        known[tf] = ev
+                else:
+                    known[tf] = ["none"] if tf == "diagnosed_conditions" else True
+    except Exception as exc:
+        logger.debug("Could not sync answered questions from history: %s", exc)
+
     return known
 
 
@@ -197,7 +221,11 @@ async def load_or_create_journey(
 
     # Overall status
     if last_completed >= 4:
-        overall_status = "completed" if current_stage == 5 and len(stage_status["stage_5"]["missing_fields"]) == 0 else "post_onboarding"
+        overall_status = (
+            "completed"
+            if current_stage == 5 and len(stage_status["stage_5"]["missing_fields"]) == 0
+            else "post_onboarding"
+        )
     else:
         overall_status = "in_progress"
 
@@ -244,6 +272,53 @@ async def load_or_create_journey(
     except Exception as exc:
         logger.warning("Database error during journey upsert: %s", exc)
 
+    # Calculate granular field states & pending question
+    pending_question: dict[str, Any] | None = None
+    recent_question: dict[str, Any] | None = None
+    field_history_status: dict[str, str] = {}
+    try:
+        q_rows = await conn.fetch(
+            """SELECT id, question_id, target_field, status, question_text, asked_at
+               FROM journey_question_history
+               WHERE patient_id = $1
+               ORDER BY asked_at DESC LIMIT 25""",
+            patient_id,
+        )
+        if q_rows:
+            recent_question = {
+                "question_id": q_rows[0]["question_id"],
+                "target_field": q_rows[0]["target_field"],
+                "question_text": q_rows[0]["question_text"],
+                "status": q_rows[0]["status"],
+            }
+            for qr in q_rows:
+                tf = qr["target_field"]
+                if tf and tf not in field_history_status:
+                    field_history_status[tf] = qr["status"]
+                if qr["status"] == "asked" and pending_question is None:
+                    pending_question = {
+                        "question_id": qr["question_id"],
+                        "target_field": qr["target_field"],
+                        "question_text": qr["question_text"],
+                    }
+    except Exception as exc:
+        logger.debug("Could not fetch question history for journey state: %s", exc)
+
+    field_states: dict[str, str] = {}
+    for f_name in JOURNEY_FIELDS:
+        if f_name in known_fields:
+            val = known_fields[f_name]
+            if val in (["none"], "none", []):
+                field_states[f_name] = "answered_negatively"
+            else:
+                field_states[f_name] = "answered_positively"
+        elif field_history_status.get(f_name) == "asked":
+            field_states[f_name] = "asked_unanswered"
+        elif field_history_status.get(f_name) == "needs_clarification":
+            field_states[f_name] = "needs_clarification"
+        else:
+            field_states[f_name] = "not_asked"
+
     return {
         "patient_id": patient_id,
         "current_stage": current_stage,
@@ -252,6 +327,9 @@ async def load_or_create_journey(
         "completed_fields": list(completed_keys),
         "skipped_fields": skipped_fields,
         "known_fields": known_fields,
+        "field_states": field_states,
+        "pending_question": pending_question,
+        "recent_question": recent_question,
         "last_completed_stage": last_completed,
         "channel": channel,
     }
@@ -272,13 +350,16 @@ async def record_question_asked(
     now = datetime.now(timezone.utc)
 
     # Check previous attempts
-    prev_attempts = await conn.fetchval(
-        """SELECT attempts FROM journey_question_history
+    prev_attempts = (
+        await conn.fetchval(
+            """SELECT attempts FROM journey_question_history
            WHERE patient_id = $1 AND question_id = $2
            ORDER BY created_at DESC LIMIT 1""",
-        patient_id,
-        question_id,
-    ) or 0
+            patient_id,
+            question_id,
+        )
+        or 0
+    )
 
     row_id = await conn.fetchval(
         """
@@ -352,18 +433,30 @@ async def record_field_answer(
                 val,
             )
         else:
-            default_name = val if field_def.dest_column == "name" else ("Aarav Sharma" if patient_id == "pt_test_01" else patient_id)
-            await conn.execute(
-                f"""INSERT INTO patient_profiles (patient_id, {field_def.dest_column}, name, email, password_hash, created_at)
-                    VALUES ($1, $2, $3, $4, 'pass_hash', $5)
-                    ON CONFLICT (patient_id) DO UPDATE SET
-                    {field_def.dest_column} = EXCLUDED.{field_def.dest_column}""",
-                patient_id,
-                val,
-                default_name,
-                email,
-                now,
-            )
+            if field_def.dest_column == "name":
+                await conn.execute(
+                    """INSERT INTO patient_profiles (patient_id, name, email, password_hash, created_at)
+                        VALUES ($1, $2, $3, 'pass_hash', $4)
+                        ON CONFLICT (patient_id) DO UPDATE SET
+                        name = EXCLUDED.name""",
+                    patient_id,
+                    val,
+                    email,
+                    now,
+                )
+            else:
+                default_name = "Aarav Sharma" if patient_id == "pt_test_01" else patient_id
+                await conn.execute(
+                    f"""INSERT INTO patient_profiles (patient_id, {field_def.dest_column}, name, email, password_hash, created_at)
+                        VALUES ($1, $2, $3, $4, 'pass_hash', $5)
+                        ON CONFLICT (patient_id) DO UPDATE SET
+                        {field_def.dest_column} = EXCLUDED.{field_def.dest_column}""",
+                    patient_id,
+                    val,
+                    default_name,
+                    email,
+                    now,
+                )
     elif dest == FieldDestination.PEP_CORE:
         if field_def.dest_column == "diagnosed_conditions":
             cond_list = val if isinstance(val, list) else [str(val)]
@@ -375,6 +468,11 @@ async def record_field_answer(
                 patient_id,
                 cond_list,
                 now,
+            )
+            await conn.execute(
+                """UPDATE patient_profiles SET health_conditions = $2 WHERE patient_id = $1""",
+                patient_id,
+                cond_list,
             )
         elif field_def.dest_column == "primary_focus":
             await conn.execute(
@@ -440,19 +538,20 @@ async def record_field_answer(
         )
 
     # 2. Mark matching pending questions as answered
+    val_json = json.dumps(val) if isinstance(val, (dict, list)) else json.dumps({"value": val})
     q_def = QUESTION_BY_FIELD.get(field_id)
-    if q_def:
-        val_json = json.dumps(val) if isinstance(val, (dict, list)) else json.dumps({"value": val})
-        await conn.execute(
-            """UPDATE journey_question_history
-               SET status = 'answered', answered_at = $3, response_text = $4, extracted_value = $5::jsonb
-               WHERE patient_id = $1 AND question_id = $2 AND status = 'asked'""",
-            patient_id,
-            q_def.question_id,
-            now,
-            raw_text,
-            val_json,
-        )
+    qid = q_def.question_id if q_def else ""
+    await conn.execute(
+        """UPDATE journey_question_history
+           SET status = 'answered', answered_at = $3, response_text = $4, extracted_value = $5::jsonb
+           WHERE patient_id = $1 AND (question_id = $2 OR target_field = $6) AND status = 'asked'""",
+        patient_id,
+        qid,
+        now,
+        raw_text,
+        val_json,
+        field_id,
+    )
 
     # 3. Reload journey state
     updated_journey = await load_or_create_journey(patient_id, conn, channel=channel)
@@ -509,7 +608,7 @@ async def record_question_deferred(
     now = datetime.now(timezone.utc)
     await conn.execute(
         """UPDATE journey_question_history
-           SET skip_reason = $3, asked_at = $4
+           SET status = 'skipped', skip_reason = $3, asked_at = $4
            WHERE patient_id = $1 AND question_id = $2 AND status = 'asked'""",
         patient_id,
         question_id,

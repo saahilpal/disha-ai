@@ -76,8 +76,11 @@ def eval_correctness_tests() -> tuple[float, bool, str, dict[str, Any]]:
 
     # 1. Pytest invariants
     t0 = time.perf_counter()
+    inv_file = REPO_ROOT / "tests" / "test_invariants.py"
+    if not inv_file.exists():
+        inv_file = DISHA_CORE / "tests" / "test_invariants.py"
     res_pytest = subprocess.run(
-        [python_bin, "-m", "pytest", str(DISHA_CORE / "tests" / "test_invariants.py"), "-q"],
+        [python_bin, "-m", "pytest", str(inv_file), "-q"],
         cwd=str(REPO_ROOT),
         capture_output=True,
         text=True,
@@ -92,7 +95,12 @@ def eval_correctness_tests() -> tuple[float, bool, str, dict[str, Any]]:
     }
 
     # 2. Golden Corpus Runner (2,703 turns)
-    corpus_file = DISHA_CORE / "tests" / "golden_corpus_2703.jsonl"
+    corpus_file = REPO_ROOT / "tests" / "golden_corpus_2703.jsonl"
+    if not corpus_file.exists():
+        corpus_file = DISHA_CORE / "tests" / "golden_corpus_2703.jsonl"
+    runner_file = REPO_ROOT / "tests" / "runner.py"
+    if not runner_file.exists():
+        runner_file = DISHA_CORE / "tests" / "runner.py"
     corpus_sha = "4fb5d89ede5b6a4037fe907c4a1c48d70550656551dc1bf6485c4a19ad647705"
     runner_ok = False
     runner_output: dict[str, Any] = {}
@@ -102,7 +110,7 @@ def eval_correctness_tests() -> tuple[float, bool, str, dict[str, Any]]:
         env["PYTHONPATH"] = str(REPO_ROOT)
         t0 = time.perf_counter()
         res_runner = subprocess.run(
-            [python_bin, str(DISHA_CORE / "tests" / "runner.py"), str(corpus_file), "--sha256", corpus_sha],
+            [python_bin, str(runner_file), str(corpus_file), "--sha256", corpus_sha],
             cwd=str(REPO_ROOT),
             capture_output=True,
             text=True,

@@ -1,4 +1,5 @@
 """Patient Onboarding Journey and Question Scheduler Package."""
+
 from __future__ import annotations
 
 from disha_core.journey.extractor import extract_patient_disclosures
@@ -47,4 +48,3 @@ __all__ = [
     "select_next_question",
     "sync_known_fields_from_db",
 ]
-
