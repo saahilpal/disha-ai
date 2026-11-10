@@ -138,7 +138,8 @@ start() {
   (
     cd "$ROOT_DIR"
     unset DATABASE_URL GROQ_API_KEY GEMINI_API_KEY GOOGLE_API_KEY LAYA_SERVER_URL LAYA_API_KEY
-    export LOCAL_ONLY=true OLLAMA_ENABLED=true OLLAMA_BASE_URL="$OLLAMA_URL" OLLAMA_MODEL
+    # Keep Ollama as the last provider by default; LOCAL_ONLY=true remains an opt-in.
+    export LOCAL_ONLY="${LOCAL_ONLY:-false}" OLLAMA_ENABLED=true OLLAMA_BASE_URL="$OLLAMA_URL" OLLAMA_MODEL
     export LOCAL_STT_URL="${AUDIO_URL}/v1/audio/transcriptions" LOCAL_STT_MODEL="$STT_MODEL"
     export TTS_ENGINE=mlx QWEN3_TTS_URL="${AUDIO_URL}/v1/audio/speech" QWEN3_TTS_MODEL="$TTS_MODEL"
     export LOCAL_TTS_HINDI_VOICE="Hindi (Female)" LOCAL_TTS_ENGLISH_VOICE="English (Indian) (Female)"
@@ -153,7 +154,7 @@ start() {
     echo "Disha API did not become healthy; see ${RUN_DIR}/disha-api.log" >&2
     exit 1
   }
-  echo "Disha is running locally at http://127.0.0.1:${APP_PORT}"
+  echo "Disha is running locally at http://127.0.0.1:${APP_PORT} (Ollama fallback: ${OLLAMA_MODEL})"
   echo "Model server logs and process IDs: ${RUN_DIR}"
 }
 

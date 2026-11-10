@@ -67,6 +67,8 @@ services:
         condition: service_healthy
       laya:
         condition: service_healthy
+    volumes:
+      - ./data:/srv/data:ro
     networks:
       - disha_network
 

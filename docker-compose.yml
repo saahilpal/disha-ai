@@ -50,6 +50,7 @@ services:
       - "127.0.0.1:8000:8000"
     volumes:
       - ./disha_core:/srv/disha_core
+      - ./data:/srv/data:ro
     depends_on:
       postgres:
         condition: service_healthy

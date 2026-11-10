@@ -21,6 +21,8 @@ services:
 
   api:
     build: .
+    volumes:
+      - ../data:/srv/data:ro
     environment:
       DB_HOST: postgres
       DB_PORT: "5432"
