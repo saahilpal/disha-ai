@@ -70,6 +70,9 @@
     activeStreamAbortController: null,
     offlineQueue: [],
     lastUserQuery: '',
+    lastUserClientMsgId: null,
+    lastFailedAssistantMessageElement: null,
+    lastErrorElement: null,
     isScrolledUp: false,
   };
 
@@ -829,7 +832,7 @@
     }
     if (!EMAIL_REGEX.test(clean) || clean.endsWith('.')) {
       if (targetError) {
-        targetError.textContent = 'Please enter a valid RFC-compliant email address (e.g. name@domain.com).';
+        targetError.textContent = 'Please enter a valid email address (e.g. name@domain.com).';
         targetError.className = 'field-feedback error';
       }
       if (targetInput) {
@@ -839,7 +842,7 @@
       return false;
     }
     if (targetError) {
-      targetError.textContent = 'Valid RFC 5322 email syntax';
+      targetError.textContent = 'Email looks good.';
       targetError.className = 'field-feedback success';
     }
     if (targetInput) {
@@ -1068,7 +1071,7 @@
         return;
       }
       if (email.length > 254 || email.split('@')[0].length > 64 || !EMAIL_REGEX.test(email)) {
-        showAlert('Please provide a valid RFC-compliant email address.');
+        showAlert('Please provide a valid email address.');
         return;
       }
       if (password.length < 6) {
@@ -1162,7 +1165,6 @@
         }
 
         await transitionToDashboard();
-        triggerPersonalizedFirstConsultation(name, goals, htnStage);
       } catch (err) {
         showAlert(err.message);
       } finally {
@@ -1170,33 +1172,6 @@
         if (dom.onboardSubmitBtn) dom.onboardSubmitBtn.disabled = false;
       }
     });
-  }
-
-  function triggerPersonalizedFirstConsultation(name, goals, htnStage) {
-    const chatStream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
-    if (!chatStream) return;
-
-    const firstName = name ? name.split(' ')[0] : 'friend';
-    const goalsSummary = goals && goals.length ? goals.slice(0, 2).join(' and ') : 'daily wellness';
-
-    const welcomeMsg = `Namaste ${firstName}! I am Disha, your personal AI health coach. I provide grounded lifestyle, habit, and nutrition guidance. I am not a doctor and cannot diagnose medical emergencies.\n\nHow are you feeling today? Would you like to review today’s nutrition plan or discuss your wellness goals?`;
-
-    // Add proactive companion welcome bubble
-    const msgEl = document.createElement('div');
-    msgEl.className = 'chat-message assistant';
-    msgEl.innerHTML = `
-      <div class="msg-avatar" aria-hidden="true">D</div>
-      <div class="msg-content-wrapper">
-        <div class="msg-bubble">
-          <p class="msg-text">${escapeHtml(welcomeMsg).replace(/\n\n/g, '<br><br>')}</p>
-        </div>
-      </div>
-    `;
-
-    chatStream.appendChild(msgEl);
-    const wrapper = chatStream.closest('.chat-messages-area') || chatStream;
-    wrapper.scrollTop = wrapper.scrollHeight;
-    updateInChatJourneyBanner(1, false);
   }
 
   function updateInChatJourneyBanner(stageNum, isComplete) {
@@ -1244,91 +1219,7 @@
     navigate('chat');
     initSpectrumVisualizer();
     await fetchPatientProfile();
-    const hasHistory = await fetchChatHistory();
-
-    if (!hasHistory) {
-      const chosenLang = (typeof localStorage !== 'undefined' && localStorage.getItem('disha_language_chosen'));
-      if (!chosenLang) {
-        showFirstRunLanguageModal();
-      } else if (state.patientName) {
-        const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
-        if (stream) {
-          const streamText = stream.innerText || stream.textContent || '';
-          if (!streamText.includes(`Namaste ${state.patientName}`)) {
-            appendChatMessage('assistant', `Namaste ${state.patientName}! Main Disha hoon, aapki personal AI health coach. Aaj aap kaisa mehsoos kar rahe hain?`);
-          }
-        }
-      }
-    }
-  }
-
-  function showFirstRunLanguageModal() {
-    if (typeof document === 'undefined') return;
-    const existing = document.getElementById('first-run-lang-modal');
-    if (existing) return;
-
-    const modal = document.createElement('div');
-    modal.id = 'first-run-lang-modal';
-    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.65);display:flex;align-items:center;justify-content:center;z-index:9999;backdrop-filter:blur(4px);';
-    modal.innerHTML = `
-      <div style="background:#fff;border-radius:16px;padding:28px;max-width:420px;width:90%;box-shadow:0 20px 40px rgba(0,0,0,0.2);text-align:center;">
-        <h3 style="margin:0 0 8px;font-size:20px;color:#1a202c;">Choose your language</h3>
-        <p style="margin:0 0 20px;font-size:14px;color:#718096;">अपनी भाषा चुनें / Select your coaching language</p>
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <button type="button" class="lang-opt-btn" data-lang="hinglish" style="padding:14px;border:2px solid #e2e8f0;border-radius:12px;background:#f7fafc;font-size:16px;font-weight:600;cursor:pointer;color:#2d3748;transition:all 0.2s;">
-            Hinglish <span style="font-size:12px;color:#718096;display:block;font-weight:normal;">(Default — Mix of Hindi & English)</span>
-          </button>
-          <button type="button" class="lang-opt-btn" data-lang="hindi" style="padding:14px;border:2px solid #e2e8f0;border-radius:12px;background:#f7fafc;font-size:16px;font-weight:600;cursor:pointer;color:#2d3748;transition:all 0.2s;">
-            हिन्दी <span style="font-size:12px;color:#718096;display:block;font-weight:normal;">(Devanagari Hindi)</span>
-          </button>
-          <button type="button" class="lang-opt-btn" data-lang="english" style="padding:14px;border:2px solid #e2e8f0;border-radius:12px;background:#f7fafc;font-size:16px;font-weight:600;cursor:pointer;color:#2d3748;transition:all 0.2s;">
-            English <span style="font-size:12px;color:#718096;display:block;font-weight:normal;">(Clear, casual English)</span>
-          </button>
-        </div>
-      </div>
-    `;
-    document.body.appendChild(modal);
-
-    const buttons = modal.querySelectorAll('.lang-opt-btn');
-    buttons.forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const selected = btn.getAttribute('data-lang') || 'hinglish';
-        state.language = selected;
-        try {
-          localStorage.setItem('disha_language', selected);
-          localStorage.setItem('disha_language_chosen', 'true');
-        } catch (e) {}
-        if (dom.onboardLanguage) dom.onboardLanguage.value = selected;
-        if (dom.languageSelect) dom.languageSelect.value = selected;
-
-        if (state.token) {
-          const config = getBackendConfig();
-          try {
-            await fetch(`${config.httpBase}/patient/profile`, {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${state.token}`
-              },
-              body: JSON.stringify({ language: selected })
-            });
-          } catch (err) {
-            console.warn('Failed to save language to backend:', err);
-          }
-        }
-        modal.remove();
-
-        const greetings = {
-          hinglish: `Namaste ${state.patientName || ''}! Main Disha hoon, aapki personal AI health coach. Aaj aap kaisa feel kar rahe hain?`,
-          hindi: `नमस्ते ${state.patientName || ''}! मैं दिशा हूँ, आपकी पर्सनल AI हेल्थ कोच। आज आप कैसा महसूस कर रहे हैं?`,
-          english: `Hello ${state.patientName || ''}! I'm Disha, your personal AI health coach. How are you feeling today?`
-        };
-        const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
-        if (stream && !stream.innerText.trim()) {
-          appendChatMessage('assistant', greetings[selected] || greetings.hinglish);
-        }
-      });
-    });
+    await fetchChatHistory();
   }
 
   async function fetchChatHistory() {
@@ -1341,7 +1232,7 @@
           'Authorization': `Bearer ${state.token}`
         }
       });
-      if (!res.ok) {
+      if (res.status === 404) {
         res = await fetch(`${config.httpBase}/chat/history?limit=30`, {
           headers: {
             'Authorization': `Bearer ${state.token}`
@@ -1355,8 +1246,9 @@
         }
         const history = data.messages || data.history || [];
         const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
+        if (stream) stream.innerHTML = '';
+        state.transcriptHistory = [];
         if (stream && history.length > 0) {
-          stream.innerHTML = '';
           for (const turn of history) {
             const role = turn.role === 'assistant' ? 'assistant' : 'user';
             const content = turn.content || '';
@@ -1364,13 +1256,17 @@
               appendChatMessage(role, content);
             }
           }
-          return true;
+          return history.some((turn) => Boolean(turn.content));
         }
+        return false;
       }
+      const detail = await res.json().catch(() => ({}));
+      throw new Error(detail.detail || 'Conversation history could not be loaded. Please retry.');
     } catch (e) {
       console.warn('Failed to load chat history:', e);
+      showAlert('Your conversation could not be loaded. Please retry; it has not been deleted.');
+      return null;
     }
-    return false;
   }
 
   async function fetchPatientProfile() {
@@ -1551,6 +1447,10 @@
     state.token = null;
     state.patientId = null;
     state.patientName = null;
+    state.conversationId = null;
+    state.transcriptHistory = [];
+    state.lastUserClientMsgId = null;
+    if (dom.chatStream) dom.chatStream.innerHTML = '';
     if (state.ws) {
       try { state.ws.close(); } catch (e) {}
       state.ws = null;
@@ -1934,7 +1834,10 @@
     if (typeof retryBtn.addEventListener === 'function') {
       retryBtn.addEventListener('click', () => {
         if (state.lastUserQuery) {
-          dispatchTurn(state.lastUserQuery);
+          dispatchTurn(state.lastUserQuery, {
+            retry: true,
+            clientMsgId: state.lastUserClientMsgId,
+          });
         }
       });
     }
@@ -1979,13 +1882,17 @@
       if (btn && typeof btn.addEventListener === 'function') {
         btn.addEventListener('click', () => {
           if (typeof errorEl.remove === 'function') errorEl.remove();
-          dispatchTurn(retryQuery);
+          dispatchTurn(retryQuery, {
+            retry: true,
+            clientMsgId: state.lastUserClientMsgId,
+          });
         });
       }
     }
 
     chatStream.appendChild(errorEl);
     if (!state.isScrolledUp) scrollChatToBottom();
+    return errorEl;
   }
 
   function updateOnlineStatusUI() {
@@ -2808,31 +2715,42 @@
     });
   }
 
-  async function dispatchTurn(text) {
+  async function dispatchTurn(text, options = {}) {
     if (state.textTurnInFlight) return;
-    state.lastUserQuery = text;
+    const query = String(text || '').trim();
+    if (!query) return;
+    state.lastUserQuery = query;
+    const clientMsgId = options.clientMsgId || ('msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9));
+    state.lastUserClientMsgId = clientMsgId;
+
+    if (options.retry) {
+      if (state.lastErrorElement && state.lastErrorElement.remove) state.lastErrorElement.remove();
+      if (state.lastFailedAssistantMessageElement && state.lastFailedAssistantMessageElement.remove) {
+        state.lastFailedAssistantMessageElement.remove();
+      }
+    }
 
     const isOnline = updateOnlineStatusUI();
     if (!isOnline) {
-      appendChatMessage('user', text + ' (Queued offline)');
-      state.offlineQueue.push(text);
+      appendChatMessage('user', query + ' (Queued offline)');
+      state.offlineQueue.push(query);
       if (typeof showAlert === 'function') showAlert('You are offline. Message has been queued.');
       setTextTurnPending(false);
       return;
     }
 
     setTextTurnPending(true);
-    appendChatMessage('user', text);
+    if (!options.retry) appendChatMessage('user', query);
     setTelephonyStatus('processing');
 
     const chatStream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
 
     if (state.ws && state.ws.readyState === WebSocket.OPEN) {
       try {
-        state.ws.send(JSON.stringify({ type: 'text', text: text }));
+        state.ws.send(JSON.stringify({ type: 'text', text: query, client_msg_id: clientMsgId, conversation_id: state.conversationId || undefined }));
       } catch (err) {
         setTextTurnPending(false);
-        appendInlineError('Message could not be sent. Please retry.', text);
+        appendInlineError('Message could not be sent. Please retry.', query);
       }
       return;
     }
@@ -2866,9 +2784,8 @@
     state.activeStreamAbortController = typeof AbortController !== 'undefined' ? new AbortController() : null;
     const fetchSignal = state.activeStreamAbortController ? state.activeStreamAbortController.signal : undefined;
 
-    const clientMsgId = 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
     const turnPayload = {
-      text: text,
+      text: query,
       client_msg_id: clientMsgId,
       conversation_id: state.conversationId || undefined
     };
@@ -2890,7 +2807,7 @@
         res = null;
       }
 
-      if (!res || !res.ok || !res.body) {
+      if (!res || res.status === 404 || res.status === 405 || (!res.body && res.status == null)) {
         // Fallback to standard /chat endpoint
         const fallbackRes = await fetch(`${config.httpBase}/chat`, {
           method: 'POST',
@@ -2902,7 +2819,7 @@
           signal: fetchSignal,
         });
         if (!fallbackRes.ok) {
-          throw new Error(`Chat request failed: ${fallbackRes.status}`);
+          throw new Error(await userFacingApiError(fallbackRes, 'Message could not be sent. Please retry.'));
         }
         const fallbackData = await fallbackRes.json();
         accumulatedText = fallbackData.response || '';
@@ -2918,6 +2835,7 @@
         }
 
         assistantProvenance = applyMessageProvenance(assistantMsgEl, null, fallbackData);
+        if (fallbackData.conversation_id) state.conversationId = fallbackData.conversation_id;
         if (!state.transcriptHistory) state.transcriptHistory = [];
         assistantHistoryEntry = {
           role: 'assistant',
@@ -2931,7 +2849,12 @@
         state.turnCount = (state.turnCount || 0) + 1;
         setTelephonyStatus('idle');
         if (!state.isScrolledUp) scrollChatToBottom();
+        state.lastFailedAssistantMessageElement = null;
+        state.lastErrorElement = null;
         return;
+      }
+      if (!res.ok || !res.body) {
+        throw new Error(await userFacingApiError(res, 'Message could not be sent. Please retry.'));
       }
 
       const reader = res.body.getReader();
@@ -2947,6 +2870,7 @@
         if (!dataLines.length) return;
         try {
           const parsed = JSON.parse(dataLines.join('\n'));
+          if (parsed.conversation_id) state.conversationId = parsed.conversation_id;
           if (parsed.sentence) {
             accumulatedText = accumulatedText ? `${accumulatedText} ${parsed.sentence}` : parsed.sentence;
             if (assistantTextP) {
@@ -2996,6 +2920,8 @@
       state.turnCount = (state.turnCount || 0) + 1;
       setTelephonyStatus('idle');
       if (!state.isScrolledUp) scrollChatToBottom();
+      state.lastFailedAssistantMessageElement = null;
+      state.lastErrorElement = null;
     } catch (err) {
       if (err.name === 'AbortError') {
         if (assistantTextP) {
@@ -3015,13 +2941,22 @@
           assistantTextP.innerHTML = renderLightMarkdown(accumulatedText);
           appendAssistantActions(assistantMsgEl, accumulatedText);
         }
-        appendInlineError(err.message || 'Service unavailable. Please retry.', text);
+        state.lastFailedAssistantMessageElement = assistantMsgEl;
+        state.lastErrorElement = appendInlineError(err.message || 'Service unavailable. Please retry.', query);
       }
       setTelephonyStatus('idle');
     } finally {
       state.activeStreamAbortController = null;
       setTextTurnPending(false);
     }
+  }
+
+  async function userFacingApiError(response, fallback) {
+    await response.json().catch(() => ({}));
+    if (response.status === 422) return 'Please check your message and try again.';
+    if (response.status === 401) return 'Your session expired. Please sign in again.';
+    if (response.status === 429) return 'Disha is busy right now. Please wait a moment and retry.';
+    return fallback;
   }
 
   function setTextTurnPending(pending) {
@@ -4133,7 +4068,6 @@
     setTelephonyStatus,
     updateLiveCaptions,
     updateInChatJourneyBanner,
-    triggerPersonalizedFirstConsultation,
   };
 
   if (typeof window !== 'undefined') {

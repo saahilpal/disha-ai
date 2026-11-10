@@ -102,12 +102,14 @@ def _response_metadata(
     state: TurnState,
     *,
     status: str | None = None,
+    conversation_id: str | None = None,
 ) -> dict[str, Any]:
     """Return bounded provenance metadata shared by all turn response channels."""
     return {
         "status": status or state.validator_status,
         "evidence_ids": list(state.evidence_ids),
         "retrieval_status": state.retrieval_status,
+        "conversation_id": conversation_id,
     }
 
 
@@ -449,8 +451,20 @@ def create_app() -> FastAPI:
                     conv = await resolve_active_conversation(pool, patient_id)
                     if conv and conv.get("id"):
                         cid = str(conv["id"])
-                        await record_message(pool, cid, patient_id, "user", "chat", payload.text, status="complete")
-                        await record_message(pool, cid, patient_id, "assistant", "chat", text, status="complete")
+                        c_msg_id = getattr(payload, "client_msg_id", None) or str(uuid.uuid4())
+                        await record_message(
+                            pool, cid, patient_id, "user", "chat", payload.text, status="complete", client_msg_id=c_msg_id
+                        )
+                        await record_message(
+                            pool,
+                            cid,
+                            patient_id,
+                            "assistant",
+                            "chat",
+                            text,
+                            status="complete",
+                            client_msg_id=f"{c_msg_id}:assistant",
+                        )
                     await store_conversation_turn(pool, patient_id, payload.text, text)
             _enqueue_audit(
                 request.app.state.ledger,
@@ -486,6 +500,7 @@ def create_app() -> FastAPI:
 
         # Persist turn to active conversation (Spec M1 / Contract 2)
         pool = getattr(request.app.state, "pool", None)
+        conversation_id = None
         if pool is not None:
             with suppress(Exception):
                 from disha_core.services.chat_service import record_message, resolve_active_conversation
@@ -493,11 +508,21 @@ def create_app() -> FastAPI:
                 conv = await resolve_active_conversation(pool, patient_id)
                 if conv and conv.get("id"):
                     cid = str(conv["id"])
+                    conversation_id = cid
                     c_msg_id = getattr(payload, "client_msg_id", None) or str(uuid.uuid4())
                     await record_message(
                         pool, cid, patient_id, "user", "chat", payload.text, status="complete", client_msg_id=c_msg_id
                     )
-                    await record_message(pool, cid, patient_id, "assistant", "chat", output, status="complete")
+                    await record_message(
+                        pool,
+                        cid,
+                        patient_id,
+                        "assistant",
+                        "chat",
+                        output,
+                        status="complete",
+                        client_msg_id=f"{c_msg_id}:assistant",
+                    )
 
         _enqueue_audit(
             request.app.state.ledger,
@@ -505,7 +530,7 @@ def create_app() -> FastAPI:
         )
         return {
             "response": output,
-            **_response_metadata(state),
+            **_response_metadata(state, conversation_id=conversation_id),
         }
 
     @app.post("/chat/stream")
@@ -543,8 +568,20 @@ def create_app() -> FastAPI:
                     conv = await resolve_active_conversation(pool, patient_id)
                     if conv and conv.get("id"):
                         cid = str(conv["id"])
-                        await record_message(pool, cid, patient_id, "user", "chat", payload.text, status="complete")
-                        await record_message(pool, cid, patient_id, "assistant", "chat", text, status="complete")
+                        c_msg_id = getattr(payload, "client_msg_id", None) or str(uuid.uuid4())
+                        await record_message(
+                            pool, cid, patient_id, "user", "chat", payload.text, status="complete", client_msg_id=c_msg_id
+                        )
+                        await record_message(
+                            pool,
+                            cid,
+                            patient_id,
+                            "assistant",
+                            "chat",
+                            text,
+                            status="complete",
+                            client_msg_id=f"{c_msg_id}:assistant",
+                        )
                     await store_conversation_turn(pool, patient_id, payload.text, text)
             _enqueue_audit(
                 request.app.state.ledger,
@@ -598,6 +635,7 @@ def create_app() -> FastAPI:
         state = TurnState()
         pool = getattr(request.app.state, "pool", None)
         asst_msg_id = None
+        conversation_id = None
         if pool is not None:
             with suppress(Exception):
                 from disha_core.services.chat_service import record_message, resolve_active_conversation
@@ -605,11 +643,21 @@ def create_app() -> FastAPI:
                 conv = await resolve_active_conversation(pool, patient_id)
                 if conv and conv.get("id"):
                     cid = str(conv["id"])
+                    conversation_id = cid
                     c_msg_id = getattr(payload, "client_msg_id", None) or str(uuid.uuid4())
                     await record_message(
                         pool, cid, patient_id, "user", "chat", payload.text, status="complete", client_msg_id=c_msg_id
                     )
-                    asst_rec = await record_message(pool, cid, patient_id, "assistant", "chat", "", status="streaming")
+                    asst_rec = await record_message(
+                        pool,
+                        cid,
+                        patient_id,
+                        "assistant",
+                        "chat",
+                        "",
+                        status="streaming",
+                        client_msg_id=f"{c_msg_id}:assistant",
+                    )
                     if asst_rec and asst_rec.get("id"):
                         asst_msg_id = str(asst_rec["id"])
 
@@ -621,7 +669,7 @@ def create_app() -> FastAPI:
                     yield f"data: {json.dumps({'sentence': sentence}, ensure_ascii=False)}\n\n"
                     if await request.is_disconnected():
                         break
-                yield f"event: done\ndata: {json.dumps(_response_metadata(state))}\n\n"
+                yield f"event: done\ndata: {json.dumps(_response_metadata(state, conversation_id=conversation_id))}\n\n"
             except (asyncio.CancelledError, GeneratorExit):
                 pass
             finally:

@@ -186,8 +186,10 @@ async def _with_conn(conn_or_pool: Any, coro_func: Any, *args: Any, **kwargs: An
     return await coro_func(conn_or_pool, *args, **kwargs)
 
 
-async def resolve_active_conversation(conn_or_pool: Any, patient_id: str, channel: str = "chat") -> dict[str, Any]:
-    """Atomically find or create the active (unarchived) conversation for patient_id."""
+async def resolve_active_conversation(
+    conn_or_pool: Any, patient_id: str, channel: str = "chat", create: bool = True
+) -> dict[str, Any]:
+    """Find the active conversation, creating one only when a message needs it."""
 
     async def _resolve(conn: Any) -> dict[str, Any]:
         row = await conn.fetchrow(
@@ -197,6 +199,8 @@ async def resolve_active_conversation(conn_or_pool: Any, patient_id: str, channe
         )
         if row:
             return dict(row)
+        if not create:
+            return {}
         # Create new active conversation
         new_row = await conn.fetchrow(
             "INSERT INTO conversations (user_id, channel, archived) "
@@ -297,7 +301,7 @@ async def update_message_status(
 
 async def get_active_conversation_with_messages(conn_or_pool: Any, patient_id: str, limit: int = 50) -> dict[str, Any]:
     """Retrieve the active conversation entity and its chronological messages for frontend hydration."""
-    conv = await resolve_active_conversation(conn_or_pool, patient_id)
+    conv = await resolve_active_conversation(conn_or_pool, patient_id, create=False)
     if not conv or not conv.get("id"):
         return {"conversation_id": None, "messages": [], "dialogue_state": {}}
 
@@ -307,6 +311,7 @@ async def get_active_conversation_with_messages(conn_or_pool: Any, patient_id: s
         rows = await conn.fetch(
             "SELECT id, seq, role, channel, content, status, client_msg_id, created_at "
             "FROM messages WHERE conversation_id = $1::uuid "
+            "AND (content <> '' OR status = 'complete') "
             "ORDER BY seq ASC LIMIT $2",
             str(conv_id),
             limit,

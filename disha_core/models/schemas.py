@@ -182,6 +182,7 @@ class ChatResponse(BaseModel):
     status: str
     evidence_ids: list[str] = Field(default_factory=list)
     retrieval_status: str = "not_requested"
+    conversation_id: str | None = None
 
 
 class ClientErrorPayload(BaseModel):
