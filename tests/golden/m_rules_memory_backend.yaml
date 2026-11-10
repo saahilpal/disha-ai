@@ -1,0 +1,120 @@
+version: "1.0.0"
+spec: "Behavior Spec v1"
+category: "memory_backend"
+description: "Golden test cases for Rules M1 to M3 covering Memory Retention Across Turns, Ambiguity Handling, and Root System Prompt Rendering Integrity."
+
+cases:
+  # -------------------------------------------------------------
+  # M1: Memory retention across turns & no false memories
+  # -------------------------------------------------------------
+  - id: "GOLDEN-M1-001"
+    rule_id: "M1"
+    name: "Memory retention: Do not re-ask known duration in Turn 2"
+    category: "memory_backend"
+    language: "hinglish"
+    description: "When duration was established in Turn 1, Turn 2 must advance to past attempts, never re-asking duration."
+    expected_move: "triangle_question"
+    expected_triangle_axis: "past_attempts"
+    candidate_response: "Theek hai, pichle do hafte se ho raha hai toh dhyan dena zaroori hai. Kya iske liye koi gharelu nuskha ya dawa li hai?"
+    expected_valid: true
+    expected_violations: []
+    context:
+      current_concern: "migraine"
+      triangle_status:
+        duration: "answered"
+        past_attempts: "unknown"
+        severity: "unknown"
+      known_facts:
+        duration: "2 weeks"
+
+  - id: "GOLDEN-M1-002"
+    rule_id: "M1"
+    name: "Rejection of false memory claim (referencing non-existent past conversation)"
+    category: "memory_backend"
+    language: "english"
+    description: "Assistant referencing prior conversations or what was said 'yesterday' when no prior history exists is rejected."
+    candidate_response: "As you mentioned yesterday, your stomach pain has been ongoing. Let us see what else helps."
+    expected_valid: false
+    expected_violations:
+      - "false_memory_claims"
+    context:
+      user_input: "My stomach hurts"
+      history_present: false
+
+  # -------------------------------------------------------------
+  # M2: Ambiguity handler - Clarify vague/incomplete answers first
+  # -------------------------------------------------------------
+  - id: "GOLDEN-M2-001"
+    rule_id: "M2"
+    name: "Clarification required when user response is vague"
+    category: "memory_backend"
+    language: "hinglish"
+    description: "Vague answer like 'kuch dino se' triggers clarify move, which becomes the turn's single question."
+    expected_move: "clarify"
+    candidate_response: "Thoda aur clear karein, kya yeh lagbhag 2-3 din se hai ya ek hafte se zyada?"
+    expected_valid: true
+    expected_violations: []
+    context:
+      current_concern: "back pain"
+      answer_quality: "vague"
+      user_input: "Bas kuch dino se ho raha hai"
+
+  - id: "GOLDEN-M2-002"
+    rule_id: "M2"
+    name: "Clarification required when user response is incomplete"
+    category: "memory_backend"
+    language: "english"
+    description: "Incomplete answer triggers clarification move before advancing triangle axes."
+    expected_move: "clarify"
+    candidate_response: "To help me understand better, did the discomfort start suddenly or build up gradually?"
+    expected_valid: true
+    expected_violations: []
+    context:
+      current_concern: "chest discomfort"
+      answer_quality: "incomplete"
+      user_input: "Sometimes it just happens"
+
+  # -------------------------------------------------------------
+  # M3: Root system prompt rendering integrity
+  # -------------------------------------------------------------
+  - id: "GOLDEN-M3-001"
+    rule_id: "M3"
+    name: "Rendered prompt contains all 18 Behavior Spec v1 rule IDs"
+    category: "memory_backend"
+    language: "all"
+    description: "The root system prompt must explicitly contain every rule ID [P1] to [P6], [F1] to [F5], [C1] to [C4], [M1] to [M3]."
+    expected_rule_ids:
+      - "P1"
+      - "P2"
+      - "P3"
+      - "P4"
+      - "P5"
+      - "P6"
+      - "F1"
+      - "F2"
+      - "F3"
+      - "F4"
+      - "F5"
+      - "C1"
+      - "C2"
+      - "C3"
+      - "C4"
+      - "M1"
+      - "M2"
+      - "M3"
+
+  - id: "GOLDEN-M3-002"
+    rule_id: "M3"
+    name: "Prompt token budget strictly under 600 tokens"
+    category: "memory_backend"
+    language: "hinglish"
+    description: "The rendered system prompt must be compact (<= 600 estimated tokens via chars // 4)."
+    max_token_budget: 600
+
+  - id: "GOLDEN-M3-003"
+    rule_id: "M3"
+    name: "Prompt version hash presence"
+    category: "memory_backend"
+    language: "hinglish"
+    description: "Rendered prompt must contain a valid PROMPT_VERSION string starting with 'v1-'."
+    expected_version_prefix: "v1-"
