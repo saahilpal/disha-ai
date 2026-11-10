@@ -56,8 +56,8 @@ sequenceDiagram
         Main->>DB: Resolve active conversation & insert user message (status=complete)
         Main->>DB: Insert assistant placeholder (status=streaming)
         Main->>Harness: execute_turn(TurnRequest)
-        Harness->>Harness: Perceive (detect lang, distress, C1 triangle, intent)
-        Harness->>Harness: Deterministic Move Selection (precedence order)
+        Harness->>Harness: Build bounded context (PEP, memory, recent turns, journey state)
+        Harness->>Harness: Apply deterministic safety/data-integrity gates
         Harness->>LLM: Stream draft with v1 prompt (≤600 tokens)
         Harness->>Verifier: Whole-draft verification (P3, P4, P6, F1, F2, F4, C2)
         alt Verification Fails
@@ -71,9 +71,8 @@ sequenceDiagram
 
 ### 2.2 Voice Path (`/voice` & `/ws/conversation`)
 Located in `disha_core/main.py:628-830` and `disha_core/voice.py`:
-1. **Audio Ingestion:** Browser streams 16kHz PCM WebM audio chunks via WebSocket.
-2. **VAD (Voice Activity Detection):** Silero VAD (ONNX) evaluates audio frames in 68µs with zero false triggers.
-3. **STT (Speech-To-Text):** Groq `whisper-large-v3-turbo` with `language` hints (`hi` for Hinglish/Hindi, `en` for English).
+1. **Audio Ingestion:** Browser sends a completed audio clip or text turn over WebSocket.
+2. **STT (Speech-To-Text):** Configured Groq Whisper or local STT endpoint transcribes completed audio clips.
 4. **LLM Generation:** Real-time generation through `ResponseHarness`.
 5. **Sentence-by-Sentence TTS:** Sentences stream to Edge-TTS (`hi-IN-SwaraNeural`) for Hindi/Hinglish or Qwen3-TTS for English.
 6. **Barge-in Support:** Client sends `interrupt` control frames; server immediately cancels active generation and drops TTS buffers.
@@ -95,7 +94,7 @@ Implemented in `disha_core/services/chat_service.py` and `disha_core/db/schema.s
 - **`patient_profiles` table:** Core demographic, preferred language (`hinglish`, `english`, `hindi`), and registration state.
 - **`patient_pep` table:** Personal Experience Profile storing dietary preferences, diagnosed conditions, physical restrictions, and primary health goals.
 - **`patient_temporal_facts` table:** Epistemic facts with status (`active`, `superseded`) and validity timestamps.
-- **Extraction Path:** Runs asynchronously off the live turn path to prevent adding latency to user responses.
+- **Extraction Path:** Disclosure extraction runs in the shared turn path so the current turn and PEP/memory updates stay consistent; it is bounded by the same database connection lifecycle.
 
 ---
 
@@ -124,6 +123,6 @@ Implemented in `disha_core/services/chat_service.py` and `disha_core/db/schema.s
 ## 7. Configuration & Secrets Model
 
 - **Settings Class:** `disha_core/config.py` using Pydantic `Settings.from_env()`.
-- **Feature Flag:** `BEHAVIOR_SPEC_V1` (default `True`). Set `BEHAVIOR_SPEC_V1=false` to rollback to legacy prompt and fallbacks.
+- **Compatibility Flag:** `BEHAVIOR_SPEC_V1` is retained for callers that pass the old argument, but the runtime always uses the single `data/behavior_rules.yaml` policy. It does not restore a second legacy behavior system.
 - **Hygiene Enforcement:** `scripts/hardcode-check` scans AST and regex patterns across the codebase to ensure zero secrets, API keys, or raw passwords are committed.
 

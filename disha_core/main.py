@@ -105,12 +105,14 @@ def _response_metadata(
     conversation_id: str | None = None,
 ) -> dict[str, Any]:
     """Return bounded provenance metadata shared by all turn response channels."""
-    return {
+    metadata = {
         "status": status or state.validator_status,
         "evidence_ids": list(state.evidence_ids),
         "retrieval_status": state.retrieval_status,
-        "conversation_id": conversation_id,
     }
+    if conversation_id is not None:
+        metadata["conversation_id"] = conversation_id
+    return metadata
 
 
 async def _authenticated_patient(request: Request | WebSocket, authorization: str | None) -> str:
@@ -785,6 +787,7 @@ def create_app() -> FastAPI:
             transcript = ""
             state = TurnState()
             output: list[str] = []
+            client_msg_id = f"voice:{uuid.uuid4()}"
             try:
                 async with asyncio.timeout(30.0):
                     transcript = await transcribe_groq(audio, language=stored_lang)
@@ -826,10 +829,24 @@ def create_app() -> FastAPI:
                             if conv and conv.get("id"):
                                 cid = str(conv["id"])
                                 await record_message(
-                                    pool, cid, patient_id, "user", "voice", transcript, status="complete"
+                                    pool,
+                                    cid,
+                                    patient_id,
+                                    "user",
+                                    "voice",
+                                    transcript,
+                                    status="complete",
+                                    client_msg_id=client_msg_id,
                                 )
                                 await record_message(
-                                    pool, cid, patient_id, "assistant", "voice", " ".join(output), status="complete"
+                                    pool,
+                                    cid,
+                                    patient_id,
+                                    "assistant",
+                                    "voice",
+                                    " ".join(output),
+                                    status="complete",
+                                    client_msg_id=f"{client_msg_id}:assistant",
                                 )
                             await store_conversation_turn(pool, patient_id, transcript, " ".join(output))
 
@@ -840,9 +857,10 @@ def create_app() -> FastAPI:
                         ),
                     )
 
-        async def process_text(text: str) -> None:
+        async def process_text(text: str, client_msg_id: str | None = None) -> None:
             state = TurnState()
             output: list[str] = []
+            client_msg_id = client_msg_id or f"voice:{uuid.uuid4()}"
             try:
                 async with asyncio.timeout(30.0):
                     await websocket.send_json({"type": "transcript", "text": text, "is_text_echo": True})
@@ -877,9 +895,25 @@ def create_app() -> FastAPI:
                             conv = await resolve_active_conversation(pool, patient_id, channel="voice")
                             if conv and conv.get("id"):
                                 cid = str(conv["id"])
-                                await record_message(pool, cid, patient_id, "user", "voice", text, status="complete")
                                 await record_message(
-                                    pool, cid, patient_id, "assistant", "voice", " ".join(output), status="complete"
+                                    pool,
+                                    cid,
+                                    patient_id,
+                                    "user",
+                                    "voice",
+                                    text,
+                                    status="complete",
+                                    client_msg_id=client_msg_id,
+                                )
+                                await record_message(
+                                    pool,
+                                    cid,
+                                    patient_id,
+                                    "assistant",
+                                    "voice",
+                                    " ".join(output),
+                                    status="complete",
+                                    client_msg_id=f"{client_msg_id}:assistant",
                                 )
                             await store_conversation_turn(pool, patient_id, text, " ".join(output))
 
@@ -901,6 +935,7 @@ def create_app() -> FastAPI:
                     break
                 audio = message.get("bytes")
                 text_input = None
+                text_client_msg_id = None
                 is_interrupt = False
                 if audio is None and message.get("text"):
                     with suppress(Exception):
@@ -919,6 +954,7 @@ def create_app() -> FastAPI:
                                 audio = base64.b64decode(parsed["data"])
                             elif msg_type == "text" and parsed.get("text"):
                                 text_input = str(parsed["text"]).strip()
+                                text_client_msg_id = str(parsed.get("client_msg_id") or "").strip() or None
                             elif msg_type in ("interim_transcript", "interim", "partial_transcript") and parsed.get(
                                 "text"
                             ):
@@ -964,7 +1000,7 @@ def create_app() -> FastAPI:
                     turn_task = asyncio.create_task(process_audio(audio))
                 else:
                     assert text_input is not None
-                    turn_task = asyncio.create_task(process_text(text_input))
+                    turn_task = asyncio.create_task(process_text(text_input, text_client_msg_id))
         except (WebSocketDisconnect, RuntimeError):
             pass
         except Exception as exc:

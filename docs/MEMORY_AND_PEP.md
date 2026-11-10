@@ -42,7 +42,7 @@ The schema also contains journey state/history and habit-state/episode tables. T
 
 The prescribed-meal path queries an active approved row for the user's weekday and `breakfast`, `lunch`, or `dinner`. If the user does not specify a meal window, the turn asks which one; an unavailable or missing record is reported rather than replaced with a generic meal. The profile read uses the same approval/active filters.
 
-General meal or recipe suggestions require relevant approved knowledge records. This repository does not establish a validated recipe-composition or food-composition service for constructing complete meal plans or calculating exact calories/macronutrients. Seed/import content being present is not evidence that it is reviewed or licensed.
+General meal or recipe suggestions use relevant approved knowledge records when available. If retrieval returns nothing, the model may still provide cautious general wellness guidance without inventing evidence, prescriptions, or exact clinical numbers. This repository does not establish a validated recipe-composition or food-composition service for constructing complete meal plans or calculating exact calories/macronutrients. Seed/import content being present is not evidence that it is reviewed or licensed.
 
 ## Knowledge retrieval and evidence
 
@@ -52,7 +52,7 @@ See [Knowledge inventory](knowledge/INVENTORY.md) and [retrieval details](archit
 
 ## Exercise safety
 
-`disha_core.pep.exercise_safety` extracts selected risk tags, blocks an explicit recorded restriction that matches the requested exercise, and otherwise returns an insufficient-information result rather than choosing an exercise. The shared turn pipeline also withholds personalized exercise recommendations when it finds selected risk signals or lacks essential safety context. This is a conservative partial check—not a complete eligibility engine, medical clearance, or routine/alternative generator. A retrieved exercise passage is not proof of an individual's suitability.
+`disha_core.pep.exercise_safety` extracts selected risk tags and blocks an explicit recorded restriction that matches the requested exercise. The model can ask for relevant safety context or offer cautious general movement guidance when no risk signal is recorded; it never grants medical clearance. This is a partial check—not a complete eligibility engine or routine/alternative generator. A retrieved exercise passage is not proof of an individual's suitability.
 
 ## What this implementation does not prove
 

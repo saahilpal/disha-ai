@@ -41,7 +41,6 @@ from disha_core.pipeline.validator import (
     MEAL_NOT_FOUND_REPLACEMENT,
     PEP_REPLACEMENT,
     SentenceValidator,
-    knowledge_unavailable_response,
 )
 
 logger = logging.getLogger("disha_core.harness")
@@ -302,7 +301,6 @@ class ResponseHarness:
                             extract_patient_disclosures,
                             load_or_create_journey,
                             record_field_answer,
-                            select_next_question,
                         )
 
                         lang = normalize_preferred_language((context.get("pep") or {}).get("language"))
@@ -345,23 +343,8 @@ class ResponseHarness:
                                     patient_id,
                                     pending_row["question_id"],
                                 )
-                        # Prioritize user's immediate question without forcing onboarding questionnaire (Bug 5)
-                        suppress_question = is_coaching_query or is_off_topic
-                        if not is_incomplete_thought and not suppress_question:
-                            scheduled_q = await select_next_question(
-                                patient_id=patient_id,
-                                journey_state=journey_state,
-                                user_turn_text=payload.text,
-                                channel=channel,
-                                is_emergency=False,
-                                is_off_topic_query=is_off_topic,
-                                conn=connection,
-                                preferred_lang=lang,
-                                auto_record=False,
-                            )
-                            if scheduled_q:
-                                context["scheduled_question"] = scheduled_q.text
-                                context["scheduled_question_obj"] = scheduled_q
+                        # Journey state and disclosures are persisted, but the model owns
+                        # conversational direction; onboarding never injects a question.
 
                     should_retrieve = not prescribed_meal_query and (
                         bool(normalized.tags)
@@ -426,10 +409,6 @@ class ResponseHarness:
             tc.retrieval.skipped = True
 
         # 1i. Clinical Grounding & Exercise Safety Gates
-        requires_grounding = normalized.is_recommendation_request and not is_incomplete_thought
-        if prescribed_meal_query and context.get("diet_status") == "FOUND":
-            requires_grounding = False
-
         if normalized.is_exercise_query and normalized.is_recommendation_request:
             pep_context = context.get("pep") or {}
             safety_tags = extract_patient_health_tags(
@@ -440,12 +419,6 @@ class ResponseHarness:
                 ],
                 physical_limitations=pep_context.get("restricted_modalities") or (),
                 diagnosed_conditions=pep_context.get("diagnosed_conditions") or (),
-            )
-            has_recorded_safety_context = bool(
-                pep_context.get("user_reported_concerns")
-                or pep_context.get("restricted_modalities")
-                or pep_context.get("diagnosed_conditions")
-                or (pep_context.get("hypertension_stage") or "").casefold() not in {"", "unknown", "none"}
             )
             if safety_tags:
                 state.validator_status = "deflected:exercise_suitability_uncertain"
@@ -459,26 +432,6 @@ class ResponseHarness:
                 await _commit_turn(app_state, patient_id, payload.text, msg)
                 yield msg
                 return
-            if not has_recorded_safety_context:
-                state.validator_status = "deflected:exercise_context_required"
-                tc.validator.status = "deflected:exercise_context_required"
-                msg = (
-                    "Personalized exercise suggestion se pehle batayein ki aapko pain, injury, recent surgery, "
-                    "mobility difficulty, heart condition, ya exercise restriction hai ya nahi. Bina is context "
-                    "ke main workout recommend nahi karungi."
-                )
-                await _commit_turn(app_state, patient_id, payload.text, msg)
-                yield msg
-                return
-
-        if requires_grounding and not chunks:
-            state.validator_status = "deflected:knowledge_unavailable"
-            tc.validator.status = "deflected:knowledge_unavailable"
-            preferred_language = (context.get("pep") or {}).get("language")
-            msg = knowledge_unavailable_response(preferred_language)
-            await _commit_turn(app_state, patient_id, payload.text, msg)
-            yield msg
-            return
 
         add_approved_remedy_constraints(context, chunks)
         tc.record_stage_latency("PERCEIVE", (time.monotonic() - t0) * 1000.0)
@@ -621,26 +574,6 @@ class ResponseHarness:
                                 "UPDATE patient_pep SET language = $1 WHERE patient_id = $2", detected_lang, patient_id
                             )
                             logger.info("D5: Silently switched patient %s language to %s", patient_id, detected_lang)
-
-            # Record scheduled question only if actually delivered in the reply
-            scheduled_q_obj = context.get("scheduled_question_obj")
-            if scheduled_q_obj and getattr(app_state, "pool", None) is not None:
-                q_text_sample = scheduled_q_obj.text.split("?")[0].strip()
-                was_delivered = "?" in full_reply and any(
-                    word in full_reply.lower() for word in q_text_sample.lower().split()[-4:]
-                )
-                if was_delivered:
-                    with suppress(Exception):
-                        from disha_core.journey.state_machine import record_question_asked
-
-                        async with app_state.pool.acquire() as q_conn:
-                            await record_question_asked(
-                                patient_id=patient_id,
-                                question_id=scheduled_q_obj.question_id,
-                                channel=channel,
-                                question_text=scheduled_q_obj.text,
-                                conn=q_conn,
-                            )
 
         tc.record_stage_latency("COMMIT", (time.monotonic() - t3) * 1000.0)
         tc.record_stage_latency("TOTAL_TURN", (time.monotonic() - t_start) * 1000.0)

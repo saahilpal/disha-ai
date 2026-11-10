@@ -300,15 +300,15 @@ async def test_dataset_updates_change_live_turn_and_provenance_without_code_chan
 
 
 @pytest.mark.asyncio
-async def test_missing_knowledge_abstains_without_calling_the_llm():
+async def test_missing_knowledge_still_uses_the_coach_without_inventing_retrieval():
     connection = FakeConnection()
 
     response, state, llm = await _run_turn(connection, "user-a", "How much water should I drink?")
 
-    assert "reliable guidance" in response
-    assert state.validator_status == "deflected:knowledge_unavailable"
+    assert "retrieved content" in response
+    assert state.validator_status != "deflected:knowledge_unavailable"
     assert state.evidence_ids == []
-    assert llm.prompts == []
+    assert len(llm.prompts) == 1
 
 
 @pytest.mark.asyncio
@@ -388,7 +388,7 @@ async def test_personalized_exercise_is_not_recommended_with_missing_safety_cont
 
     response, state, llm = await _run_turn(connection, "new-user", "What workout should I do?")
 
-    assert "mobility difficulty" in response
-    assert state.validator_status == "deflected:exercise_context_required"
+    assert "exercise guidance" in response
+    assert state.validator_status != "deflected:exercise_context_required"
     assert state.evidence_ids == ["kb-exercise-2"]
-    assert llm.prompts == []
+    assert len(llm.prompts) == 1
