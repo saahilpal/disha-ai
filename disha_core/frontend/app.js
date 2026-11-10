@@ -28,6 +28,7 @@
     patientId: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_patient_id')) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_id')) || null,
     patientName: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_patient_name')) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_name')) || null,
     conversationHydrated: false,
+    welcomeRendered: false,
     language: normalizeLanguageCode(
       typeof localStorage !== 'undefined' && localStorage.getItem('disha_language')
     ),
@@ -487,8 +488,11 @@
           throw new Error(error.detail || 'Could not save your language preference.');
         }
 
+        const updatedProfile = await response.json().catch(() => null);
+        if (updatedProfile) updateDrawerUI(updatedProfile);
         state.language = language;
         updateI18nTexts(language);
+        if (state.welcomeRendered) renderWelcome();
         try {
           localStorage.setItem('disha_language', language);
         } catch (error) {
@@ -1250,6 +1254,7 @@
         const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
         if (stream) stream.innerHTML = '';
         state.transcriptHistory = [];
+        state.welcomeRendered = false;
         if (stream && history.length > 0) {
           for (const turn of history) {
             const role = turn.role === 'assistant' ? 'assistant' : 'user';
@@ -1262,6 +1267,7 @@
           return history.some((turn) => Boolean(turn.content));
         }
         state.conversationHydrated = true;
+        renderWelcome();
         return false;
       }
       const detail = await res.json().catch(() => ({}));
@@ -1272,6 +1278,26 @@
       showAlert('Your conversation could not be loaded. Please retry; it has not been deleted.');
       return null;
     }
+  }
+
+  function renderWelcome() {
+    const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
+    if (!stream || !state.conversationHydrated) return null;
+    const text = state.patientProfile?.welcome_question;
+    if (!text) return null;
+    const existing = typeof stream.querySelector === 'function' ? stream.querySelector('.chat-message.welcome') : null;
+    if (existing) {
+      state.welcomeRendered = true;
+      const textEl = existing.querySelector('.msg-text');
+      if (textEl) textEl.innerHTML = renderLightMarkdown(text);
+      const entry = (state.transcriptHistory || []).find((item) => item.meta === 'welcome');
+      if (entry) entry.text = text;
+      return existing;
+    }
+    state.welcomeRendered = true;
+    const message = appendChatMessage('assistant', text, 'welcome');
+    if (message) message.classList.add('welcome');
+    return message;
   }
 
   async function fetchPatientProfile() {
@@ -1454,6 +1480,7 @@
     state.patientName = null;
     state.conversationId = null;
     state.conversationHydrated = false;
+    state.welcomeRendered = false;
     state.transcriptHistory = [];
     state.lastUserClientMsgId = null;
     if (dom.chatStream) dom.chatStream.innerHTML = '';
@@ -4078,6 +4105,7 @@
     setTelephonyStatus,
     updateLiveCaptions,
     updateInChatJourneyBanner,
+    renderWelcome,
   };
 
   if (typeof window !== 'undefined') {

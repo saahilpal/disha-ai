@@ -17,6 +17,52 @@ def _pep_val(row: Any, key: str, default: Any = None) -> Any:
         return default
 
 
+def _welcome_question(profile: Any, pep: Any) -> str:
+    profile = dict(profile or {})
+    pep = dict(pep or {})
+    language = str(profile.get("language") or "hinglish").strip().lower()
+    goals = profile.get("health_goals") or profile.get("health_focuses") or []
+    if isinstance(goals, str):
+        goals = [goals]
+    goal = pep.get("primary_focus") or (goals[0] if goals else "")
+    concern = pep.get("user_reported_concerns") or profile.get("health_focus_other")
+    conditions = pep.get("diagnosed_conditions") or []
+    if isinstance(conditions, str):
+        conditions = [conditions]
+    condition = conditions[0] if conditions else ""
+    diet = profile.get("dietary_preference") or pep.get("dietary_preference")
+
+    if language in {"hi", "hindi"}:
+        if concern:
+            return f"आपने {concern} का ज़िक्र किया है। रोज़मर्रा में इसका असर कैसा पड़ रहा है?"
+        if goal:
+            return f"आपके लिए {goal} महत्वपूर्ण है। अब तक इसमें सबसे मुश्किल या उत्साह बढ़ाने वाली बात क्या रही है?"
+        if condition:
+            return f"मैं आपकी {condition} से जुड़ी जानकारी ध्यान में रखूँगी। रोज़मर्रा में अभी चीज़ें कैसी चल रही हैं?"
+        if diet:
+            return f"आपका {diet} का चुनाव समझ में आया। आपकी रोज़ की दिनचर्या में अभी किस चीज़ पर काम करना सबसे आसान लगेगा?"
+        return "मैं समझना चाहती हूँ कि आपके लिए सेहत का मतलब क्या है। इस समय आप अपनी सेहत पर ध्यान क्यों देना चाहते हैं?"
+    if language not in {"en", "english"}:
+        if concern:
+            return f"Aapne {concern} ka zikr kiya hai. Roz ke din mein iska asar kaisa pad raha hai?"
+        if goal:
+            return f"{goal} aapke liye important hai. Ab tak sabse mushkil ya encouraging kya raha hai?"
+        if condition:
+            return f"Aapki {condition} se judi baat dhyaan mein hai. Rozmarra mein abhi cheezein kaisi chal rahi hain?"
+        if diet:
+            return f"Aapki {diet} preference samajh aayi. Daily routine mein kis cheez par kaam karna sabse easy lagega?"
+        return "Main samajhna chahti hoon ki aapke liye health ka matlab kya hai. Is waqt aap apni health par focus kyun karna chahte hain?"
+    if concern:
+        return f"You mentioned {concern}. How has it been affecting your day lately?"
+    if goal:
+        return f"{goal} matters to you. What has felt hardest—or most encouraging—so far?"
+    if condition:
+        return f"I have your {condition} in mind. How are things going with it day to day?"
+    if diet:
+        return f"I’ve noted your {diet} preference. What part of your daily routine feels easiest to build on right now?"
+    return "I’d like to understand what matters to you. What made you want to focus on your health at this point?"
+
+
 async def fetch_patient_profile(pool: Any, patient_id: str, day: str) -> dict[str, Any]:
     """Fetch patient clinical profile, PEP bounds, and prescribed day diet."""
     if pool is None:
@@ -68,6 +114,7 @@ async def fetch_patient_profile(pool: Any, patient_id: str, day: str) -> dict[st
             "user_reported_concerns": _pep_val(pep_row, "user_reported_concerns", ""),
             "diagnosed_conditions": list(_pep_val(pep_row, "diagnosed_conditions", [])),
         },
+        "welcome_question": _welcome_question(profile_row, pep_row),
         "today_diet": diet_map,
         "journey": dict(journey_row)
         if journey_row

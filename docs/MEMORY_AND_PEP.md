@@ -20,6 +20,10 @@ The request schema also accepts fields such as `hypertension_stage`, `gym_cleara
 
 During chat/voice turns, `disha_core.journey` may extract multiple answers, update journey state, and write mapped values into profile, PEP, `memory_items`, `patient_temporal_facts`, or habit/episode tables. These mappings and database constraints do not create an authenticated clinician-review workflow.
 
+### First welcome
+
+The authenticated profile response also returns one transient `welcome_question`. The backend selects it from active PEP/profile values, prefers an existing concern or goal, and falls back to an open-ended motivation question when no meaningful context exists. The browser renders that value only after conversation history hydration, marks it as a welcome message, and updates the same message on a language change; it never stores the welcome as a conversation turn or creates a duplicate on refresh/login.
+
 Discovery is coordinated in the shared response harness for both chat and voice. After current-turn disclosures are persisted, the existing scheduler selects at most one relevant pending detail and records it as pending so a natural answer can be mapped deterministically. It may choose a later-stage field when the user's current wording makes that field useful; stage numbers remain completeness metadata, not a conversational sequence. The model receives the opportunity as optional context and can answer, explore, or close without mentioning PEP, stages, or a checklist. Topic shifts defer the pending question rather than forcing it. Final response verification now honors the turn's selected length policy, so substantive coaching is not mechanically repaired back to three sentences.
 
 ## Long-term PEP update lifecycle

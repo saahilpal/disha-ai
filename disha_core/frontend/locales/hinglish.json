@@ -44,8 +44,7 @@
     "stage_5_title": "Deep Personalisation & Sustained Coaching",
     "stage_5_desc": "Verified coaching plan aur personalized guidance.",
     "stage_pill": "Stage {current} of 5",
-    "complete_badge": "Onboarding Complete",
-    "welcome_message": "Namaste {name}! Main Disha hoon, aapki personal AI health coach. Main lifestyle, diet aur healthy habits mein aapko guide karti hoon. Main ek doctor nahi hoon aur emergency medical treatment nahi de sakti.\n\nAaj aap kaisa mehsoos kar rahe hain? Kya aap aaj ka nutrition plan dekhna chahenge ya wellness goals par baat karein?"
+    "complete_badge": "Onboarding Complete"
   }
 }
 
