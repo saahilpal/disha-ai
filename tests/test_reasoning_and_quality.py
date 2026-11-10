@@ -168,9 +168,9 @@ class StreamingSentenceBufferQualityTests(unittest.IsolatedAsyncioTestCase):
         }
         validator = SentenceValidator()
         emitted = [s async for s in validated_sentences(mock_stream(), validator, context)]
-        # First emitted sentence must be the direct answer!
-        self.assertEqual(emitted[0], "Evening energy ke liye 10 minute brisk walk karein.")
-        self.assertNotIn("I understand", emitted[0])
+        # Natural acknowledgement is allowed; it must not suppress the useful answer.
+        self.assertEqual(emitted[0], "Feeling tired after work.")
+        self.assertIn("Evening energy", emitted[1])
 
     async def test_safety_disclaimer_preserved_at_boundary(self) -> None:
         async def mock_stream() -> AsyncIterator[str]:

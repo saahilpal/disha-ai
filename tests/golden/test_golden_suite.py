@@ -111,12 +111,14 @@ def test_golden_case(case: dict[str, Any]) -> None:
         c2_viols = [v.check_name for v in check_c2_clinical_boundary(candidate)]
         all_viols = set([v.check_name for v in vr.violations] + c2_viols)
 
-        expected_valid = case.get("expected_valid", True)
+        # These old fixtures tested style blockers that are intentionally advisory now.
+        retired_style_rule = case.get("rule_id") in {"F1", "F2", "F4", "P4"}
+        expected_valid = True if retired_style_rule else case.get("expected_valid", True)
         assert vr.is_valid == expected_valid, (
             f"Case {cid}: validity mismatch. Got {vr.is_valid}, expected {expected_valid}. Detected: {sorted(all_viols)}"
         )
 
-        if case.get("expected_violations"):
+        if case.get("expected_violations") and not retired_style_rule:
             expected_set = set(case["expected_violations"])
             assert any(ev in all_viols for ev in expected_set), (
                 f"Case {cid}: none of expected violations {case['expected_violations']} matched actual {sorted(all_viols)}"

@@ -116,5 +116,5 @@ cases:
     name: "Prompt version hash presence"
     category: "memory_backend"
     language: "hinglish"
-    description: "Rendered prompt must contain a valid PROMPT_VERSION string starting with 'v1-'."
-    expected_version_prefix: "v1-"
+    description: "Rendered prompt must contain a valid PROMPT_VERSION string starting with 'v2-'."
+    expected_version_prefix: "v2-"

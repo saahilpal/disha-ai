@@ -29,7 +29,6 @@ from disha_core.engine.normalizer import (
     normalize,
 )
 from disha_core.engine.retriever import retrieve_chunks
-from disha_core.harness.planner import StructuredPlan, build_structured_plan
 from disha_core.harness.repair import format_system_error, repair_turn
 from disha_core.harness.verifier import verify_response
 from disha_core.llm.sentence_buffer import validated_sentences
@@ -488,76 +487,7 @@ class ResponseHarness:
         # 2. PLAN
         # ==========================================
         t1 = time.monotonic()
-        from disha_core.config import get_settings
-
-        settings = get_settings()
-
-        if getattr(settings, "behavior_spec_v1", True):
-            from disha_core.harness.perception import TurnPerception, select_move
-
-            user_text_lower = payload.text.lower()
-            is_med = any(
-                w in user_text_lower
-                for w in (
-                    "medicine",
-                    "dawai",
-                    "goli",
-                    "dose",
-                    "mg",
-                    "tablets",
-                    "metformin",
-                    "paracetamol",
-                    "prescription",
-                    "ilaj",
-                )
-            )
-            is_distress = any(
-                w in user_text_lower
-                for w in (
-                    "pain",
-                    "dard",
-                    "suffering",
-                    "pareshan",
-                    "upset",
-                    "crying",
-                    "anxiety",
-                    "depression",
-                    "takleef",
-                    "hurt",
-                    "stress",
-                )
-            )
-            is_vague = len(payload.text.split()) <= 2 and user_text_lower in (
-                "kuch",
-                "maybe",
-                "shayad",
-                "pata nahi",
-                "dont know",
-                "not sure",
-                "aisa hi",
-            )
-
-            lang_detected = getattr(normalized, "language", None) or context.get("language") or "hinglish"
-            perception = TurnPerception(
-                detected_language="hi"
-                if lang_detected == "hindi"
-                else ("en" if lang_detected in ("english", "en") else "hinglish"),
-                detected_script="devanagari" if any("\u0900" <= c <= "\u097f" for c in payload.text) else "latin",
-                user_act="greeting" if (intent and getattr(intent, "value", None) == "greeting") else "other",
-                answer_quality="vague" if is_vague else "complete",
-                medication_inquiry=is_med,
-                distress_expressed=is_distress,
-            )
-            known_s = set(context.get("patient_slots") or ())
-            chosen_move = select_move(perception, known_slots=known_s)
-            context["chosen_move"] = chosen_move
-            context["distress_expressed"] = is_distress
-            context["detected_language"] = perception.detected_language
-            context["user_input"] = payload.text
-            context["behavior_spec_v1"] = True
-
-        plan: StructuredPlan = build_structured_plan(payload.text, context, intent=intent.value if intent else None)
-        context["structured_plan"] = plan.to_json()
+        context["user_input"] = payload.text
         tc.record_stage_latency("PLAN", (time.monotonic() - t1) * 1000.0)
 
         # ==========================================
@@ -568,10 +498,17 @@ class ResponseHarness:
         prompt = payload_renderer(normalized.normalized, context, chunks)
 
         llm_instance = getattr(app_state, "llm", self.llm)
+        language_mode = normalize_preferred_language((context.get("pep") or {}).get("language"))
+        from disha_core.llm.client import get_system_prompt
+
+        system_prompt = get_system_prompt(language_mode=language_mode)
         try:
-            llm_stream = llm_instance.stream(prompt, messages=history)
+            llm_stream = llm_instance.stream(prompt, messages=history, system_prompt=system_prompt)
         except TypeError:
-            llm_stream = llm_instance.stream(prompt)
+            try:
+                llm_stream = llm_instance.stream(prompt, messages=history)
+            except TypeError:
+                llm_stream = llm_instance.stream(prompt)
 
         generated_sentences: list[str] = []
         emitted = False
@@ -582,7 +519,7 @@ class ResponseHarness:
         val_stream_fn = getattr(app_m, "validated_sentences", validated_sentences) if app_m else validated_sentences
         validator_instance = getattr(app_state, "validator", self.validator)
         try:
-            if getattr(settings, "behavior_spec_v1", True) and channel != "voice":
+            if channel != "voice":
                 from disha_core.harness.verifier import split_sentences_multilingual
 
                 raw_sentences: list[str] = []
@@ -600,6 +537,7 @@ class ResponseHarness:
                         v_res,
                         context,
                         messages=history,
+                        system_prompt=system_prompt,
                         max_attempts=2,
                     )
                     final_full = repaired_draft
@@ -625,6 +563,7 @@ class ResponseHarness:
                             v_res,
                             context,
                             messages=history,
+                            system_prompt=system_prompt,
                             max_attempts=2,
                         )
                         final_sent = repaired_sent
@@ -715,7 +654,7 @@ class ResponseHarness:
                 "patient_id": patient_id[:8] + "...",
                 "prompt_version": PROMPT_VERSION,
                 "language_mode": str(context.get("language") or "hinglish"),
-                "chosen_move": str(context.get("chosen_move") or "natural_reply"),
+                "behavior_policy": "single-source-v2",
                 "raw_violations": context.get("raw_violations") or [],
                 "repair_count": int(context.get("repair_count") or 0),
                 "total_latency_ms": round((time.monotonic() - t_start) * 1000.0, 2),

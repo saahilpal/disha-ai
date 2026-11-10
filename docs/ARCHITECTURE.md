@@ -47,6 +47,31 @@ Chat and voice invoke the shared turn logic in `disha_core.main._turn_sentences`
 
 The breaker is a pattern-based guard. It is not proof of complete red-flag recall. A triggered response is generated locally and may tell the user to call 112; no emergency-services integration is present.
 
+## Conversational behavior architecture
+
+`data/behavior_rules.yaml` is the single model-facing behavior source. It has two sections: core behavior and clinical safety. The old planner/perception “move” is no longer in the live chat path; passive disclosure extraction and deterministic safety gates remain.
+
+```mermaid
+flowchart LR
+    U[User turn] --> R[Auth + current conversation retrieval]
+    R --> C[PEP, memory, relevant grounding]
+    C --> A[Instruction assembly]
+    A --> L[Provider adapter
+    Groq / Gemini / Ollama]
+    L --> V[Deterministic safety + integrity verification]
+    V -->|safe| D[Stream to chat or voice]
+    V -->|repairable| L
+    V -->|unsafe| S[Safe constrained response]
+    D --> P[Persist completed turn + update PEP/memory]
+    S --> P
+```
+
+Precedence is: deterministic safety/data integrity, clinical safety, current user intent, relevant context/PEP, core behavior, then specialised task instructions. Runtime context is data, not a second behavior prompt. Chat and voice share the same context and policy; voice keeps sentence-level validation for latency. RAG retrieves only relevant approved knowledge for the current question, while profile data is supplied as context rather than mixed into the retrieval query.
+
+The retired live responsibilities were heuristic perception, scheduled onboarding-question injection, forced move selection, zero-echo style blocking, and strict final regeneration constrained to a selected move. They caused unrelated questions, repeated acknowledgements, and competing authorities. Safety breakers, medication/diagnosis boundaries, tenant isolation, persistence, disclosure extraction, and provider failover remain deterministic.
+
+The focused behavior conformance set is [`tests/evals/conversational_behavior_cases.json`](../tests/evals/conversational_behavior_cases.json). It covers greeting, returning PEP, short replies, refusal, topic change, correction, Hinglish, meal planning, routine topics, repetition, prompt disclosure, emergency red flags, unsupported grounding, and chat-to-voice continuity. It is a scenario set for multi-run model evaluation, not a claim of clinical efficacy.
+
 ## Knowledge, meals, and exercise
 
 - `disha_core.engine.retriever` reads `clinical_guideline_chunks`, backed by `clinical_knowledge_base`, and filters to `approval_status = 'approved'`. It uses PostgreSQL text-search ranking and trigram similarity; it does not use vector embeddings, pgvector, or reciprocal-rank fusion.

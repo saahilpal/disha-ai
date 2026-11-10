@@ -5,8 +5,6 @@ from typing import Any
 
 from disha_core.engine.anti_echo import (
     is_clinical_safety_statement,
-    is_pure_echo_or_filler,
-    strip_echo_prefix,
 )
 from disha_core.pipeline.validator import MEAL_NOT_FOUND_REPLACEMENT
 
@@ -56,7 +54,6 @@ async def validated_sentences(
 ) -> AsyncIterator[str]:
     """Yield validated sentences only; never expose raw model tokens to the caller."""
     context = context or {}
-    user_input = str(context.get("user_input", "")).strip()
 
     if "GI_BLOATING" in (context.get("clinical_tags") or ()):
         result = validator.validate_turn("", context)
@@ -85,16 +82,9 @@ async def validated_sentences(
     first_sentence = True
     emitted = 0
     last_emitted: str | None = None
-    candidate_sentences: list[str] = []
 
     async for chunk in chunks:
         for sentence in buffer.feed(chunk):
-            # Anti-Echo: if initial sentence is pure empathy boilerplate / parroting,
-            # drop it so the subsequent sentence directly answers the question first!
-            if first_sentence and is_pure_echo_or_filler(sentence, user_input):
-                candidate_sentences.append(sentence)
-                continue
-
             result = (
                 validator.validate_turn(sentence, context)
                 if first_sentence
@@ -148,30 +138,10 @@ async def validated_sentences(
 
     remainder = buffer.flush()
     if remainder:
-        # If still on first sentence, check if it's pure filler
-        if first_sentence and is_pure_echo_or_filler(remainder, user_input):
-            candidate_sentences.append(remainder)
-        else:
-            result = (
-                validator.validate_turn(remainder, context)
-                if first_sentence
-                else validator.validate_sentence(remainder, context)
-            )
-            sanitized = validator.sanitize_for_tts(result.text)
-            if sanitized and sanitized != last_emitted:
-                # Allow if within limit or if it's an essential clinical safety statement
-                if emitted < max_sentences or is_clinical_safety_statement(sanitized):
-                    last_emitted = sanitized
-                    yield sanitized
-                    emitted += 1
-
-    # Fallback: if all candidate pieces were skipped as filler and 0 sentences were emitted,
-    # yield the sanitized first candidate so the user is never left without a reply
-    if emitted == 0 and candidate_sentences:
-        fallback = strip_echo_prefix(candidate_sentences[0], user_input)
-        if fallback:
-            result = validator.validate_turn(fallback, context)
-            yield validator.sanitize_for_tts(result.text)
+        result = validator.validate_turn(remainder, context) if first_sentence else validator.validate_sentence(remainder, context)
+        sanitized = validator.sanitize_for_tts(result.text)
+        if sanitized and sanitized != last_emitted and (emitted < max_sentences or is_clinical_safety_statement(sanitized)):
+            yield sanitized
 
 
 async def _close(chunks: AsyncIterator[str]) -> None:

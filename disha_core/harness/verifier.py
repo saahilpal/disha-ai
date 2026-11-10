@@ -575,66 +575,24 @@ def verify_response(text: str, context: dict[str, Any] | None = None) -> Verific
     if v4:
         violations.append(v4)
 
-    # Check 5: Question spam
-    v5 = check_question_spam(sanitized)
-    if v5:
-        violations.append(v5)
-
-    # Check 6: N-gram repetitions
-    v6 = check_ngram_repetitions(sanitized)
-    if v6:
-        violations.append(v6)
-        if v6.replacement_text:
-            sanitized = v6.replacement_text
-
-    # Clinical safety checks (PEP, sodium, diet, unapproved remedies)
+    # Deterministic clinical and data-integrity checks remain blocking. Conversational
+    # style checks are advisory: the model must be able to acknowledge naturally.
     for v_clin in check_pep_and_clinical_bounds(sanitized, ctx):
         violations.append(v_clin)
         if v_clin.replacement_text:
             sanitized = v_clin.replacement_text
 
-    # Behavior Spec v1 checks (gated by config / context flag)
-    from disha_core.config import get_settings
-
-    settings = get_settings()
-    if getattr(settings, "behavior_spec_v1", True) or ctx.get("behavior_spec_v1", True):
-        lang = str(ctx.get("language") or ctx.get("user_language") or "hinglish")
-
-        # P3: Language & script mode
-        v_p3 = check_p3_language_mode(sanitized, lang)
-        if v_p3:
-            violations.append(v_p3)
-
-        # P4: Banned honorifics
-        v_p4 = check_p4_honorifics(sanitized)
-        if v_p4:
-            violations.append(v_p4)
-
-        # P6 & F3: Length (1-3 sentences, char cap)
-        v_len = check_p6_f3_length(sanitized)
-        if v_len:
-            violations.append(v_len)
-
-        # F1: Zero-echo
-        v_echo = check_f1_zero_echo(sanitized, ctx)
-        if v_echo:
-            violations.append(v_echo)
-
-        # F2: At most one question
-        v_f2 = check_f2_at_most_one_question(sanitized)
-        if v_f2 and v_f2 not in violations:
-            violations.append(v_f2)
-
-        # F4: Selective empathy
-        v_f4 = check_f4_selective_empathy(sanitized, ctx)
-        if v_f4:
-            violations.append(v_f4)
-
-        # C2: No advice on chat (meds, diagnosis, treatment)
-        for v_c2 in check_c2_clinical_boundary(sanitized):
-            violations.append(v_c2)
-            if v_c2.replacement_text:
-                sanitized = v_c2.replacement_text
+    lang = str(ctx.get("language") or ctx.get("user_language") or "hinglish")
+    v_p3 = check_p3_language_mode(sanitized, lang)
+    if v_p3:
+        violations.append(v_p3)
+    v_len = check_p6_f3_length(sanitized)
+    if v_len:
+        violations.append(v_len)
+    for v_c2 in check_c2_clinical_boundary(sanitized):
+        violations.append(v_c2)
+        if v_c2.replacement_text:
+            sanitized = v_c2.replacement_text
 
     return VerificationResult(
         is_valid=len(violations) == 0,

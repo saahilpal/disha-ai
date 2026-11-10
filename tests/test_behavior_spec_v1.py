@@ -58,7 +58,7 @@ class TestBehaviorSpecPromptAndRules:
 
     def test_prompt_version_and_hash_present(self):
         prompt = get_system_prompt(behavior_spec_v1=True, language_mode="hinglish")
-        assert "# PROMPT_VERSION: v1-" in prompt
+        assert "# PROMPT_VERSION: v2-" in prompt
         assert len(PROMPT_VERSION) >= 10
 
     def test_language_mode_injection(self):
@@ -66,12 +66,10 @@ class TestBehaviorSpecPromptAndRules:
         assert "Devanagari" in p_hi
         p_en = get_system_prompt(behavior_spec_v1=True, language_mode="english")
         assert "English" in p_en
-        assert "No Hindi words" in p_en
+        assert "casual English" in p_en
 
-    def test_rollback_flag_restores_legacy_prompt(self):
-        legacy = get_system_prompt(behavior_spec_v1=False)
-        assert "CLINICAL BOUNDARIES & EVIDENCE GROUNDING:" in legacy
-        assert "[P1]" not in legacy
+    def test_legacy_switch_cannot_reintroduce_a_second_behavior_policy(self):
+        assert get_system_prompt(behavior_spec_v1=False) == get_system_prompt(behavior_spec_v1=True)
 
 
 class TestDeterministicVerifiers:

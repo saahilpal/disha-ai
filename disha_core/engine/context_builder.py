@@ -552,40 +552,6 @@ def render_user_payload(user_input: str, context: dict[str, Any], chunks: Any = 
         f'prompted_for_exercise="{str(is_exercise).lower()}"/>'
     )
 
-    scheduled_xml = ""
-    scheduled_q = context.get("scheduled_question")
-    if scheduled_q:
-        scheduled_text = html.escape(str(scheduled_q))
-        scheduled_xml = (
-            f'<ONBOARDING_INQUIRY_SUGGESTION guidance="If conversation flow naturally permits after addressing the patient, you may inquire about this unknown field. Prioritize the user\'s immediate question and do not force this inquiry if changing topics or if the user gave a simple acknowledgment:">'
-            f"{scheduled_text}"
-            f"</ONBOARDING_INQUIRY_SUGGESTION>"
-        )
-
-    # Conversational state: identify follow-ups, short responses, and last assistant utterance
-    user_lower = user_input.strip().casefold()
-    is_followup = bool(
-        user_lower in {"same", "same thing", "that", "why", "okay", "ok", "haan", "nhi", "nah", "yes", "no", "kal se"}
-        or user_lower.startswith(("why", "kyun", "what about", "aur", "phir", "same", "that"))
-        or len(user_lower.split()) <= 3
-    )
-    history_turns = context.get("conversation_history") or []
-    last_assistant_turn = ""
-    for turn in reversed(history_turns):
-        if turn.get("role") in ("assistant", "coach"):
-            last_assistant_turn = str(turn.get("content", ""))
-            break
-
-    conversation_state_xml = ""
-    if last_assistant_turn or is_followup:
-        last_esc = html.escape(last_assistant_turn[:300]) if last_assistant_turn else "None"
-        conversation_state_xml = (
-            f'<CONVERSATION_STATE is_followup_or_short_reply="{str(is_followup).lower()}">'
-            f"<LAST_ASSISTANT_UTTERANCE>{last_esc}</LAST_ASSISTANT_UTTERANCE>"
-            f'<INSTRUCTION>Treat this conversation as an ongoing, continuous discussion. If user utterance refers to previous message (e.g. "that", "same", "why", "okay"), interpret it using the conversation history above.</INSTRUCTION>'
-            f"</CONVERSATION_STATE>"
-        )
-
     older_turns = context.get("retrieved_older_turns") or []
     older_turns_xml = ""
     if older_turns:
@@ -604,8 +570,6 @@ def render_user_payload(user_input: str, context: dict[str, Any], chunks: Any = 
     return (
         f"{render_context_xml(context, chunks)}"
         f"{discipline_xml}"
-        f"{scheduled_xml}"
-        f"{conversation_state_xml}"
         f"{older_turns_xml}"
         f"<USER_UTTERANCE>{html.escape(user_input)}</USER_UTTERANCE>"
     )
