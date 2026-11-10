@@ -422,3 +422,47 @@ CREATE TABLE IF NOT EXISTS journey_question_history (
 CREATE INDEX IF NOT EXISTS idx_jqh_patient_qid ON journey_question_history(patient_id, question_id);
 CREATE INDEX IF NOT EXISTS idx_jqh_patient_field ON journey_question_history(patient_id, target_field, status);
 CREATE INDEX IF NOT EXISTS idx_jqh_patient_stage ON journey_question_history(patient_id, stage);
+
+-- ============================================================================
+-- Unified Conversations, Messages & Dialogue State Ledger
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS conversations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id VARCHAR(64) NOT NULL REFERENCES patient_profiles(patient_id) ON DELETE CASCADE,
+    channel VARCHAR(16) NOT NULL DEFAULT 'chat',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    last_message_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    archived BOOLEAN NOT NULL DEFAULT FALSE
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_active_user_conversation 
+ON conversations (user_id) 
+WHERE (archived = FALSE);
+
+CREATE TABLE IF NOT EXISTS messages (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    conversation_id UUID NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+    user_id VARCHAR(64) NOT NULL REFERENCES patient_profiles(patient_id) ON DELETE CASCADE,
+    seq INT NOT NULL,
+    role VARCHAR(16) NOT NULL CHECK (role IN ('user', 'assistant', 'system')),
+    channel VARCHAR(16) NOT NULL CHECK (channel IN ('chat', 'voice')),
+    content TEXT NOT NULL DEFAULT '',
+    status VARCHAR(16) NOT NULL CHECK (status IN ('streaming', 'complete', 'aborted')),
+    client_msg_id VARCHAR(128),
+    meta JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    completed_at TIMESTAMPTZ,
+    CONSTRAINT uq_conversation_seq UNIQUE (conversation_id, seq),
+    CONSTRAINT uq_conversation_client_msg UNIQUE (conversation_id, client_msg_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_user_conv ON messages (user_id, conversation_id, seq ASC);
+
+CREATE TABLE IF NOT EXISTS dialogue_state (
+    conversation_id UUID PRIMARY KEY REFERENCES conversations(id) ON DELETE CASCADE,
+    user_id VARCHAR(64) NOT NULL REFERENCES patient_profiles(patient_id) ON DELETE CASCADE,
+    state JSONB NOT NULL DEFAULT '{}'::jsonb,
+    version INT NOT NULL DEFAULT 1,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
