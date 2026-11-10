@@ -20,6 +20,30 @@ The request schema also accepts fields such as `hypertension_stage`, `gym_cleara
 
 During chat/voice turns, `disha_core.journey` may extract multiple answers, update journey state, and write mapped values into profile, PEP, `memory_items`, `patient_temporal_facts`, or habit/episode tables. These mappings and database constraints do not create an authenticated clinician-review workflow.
 
+## Long-term PEP update lifecycle
+
+The current implementation is a PostgreSQL-native hybrid, not a vendor memory product:
+
+1. The user turn is persisted and deterministic slot/disclosure extraction runs once in the shared chat/voice commit path.
+2. Safety-critical or structured low-risk values are normalized and validated before persistence. Uninformative turns do not trigger an LLM extraction call because extraction is not LLM-based today.
+3. `memory_items` stores slot-level current values and supersedes changed values while retaining prior versions. Habit slots add hysteresis, one-off episodes, observations, and rollups.
+4. `patient_temporal_facts` stores durable fact history. Replaying the same fact is idempotent; a changed value supersedes the active row and records `source` (`chat`, `voice`, or `unknown`).
+5. `patient_journey_state` recomputes the five-stage completeness view from known profile, PEP, habit, temporal-fact, and answered-question data. Stages measure completeness; they do not schedule live conversational questions.
+
+Corrections affect the active context on the next turn without deleting the older value. Clinical contradictions are still quarantined in `memory_items` with `flagged_review`; they must not overwrite clinician-owned restrictions. RAG is not used to decide whether a user fact is true and structured PEP fields are not embedded.
+
+### Approach comparison and decision
+
+| Pattern | Strength | Cost/complexity for Disha | Decision |
+|---|---|---|---|
+| Mem0-style structured facts | Fact extraction, metadata, deduplication, update/history operations | Adds an LLM extraction call and often embeddings/search infrastructure | Use the fact-level and provenance ideas, not the dependency |
+| LangMem-style background consolidation | Debounced asynchronous extraction and reconciliation; separates hot-path updates from deeper consolidation | Requires a worker/queue and another model path; delayed updates are unsuitable for immediate safety context | Future optional phase for non-critical summaries |
+| Graphiti/Zep temporal graph | Rich temporal relationships, hybrid graph retrieval, historical invalidation | Neo4j/graph storage, embeddings, reranking, and materially higher operational cost for simple user attributes | Not justified for Disha's mostly user-to-slot PEP |
+
+The cost-effective choice is the existing PostgreSQL-native hybrid: deterministic extraction for known slots, indexed fact-level reconciliation, append-only history, and no embeddings for structured profile fields. It currently adds zero memory LLM calls and zero embedding calls per turn. A future background model may enrich ambiguous free-form preferences, but it must write proposals through the same reconciliation boundary and never replace safety-critical hot-path updates.
+
+Primary references used for this comparison: [Mem0 memory operations](https://github.com/mem0ai/mem0/blob/main/docs/core-concepts/memory-operations/add.mdx), [LangMem conceptual guide](https://langchain-ai.github.io/langmem/concepts/conceptual_guide/), and [Graphiti](https://github.com/getzep/graphiti).
+
 ## Short-term conversation context
 
 `patient_turn_journal` stores user and assistant utterances in PostgreSQL. On every turn, `build_patient_context` loads up to the latest sixteen messages and the prompt path supplies them chronologically to the LLM. All turns (including normal generation, safety deflections, meal prompts, and provider errors) commit to `patient_turn_journal` and update in-memory state. Older relevant exchanges outside the recent active window are supplemented via conversation history RAG without duplicating recent turns.

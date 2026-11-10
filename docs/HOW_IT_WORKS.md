@@ -15,15 +15,15 @@ graph TD
     Client[Browser Client / Mobile Web UI] -->|Port 8080| Proxy[NGINX Reverse Proxy]
     Tunnel[Cloudflare Tunnel] -->|Ingress| Proxy
     Proxy -->|Port 8000 / HTTP & WebSocket| Backend[FastAPI Disha Core App]
-    Backend -->|Port 5432 / asyncpg| Postgres[(PostgreSQL 16 + pgvector)]
-    Backend -->|Port 11434 / REST| LocalOllama[Local Ollama / MLX Runtime]
+    Backend -->|Port 5432 / asyncpg| Postgres[(PostgreSQL 16 + pg_trgm)]
+    Backend -->|Port 11434 / REST| LocalOllama[Local Ollama]
     Backend -->|WAN / HTTPS| CloudLLM[Groq / Gemini / Edge-TTS APIs]
 ```
 
 ### Port Assignments
 - **8080:** NGINX reverse proxy (`disha_core-proxy-1`), serving static frontend assets (`disha_core/frontend/`) and proxying API/WebSocket traffic.
 - **8000:** FastAPI Python application (`disha_core-backend-1`), running `uvicorn disha_core.main:app`.
-- **5432:** PostgreSQL 16 database (`disha_core-postgres-1`) with `pgvector` extension enabled.
+- **5432:** PostgreSQL 16 database (`disha_core-postgres-1`) with `pg_trgm` text/trigram indexes enabled.
 - **11434:** Optional local Ollama inference service (the launcher prefers `qwen3.5:4b`, with the configured model override supported).
 
 ---
@@ -41,7 +41,7 @@ sequenceDiagram
     participant Main as FastAPI Main (:8000)
     participant Breaker as Emergency Breaker (<5ms)
     participant Harness as Response Harness
-    participant LLM as LLM Provider (Groq / Gemini)
+    participant LLM as LLM Provider (Groq / Gemini / Ollama)
     participant Verifier as Verifier (P3, P4, P6, F1-F4, C2)
     participant DB as PostgreSQL (conversations, messages)
 
@@ -94,7 +94,7 @@ Implemented in `disha_core/services/chat_service.py` and `disha_core/db/schema.s
 - **`patient_profiles` table:** Core demographic, preferred language (`hinglish`, `english`, `hindi`), and registration state.
 - **`patient_pep` table:** Personal Experience Profile storing dietary preferences, diagnosed conditions, physical restrictions, and primary health goals.
 - **`patient_temporal_facts` table:** Epistemic facts with status (`active`, `superseded`) and validity timestamps.
-- **Extraction Path:** Disclosure extraction runs in the shared turn path so the current turn and PEP/memory updates stay consistent; it is bounded by the same database connection lifecycle.
+- **Extraction Path:** Disclosure extraction runs once in the shared turn path using the deterministic slot registry; it makes no extra LLM call. Repeated values are no-ops, changed values supersede the active fact, and prior rows remain queryable with `epistemic_status='superseded'`.
 
 ---
 

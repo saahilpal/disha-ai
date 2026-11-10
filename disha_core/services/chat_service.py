@@ -348,16 +348,36 @@ async def store_patient_fact(
     fact_key: str,
     fact_value: str,
     epistemic_status: str = "active",
+    source: str = "unknown",
 ) -> None:
-    """Store or supersede a structured long-term patient fact in PostgreSQL."""
+    """Idempotently store a fact, superseding changed active values without deleting history."""
     if conn_or_pool is None:
         return
     with suppress(Exception):
         if hasattr(conn_or_pool, "acquire"):
             async with conn_or_pool.acquire() as conn:
-                await _store_fact_on_conn(conn, patient_id, category, fact_key, fact_value, epistemic_status)
+                await _store_fact_with_lock(conn, patient_id, category, fact_key, fact_value, epistemic_status, source)
         else:
-            await _store_fact_on_conn(conn_or_pool, patient_id, category, fact_key, fact_value, epistemic_status)
+            await _store_fact_with_lock(
+                conn_or_pool, patient_id, category, fact_key, fact_value, epistemic_status, source
+            )
+
+
+async def _store_fact_with_lock(
+    conn: Any,
+    patient_id: str,
+    category: str,
+    fact_key: str,
+    fact_value: str,
+    epistemic_status: str,
+    source: str,
+) -> None:
+    if not hasattr(conn, "transaction"):
+        await _store_fact_on_conn(conn, patient_id, category, fact_key, fact_value, epistemic_status, source)
+        return
+    async with conn.transaction():
+        await conn.execute("SELECT pg_advisory_xact_lock(hashtext($1 || ':' || $2))", patient_id, fact_key)
+        await _store_fact_on_conn(conn, patient_id, category, fact_key, fact_value, epistemic_status, source)
 
 
 async def _store_fact_on_conn(
@@ -367,7 +387,16 @@ async def _store_fact_on_conn(
     fact_key: str,
     fact_value: str,
     epistemic_status: str,
+    source: str,
 ) -> None:
+    existing = await conn.fetch(
+        """SELECT fact_value FROM patient_temporal_facts
+           WHERE patient_id = $1 AND fact_key = $2 AND epistemic_status = 'active'""",
+        patient_id,
+        fact_key,
+    )
+    if any(str(row["fact_value"]).strip() == str(fact_value).strip() for row in existing):
+        return
     await conn.execute(
         """UPDATE patient_temporal_facts SET epistemic_status = 'superseded', valid_to = NOW()
            WHERE patient_id = $1 AND fact_key = $2 AND epistemic_status = 'active'""",
@@ -375,13 +404,15 @@ async def _store_fact_on_conn(
         fact_key,
     )
     await conn.execute(
-        """INSERT INTO patient_temporal_facts (patient_id, category, fact_key, fact_value, epistemic_status)
-           VALUES ($1, $2, $3, $4, $5)""",
+        """INSERT INTO patient_temporal_facts
+               (patient_id, category, fact_key, fact_value, epistemic_status, source)
+           VALUES ($1, $2, $3, $4, $5, $6)""",
         patient_id,
         category,
         fact_key,
         fact_value,
         epistemic_status,
+        source if source in {"chat", "voice", "unknown"} else "unknown",
     )
 
 
@@ -401,7 +432,7 @@ async def load_patient_facts(conn_or_pool: Any, patient_id: str) -> list[dict[st
 
 async def _load_facts_on_conn(conn: Any, patient_id: str) -> list[dict[str, Any]]:
     rows = await conn.fetch(
-        """SELECT category, fact_key, fact_value FROM patient_temporal_facts
+        """SELECT category, fact_key, fact_value, source, valid_from, valid_to FROM patient_temporal_facts
            WHERE patient_id = $1 AND epistemic_status = 'active'
            ORDER BY created_at ASC""",
         patient_id,
@@ -465,7 +496,7 @@ async def store_memory_item(
     with suppress(Exception):
         if hasattr(conn_or_pool, "acquire"):
             async with conn_or_pool.acquire() as conn:
-                await _store_memory_item_on_conn(
+                await _store_memory_item_with_lock(
                     conn,
                     patient_id,
                     slot_key,
@@ -481,7 +512,7 @@ async def store_memory_item(
                     call_id,
                 )
         else:
-            await _store_memory_item_on_conn(
+            await _store_memory_item_with_lock(
                 conn_or_pool,
                 patient_id,
                 slot_key,
@@ -496,6 +527,57 @@ async def store_memory_item(
                 session_id,
                 call_id,
             )
+
+
+async def _store_memory_item_with_lock(
+    conn: Any,
+    patient_id: str,
+    slot_key: str,
+    slot_value_json: str,
+    category: str,
+    source_authority: str,
+    epistemic_status: str,
+    sensitive_flag: bool,
+    confidence: float,
+    raw_quote: str,
+    language: str,
+    session_id: str,
+    call_id: str | None,
+) -> None:
+    if not hasattr(conn, "transaction"):
+        await _store_memory_item_on_conn(
+            conn,
+            patient_id,
+            slot_key,
+            slot_value_json,
+            category,
+            source_authority,
+            epistemic_status,
+            sensitive_flag,
+            confidence,
+            raw_quote,
+            language,
+            session_id,
+            call_id,
+        )
+        return
+    async with conn.transaction():
+        await conn.execute("SELECT pg_advisory_xact_lock(hashtext($1 || ':' || $2))", patient_id, slot_key)
+        await _store_memory_item_on_conn(
+            conn,
+            patient_id,
+            slot_key,
+            slot_value_json,
+            category,
+            source_authority,
+            epistemic_status,
+            sensitive_flag,
+            confidence,
+            raw_quote,
+            language,
+            session_id,
+            call_id,
+        )
 
 
 async def _store_memory_item_on_conn(
@@ -513,6 +595,26 @@ async def _store_memory_item_on_conn(
     session_id: str,
     call_id: str | None,
 ) -> None:
+    if epistemic_status == "active":
+        new_value = json.loads(slot_value_json)
+        existing = await conn.fetch(
+            """SELECT slot_value FROM memory_items
+               WHERE patient_id = $1 AND slot_key = $2 AND epistemic_status = 'active'""",
+            patient_id,
+            slot_key,
+        )
+
+        def normalized(value: Any) -> Any:
+            if isinstance(value, str):
+                with suppress(Exception):
+                    return json.loads(value)
+            return value
+
+        if any(
+            json.dumps(normalized(row["slot_value"]), sort_keys=True) == json.dumps(new_value, sort_keys=True)
+            for row in existing
+        ):
+            return
     if epistemic_status == "active":
         await conn.execute(
             """UPDATE memory_items SET epistemic_status = 'superseded', valid_to = NOW(), updated_at = NOW()
@@ -820,6 +922,7 @@ async def persist_patient_disclosure(
             category="lifestyle",
             fact_key="shift_schedule",
             fact_value="Night shift (works at night, sleeps during daytime)",
+            source="voice" if call_id else "chat",
         )
 
     # 2. Food dislikes / exclusions
@@ -841,6 +944,7 @@ async def persist_patient_disclosure(
                     category="dietary_preference",
                     fact_key=key,
                     fact_value=f"Dislikes/avoids {clean_item}",
+                    source="voice" if call_id else "chat",
                 )
 
     # 3. Musculoskeletal / Joint complaints
@@ -854,6 +958,7 @@ async def persist_patient_disclosure(
             category="medical_history",
             fact_key="joint_condition",
             fact_value="Knee pain / joint stiffness reported",
+            source="voice" if call_id else "chat",
         )
 
     # 4. Chronic health conditions
@@ -864,6 +969,7 @@ async def persist_patient_disclosure(
             category="medical_history",
             fact_key="chronic_diagnosis",
             fact_value="Hypertension / Cardiovascular risk",
+            source="voice" if call_id else "chat",
         )
 
 

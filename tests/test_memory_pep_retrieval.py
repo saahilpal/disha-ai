@@ -40,6 +40,7 @@ from disha_core.services.chat_service import (
     persist_patient_disclosure,
     store_call_summary,
     store_conversation_turn,
+    store_patient_fact,
     store_memory_item,
 )
 
@@ -266,6 +267,47 @@ class TestMemoryPersistenceAndRecall(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Night shift", xml)
         self.assertIn('category="dietary_preference"', xml)
         self.assertIn("karela", xml.lower())
+
+    async def test_temporal_fact_replay_is_idempotent_and_preserves_correction(self) -> None:
+        """Repeated extraction is a no-op; a changed value supersedes, never deletes history."""
+        rows: list[dict[str, str]] = []
+
+        class MockConnection:
+            async def fetch(self, query: str, *args: Any) -> list[dict[str, str]]:
+                return [
+                    row
+                    for row in rows
+                    if row["patient_id"] == args[0]
+                    and row["fact_key"] == args[1]
+                    and row["epistemic_status"] == "active"
+                ]
+
+            async def execute(self, query: str, *args: Any) -> None:
+                if "UPDATE patient_temporal_facts" in query:
+                    for row in rows:
+                        if row["patient_id"] == args[0] and row["fact_key"] == args[1]:
+                            row["epistemic_status"] = "superseded"
+                elif "INSERT INTO patient_temporal_facts" in query:
+                    rows.append(
+                        {
+                            "patient_id": args[0],
+                            "category": args[1],
+                            "fact_key": args[2],
+                            "fact_value": args[3],
+                            "epistemic_status": args[4],
+                            "source": args[5],
+                        }
+                    )
+
+        conn = MockConnection()
+        await store_patient_fact(conn, "pt_fact_replay", "lifestyle", "work_schedule", "night_shift", source="chat")
+        await store_patient_fact(conn, "pt_fact_replay", "lifestyle", "work_schedule", "night_shift", source="chat")
+        await store_patient_fact(conn, "pt_fact_replay", "lifestyle", "work_schedule", "day_shift", source="voice")
+
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["epistemic_status"], "superseded")
+        self.assertEqual(rows[1]["epistemic_status"], "active")
+        self.assertEqual(rows[1]["source"], "voice")
 
 
 class TestDatasetRetrievalQuality(unittest.IsolatedAsyncioTestCase):

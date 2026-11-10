@@ -70,6 +70,8 @@ Precedence is: deterministic safety/data integrity, clinical safety, current use
 
 PEP discovery is passive: journey state supplies bounded missing-field candidates to the same model request, but the model decides whether one is relevant to the current turn. A disclosed fact is persisted through the existing journey/memory path; the five-stage framework measures completeness and does not choose the next conversational topic.
 
+Long-term PEP writes are fact-level and PostgreSQL-native. Deterministic extraction runs once after a committed user turn; repeated temporal facts are idempotent, changed values supersede active values without deleting history, and chat/voice provenance is retained. Habit slots use existing hysteresis and observation deduplication. No extra LLM or embedding call is made for routine PEP extraction.
+
 The retired live responsibilities were heuristic perception, scheduled onboarding-question injection, forced move selection, zero-echo style blocking, and strict final regeneration constrained to a selected move. They caused unrelated questions, repeated acknowledgements, and competing authorities. Safety breakers, medication/diagnosis boundaries, tenant isolation, persistence, disclosure extraction, and provider failover remain deterministic.
 
 The focused behavior conformance set is [`tests/evals/conversational_behavior_cases.json`](../tests/evals/conversational_behavior_cases.json). It covers greeting, returning PEP, short replies, refusal, topic change, correction, Hinglish, meal planning, routine topics, repetition, prompt disclosure, emergency red flags, unsupported grounding, and chat-to-voice continuity. It is a scenario set for multi-run model evaluation, not a claim of clinical efficacy.

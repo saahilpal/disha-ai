@@ -9,6 +9,7 @@ This repository does **not** establish clinical validation, regulatory complianc
 - Text chat through JSON and Server-Sent Events, plus a WebSocket interface for voice and text turns.
 - Patient accounts, profile/PEP fields, approved prescribed-meal schedule lookup, and a persisted conversation journal.
 - PostgreSQL retrieval from approved knowledge rows using full-text and trigram matching; the runtime retriever does not use embeddings or pgvector.
+- Fact-level long-term PEP updates with deterministic extraction, idempotent replay, source provenance, and append-only supersession history.
 - Deterministic emergency and exercise-risk checks. These are limited safeguards, not complete triage or exercise-clearance systems.
 - Configurable local and cloud model/audio adapters. Provider use depends on environment settings, credentials, and explicit data-processing/usage authorization flags.
 
@@ -70,7 +71,7 @@ make tunnel-local
 scripts/local-models.sh status
 ```
 
-The host must remain powered on, connected to the internet, and running the local API, database, Ollama, MLX Audio, and tunnel watchdog. `scripts/local-models.sh start` starts Ollama when needed and configures it as the final LLM fallback; set `LOCAL_ONLY=true` for an explicitly offline-only run. TryCloudflare assigns a temporary public URL; check `agent/TUNNEL_URL.txt` after starting or restarting the tunnel. The local model was verified with `qwen2.5:7b`; the MLX Audio server's Svara TTS endpoint currently fails with a GPU-stream error, so voice TTS remains unverified. See [Deployment](docs/DEPLOYMENT.md) for precise checks and limitations.
+The host must remain powered on, connected to the internet, and running the local API, database, Ollama, MLX Audio, and tunnel watchdog. `scripts/local-models.sh start` starts Ollama when needed and configures it as the final LLM fallback; set `LOCAL_ONLY=true` for an explicitly offline-only run. TryCloudflare assigns a temporary public URL; check `agent/TUNNEL_URL.txt` after starting or restarting the tunnel. The launcher prefers `qwen3.5:4b` and supports `OLLAMA_MODEL` overrides; the MLX Audio server's Svara TTS endpoint currently fails with a GPU-stream error, so voice TTS remains unverified. See [Deployment](docs/DEPLOYMENT.md) for precise checks and limitations.
 
 ## Repository map
 

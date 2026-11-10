@@ -31,7 +31,7 @@
 ## 4. MEMORY AND BACKEND
 - **[M1]** Retain state and context across turns; the user never repeats shared facts.
 - **[M2]** Ambiguity handler: when an answer is vague or incomplete, clarify before proceeding.
-- **[M3]** All of the above guardrails live in the ROOT SYSTEM PROMPT.
+- **[M3]** Model-facing behavior lives in the single active `data/behavior_rules.yaml` source; deterministic safety, persistence, PEP reconciliation, and data-integrity checks remain in code.
 
 ---
 
