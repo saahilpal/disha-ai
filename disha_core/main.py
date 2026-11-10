@@ -453,7 +453,14 @@ def create_app() -> FastAPI:
                         cid = str(conv["id"])
                         c_msg_id = getattr(payload, "client_msg_id", None) or str(uuid.uuid4())
                         await record_message(
-                            pool, cid, patient_id, "user", "chat", payload.text, status="complete", client_msg_id=c_msg_id
+                            pool,
+                            cid,
+                            patient_id,
+                            "user",
+                            "chat",
+                            payload.text,
+                            status="complete",
+                            client_msg_id=c_msg_id,
                         )
                         await record_message(
                             pool,
@@ -570,7 +577,14 @@ def create_app() -> FastAPI:
                         cid = str(conv["id"])
                         c_msg_id = getattr(payload, "client_msg_id", None) or str(uuid.uuid4())
                         await record_message(
-                            pool, cid, patient_id, "user", "chat", payload.text, status="complete", client_msg_id=c_msg_id
+                            pool,
+                            cid,
+                            patient_id,
+                            "user",
+                            "chat",
+                            payload.text,
+                            status="complete",
+                            client_msg_id=c_msg_id,
                         )
                         await record_message(
                             pool,

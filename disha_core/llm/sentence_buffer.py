@@ -138,9 +138,17 @@ async def validated_sentences(
 
     remainder = buffer.flush()
     if remainder:
-        result = validator.validate_turn(remainder, context) if first_sentence else validator.validate_sentence(remainder, context)
+        result = (
+            validator.validate_turn(remainder, context)
+            if first_sentence
+            else validator.validate_sentence(remainder, context)
+        )
         sanitized = validator.sanitize_for_tts(result.text)
-        if sanitized and sanitized != last_emitted and (emitted < max_sentences or is_clinical_safety_statement(sanitized)):
+        if (
+            sanitized
+            and sanitized != last_emitted
+            and (emitted < max_sentences or is_clinical_safety_statement(sanitized))
+        ):
             yield sanitized
 
 

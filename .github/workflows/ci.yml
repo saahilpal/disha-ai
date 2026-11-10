@@ -47,7 +47,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Run Trivy Vulnerability Scanner
-        uses: aquasecurity/trivy-action@0.28.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           scan-type: "fs"
           scan-ref: "."
@@ -210,9 +210,9 @@ jobs:
           sudo apt-get update && sudo apt-get install -y postgresql-client
           psql -h localhost -U disha -d disha -f disha_core/db/schema.sql
           psql -h localhost -U disha -d disha -f disha_core/db/seed_product_facts.sql
-          uv run python disha_core/db/apply_conversations_schema.py
-          uv run python disha_core/db/apply_journey_schema.py
-          uv run python disha_core/db/apply_pep_habits_schema.py
+          uv run python -m disha_core.db.apply_conversations_schema
+          uv run python -m disha_core.db.apply_journey_schema
+          uv run python -m disha_core.db.apply_pep_habits_schema
 
       - name: Run Canonical Pytest Suite
         env:
