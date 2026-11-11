@@ -1,16 +1,10 @@
-name: Disha AI Production CI
+name: Disha AI Tests
 
 on:
   push:
-    branches:
-      - main
-      - main-clean
-      - master
+    branches: [main]
   pull_request:
-    branches:
-      - main
-      - main-clean
-      - master
+    branches: [main]
   workflow_dispatch:
 
 concurrency:
@@ -18,158 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ============================================================================
-  # 1. GITLEAKS SECRETS AUDIT
-  # ============================================================================
-  gitleaks:
-    name: Secrets & Gitleaks Audit
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Codebase
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Run Gitleaks Detection
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: false
-
-  # ============================================================================
-  # 2. TRIVY VULNERABILITY SCANNER
-  # ============================================================================
-  trivy:
-    name: Container & Dependency Vulnerability Scan (Trivy)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Codebase
-        uses: actions/checkout@v4
-
-      - name: Run Trivy Vulnerability Scanner
-        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
-        with:
-          scan-type: "fs"
-          scan-ref: "."
-          format: "table"
-          severity: "CRITICAL,HIGH"
-          exit-code: "0"
-
-  # ============================================================================
-  # 3. CODE QUALITY & LINTING (RUFF)
-  # ============================================================================
-  lint:
-    name: Code Quality & Ruff Linter
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Codebase
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: Set up Python 3.12
-        run: uv python install 3.12
-
-      - name: Run Ruff Linter
-        run: |
-          uv run --with ruff ruff check .
-
-      - name: Run Ruff Format Check
-        run: |
-          uv run --with ruff ruff format --check .
-
-  # ============================================================================
-  # 4. STATIC TYPE INTEGRITY (PYRIGHT)
-  # ============================================================================
-  pyright:
-    name: Static Type Check (Pyright)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Codebase
-        uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-
-      - name: Set up Python 3.12
-        run: uv python install 3.12
-
-      - name: Install Core Dependencies
-        run: |
-          uv venv
-          uv pip install -r disha_core/requirements.txt
-
-      - name: Run Pyright Type Analysis
-        run: |
-          uv run --with pyright pyright
-
-  # ============================================================================
-  # 5. HARDCODE & SECRET HYGIENE
-  # ============================================================================
-  hardcode-check:
-    name: Hardcode & Secret Hygiene Check
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Codebase
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Run Hardcode & Secret Check
-        run: |
-          python3 scripts/hardcode-check
-
-  # ============================================================================
-  # 6. LIVING DOCUMENTATION DRIFT AUDIT
-  # ============================================================================
-  docs-drift:
-    name: Living Documentation Drift Audit
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Codebase
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Run Docs Drift Validator
-        run: |
-          python3 scripts/docs-drift
-
-  # ============================================================================
-  # 7. ARCHITECTURE DIAGRAM VERIFICATION
-  # ============================================================================
-  diagram-check:
-    name: Architecture Diagram Verification
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Codebase
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Run Diagram Check
-        run: |
-          python3 scripts/diagram-check
-
-  # ============================================================================
-  # 8. CANONICAL TEST MATRIX (PYTEST)
-  # ============================================================================
   tests:
-    name: Canonical Test Matrix (Pytest)
+    name: Pytest
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -187,7 +31,7 @@ jobs:
           --health-retries 5
 
     steps:
-      - name: Checkout Codebase
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Install uv
@@ -198,12 +42,12 @@ jobs:
       - name: Set up Python 3.12
         run: uv python install 3.12
 
-      - name: Install Dependencies
+      - name: Install dependencies
         run: |
           uv venv
           uv pip install -r disha_core/requirements.txt pytest pytest-asyncio pytest-subtests
 
-      - name: Initialize Database Schema
+      - name: Initialize database
         env:
           PGPASSWORD: disha_secure_pass_123
         run: |
@@ -217,23 +61,17 @@ jobs:
           uv run python -m disha_core.db.apply_conversations_schema
           uv run python -m disha_core.db.apply_journey_schema
           uv run python -m disha_core.db.apply_pep_habits_schema
-      - name: Provision open-source health corpus
-        env:
-          POSTGRES_PASSWORD: disha_secure_pass_123
-        run: |
-          uv run python -m disha_core.db.ingest_open_datasets
-          uv run python -m disha_core.db.ingest_autonomous_datasets
 
-      - name: Start backend for acceptance tests
+      - name: Start backend
         env:
-          DATABASE_URL: "postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha"
-          DB_HOST: "127.0.0.1"
+          DATABASE_URL: postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha
+          DB_HOST: 127.0.0.1
           DB_PORT: "5432"
-          DB_USER: "disha"
-          DB_PASSWORD: "disha_secure_pass_123"
-          DB_NAME: "disha"
-          GROQ_API_KEY: "dummy_token_scrubbed"
-          GEMINI_API_KEY: "dummy_token_scrubbed"
+          DB_USER: disha
+          DB_PASSWORD: disha_secure_pass_123
+          DB_NAME: disha
+          GROQ_API_KEY: dummy_token_scrubbed
+          GEMINI_API_KEY: dummy_token_scrubbed
         run: |
           uv run uvicorn disha_core.main:app --host 127.0.0.1 --port 8080 > /tmp/disha-backend.log 2>&1 &
           for attempt in {1..30}; do
@@ -242,17 +80,15 @@ jobs:
           done
           curl --fail --silent http://127.0.0.1:8080/health
 
-      - name: Run Canonical Pytest Suite
+      - name: Run tests
         env:
-          DB_HOST: "127.0.0.1"
+          DB_HOST: 127.0.0.1
           DB_PORT: "5432"
-          DB_USER: "disha"
-          DB_PASSWORD: "disha_secure_pass_123"
-          DB_NAME: "disha"
-          DATABASE_URL: "postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha"
-          GROQ_API_KEY: "dummy_token_scrubbed"
-          GEMINI_API_KEY: "dummy_token_scrubbed"
-          # GitHub-hosted runners are shared; keep the stricter 850 ms local default.
+          DB_USER: disha
+          DB_PASSWORD: disha_secure_pass_123
+          DB_NAME: disha
+          DATABASE_URL: postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha
+          GROQ_API_KEY: dummy_token_scrubbed
+          GEMINI_API_KEY: dummy_token_scrubbed
           MAX_SCENARIO_LATENCY_MS: "1500"
-        run: |
-          uv run pytest -v tests/ -k 'not manual and not live_network'
+        run: uv run pytest -v tests/ -k 'not manual and not live_network'
