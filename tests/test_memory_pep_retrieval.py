@@ -103,7 +103,7 @@ class TestPEPIntegrationAndRejection(unittest.TestCase):
         self.assertNotIn("<PEP_RESTRICTION_RULES", xml)
         self.assertIn('diagnosed="coronary_artery_disease"', xml)
 
-    def test_pep_discovery_context_is_optional_and_does_not_expose_stages(self) -> None:
+    def test_pep_discovery_context_is_fallback_and_does_not_expose_stages(self) -> None:
         xml = render_context_xml(
             {
                 "pep": {"language": "english"},
@@ -127,7 +127,7 @@ class TestPEPIntegrationAndRejection(unittest.TestCase):
                 },
             }
         )
-        self.assertIn('<PEP_DISCOVERY mode="optional" priority="conversation_fit">', candidate_xml)
+        self.assertIn('<PEP_DISCOVERY mode="fallback" priority="conversation_fit">', candidate_xml)
         self.assertIn('field="work_schedule"', candidate_xml)
         self.assertIn("do not mention profile tracking", candidate_xml)
 

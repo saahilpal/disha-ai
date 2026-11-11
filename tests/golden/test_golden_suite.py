@@ -2,7 +2,7 @@
 
 Independent QA Test Suite verifying conformance to:
 - P1-P6: Persona, tone, multi-lingual scripts, banned honorifics, WhatsApp brevity
-- F1-F5: Zero-echo, single question cap, 1-3 sentences, selective empathy, forward motion
+- F1-F6: Zero-echo, one meaningful closing question, 1-3 sentences, selective empathy, forward motion
 - C1-C4: History Triangle progression, no advice on chat, emergency red flags (112), pivot
 - M1-M3: Multi-turn memory retention, ambiguity handling, root system prompt integrity
 - Precedence hierarchy: C3 > Honesty Invariants > C2 > M2 > C1 > F5/C4 > Style
@@ -147,8 +147,8 @@ def test_golden_case(case: dict[str, Any]) -> None:
 class TestGoldenSuiteIntegrity:
     """Meta-assertions verifying Golden Test Suite completeness and integrity."""
 
-    def test_all_18_rule_ids_covered(self):
-        """Verify that every rule from P1-P6, F1-F5, C1-C4, M1-M3 has at least one golden test case."""
+    def test_all_19_rule_ids_covered(self):
+        """Verify that every rule from P1-P6, F1-F6, C1-C4, M1-M3 has at least one golden test case."""
         expected_rules = [
             "P1",
             "P2",
@@ -161,6 +161,7 @@ class TestGoldenSuiteIntegrity:
             "F3",
             "F4",
             "F5",
+            "F6",
             "C1",
             "C2",
             "C3",

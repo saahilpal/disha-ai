@@ -516,10 +516,10 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
         field_id = html.escape(str(candidate.get("target_field", "")), quote=True)
         question = html.escape(str(candidate.get("question", "")))
         discovery_xml = (
-            '<PEP_DISCOVERY mode="optional" priority="conversation_fit">'
-            "A single missing detail may help personalise this turn. Use it only if it fits "
-            "what the user just shared; answer the current request first, and do not mention "
-            "profile tracking, stages, fields, or a checklist. Respect uncertainty or refusal."
+            '<PEP_DISCOVERY mode="fallback" priority="conversation_fit">'
+            "Use this missing detail only when the current turn offers no natural question; answer "
+            "the current request first, and do not mention profile tracking, stages, fields, or a checklist. "
+            "Respect uncertainty or refusal."
             f'<CANDIDATE field="{field_id}">{question}</CANDIDATE>'
             "</PEP_DISCOVERY>"
         )

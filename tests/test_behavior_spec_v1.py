@@ -15,6 +15,7 @@ from disha_core.harness.verifier import (
     check_f1_zero_echo,
     check_f2_at_most_one_question,
     check_f4_selective_empathy,
+    check_f6_question_requirement,
     check_p3_language_mode,
     check_p4_honorifics,
     check_p6_f3_length,
@@ -40,6 +41,7 @@ class TestBehaviorSpecPromptAndRules:
             "F3",
             "F4",
             "F5",
+            "F6",
             "C1",
             "C2",
             "C3",
@@ -128,6 +130,34 @@ class TestDeterministicVerifiers:
 
     def test_f2_allows_single_question(self):
         assert check_f2_at_most_one_question("Aapka daily water intake kitna hai?") is None
+
+    def test_f6_requires_one_question_for_normal_turns(self):
+        viol = check_f6_question_requirement("Aap aaram se lijiye.", {"question_required": True})
+        assert viol is not None
+        assert viol.check_name == "f6_question_required"
+
+    def test_f6_requires_question_at_end_and_rejects_recent_repeat(self):
+        context = {
+            "question_required": True,
+            "conversation_history": [
+                {"role": "assistant", "content": "Aap kab sote hain?"},
+            ],
+        }
+        viol = check_f6_question_requirement("Aap routine bana sakte hain. Aap kab sote hain?", context)
+        assert viol is not None
+        assert viol.check_name == "f6_repeated_question"
+
+    def test_f6_allows_emergency_and_closing_exceptions(self):
+        assert check_f6_question_requirement("Call 112 now.", {"is_emergency": True}) is None
+        assert check_f6_question_requirement("Take care.", {"is_closing": True}) is None
+
+    def test_f6_rejects_unrelated_question(self):
+        viol = check_f6_question_requirement(
+            "Aap aaj halka khana le sakte hain. Aapko apna favourite rang kaunsa pasand hai?",
+            {"question_required": True, "user_input": "Mere pet mein dard hai"},
+        )
+        assert viol is not None
+        assert viol.check_name == "f6_question_relevance"
 
     def test_f4_selective_empathy_disallows_boilerplate_without_distress(self):
         ctx = {"distress_expressed": False}

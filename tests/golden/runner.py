@@ -3,9 +3,9 @@
 
 Independent QA Test Runner verifying:
 - P1-P6: Persona, Tone, Multi-lingual Script, Banned Honorifics, Adaptation, WhatsApp Brevity
-- F1-F5: Zero-echo, At-most-one Question, 1-3 Sentences, Selective Empathy, Forward Motion
+- F1-F6: Zero-echo, one meaningful closing question, 1-3 Sentences, Selective Empathy, Forward Motion
 - C1-C4: History Triangle (Duration->Past Attempts->Severity), No Advice on Chat, Emergency Red Flags (112, <5ms), Expert Call Pivot
-- M1-M3: Multi-turn Memory Retention, Ambiguity Handler (Clarify), Root System Prompt Integrity (<=600 tokens, 18 Rule IDs)
+- M1-M3: Multi-turn Memory Retention, Ambiguity Handler (Clarify), Root System Prompt Integrity (<=600 tokens, 19 Rule IDs)
 - Precedence Hierarchy: C3 > Honesty Invariants > C2 > M2 > C1 > F5/C4 > Style
 """
 

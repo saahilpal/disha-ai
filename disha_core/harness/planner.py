@@ -3,7 +3,7 @@
 Produces concise, structured plans (<=80 tokens JSON) containing:
 - goal: Turn coaching objective
 - coach_moves: Ordered coaching actions
-- question: At most 1 question (<=1 question rule)
+    - question: Supplied PEP candidate when available; otherwise the LLM writes it
 - things_to_avoid: Safety, regulatory, and style constraints
 """
 
@@ -22,7 +22,8 @@ class StructuredPlan(BaseModel):
 
     goal: str = Field(description="Primary turn objective")
     coach_moves: list[str] = Field(description="1-3 concise coach actions")
-    question: str | None = Field(default=None, description="At most 1 targeted follow-up question")
+    question: str | None = Field(default=None, description="Supplied fallback question opportunity")
+    question_required: bool = Field(default=True, description="Whether F6 requires one closing question")
     things_to_avoid: list[str] = Field(default_factory=list, description="Specific safety/domain boundaries")
 
     def to_json(self) -> str:
@@ -31,6 +32,7 @@ class StructuredPlan(BaseModel):
             "goal": self.goal,
             "coach_moves": self.coach_moves,
             "question": self.question,
+            "question_required": self.question_required,
             "things_to_avoid": self.things_to_avoid,
         }
         compact = json.dumps(data, separators=(",", ":"), ensure_ascii=False)
@@ -48,6 +50,7 @@ class StructuredPlan(BaseModel):
             goal=str(data.get("goal", "")),
             coach_moves=[str(m) for m in data.get("coach_moves", [])],
             question=str(data["question"]) if data.get("question") else None,
+            question_required=bool(data.get("question_required", True)),
             things_to_avoid=[str(t) for t in data.get("things_to_avoid", [])],
         )
 
@@ -187,21 +190,12 @@ def build_structured_plan(
         else:
             coach_moves.append("Adopt warm, empathetic tone")
 
-    # 3. Question (<= 1 question strictly enforced)
+    # 3. Question: use the existing PEP candidate only as the fallback opportunity;
+    # the LLM writes a contextual question when the user's turn provides a hook.
     question: str | None = None
-    if is_ack or is_direct_demand or is_struggle:
-        # Do not force questions on acknowledgments, direct demands, or emotional struggle
-        question = None
-    else:
-        scheduled_q = ctx.get("scheduled_question")
-        if scheduled_q and not ctx.get("is_incomplete_thought"):
-            question = str(scheduled_q)
-        elif ctx.get("is_incomplete_thought"):
-            question = "Aap aaram se batayein ki kaisa feel ho raha hai?"
-        elif intent_str in {"greeting", "general_coaching"} and not ctx.get("has_history"):
-            question = "Main aapki health routine mein kaise madad kar sakti hoon?"
-        elif intent_str in {"factual", "app_meta"} or "price" in text.lower():
-            question = None
+    scheduled_q = ctx.get("scheduled_question")
+    if scheduled_q and not ctx.get("is_incomplete_thought"):
+        question = str(scheduled_q)
 
     # 4. Things to avoid
     things_to_avoid = [
@@ -210,6 +204,7 @@ def build_structured_plan(
         "multiple questions",
         "generic quotes",
         "questionnaire tone",
+        "end with exactly one meaningful question unless this is an emergency or closing",
     ]
     if is_struggle:
         things_to_avoid.append("judgment or guilt")

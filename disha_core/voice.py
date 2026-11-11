@@ -6,9 +6,11 @@ import logging
 import os
 import re
 import struct
+import tempfile
 import unicodedata
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import suppress
+from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
 
@@ -548,30 +550,74 @@ async def stream_qwen3_tts(
 
     factory = client_factory or httpx.AsyncClient
     yielded_audio = False
-    async with factory(timeout=req_timeout) as client:
-        if hasattr(client, "stream"):
-            async with client.stream("POST", url, headers=headers, json=payload) as response:
+    try:
+        async with factory(timeout=req_timeout) as client:
+            if hasattr(client, "stream"):
+                async with client.stream("POST", url, headers=headers, json=payload) as response:
+                    if response.status_code >= 400:
+                        raise RuntimeError(f"Qwen3-TTS returned HTTP {response.status_code}")
+                    async for chunk in response.aiter_bytes():
+                        if chunk:
+                            yielded_audio = True
+                            yield chunk
+            else:
+                response = await client.post(url, headers=headers, json=payload)
                 if response.status_code >= 400:
                     raise RuntimeError(f"Qwen3-TTS returned HTTP {response.status_code}")
-                async for chunk in response.aiter_bytes():
-                    if chunk:
-                        yielded_audio = True
-                        yield chunk
-        else:
-            response = await client.post(url, headers=headers, json=payload)
-            if response.status_code >= 400:
-                raise RuntimeError(f"Qwen3-TTS returned HTTP {response.status_code}")
-            content = getattr(response, "content", None)
-            if content:
-                yielded_audio = True
-                yield content
-            elif hasattr(response, "aiter_bytes"):
-                async for chunk in response.aiter_bytes():
-                    if chunk:
-                        yielded_audio = True
-                        yield chunk
+                content = getattr(response, "content", None)
+                if content:
+                    yielded_audio = True
+                    yield content
+                elif hasattr(response, "aiter_bytes"):
+                    async for chunk in response.aiter_bytes():
+                        if chunk:
+                            yielded_audio = True
+                            yield chunk
+    except Exception:
+        if not _local_only() or yielded_audio:
+            raise
+        logger.warning("MLX TTS HTTP server failed; using local CLI fallback")
+
     if not yielded_audio:
-        raise RuntimeError("Qwen3-TTS returned no audio")
+        if not _local_only():
+            raise RuntimeError("Qwen3-TTS returned no audio")
+        async for chunk in stream_mlx_cli_tts(phonetic_text, req_voice, req_model):
+            yield chunk
+
+
+async def stream_mlx_cli_tts(text: str, voice: str, model: str) -> AsyncIterator[bytes]:
+    """Use MLX's process-local CLI when its HTTP worker loses the GPU stream."""
+    cli = os.getenv("MLX_TTS_CLI", "")
+    if not cli:
+        raise RuntimeError("MLX_TTS_CLI is not configured")
+
+    with tempfile.TemporaryDirectory(prefix="disha-mlx-tts-") as output_dir:
+        process = await asyncio.create_subprocess_exec(
+            cli,
+            "--model",
+            model,
+            "--text",
+            text,
+            "--voice",
+            voice,
+            "--output_path",
+            output_dir,
+            "--file_prefix",
+            "disha",
+            "--audio_format",
+            "wav",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await process.communicate()
+        if process.returncode != 0:
+            detail = stderr.decode(errors="replace")[-500:] or stdout.decode(errors="replace")[-500:]
+            raise RuntimeError(f"MLX CLI TTS failed: {detail}")
+
+        files = sorted(Path(output_dir).glob("*.wav"))
+        if not files:
+            raise RuntimeError("MLX CLI TTS returned no audio")
+        yield files[0].read_bytes()
 
 
 async def stream_edge_tts(text: str, voice: str) -> AsyncIterator[bytes]:

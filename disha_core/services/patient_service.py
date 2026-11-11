@@ -50,7 +50,9 @@ def _welcome_question(profile: Any, pep: Any) -> str:
         if condition:
             return f"Aapki {condition} se judi baat dhyaan mein hai. Rozmarra mein abhi cheezein kaisi chal rahi hain?"
         if diet:
-            return f"Aapki {diet} preference samajh aayi. Daily routine mein kis cheez par kaam karna sabse easy lagega?"
+            return (
+                f"Aapki {diet} preference samajh aayi. Daily routine mein kis cheez par kaam karna sabse easy lagega?"
+            )
         return "Main samajhna chahti hoon ki aapke liye health ka matlab kya hai. Is waqt aap apni health par focus kyun karna chahte hain?"
     if concern:
         return f"You mentioned {concern}. How has it been affecting your day lately?"
@@ -59,7 +61,9 @@ def _welcome_question(profile: Any, pep: Any) -> str:
     if condition:
         return f"I have your {condition} in mind. How are things going with it day to day?"
     if diet:
-        return f"I’ve noted your {diet} preference. What part of your daily routine feels easiest to build on right now?"
+        return (
+            f"I’ve noted your {diet} preference. What part of your daily routine feels easiest to build on right now?"
+        )
     return "I’d like to understand what matters to you. What made you want to focus on your health at this point?"
 
 

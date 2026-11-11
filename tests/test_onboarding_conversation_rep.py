@@ -129,9 +129,9 @@ class TestOnboardingConversationRepetition(unittest.IsolatedAsyncioTestCase):
         self.assertIn("repeating same recommendations", plan.things_to_avoid)
 
     # --------------------------------------------------------------------------
-    # Test C: Simple acknowledgment ("okay" -> warm closure, no repeated recipe)
+    # Test C: Simple acknowledgment still moves the conversation
     # --------------------------------------------------------------------------
-    def test_c_simple_acknowledgment_no_question_spam(self) -> None:
+    def test_c_simple_acknowledgment_requires_question(self) -> None:
         ctx = {
             "intent": "general_coaching",
             "has_history": True,
@@ -141,7 +141,7 @@ class TestOnboardingConversationRepetition(unittest.IsolatedAsyncioTestCase):
             ],
         }
         plan = build_structured_plan("okay", context=ctx, intent="general_coaching")
-        self.assertIsNone(plan.question)
+        self.assertTrue(plan.question_required)
         self.assertIn("Acknowledge warmly and briefly", plan.coach_moves)
 
     # --------------------------------------------------------------------------
@@ -150,7 +150,7 @@ class TestOnboardingConversationRepetition(unittest.IsolatedAsyncioTestCase):
     def test_d_direct_answer_request_gives_immediate_suggestion(self) -> None:
         ctx = {"intent": "meal_query", "has_history": True}
         plan = build_structured_plan("nhi jo hai de do", context=ctx, intent="meal_query")
-        self.assertIsNone(plan.question)
+        self.assertTrue(plan.question_required)
         self.assertIn("Give a concrete, practical suggestion immediately", plan.coach_moves)
         self.assertIn("asking more preference questions", plan.things_to_avoid)
 
@@ -255,7 +255,7 @@ class TestOnboardingConversationRepetition(unittest.IsolatedAsyncioTestCase):
         self.assertIn("Validate feelings with genuine empathy and care", plan.coach_moves)
         self.assertIn("judgment or guilt", plan.things_to_avoid)
         self.assertIn("cheerful toxic positivity", plan.things_to_avoid)
-        self.assertIsNone(plan.question)
+        self.assertTrue(plan.question_required)
 
         # User feeling guilty about a cheat meal
         plan_cheat = build_structured_plan(
@@ -263,7 +263,7 @@ class TestOnboardingConversationRepetition(unittest.IsolatedAsyncioTestCase):
             context={"intent": "general_coaching", "has_history": True},
         )
         self.assertIn("judgment or guilt", plan_cheat.things_to_avoid)
-        self.assertIsNone(plan_cheat.question)
+        self.assertTrue(plan_cheat.question_required)
 
     # --------------------------------------------------------------------------
     # Test J: Token-efficient system prompt discipline
@@ -274,7 +274,7 @@ class TestOnboardingConversationRepetition(unittest.IsolatedAsyncioTestCase):
 
         if get_settings().behavior_spec_v1:
             self.assertIn("two to four useful sentences", SYSTEM_PROMPT)
-            self.assertIn("Do not end every turn with a question", SYSTEM_PROMPT)
+            self.assertIn("Normal replies end with exactly one meaningful question", SYSTEM_PROMPT)
             self.assertIn("Selective empathy", SYSTEM_PROMPT)
         else:
             self.assertIn("RESPONSE LENGTH & TOKEN EFFICIENCY", _LEGACY_SYSTEM_PROMPT)

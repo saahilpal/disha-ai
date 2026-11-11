@@ -1,10 +1,30 @@
 # Disha AI
 
-Disha AI is a web-based conversational health-coaching prototype. The repository contains a FastAPI application, browser client, PostgreSQL persistence, lexical retrieval of approved knowledge records, and chat and turn-based voice interfaces.
+Disha AI is a web-based conversational health-coaching prototype: a FastAPI backend, browser client, PostgreSQL persistence, approved-knowledge retrieval, and text/voice conversations.
 
 This repository does **not** establish clinical validation, regulatory compliance, production readiness, or medical-device status. Code-level checks are incomplete and do not replace qualified clinical review. Do not use the project as an emergency service or a substitute for professional care.
 
-## What is implemented
+## Start here
+
+```sh
+git clone https://github.com/saahilpal/disha-ai.git
+cd disha-ai
+cp .env.example .env                 # review every value before use
+uv venv && uv pip install -r disha_core/requirements.txt
+make help
+```
+
+For the smallest local stack, use Docker:
+
+```sh
+export POSTGRES_PASSWORD='replace-with-a-long-random-value'
+docker compose up --build -d postgres backend proxy
+curl -fsS http://127.0.0.1:8080/health
+```
+
+Stop it with `docker compose down`. Provider-backed responses require the relevant provider credentials and explicit authorization settings; a healthy endpoint only proves API/database connectivity.
+
+## Capabilities
 
 - Text chat through JSON and Server-Sent Events, plus a WebSocket interface for voice and text turns.
 - Patient accounts, profile/PEP fields, approved prescribed-meal schedule lookup, and a persisted conversation journal.
@@ -13,7 +33,7 @@ This repository does **not** establish clinical validation, regulatory complianc
 - Deterministic emergency and exercise-risk checks. These are limited safeguards, not complete triage or exercise-clearance systems.
 - Configurable local and cloud model/audio adapters. Provider use depends on environment settings, credentials, and explicit data-processing/usage authorization flags.
 
-See [Architecture](docs/ARCHITECTURE.md), [Memory and PEP](docs/MEMORY_AND_PEP.md), [Knowledge and RAG](docs/architecture/04_rag_ingestion_and_retrieval.md), [Voice Pipeline](docs/VOICE_PIPELINE.md), and [Deployment](docs/DEPLOYMENT.md).
+See the [documentation map](docs/README.md) for the canonical architecture, deployment, safety, and operating guides.
 
 ## Runtime shape
 
@@ -40,26 +60,7 @@ flowchart LR
 
 The current verified tunnel targets the local-only FastAPI runner on `127.0.0.1:8010`. The runner is configured for local Ollama and MLX Audio on `127.0.0.1:8880`; neither model service is exposed by the tunnel. A separate Compose/Nginx mode remains available on port `8080`, but its configured providers and behavior differ. The tunnel does not host the application, database, or models. See the deployment guide for the distinction and the verified TTS limitation.
 
-## Local Compose quickstart
-
-The constrained local stack is documented in [`disha_core/README.md`](disha_core/README.md). From the repository root:
-
-```sh
-cd disha_core
-export POSTGRES_PASSWORD='replace-with-a-long-random-value'
-docker compose --env-file /dev/null -f compose.yaml up --build -d
-curl -fsS http://127.0.0.1:8080/health
-```
-
-This starts the `disha_core/compose.yaml` stack. Its provider authorization defaults are disabled; model-backed chat or voice may return an unavailable response until the required provider configuration and authorization are set. No test corpus or clinical approval is implied by a successful health check. PostgreSQL's init SQL, including the product-facts seed, runs when the database volume is first created; existing volumes do not replay init files, so apply reviewed SQL updates explicitly rather than deleting the volume.
-
-Stop that stack with:
-
-```sh
-docker compose --env-file /dev/null -f compose.yaml down
-```
-
-For repository-wide development targets, run `make help`. The root `docker-compose.yml` and `docker-compose.prod.yml` are separate configurations; their behavior and important caveats are described in [Deployment](docs/DEPLOYMENT.md).
+The repository also contains a constrained Core Compose stack; its differences and database initialization rules are documented in [`disha_core/README.md`](disha_core/README.md).
 
 ## Current local-only deployment
 
@@ -88,19 +89,16 @@ The host must remain powered on, connected to the internet, and running the loca
 | `scripts/local-models.sh` | Optional Apple Silicon local-model launcher |
 | `docs/` | Runtime architecture, operating notes, and historical design material |
 
-## Documentation
+## Tests and CI
 
-- **Docs Map:** [Complete Documentation Index](docs/README.md)
-- **Behavior Spec v1:** [Behavior Spec v1 (Owner Provided)](docs/spec/BEHAVIOR_SPEC.md) & [Enforcement Matrix](docs/spec/ENFORCEMENT_MATRIX.md)
-- **How It Works:** [System Execution & Port Tour](docs/HOW_IT_WORKS.md)
-- **Theory & Cognition:** [How Disha Thinks (Decision Pipeline)](docs/theory/HOW_DISHA_THINKS.md)
-- **Learnings & RCA:** [Consolidated Engineering Learnings](docs/LEARNINGS.md)
-- [Architecture](docs/ARCHITECTURE.md)
-- [Deployment and local services](docs/DEPLOYMENT.md)
-- [Memory, onboarding, and PEP](docs/MEMORY_AND_PEP.md)
-- [Voice pipeline](docs/VOICE_PIPELINE.md)
-- [Security notes](docs/SECURITY.md)
+Run the focused suite for a change, or the full local checks:
 
-## Validation
+```sh
+make test
+UV_CACHE_DIR=/tmp/disha-uv-cache uv run --with ruff ruff check .
+UV_CACHE_DIR=/tmp/disha-uv-cache uv run --with ruff ruff format --check .
+python3 scripts/docs-drift
+python3 scripts/diagram-check
+```
 
-Use the focused tests that correspond to a change. The repository also contains historical evaluation reports and design documents; their presence is not evidence that the current deployment, model providers, clinical corpus, or end-to-end voice path has been validated. A local `/health` response confirms only API/database connectivity.
+GitHub Actions runs the same checks plus secrets scanning, Trivy, Pyright, database setup, and the canonical pytest matrix. Historical evaluations are evidence of past runs only; they do not establish clinical validation, regulatory compliance, or production readiness.

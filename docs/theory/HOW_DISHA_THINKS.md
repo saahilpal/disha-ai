@@ -32,10 +32,10 @@ LLMs are probabilistic token predictors. They cannot guarantee invariant enforce
 
 ## 2. Rule Families & Design Reasoning
 
-### 2.1 One-Question Rule (F2) & Short Responses (P6, F3) [IMPLEMENTED]
+### 2.1 One-Question Rule (F6) & Short Responses (P6, F3) [IMPLEMENTED]
 - **Cognitive Load:** Asking multiple questions overwhelms patients, leading to incomplete replies where only the last question is answered.
 - **WhatsApp Chat Norms:** Users in India engage in fast, conversational back-and-forth messaging. Multi-paragraph lectures create friction and drop-off.
-- **Enforcement:** Whole-draft sentence splitter and regex question-mark counter strictly enforces sentence count ≤ 3, length ≤ 450 characters, and question count ≤ 1.
+- **Enforcement:** Whole-draft verification requires exactly one fresh, relevant closing question on normal turns, rejects recent repeats, and still enforces sentence and length limits. Emergency and closing replies are exceptions.
 
 ### 2.2 Zero-Echo Principle (F1) [IMPLEMENTED]
 - **Feeling Heard vs Form-Filled:** Automated bots frequently repeat facts back: *"Aapka weight 62kg hai aur age 28 saal hai..."* This sounds robotic and unhelpful.

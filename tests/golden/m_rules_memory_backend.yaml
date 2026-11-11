@@ -82,7 +82,7 @@ cases:
     name: "Rendered prompt contains all 18 Behavior Spec v1 rule IDs"
     category: "memory_backend"
     language: "all"
-    description: "The root system prompt must explicitly contain every rule ID [P1] to [P6], [F1] to [F5], [C1] to [C4], [M1] to [M3]."
+    description: "The root system prompt must explicitly contain every rule ID [P1] to [P6], [F1] to [F6], [C1] to [C4], [M1] to [M3]."
     expected_rule_ids:
       - "P1"
       - "P2"
@@ -95,6 +95,7 @@ cases:
       - "F3"
       - "F4"
       - "F5"
+      - "F6"
       - "C1"
       - "C2"
       - "C3"

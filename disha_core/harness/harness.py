@@ -216,6 +216,8 @@ class ResponseHarness:
         context["intent"] = intent.value if intent else Intent.UNKNOWN.value
         context["pep_risk"] = pep_risk
         context["user_input"] = payload.text
+        context["question_required"] = True
+        context["is_emergency"] = False
         context["meal_relevant"] = normalized.is_meal_query or intent == Intent.MEAL_QUERY
         context["exercise_relevant"] = normalized.is_exercise_query or intent == Intent.EXERCISE_QUERY
         context["length_policy"] = determine_length_policy(
@@ -529,25 +531,33 @@ class ResponseHarness:
                     generated_sentences.append(s)
                     yield s
             else:
+                raw_sentences = []
                 async for sentence in val_stream_fn(llm_stream, validator_instance, context):
-                    # Verify individual sentence boundaries
-                    v_res = verify_response(sentence, context)
-                    if not v_res.is_valid:
-                        # Repair sentence if violated
-                        repaired_sent, ok, _ = await repair_turn(
-                            llm_instance,
-                            prompt,
-                            sentence,
-                            v_res,
-                            context,
-                            messages=history,
-                            system_prompt=system_prompt,
-                            max_attempts=2,
-                        )
-                        final_sent = repaired_sent
-                    else:
-                        final_sent = sentence
+                    raw_sentences.append(sentence)
+                full_draft = " ".join(raw_sentences).strip()
+                v_res = verify_response(full_draft, context)
+                if not v_res.is_valid:
+                    context["raw_violations"] = [v.check_name for v in v_res.violations]
+                    context["repair_count"] = 1
+                    repaired_draft, ok, _ = await repair_turn(
+                        llm_instance,
+                        prompt,
+                        full_draft,
+                        v_res,
+                        context,
+                        messages=history,
+                        system_prompt=system_prompt,
+                        max_attempts=2,
+                    )
+                    final_full = repaired_draft
+                else:
+                    context["raw_violations"] = []
+                    context["repair_count"] = 0
+                    final_full = full_draft
 
+                from disha_core.harness.verifier import split_sentences_multilingual
+
+                for final_sent in split_sentences_multilingual(final_full):
                     emitted = True
                     generated_sentences.append(final_sent)
                     yield final_sent

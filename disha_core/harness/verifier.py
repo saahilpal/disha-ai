@@ -490,6 +490,53 @@ def check_f2_at_most_one_question(text: str) -> VerificationViolation | None:
     return None
 
 
+def check_f6_question_requirement(text: str, context: dict[str, Any] | None = None) -> VerificationViolation | None:
+    """F6: Normal turns end with one fresh, meaningful question."""
+    ctx = context or {}
+    if not ctx.get("question_required") or ctx.get("is_emergency") or ctx.get("is_closing"):
+        return None
+
+    q_count = text.count("?")
+    if q_count != 1 or not text.rstrip().endswith("?"):
+        return VerificationViolation(
+            check_name="f6_question_required",
+            description="Normal replies must end with exactly one meaningful question",
+            specific_feedback=(
+                "Answer or acknowledge first, then end with exactly one specific question tied to the latest user turn "
+                "or an open relevant PEP detail. Do not use a generic filler question."
+            ),
+        )
+
+    question = text[: text.rfind("?") + 1].rsplit(".", 1)[-1].strip().casefold()
+    candidate = str((ctx.get("discovery_candidate") or {}).get("question", "")).strip().casefold()
+    latest = str(ctx.get("user_input", "")).casefold()
+    concern = str(ctx.get("current_concern", "")).casefold()
+    question_terms = {word for word in re.findall(r"\w+", question) if len(word) >= 4}
+    source_terms = {word for word in re.findall(r"\w+", f"{latest} {concern}") if len(word) >= 4}
+    if candidate and question == candidate:
+        source_terms = question_terms
+    if source_terms and not question_terms.intersection(source_terms):
+        return VerificationViolation(
+            check_name="f6_question_relevance",
+            description="The closing question is not tied to the latest user turn or open PEP detail",
+            specific_feedback="Replace it with one specific question grounded in the latest user turn or the supplied open PEP detail.",
+        )
+
+    for turn in (ctx.get("conversation_history") or [])[-8:]:
+        if not isinstance(turn, dict) or turn.get("role") != "assistant":
+            continue
+        previous = str(turn.get("content", ""))
+        if previous:
+            previous_question = previous[: previous.rfind("?") + 1].rsplit(".", 1)[-1].strip().casefold()
+            if previous_question == question:
+                return VerificationViolation(
+                    check_name="f6_repeated_question",
+                    description="The response repeats a question asked in the recent conversation",
+                    specific_feedback="Ask a different question grounded in the latest user turn or another open PEP detail.",
+                )
+    return None
+
+
 def check_f4_selective_empathy(text: str, context: dict[str, Any]) -> VerificationViolation | None:
     """F4: Empathy only when user shares distress or physical struggle; no artificial cheerleading."""
     distress = bool(context.get("distress_expressed", False))
@@ -599,6 +646,10 @@ def verify_response(text: str, context: dict[str, Any] | None = None) -> Verific
         violations.append(v_c2)
         if v_c2.replacement_text:
             sanitized = v_c2.replacement_text
+
+    v_f6 = check_f6_question_requirement(sanitized, ctx)
+    if v_f6:
+        violations.append(v_f6)
 
     return VerificationResult(
         is_valid=len(violations) == 0,

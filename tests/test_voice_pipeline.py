@@ -78,6 +78,10 @@ class MockQwenClient:
         pass
 
 
+async def _fake_audio_stream():
+    yield b"local_cli_audio"
+
+
 class VoicePipelineTests(IsolatedAsyncioTestCase):
     """Unit and integration tests for the unified Voice & Qwen3-TTS pipeline."""
 
@@ -152,7 +156,7 @@ class VoicePipelineTests(IsolatedAsyncioTestCase):
 
         self.assertEqual(chunks, [b"edge_audio_chunk"])
 
-    async def test_local_only_empty_tts_response_fails_without_external_fallback(self) -> None:
+    async def test_local_only_empty_tts_response_uses_local_cli_fallback(self) -> None:
         client = MockQwenClient(chunks=[])
 
         with (
@@ -166,14 +170,20 @@ class VoicePipelineTests(IsolatedAsyncioTestCase):
                 },
             ),
             patch("disha_core.voice.stream_edge_tts") as edge_fallback,
+            patch(
+                "disha_core.voice.stream_mlx_cli_tts",
+                side_effect=lambda *args, **kwargs: _fake_audio_stream(),
+            ),
         ):
-            with self.assertRaisesRegex(RuntimeError, "returned no audio"):
-                async for _ in synthesize_speech_stream(
+            chunks = [
+                chunk
+                async for chunk in synthesize_speech_stream(
                     "Aap aaram karein.",
                     client_factory=lambda **_: client,
-                ):
-                    pass
+                )
+            ]
 
+        self.assertEqual(chunks, [b"local_cli_audio"])
         edge_fallback.assert_not_called()
 
     def test_hinglish_phonetic_normalization(self) -> None:
@@ -213,9 +223,14 @@ class VoicePipelineTests(IsolatedAsyncioTestCase):
             def stream(self, prompt: str, messages: list[dict[str, str]] | None = None):
                 if messages:
                     received_messages.extend(messages)
+                reply = (
+                    "Aap warm jeera water lejiye. Daliya khane ke baad aapko koi dikkat hoti hai?"
+                    if "aur saunf water" not in prompt.lower()
+                    else "Saunf water halka lag sakta hai. Saunf water ke baad aapko kaisa feel hota hai?"
+                )
 
                 async def token_gen():
-                    yield "Aap warm jeera water lejiye. Yeh pet ke liye accha hai."
+                    yield reply
 
                 return token_gen()
 

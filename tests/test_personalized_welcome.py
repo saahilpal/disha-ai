@@ -20,4 +20,6 @@ def test_welcome_uses_goal_and_never_asks_for_it_again():
 
 def test_welcome_falls_back_to_motivation_in_selected_language():
     text = _welcome_question({"language": "en", "health_goals": []}, {})
-    assert text == "I’d like to understand what matters to you. What made you want to focus on your health at this point?"
+    assert (
+        text == "I’d like to understand what matters to you. What made you want to focus on your health at this point?"
+    )

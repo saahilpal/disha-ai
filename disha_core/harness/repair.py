@@ -1,7 +1,7 @@
 """Repair Loop and Constrained Fallback Engine.
 
 Re-prompts the model with specific feedback up to 2 times upon verification failure.
-If still non-compliant after 2 attempts, applies deterministic constrained fallbacks.
+If still non-compliant after 2 attempts, performs one constrained regeneration.
 Clearly labels system errors without generating fake Disha utterances.
 """
 
@@ -89,6 +89,38 @@ async def repair_turn(
         except Exception as exc:
             logger.warning("LLM call during repair attempt %d failed: %s", attempt, exc)
             break
+
+    # One final constrained regeneration keeps the final question authored by the
+    # model instead of inserting a canned conversational line.
+    feedback_bullets = "\n".join(f"- {v.specific_feedback}" for v in violations)
+    constrained_prompt = (
+        f"{prompt}\n\n"
+        "[CONSTRAINED REGENERATION - FINAL ATTEMPT]\n"
+        "Rewrite the complete response. Preserve the answer, fix every violation below, "
+        "and obey the current language and safety context. Return plain text only.\n"
+        f"{feedback_bullets}"
+    )
+    try:
+        try:
+            stream_iter = llm_client.stream(constrained_prompt, messages=messages, system_prompt=system_prompt)
+        except TypeError:
+            try:
+                stream_iter = llm_client.stream(constrained_prompt, messages=messages)
+            except TypeError:
+                stream_iter = llm_client.stream(constrained_prompt)
+        chunks = []
+        async for chunk in stream_iter:
+            if chunk:
+                chunks.append(chunk)
+        candidate_text = "".join(chunks).strip()
+        if candidate_text:
+            candidate_res = verify_response(candidate_text, context)
+            if candidate_res.is_valid:
+                return candidate_text, True, repaired_violations
+            current_text = candidate_text
+            violations = list(candidate_res.violations)
+    except Exception as exc:
+        logger.warning("LLM constrained regeneration failed: %s", exc)
 
     fallback = apply_constrained_fallback(current_text, violations, context)
     return fallback, False, repaired_violations
