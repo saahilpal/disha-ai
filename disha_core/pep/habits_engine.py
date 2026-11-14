@@ -65,13 +65,13 @@ def render_pep_brief(pep_data: dict[str, Any]) -> str:
 
     lines: list[str] = ["[PATIENT PEP SUMMARY]"]
 
-    # 1. Clinician-Owned Core (Immutable by LLM)
+    # 1. Baseline Safety Profile (System Safety Bounds)
     htn = core.get("hypertension_stage") or "None"
     gym = "Cleared" if core.get("gym_clearance") else "RESTRICTED (No Gym / Heavy deadlifts / Valsalva)"
     allowed = ", ".join(core.get("allowed_modalities") or ["walking"])
     restricted = ", ".join(core.get("restricted_modalities") or ["heavy_lifting"])
 
-    lines.append(f"• Doctor Core: HTN={htn} | Gym={gym}")
+    lines.append(f"• Safety Profile: HTN={htn} | Gym={gym}")
     if restricted:
         lines.append(f"• Restricted Modalities: {restricted}")
     if allowed:
@@ -154,7 +154,7 @@ async def get_pep(
                 "habits_version": 1,
                 "habits_authority": "SYSTEM_DERIVED",
                 "is_dirty": False,
-                "brief": "[PATIENT PEP SUMMARY]\n• Doctor Core: HTN=None | Gym=RESTRICTED\n• Active Habits: None.",
+                "brief": "[PATIENT PEP SUMMARY]\n• Safety Profile: HTN=None | Gym=RESTRICTED\n• Active Habits: None.",
             }
             return default_obj
 

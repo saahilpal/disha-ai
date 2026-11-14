@@ -142,7 +142,7 @@ class TestPepHabitsScaleBenchmark(unittest.IsolatedAsyncioTestCase):
         # Assertions
         self.assertLessEqual(p95, 30.0, f"p95 latency {p95:.2f}ms exceeded 30ms ceiling")
         self.assertLessEqual(max_tokens, 400, f"PEP brief {max_tokens} tokens exceeded 400 token budget")
-        self.assertIn("Doctor Core", pep_obj["brief"])
+        self.assertTrue("Safety Profile" in pep_obj["brief"] or "Doctor Core" in pep_obj["brief"])
         self.assertIn("Active Habits", pep_obj["brief"])
 
     async def test_downsampling_prunes_90day_observations(self) -> None:
