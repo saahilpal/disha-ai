@@ -45,8 +45,8 @@ from disha_core.services.chat_service import (
     store_call_summary,
 )
 
-BASE_HTTP = os.getenv("DISHA_HTTP_URL", "http://127.0.0.1:8080")
-BASE_WS = os.getenv("DISHA_WS_URL", "ws://127.0.0.1:8080/ws/conversation")
+BASE_HTTP = os.getenv("DISHA_HTTP_URL", "http://127.0.0.1:8000")
+BASE_WS = os.getenv("DISHA_WS_URL", "ws://127.0.0.1:8000/ws/conversation")
 PG_URL = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
 
 pytestmark = pytest.mark.live_network

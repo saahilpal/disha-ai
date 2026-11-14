@@ -119,21 +119,29 @@ class PromptAwareLLM:
                 prompt,
             )
             if saved_meal:
-                yield f"Your saved dinner is {saved_meal.group(1)}."
+                yield f"Your saved dinner is {saved_meal.group(1)}. How does that sound for dinner?"
                 return
 
             if 'preference="Vegan"' in prompt:
-                yield "Using your saved vegan preference with the retrieved guidance."
+                yield "Using your saved vegan preference with the retrieved guidance. Do you like this vegan meal?"
                 return
             if 'preference="Non-Vegetarian"' in prompt:
-                yield "Using your saved non-vegetarian preference with the retrieved guidance."
+                yield "Using your saved non-vegetarian preference with the retrieved guidance. Do you like this non-vegetarian meal?"
+                return
+
+            if "water" in prompt.lower():
+                yield "The retrieved source contains retrieved content. How much water do you drink daily?"
+                return
+
+            if "workout" in prompt.lower():
+                yield "The retrieved source contains exercise guidance. What workout do you prefer doing?"
                 return
 
             marker = next(
                 (value for value in ("meal alpha", "meal beta", "exercise guidance") if value in prompt),
                 "retrieved content",
             )
-            yield f"The retrieved source contains {marker}."
+            yield f"The retrieved source contains {marker}. Do you have questions about this guidance?"
 
         return generated()
 

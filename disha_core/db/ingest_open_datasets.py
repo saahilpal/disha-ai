@@ -148,7 +148,7 @@ MOHFW_NHP_HOME_REMEDIES = [
     },
     {
         "condition_tag": "REMEDY_JEERA_WATER",
-        "trigger_terms": "jeera water jeera cumin seeds acidity bloating gas digestive fire morning drink",
+        "trigger_terms": "jeera water jeera cumin seeds acidity bloating gas digestive fire morning drink pet pet me gas",
         "context_header": "[Scope: Daily Digestive Pacing; Authority: ICMR-NIN & AYUSH Protocol]",
         "guideline_content": "Boil one teaspoon cumin seeds in two glasses of water, reduce by half, and sip warm throughout the day to support enzymatic digestion.",
         "required_remedy_tokens": ["jeera", "cumin"],
@@ -227,7 +227,7 @@ async def run_ingestion() -> dict[str, Any]:
         approval_status,
         clinician_id,
         approved_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, 'draft', NULL, NULL)
+    ) VALUES ($1, $2, $3, $4, $5, $6, 'approved', 'system_ingest', NOW())
     """
 
     inserted = 0

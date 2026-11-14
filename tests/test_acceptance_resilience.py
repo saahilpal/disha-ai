@@ -636,9 +636,9 @@ async def test_resilience_06_replay_journal_turns_idempotently():
         await record_habit_observation(test_pid, "diastolic_bp", 85.0, "mmHg", conn=conn)
         await record_habit_observation(test_pid, "daily_steps", 4500.0, "count", conn=conn)
 
-        # REPLAY RUN 1: Rehydrate state & consolidate habits
-        ctx_1 = await rehydrate_session_state(conn, test_pid, session_id=test_session)
+        # REPLAY RUN 1: Consolidate habits & rehydrate state
         habits_1 = await consolidate_patient_habits(test_pid, conn=conn)
+        ctx_1 = await rehydrate_session_state(conn, test_pid, session_id=test_session)
         xml_1 = render_context_xml(ctx_1)
         journal_count_1 = await conn.fetchval(
             "SELECT COUNT(*) FROM patient_turn_journal WHERE patient_id = $1", test_pid
@@ -646,8 +646,8 @@ async def test_resilience_06_replay_journal_turns_idempotently():
         rollup_count_1 = await conn.fetchval("SELECT COUNT(*) FROM habit_rollups WHERE patient_id = $1", test_pid)
 
         # REPLAY RUN 2: Execute identical replay
-        ctx_2 = await rehydrate_session_state(conn, test_pid, session_id=test_session)
         habits_2 = await consolidate_patient_habits(test_pid, conn=conn)
+        ctx_2 = await rehydrate_session_state(conn, test_pid, session_id=test_session)
         xml_2 = render_context_xml(ctx_2)
         journal_count_2 = await conn.fetchval(
             "SELECT COUNT(*) FROM patient_turn_journal WHERE patient_id = $1", test_pid
@@ -655,8 +655,8 @@ async def test_resilience_06_replay_journal_turns_idempotently():
         rollup_count_2 = await conn.fetchval("SELECT COUNT(*) FROM habit_rollups WHERE patient_id = $1", test_pid)
 
         # REPLAY RUN 3: Execute third replay
-        ctx_3 = await rehydrate_session_state(conn, test_pid, session_id=test_session)
         habits_3 = await consolidate_patient_habits(test_pid, conn=conn)
+        ctx_3 = await rehydrate_session_state(conn, test_pid, session_id=test_session)
         xml_3 = render_context_xml(ctx_3)
         journal_count_3 = await conn.fetchval(
             "SELECT COUNT(*) FROM patient_turn_journal WHERE patient_id = $1", test_pid
