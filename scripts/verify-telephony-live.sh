@@ -10,8 +10,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
 TUNNEL_URL="${1:-${TUNNEL_URL:-}}"
-TUNNEL_URL_FILE="${REPO_ROOT}/agent/TUNNEL_URL.txt"
-OUTPUT_REPORT="${REPO_ROOT}/agent/TELEPHONY_VERIFICATION_REPORT.json"
+TUNNEL_URL_FILE="${REPO_ROOT}/infra/logs/TUNNEL_URL.txt"
+OUTPUT_REPORT="${REPO_ROOT}/infra/logs/TELEPHONY_VERIFICATION_REPORT.json"
 
 # Resolve Tunnel URL
 if [ -z "${TUNNEL_URL}" ] && [ -f "${TUNNEL_URL_FILE}" ]; then

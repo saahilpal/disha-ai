@@ -41,7 +41,6 @@ from disha_core.services.chat_service import load_conversation_history, store_co
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
-AGENT_DIR = REPO_ROOT / "agent"
 DEFAULT_PG_URL = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
 
 pytestmark = pytest.mark.live_network
@@ -374,7 +373,7 @@ def test_resilience_03_tunnel_watchdog_restart_and_env_local_propagation():
 
     Verifies:
     1. scripts/tunnel-watchdog.sh is executable and passes status inspection.
-    2. Triggering tunnel URL persistence propagates to agent/TUNNEL_URL.txt AND .env.local.
+    2. Triggering tunnel URL persistence propagates to infra/logs/TUNNEL_URL.txt AND .env.local.
     3. Duplicate lines are cleanly replaced in .env.local (no runaway appending).
     4. Watchdog status command completes with exit code 0 without crashing.
     """
@@ -382,7 +381,7 @@ def test_resilience_03_tunnel_watchdog_restart_and_env_local_propagation():
     assert watchdog_script.exists()
     assert os.access(watchdog_script, os.X_OK)
 
-    tunnel_url_file = AGENT_DIR / "TUNNEL_URL.txt"
+    tunnel_url_file = REPO_ROOT / "infra" / "logs" / "TUNNEL_URL.txt"
     env_local_file = REPO_ROOT / ".env.local"
 
     # Save original state for clean restoration

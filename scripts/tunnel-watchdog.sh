@@ -14,7 +14,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 # ------------------------------------------------------------------------------
 TARGET_URL="${TARGET_URL:-http://127.0.0.1:8080}"
 HEALTH_URL="${HEALTH_URL:-${TARGET_URL}/health}"
-TUNNEL_URL_FILE="${TUNNEL_URL_FILE:-${REPO_ROOT}/agent/TUNNEL_URL.txt}"
+TUNNEL_URL_FILE="${TUNNEL_URL_FILE:-${REPO_ROOT}/infra/logs/TUNNEL_URL.txt}"
 LOG_DIR="${LOG_DIR:-${REPO_ROOT}/infra/logs}"
 PID_FILE="${PID_FILE:-${LOG_DIR}/tunnel-watchdog.pid}"
 CLOUDFLARED_LOG="${CLOUDFLARED_LOG:-${LOG_DIR}/cloudflared.log}"

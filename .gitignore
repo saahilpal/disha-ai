@@ -112,7 +112,6 @@ package-lock.json.bak
 *.pt
 
 # Runtime Tunnel & Infra Logs
-agent/TUNNEL_URL.txt
 infra/logs/
 
 # Test execution output reports and simulation transcripts
@@ -120,8 +119,11 @@ audit/simulations/
 tests/*_report.json
 tests/*_result.json
 
-# Agent working files
+# Agent, swarm & skill files
+agent/
 .agent/
+*.SKILL.md
+*.skill.md
 
 # Interview and internal QA documentation (stored outside repository)
 docs/interview/

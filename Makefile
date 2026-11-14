@@ -187,8 +187,8 @@ demo: ## Launch show-ready Disha AI stack, seed demo personas, and print ingress
 	@echo "   Local Web UI:     http://127.0.0.1:8080"
 	@echo "   Direct Backend:   http://127.0.0.1:8000"
 	@echo "   WebSocket Route:  ws://127.0.0.1:8080/ws/conversation"
-	@if [ -f "agent/TUNNEL_URL.txt" ]; then \
-		echo "   Public Tunnel:    $$(cat agent/TUNNEL_URL.txt)"; \
+	@if [ -f "infra/logs/TUNNEL_URL.txt" ]; then \
+		echo "   Public Tunnel:    $$(cat infra/logs/TUNNEL_URL.txt)"; \
 	elif [ -f ".env.local" ] && grep -q "PUBLIC_TUNNEL_URL" .env.local; then \
 		echo "   Public Tunnel:    $$(grep PUBLIC_TUNNEL_URL .env.local | cut -d'=' -f2 | tr -d '\"')"; \
 	else \

@@ -32,7 +32,7 @@
         <key>HEALTH_URL</key>
         <string>http://127.0.0.1:8080/health</string>
         <key>TUNNEL_URL_FILE</key>
-        <string>/Users/nitrousoxide/Code/disha ai/agent/TUNNEL_URL.txt</string>
+        <string>/Users/nitrousoxide/Code/disha ai/infra/logs/TUNNEL_URL.txt</string>
         <key>LOG_DIR</key>
         <string>/Users/nitrousoxide/Code/disha ai/infra/logs</string>
     </dict>
