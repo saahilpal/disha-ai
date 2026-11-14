@@ -49,6 +49,17 @@ STOP_WORDS = frozenset(
         "please",
         "batao",
         "bataiye",
+        "how",
+        "what",
+        "can",
+        "which",
+        "best",
+        "should",
+        "would",
+        "tell",
+        "kaise",
+        "karna",
+        "karo",
     }
 )
 

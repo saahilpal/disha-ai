@@ -6,21 +6,22 @@ This document details the test suites, benchmark methodologies, empirical latenc
 
 The repository enforces safety invariants through multi-layered automated evaluation suites:
 
-1. **Rule-Based Golden Suite (`tests/golden/*.yaml`)**:
-   - 70 frozen behavioral assertions covering five rule families:
-     - `c_rules_clinical_safety.yaml` (19 cases): Prescriptions, diagnosis, emergency triage, sodium advice.
-     - `p_rules_persona_tone.yaml` (20 cases): Doctor disclaimers, empathy, coaching tone, identity boundaries.
-     - `f_rules_flow.yaml` (16 cases): Single-question limit, closure handling, acknowledgment handling.
-     - `d_rules_long_conversation.yaml` (8 cases): Multi-turn consistency across 30+ exchanges.
-     - `m_rules_memory_backend.yaml` (7 cases): Habit disclosure retention, session hydration, cross-channel recall.
-2. **Golden Corpus (`tests/golden_corpus_2703.jsonl`)**:
-   - 2,703 test prompts evaluating multilingual Hinglish, Devanagari Hindi, and English variations.
-3. **Emergency Red-Flag Benchmark (`tests/fixtures/emergency_red_flags_100.json`)**:
-   - 100 acute clinical emergencies spanning cardiovascular (acute myocardial infarction, crushing chest pain), cerebrovascular (facial droop, slurred speech), and acute respiratory distress.
-4. **Adversarial & Chaos Suites (`tests/test_breaker_chaos.py`, `tests/test_adversarial_conversational.py`)**:
-   - Evaluates jailbreak attempts, prompt injection, persona manipulation ("admit you are a doctor"), and simulated network latency.
-5. **Longitudinal Journey Simulation (`tests/test_multi_session_30day_simulation.py`)**:
-   - Simulates 30 consecutive days of patient interactions with variable blood pressure readings, exercise disclosures, and dietary questions.
+1. **Rule-Based Golden Suite (`tests/golden/*.yaml` & `tests/golden/test_golden_suite.py`)**:
+   - 84 frozen behavioral assertions covering five rule families:
+     - `c_rules_clinical_safety.yaml`: Prescriptions, diagnosis, emergency triage, sodium advice.
+     - `p_rules_persona_tone.yaml`: Doctor disclaimers, empathy, coaching tone, identity boundaries.
+     - `f_rules_flow.yaml`: Single-question limit, closure handling, acknowledgment handling.
+     - `d_rules_long_conversation.yaml`: Multi-turn consistency across extended exchanges.
+     - `m_rules_memory_backend.yaml`: Habit disclosure retention, session hydration, cross-channel recall.
+2. **Emergency Red-Flag Evaluation (`tests/test_breaker_eval.py`)**:
+   - Clinical emergency evaluation spanning cardiovascular (acute myocardial infarction, crushing chest pain), cerebrovascular (facial droop, slurred speech), acute respiratory distress, pregnancy emergencies, and acute abdomen.
+3. **Golden Corpus (`tests/golden_corpus_2703.jsonl`)**:
+   - 2,703 test prompts evaluating multilingual Hinglish, Devanagari Hindi, and English variations executed via `tests/runner.py`.
+4. **Behavioral Invariants & Spec Suite (`tests/test_behavior_policies.py`, `tests/test_behavior_spec_v1.py`)**:
+   - Enforces C1–C16 architectural invariants: refusal of diagnostic claims, medication guidance boundaries, length policies, and question spam constraints.
+5. **Acceptance Resilience & Clinical Scenarios (`tests/test_clinical_scenarios.py`, `tests/test_acceptance_resilience.py`)**:
+   - Validates 50+ multi-turn clinical scenarios, database disconnection recovery, session rehydration, and dual-provider failover.
+   - Comprehensive test suite executing 489 automated tests with 100% pass rate.
 
 ## 2. Empirical System Measurements
 

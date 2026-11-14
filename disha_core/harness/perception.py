@@ -6,6 +6,8 @@ deterministically selects the move (no LLM move selection).
 
 from __future__ import annotations
 
+import re
+from dataclasses import dataclass
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -67,6 +69,85 @@ class TurnPerception(BaseModel):
         "pivot",
         "natural_reply",
     ] = "natural_reply"
+
+
+@dataclass(frozen=True)
+class ConversationControl:
+    """Deterministic boundary decision shared by chat and voice turns."""
+
+    is_closing: bool = False
+    follow_up_allowed: bool = True
+
+
+_CLOSING_TURNS = (
+    "bye",
+    "goodbye",
+    "good night",
+    "talk to you later",
+    "that's all for today",
+    "thats all for today",
+    "abhi ke liye itna hi",
+    "bas itna hi",
+    "chalo bye",
+    "chalo theek hai bye",
+    "chalo thik hai bye",
+    "okay bye",
+    "ok bye",
+    "okay, bye",
+    "ok, bye",
+    "theek hai bye",
+    "thik hai bye",
+    "theek hai, bye",
+    "thik hai, bye",
+)
+_ACKNOWLEDGEMENT_TURNS = {
+    "ok",
+    "okay",
+    "sure",
+    "haan",
+    "han",
+    "theek hai",
+    "thik hai",
+    "understood",
+    "got it",
+    "thanks",
+    "thank you",
+    "achha",
+}
+_REFUSAL_RE = re.compile(
+    r"^(?:no|no thanks|not now|don't|do not|i don't want|let's not|lets not|"
+    r"nahi|nahin|abhi nahi)\b",
+    re.IGNORECASE,
+)
+_CONTINUATION_RE = re.compile(
+    r"\b(?:but|actually|by the way|one more|another|also|question|concern|"
+    r"explain|worried|worry|still|can you|could you|i wanted to ask)\b|\?",
+    re.IGNORECASE,
+)
+
+
+def classify_conversation_control(
+    user_input: str,
+    conversation_history: list[dict] | None = None,
+) -> ConversationControl:
+    """Decide whether routine follow-up is appropriate for this complete turn.
+
+    This is a boundary check, not a second intent classifier: the existing safety
+    breaker and domain router remain the owners of those decisions.
+    """
+    normalized = re.sub(r"\s+", " ", str(user_input or "").strip()).strip(" .!?。！？")
+    value = normalized.casefold()
+    history = conversation_history or []
+    if _CONTINUATION_RE.search(value):
+        return ConversationControl(follow_up_allowed=True)
+
+    if value in _CLOSING_TURNS or (value == "chalo theek hai" and bool(history)):
+        return ConversationControl(is_closing=True, follow_up_allowed=False)
+
+    if value in _ACKNOWLEDGEMENT_TURNS or _REFUSAL_RE.match(value):
+        return ConversationControl(follow_up_allowed=False)
+
+    return ConversationControl()
 
 
 # JSON schema instruction appended to the system prompt for the perception call

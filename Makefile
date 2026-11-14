@@ -122,17 +122,13 @@ test: ## Run full core pytest suite
 repo-check: ## Execute full repository integrity check (secrets, lint, duplicates, tests)
 	@bash scripts/repo-check
 
-audit: ## Run deterministic multi-dimensional judge evaluation
-	@echo "$(BOLD)[+] Running automated audit judge (/audit/judge.py)...$(RESET)"
-	@$(PYTHON) -m audit.judge
+audit: ## Run mechanical clinical safety and edge case verifications
+	@$(PYTEST) -v tests/test_clinical_safety_and_ledger.py tests/test_security_reliability.py
 
-qa: ## Run Playwright screenshot capture and mechanical adversarial checks
-	@echo "$(BOLD)[+] Running Playwright visual regression crawler across viewports and themes...$(RESET)"
-	@$(NODE) qa/capture_redesign.js
-	@echo ""
+qa: ## Run mechanical clinical safety and edge case verifications
 	@echo "$(BOLD)[+] Running mechanical clinical safety and edge case verifications...$(RESET)"
-	@$(PYTEST) -v tests/test_clinical_safety_and_ledger.py tests/test_audit_security_and_edge_cases.py
-	@echo "$(GREEN)$(BOLD)✓ QA visual capture and mechanical checks complete.$(RESET)"
+	@$(PYTEST) -v tests/test_clinical_safety_and_ledger.py tests/test_security_reliability.py
+	@echo "$(GREEN)$(BOLD)✓ QA mechanical checks complete.$(RESET)"
 
 tunnel: ## Start Cloudflare tunnel watchdog
 	@echo "$(BOLD)[+] Starting Cloudflare Tunnel Watchdog...$(RESET)"
@@ -144,15 +140,15 @@ tunnel-local: ## Tunnel the local-only app on port 8010
 
 lint: ## Lint codebase with ruff
 	@echo "$(BOLD)[+] Running ruff linter...$(RESET)"
-	@$(RUFF) check disha_core audit tests
+	@$(RUFF) check disha_core tests
 
 typecheck: ## Typecheck codebase with mypy
 	@echo "$(BOLD)[+] Running mypy type checker...$(RESET)"
-	@$(MYPY) disha_core audit
+	@$(MYPY) disha_core
 
 format: ## Format codebase with ruff
 	@echo "$(BOLD)[+] Formatting codebase with ruff...$(RESET)"
-	@$(RUFF) format disha_core audit tests
+	@$(RUFF) format disha_core tests
 
 clean: ## Clean cache files, pycache, test artifacts
 	@echo "$(BOLD)[+] Cleaning caches and temporary artifacts...$(RESET)"

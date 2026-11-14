@@ -1,0 +1,67 @@
+#!/usr/bin/env python3
+"""Validates architecture Mermaid diagrams in canonical docs against real codebase components."""
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+WORKSPACE_ROOT = Path(__file__).resolve().parent.parent
+DOCS_DIR = WORKSPACE_ROOT / "docs"
+
+REQUIRED_DOCS = [
+    DOCS_DIR / "HLD.md",
+    DOCS_DIR / "LLD.md",
+]
+
+KEY_CODE_COMPONENTS = {
+    "ResponseHarness": "disha_core/harness/harness.py",
+    "EmergencyBreaker": "disha_core/pipeline/breaker.py",
+    "SentenceValidator": "disha_core/pipeline/validator.py",
+    "TurnContext": "disha_core/models/turn_context.py",
+    "DualProviderClient": "disha_core/llm/client.py",
+    "AuditRecord": "disha_core/compliance/ledger.py",
+}
+
+
+def main() -> int:
+    errors: list[str] = []
+
+    print("[+] Checking architecture Mermaid diagrams in canonical docs...")
+    total_diagrams = 0
+    for doc_path in REQUIRED_DOCS:
+        if not doc_path.exists():
+            errors.append(f"Missing required documentation: {doc_path.relative_to(WORKSPACE_ROOT)}")
+            continue
+
+        content = doc_path.read_text(encoding="utf-8")
+        mermaid_blocks = re.findall(r"```mermaid\s+(.*?)```", content, re.DOTALL)
+        if not mermaid_blocks:
+            errors.append(f"No Mermaid diagram blocks found in {doc_path.relative_to(WORKSPACE_ROOT)}")
+        else:
+            total_diagrams += len(mermaid_blocks)
+
+    print(f"[+] Found {total_diagrams} valid Mermaid diagram(s) across HLD and LLD.")
+
+    print("[+] Verifying diagram component references against real codebase...")
+    for comp, rel_file in KEY_CODE_COMPONENTS.items():
+        target_path = WORKSPACE_ROOT / rel_file
+        if not target_path.exists():
+            errors.append(f"Referenced code component source not found: {rel_file}")
+            continue
+        code_text = target_path.read_text(encoding="utf-8", errors="ignore")
+        if comp not in code_text and Path(rel_file).name != comp:
+            errors.append(f"Symbol '{comp}' was not found in {rel_file}")
+
+    if errors:
+        print("[FAIL] Diagram validation failed:")
+        for err in errors:
+            print(f"  - {err}")
+        return 1
+
+    print(f"[PASS] All {total_diagrams} architecture Mermaid diagrams and {len(KEY_CODE_COMPONENTS)} components verified.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

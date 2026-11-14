@@ -204,7 +204,6 @@ def build_structured_plan(
         "multiple questions",
         "generic quotes",
         "questionnaire tone",
-        "end with exactly one meaningful question unless this is an emergency or closing",
     ]
     if is_struggle:
         things_to_avoid.append("judgment or guilt")
@@ -226,9 +225,12 @@ def build_structured_plan(
     if not ctx.get("protocol_approved") and ctx.get("clinical_tags"):
         things_to_avoid.append("unapproved remedies")
 
+    q_required = bool(ctx.get("question_required", True) and not ctx.get("is_closing", False))
+
     return StructuredPlan(
         goal=goal,
         coach_moves=coach_moves,
-        question=question,
+        question=question if q_required else None,
+        question_required=q_required,
         things_to_avoid=things_to_avoid,
     )

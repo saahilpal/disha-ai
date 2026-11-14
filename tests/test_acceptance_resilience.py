@@ -1,13 +1,9 @@
-"""Acceptance Resilience and Chaos Disruption Test Suite for Disha AI Release-Candidate (Phase 3F).
+"""Acceptance Resilience and Reliability Test Suite for Disha AI.
 
-Author: Resilience & Reliability Specialist for Disha AI
-Standard: senior-ai-systems-engineer, cloudflare-architect
-
-Mission Acceptance Scenarios:
-1. Restart the stack mid-session: verify graceful reconnect and session resumption.
-2. Kill PostgreSQL database mid-turn and restore: verify circuit breaker, graceful deflection, and zero corrupted records.
-3. Trigger tunnel watchdog restart: verify new URL propagation to .env.local without crashing.
-4. Dual-provider failover: simulate primary LLM timeout/failure and confirm seamless fallback to secondary.
+Scenarios:
+1. Reconnection handling and session resumption.
+2. Database disconnect and reconnection handling with zero corrupted records.
+3. Dual-provider failover: primary provider timeout with seamless secondary fallback.
 5. Audit ledger outbox recovery: verify no stranded WAL records on crash.
 6. Replay journal turns idempotently: confirm identical state computation without duplicate entries.
 """

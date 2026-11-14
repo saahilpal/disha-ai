@@ -29,6 +29,7 @@ from disha_core.engine.normalizer import (
     normalize,
 )
 from disha_core.engine.retriever import retrieve_chunks
+from disha_core.harness.perception import classify_conversation_control
 from disha_core.harness.repair import format_system_error, repair_turn
 from disha_core.harness.verifier import verify_response
 from disha_core.llm.sentence_buffer import validated_sentences
@@ -211,12 +212,15 @@ class ResponseHarness:
 
         normalized = normalize(payload.text)
         is_incomplete_thought = payload.text.strip().endswith("...")
+        conv_control = classify_conversation_control(payload.text, context.get("conversation_history"))
         context["is_incomplete_thought"] = is_incomplete_thought
+        context["conversation_control"] = conv_control
         context["clinical_tags"] = normalized.tags
         context["intent"] = intent.value if intent else Intent.UNKNOWN.value
         context["pep_risk"] = pep_risk
         context["user_input"] = payload.text
-        context["question_required"] = True
+        context["is_closing"] = conv_control.is_closing
+        context["question_required"] = conv_control.follow_up_allowed
         context["is_emergency"] = False
         context["meal_relevant"] = normalized.is_meal_query or intent == Intent.MEAL_QUERY
         context["exercise_relevant"] = normalized.is_exercise_query or intent == Intent.EXERCISE_QUERY

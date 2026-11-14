@@ -1,4 +1,4 @@
-"""Acceptance Test Suite for Disha AI Journey, Memory, and Channel Invariants (Phase 3B RC).
+"""Acceptance Test Suite for Disha AI Journey, Memory, and Channel Invariants.
 
 Covers all 7 Core Verification Pillars:
 1. Complete onboarding via chat and voice with direct PostgreSQL assertions.

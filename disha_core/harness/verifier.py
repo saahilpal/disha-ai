@@ -537,6 +537,22 @@ def check_f6_question_requirement(text: str, context: dict[str, Any] | None = No
     return None
 
 
+def check_follow_up_suppressed(text: str, context: dict[str, Any] | None = None) -> VerificationViolation | None:
+    """When follow-up is suppressed (closing, simple acknowledgement, or refusal), do not ask a question."""
+    ctx = context or {}
+    conv_ctrl = ctx.get("conversation_control")
+    follow_up_allowed = getattr(conv_ctrl, "follow_up_allowed", None)
+    if follow_up_allowed is None:
+        follow_up_allowed = ctx.get("question_required", True)
+    if not follow_up_allowed and "?" in text:
+        return VerificationViolation(
+            check_name="follow_up_suppressed",
+            description="Response asks a question when follow-up was suppressed (closing, refusal, or acknowledgement)",
+            specific_feedback="Do not ask a question. Simply acknowledge or bid farewell without asking anything.",
+        )
+    return None
+
+
 def check_f4_selective_empathy(text: str, context: dict[str, Any]) -> VerificationViolation | None:
     """F4: Empathy only when user shares distress or physical struggle; no artificial cheerleading."""
     distress = bool(context.get("distress_expressed", False))
@@ -650,6 +666,9 @@ def verify_response(text: str, context: dict[str, Any] | None = None) -> Verific
     v_f6 = check_f6_question_requirement(sanitized, ctx)
     if v_f6:
         violations.append(v_f6)
+    v_suppressed = check_follow_up_suppressed(sanitized, ctx)
+    if v_suppressed:
+        violations.append(v_suppressed)
 
     return VerificationResult(
         is_valid=len(violations) == 0,

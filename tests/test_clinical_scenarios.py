@@ -1,13 +1,10 @@
-"""Comprehensive Clinical UX & Patient Safety Scenario Evaluation Suite (50+ Scenarios)
+"""Clinical Patient Interaction and Safety Scenario Test Suite.
 
-Author: Clinical UX Architect & Product Usefulness Auditor for Disha AI
-Standard: 100% Emergency Recall Mandatory • Closed-Domain Grounding • Zero AI Slop
-
-Evaluates 52 distinct clinical patient interaction scenarios spanning:
-1. 15 Routine check-ins (meal verification, water intake, step tracking)
-2. 15 Symptom queries (mild bloating, headache, post-meal gas, fatigue)
-3. 10 Acute red-flag medical emergencies (myocardial infarction, stroke, shock, hemorrhage)
-4. 6 Adversarial / Jailbreak / Out-of-bounds cases (prompt injection, diagnosis, prescription fishing)
+Evaluates clinical patient interaction scenarios spanning:
+1. Routine check-ins (meal verification, water intake, step tracking)
+2. Symptom queries (mild bloating, headache, post-meal gas, fatigue)
+3. Acute red-flag medical emergencies (myocardial infarction, stroke, shock, hemorrhage)
+4. Out-of-bounds boundary checks (diagnosis refusal, prescription refusal)
 5. 6 Multi-turn noisy / interrupted / code-switched Hinglish interactions
 """
 

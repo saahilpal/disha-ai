@@ -467,8 +467,10 @@ class MemoryScoringEngine:
 
 @pytest.fixture
 def golden_suite_data() -> dict[str, Any]:
-    suite_path = Path("audit/memory_golden_suite.json")
-    assert suite_path.exists(), "audit/memory_golden_suite.json not found"
+    suite_path = Path("tests/fixtures/memory_golden_suite.json")
+    if not suite_path.exists():
+        suite_path = Path("audit/memory_golden_suite.json")
+    assert suite_path.exists(), "tests/fixtures/memory_golden_suite.json not found"
     with open(suite_path) as f:
         return json.load(f)
 
