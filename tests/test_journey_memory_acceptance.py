@@ -47,13 +47,15 @@ from disha_core.services.chat_service import (
 
 BASE_HTTP = os.getenv("DISHA_HTTP_URL", "http://127.0.0.1:8080")
 BASE_WS = os.getenv("DISHA_WS_URL", "ws://127.0.0.1:8080/ws/conversation")
-PG_URL = os.getenv("DATABASE_URL", "postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha")
+PG_URL = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
 
 pytestmark = pytest.mark.live_network
 
 
 class TestJourneyAndMemoryAcceptance(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
+        if not PG_URL:
+            self.skipTest("TEST_DATABASE_URL not configured")
         try:
             self.conn = await asyncpg.connect(PG_URL)
         except Exception as exc:

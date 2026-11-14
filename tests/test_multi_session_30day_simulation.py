@@ -37,7 +37,7 @@ from disha_core.pep.habits_engine import (
 )
 from disha_core.pipeline.validator import evaluate_patient_claims
 
-PG_URL = os.getenv("DATABASE_URL", "postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha")
+PG_URL = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
 
 
 class TestThirtyDayMultiSessionSimulation(unittest.IsolatedAsyncioTestCase):
@@ -46,6 +46,8 @@ class TestThirtyDayMultiSessionSimulation(unittest.IsolatedAsyncioTestCase):
     SIM_PATIENT_ID = "pt_sim_vikram_30d"
 
     async def asyncSetUp(self) -> None:
+        if not PG_URL:
+            self.skipTest("TEST_DATABASE_URL not configured")
         try:
             self.conn = await asyncpg.connect(PG_URL)
         except Exception as exc:

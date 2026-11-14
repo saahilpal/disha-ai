@@ -13,11 +13,14 @@ pytestmark = pytest.mark.live_network
 
 
 def _get_db_url() -> str:
+    url = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
+    if url:
+        return url
     db_host = os.getenv("DB_HOST", "127.0.0.1")
     db_port = os.getenv("DB_PORT", "5432")
     db_user = os.getenv("DB_USER", "disha")
     db_name = os.getenv("DB_NAME", "disha")
-    db_pass = os.getenv("DB_PASSWORD", "disha_secure_pass_123")
+    db_pass = os.getenv("DB_PASSWORD", "")
     return f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
 
 

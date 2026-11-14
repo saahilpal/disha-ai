@@ -46,7 +46,7 @@ from disha_core.services.chat_service import load_conversation_history, store_co
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPTS_DIR = REPO_ROOT / "scripts"
 AGENT_DIR = REPO_ROOT / "agent"
-DEFAULT_PG_URL = os.getenv("DATABASE_URL", "postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha")
+DEFAULT_PG_URL = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
 
 pytestmark = pytest.mark.live_network
 
@@ -204,6 +204,8 @@ def create_configured_test_app(pool=None):
 
 async def get_live_pg_connection():
     """Connect to live PostgreSQL if available; otherwise None."""
+    if not DEFAULT_PG_URL:
+        return None
     try:
         import asyncpg
 

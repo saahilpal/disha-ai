@@ -27,7 +27,8 @@ logger = logging.getLogger("StressConcurrency")
 WS_URL = "ws://127.0.0.1:8080/ws/conversation?token=pt_test_01_valid_bearer_token"
 CONCURRENT_SESSIONS = 30
 PG_DSN = os.getenv(
-    "DATABASE_URL", f"postgresql://disha:{os.getenv('POSTGRES_PASSWORD', 'postgres')}@127.0.0.1:5432/disha"
+    "TEST_DATABASE_URL",
+    os.getenv("DATABASE_URL", f"postgresql://disha:{os.getenv('POSTGRES_PASSWORD', 'postgres')}@127.0.0.1:5432/disha"),
 )
 
 

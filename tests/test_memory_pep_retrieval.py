@@ -327,7 +327,7 @@ class TestDatasetRetrievalQuality(unittest.IsolatedAsyncioTestCase):
 
     async def test_retrieval_for_symptoms_bloating_acidity_knee_pain(self) -> None:
         """Verify accurate chunk retrieval, thresholding, and deduplication across symptoms."""
-        db_url = os.getenv("DATABASE_URL")
+        db_url = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
         if not db_url:
             self.skipTest("DATABASE_URL not configured")
 
@@ -378,7 +378,7 @@ class TestLivePostgresMemoryEndToEnd(unittest.IsolatedAsyncioTestCase):
     """Live end-to-end multi-turn persistence test using PostgreSQL."""
 
     async def test_live_multi_turn_consecutive_flow(self) -> None:
-        db_url = os.getenv("DATABASE_URL")
+        db_url = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
         if not db_url:
             self.skipTest("DATABASE_URL not configured")
 
@@ -673,7 +673,7 @@ class TestPersistenceAndRehydration(unittest.IsolatedAsyncioTestCase):
 
     async def test_zero_in_ram_state_lost_on_reconnect(self) -> None:
         """State must completely rehydrate from DB by session_id / call_id after RAM wipe."""
-        db_url = os.getenv("DATABASE_URL")
+        db_url = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
         if not db_url:
             self.skipTest("DATABASE_URL not configured")
 
@@ -748,7 +748,7 @@ class TestPersistenceAndRehydration(unittest.IsolatedAsyncioTestCase):
 
     async def test_turn_journal_and_patient_turn_journal_sync(self) -> None:
         """Verify turn_journal view reads from and writes to patient_turn_journal."""
-        db_url = os.getenv("DATABASE_URL")
+        db_url = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
         if not db_url:
             self.skipTest("DATABASE_URL not configured")
 
@@ -779,7 +779,7 @@ class TestPersistenceAndRehydration(unittest.IsolatedAsyncioTestCase):
 
     async def test_memory_items_persistence_and_superseding(self) -> None:
         """Verify memory_items stores and supersedes slots while maintaining history."""
-        db_url = os.getenv("DATABASE_URL")
+        db_url = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
         if not db_url:
             self.skipTest("DATABASE_URL not configured")
 
@@ -818,7 +818,7 @@ class TestPersistenceAndRehydration(unittest.IsolatedAsyncioTestCase):
 
     async def test_call_summaries_persistence(self) -> None:
         """Verify call_summaries table stores and retrieves call summaries."""
-        db_url = os.getenv("DATABASE_URL")
+        db_url = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
         if not db_url:
             self.skipTest("DATABASE_URL not configured")
 

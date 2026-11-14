@@ -30,7 +30,7 @@ from disha_core.pipeline.router import IntentRouter
 from disha_core.routers.chat import router as chat_router
 from disha_core.services.chat_service import load_conversation_history, store_conversation_turn
 
-PG_URL = os.getenv("DATABASE_URL", "postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha")
+PG_URL = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
 
 
 class MockLLM:
@@ -49,6 +49,8 @@ class MockLLM:
 
 class TestConversationalStateContinuity(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
+        if not PG_URL:
+            self.skipTest("TEST_DATABASE_URL not configured")
         try:
             self.conn = await asyncpg.connect(PG_URL)
         except Exception as exc:

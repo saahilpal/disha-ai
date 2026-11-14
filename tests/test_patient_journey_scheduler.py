@@ -39,11 +39,13 @@ from disha_core.journey.state_machine import (
 )
 from disha_core.pipeline.router import EmergencyBreaker
 
-PG_URL = os.getenv("DATABASE_URL", "postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha")
+PG_URL = os.getenv("TEST_DATABASE_URL") or os.getenv("DATABASE_URL")
 
 
 class TestPatientJourneyScheduler(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self) -> None:
+        if not PG_URL:
+            self.skipTest("TEST_DATABASE_URL not configured")
         try:
             self.conn = await asyncpg.connect(PG_URL)
         except Exception as exc:

@@ -35,8 +35,9 @@ try:
 except ImportError:
     pass
 
-pg_pass = os.getenv("POSTGRES_PASSWORD", "disha_secure_pass_123")
-PG_URL = os.getenv("DATABASE_URL", f"postgresql://disha:{pg_pass}@127.0.0.1:5432/disha")
+PG_URL = os.getenv("TEST_DATABASE_URL") or os.getenv(
+    "DATABASE_URL", f"postgresql://disha:{os.getenv('POSTGRES_PASSWORD', '')}@127.0.0.1:5432/disha"
+)
 
 
 async def generate_test_audio(text: str = "Pet mein gas ho rahi hai.") -> bytes:
