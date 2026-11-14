@@ -219,7 +219,7 @@ async def retrieve_chunks(
             tag_bonus = 0.1 if (tag_list and itm_tag in tag_list) else 0.0
             return (1.0 / (k + r_text)) + (1.0 / (k + r_trigram)) + tag_bonus
 
-        candidates.sort(key=lambda itm: rrf_score(candidates.index(itm), itm), reverse=True)
+        candidates = [c for _, c in sorted(enumerate(candidates), key=lambda x: rrf_score(x[0], x[1]), reverse=True)]
 
     results = tuple(candidates[:limit])
 
