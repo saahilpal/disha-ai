@@ -948,6 +948,10 @@ def create_app() -> FastAPI:
                                 with suppress(Exception):
                                     await websocket.send_json({"type": "authenticated", "patient_id": patient_id})
                                 continue
+                            elif msg_type == "ping":
+                                with suppress(Exception):
+                                    await websocket.send_json({"type": "pong"})
+                                continue
                             elif msg_type == "audio" and parsed.get("data"):
                                 import base64
 

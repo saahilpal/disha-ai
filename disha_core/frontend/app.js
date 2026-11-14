@@ -1499,6 +1499,12 @@
       state.ws.onopen = () => {
         state.wsReconnectAttempts = 0;
         setConnectionState('connected');
+        if (state.pingInterval) clearInterval(state.pingInterval);
+        state.pingInterval = setInterval(() => {
+          if (state.ws && state.ws.readyState === (typeof WebSocket !== 'undefined' ? WebSocket.OPEN : 1)) {
+            state.ws.send(JSON.stringify({ type: 'ping' }));
+          }
+        }, 25000);
         // Immediate auth handshake frame
         if (state.token) {
           state.ws.send(JSON.stringify({ type: 'auth', token: state.token }));
@@ -1528,6 +1534,10 @@
       };
 
       state.ws.onclose = (event) => {
+        if (state.pingInterval) {
+          clearInterval(state.pingInterval);
+          state.pingInterval = null;
+        }
         setTextTurnPending(false);
         setConnectionState('disconnected');
         if (state.wsExplicitlyClosed || (event && (event.code === 1000 || event.code === 1008 || event.code === 4001))) {
@@ -1577,6 +1587,10 @@
   // --- SERVER MESSAGE HANDLER ---
   function handleServerMessage(data) {
     if (!data) return;
+
+    if (data.type === 'pong') {
+      return;
+    }
 
     if (data.type === 'authenticated') {
       console.info('[Disha Voice] Authenticated session confirmed for:', data.patient_id);
