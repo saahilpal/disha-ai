@@ -17,6 +17,12 @@ Disha AI grounds lifestyle guidance in verified clinical and nutritional dataset
 
 All guidelines ingested into `knowledge_chunks` require strict provenance tracking linking every chunk to its registered entry in `knowledge_sources`.
 
+### Distinction Between Knowledge Tables
+The system maintains two distinct clinical knowledge tables in PostgreSQL:
+- **`clinical_knowledge_base`**: 478 clinician-reviewed guideline chunks with `approval_status` (draft/approved), clinician ID validation, trigger terms, and condition tags queried by the primary runtime RAG retriever (`retrieve_chunks()`).
+- **`knowledge_chunks`**: 482 structured domain reference chunks across 6 authorities (362 API, 87 PCOS, 23 ICMR-NIN, 6 MoHFW, 2 IFCT, 2 WHO) linked to `knowledge_sources`.
+- Combined, the database maintains **960 total chunks** across both tables. Historical documentation referring to "900+ chunks" counts both knowledge tables together.
+
 ## 2. Relational Entity-Relationship Diagram
 
 ```mermaid

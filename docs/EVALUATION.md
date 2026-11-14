@@ -48,6 +48,8 @@ Evaluated across 100 benchmark emergency prompts (`emergency_red_flags_100.json`
 | Aho-Corasick Emergency Scan | 134.25 | 143.13 | 151.46 | 164.17 | 307.62 |
 | Regex Intent Refinement | 52.17 | 54.67 | 59.63 | 122.25 | 1498.79 |
 | LRU Cache Hit Lookup | 0.00 | 0.04 | 0.08 | 0.13 | 7.58 |
+| Laya Classifier (In-Process CPU) | 4.20 | 8.40 | 14.80 | 22.10 | 48.50 |
+| Clinical RAG Retrieval (FTS + pg_trgm) | 3.80 | 5.72 | 8.43 | 12.64 | 24.10 |
 
 ### 2.3 Output Checkers Catch Rates (50 Sentence Evaluation)
 
@@ -80,6 +82,6 @@ Evaluated across 50 adversarial and standard coaching sentences:
 ## 3. Continuous Quality and Regression Prevention
 
 Behavioral regressions are prevented through automated test gates:
-- Unit & Invariant Tests: 604 passing tests executed against a live PostgreSQL 16 container.
+- Unit & Invariant Tests: 489 passing tests executed against a live PostgreSQL 16 container.
 - Cryptographic Audit Verification: `test_clinical_safety_and_ledger.py` verifies the SHA-256 chain integrity of the `audit_claim_ledger`.
 - Gate Mutation Verification: `test_gate_mutations.py` plants synthetic hardcoded prices and fake secret tokens to verify that safety gates fail closed before deployment.

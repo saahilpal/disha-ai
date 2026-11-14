@@ -35,8 +35,8 @@ flowchart TD
 
     subgraph ExternalServices ["External Model Providers"]
         GroqSTT["Groq Whisper Large v3 (STT)"]
-        PrimaryLLM["Google Gemini 1.5 Flash (Primary LLM)"]
-        SecondaryLLM["Groq Llama 3.3 70B (Secondary LLM)"]
+        PrimaryLLM["Groq Primary LLM (openai/gpt-oss-120b)"]
+        SecondaryLLM["Google Gemini Secondary LLM (gemini-3.6-flash)"]
         EdgeTTS["Microsoft Edge-TTS (Neural Audio)"]
     end
 

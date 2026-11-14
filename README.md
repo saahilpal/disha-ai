@@ -34,7 +34,7 @@ flowchart TD
         Context["Context Builder & Patient Rehydrator"]
         Retriever["Clinical Retriever (pg_trgm + tsvector)"]
         Harness["Response Harness (PERCEIVE-PLAN-GEN-VERIFY-REPAIR-COMMIT)"]
-        DualLLM["Dual Provider Client (Gemini Primary / Groq Failover)"]
+        DualLLM["Dual Provider Client (Groq Primary / Gemini Failover)"]
         Validator["SentenceValidator & Verifier Guardrails"]
     end
 
@@ -71,7 +71,7 @@ flowchart TD
 - **Circuit Breaker Fallback**: In-process regex and keyword heuristics ensure graceful continuity if the classifier service is unavailable.
 
 ### 3. Evidence-Grounded Clinical RAG
-- **Curated Knowledge Chunks**: 900+ verified chunks ingested from ICMR-NIN Dietary Guidelines, WHO Hypertension Protocols, and Ministry of Ayush lifestyle advisories.
+- **Curated Knowledge Chunks**: 478 approved/draft clinical guideline chunks in `clinical_knowledge_base` and 482 structured domain reference chunks in `knowledge_chunks` (960 total across both tables) ingested from ICMR-NIN Dietary Guidelines, WHO Hypertension Protocols, and Ministry of Ayush lifestyle advisories.
 - **Hybrid Retrieval**: Combines PostgreSQL Full-Text Search (`tsvector`) with trigram fuzzy matching (`pg_trgm`) over condition and dietary tags.
 - **Strict Anti-Hallucination**: Queries without clinical guideline matches default to conservative lifestyle boundaries and refuse ungrounded clinical claims.
 
@@ -102,8 +102,8 @@ Executes a unified 6-stage turn lifecycle:
 - **Tamper-Evident Merkle Chain**: Every turn transition computes a cryptographic SHA-256 hash linked to the previous turn in `audit_claim_ledger`.
 
 ### 9. Dual-Provider LLM Gateway
-- Primary provider: Google Gemini 1.5 Flash (low-latency streaming).
-- Secondary provider: Groq Llama 3.3 70B (instant failover).
+- Primary provider: Groq (`openai/gpt-oss-120b` or configured `qwen/qwen3.8-27b`).
+- Secondary provider: Google Gemini (`gemini-3.6-flash` or configured `gemini-3.1-flash-lite`) as instant failover.
 - Equipped with `ConsecutiveFailureCircuitBreaker` with automatic cooldown to guarantee 99.9% availability.
 
 ---

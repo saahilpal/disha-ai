@@ -24,6 +24,13 @@ This document catalogs known architectural defects, test limitations, and deferr
 
 ---
 
+## 3. Items Recommended for Clinician Review
+- **Pregnancy & Acute Abdomen Red-Flag Symptoms**: Sourced from NHS 111 clinical pathways and AIIMS Emergency Medicine Triage protocols (accessed November 2026). Clinician review recommended for boundary weights.
+- **Crisis Helpline Numbers**: Tele-MANAS (`14416` / `1800-891-4416`) and National KIRAN Mental Health Helpline (`1800-599-0019`) sourced from official Ministry of Health and Family Welfare (MoHFW) directories (accessed November 2026).
+- **Acute Pain Herbal Deflection**: Botanical remedy checks in `SentenceValidator` deflect home remedies (turmeric/haldi, ashwagandha) during acute abdominal complaints. Clinician review recommended.
+
+---
+
 ## Recently Resolved Issues (Verified in Test Suite)
 
 - **Journey Acceptance 502 Bad Gateway**: Resolved by configuring `DISHA_HTTP_URL` to the direct backend endpoint and aligning Docker bridge network aliases (`dishaai_disha_internal`).
