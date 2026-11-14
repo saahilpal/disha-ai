@@ -6,6 +6,7 @@
 -- 3. World Health Organization (WHO Guidelines on Physical Activity 2020)
 -- 4. ICMR-NIN 2024 Physical Activity Guidelines for Indians
 -- ==============================================================================
+SET client_min_messages = warning;
 
 CREATE TABLE IF NOT EXISTS clinical_exercise_guidelines (
     id VARCHAR(64) PRIMARY KEY,

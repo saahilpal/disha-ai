@@ -1,5 +1,6 @@
 -- Disha AI Core: Product Facts, Commercial Pricing, and Clinical Clearance Policies
 -- Table: product_facts
+SET client_min_messages = warning;
 
 CREATE TABLE IF NOT EXISTS product_facts (
     fact_key VARCHAR(64) PRIMARY KEY,

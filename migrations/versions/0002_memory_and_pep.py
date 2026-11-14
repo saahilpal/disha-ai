@@ -42,7 +42,6 @@ def upgrade() -> None:
         normalized_utterance TEXT NOT NULL DEFAULT '',
         created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
     );
-    ALTER TABLE patient_turn_journal ADD COLUMN IF NOT EXISTS call_id VARCHAR(128);
     CREATE INDEX IF NOT EXISTS idx_journal_patient_time 
         ON patient_turn_journal(patient_id, timestamp_utc DESC);
     CREATE INDEX IF NOT EXISTS idx_journal_session_turn 

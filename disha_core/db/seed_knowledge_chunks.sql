@@ -1,5 +1,6 @@
 -- Disha AI Core: Knowledge Sources & Chunks Schema and Seed
 -- Tables: knowledge_sources, knowledge_chunks
+SET client_min_messages = warning;
 
 -- 1. Knowledge Sources Table
 CREATE TABLE IF NOT EXISTS knowledge_sources (
