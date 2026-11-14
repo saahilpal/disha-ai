@@ -200,7 +200,7 @@ The runtime prompt assembly follows a cache-friendly static-to-dynamic layout:
 
 ### 4.2 Empirical Token Budget (Before vs. After Optimization)
 
-Measured across real simulated turns (intents × patients × history lengths × languages) using Qwen2.5 BPE:
+Measured across real simulated turns (intents × patients × history lengths × languages) using Qwen2.5 BPE *(see [Token & RAG Optimization Benchmark Report](TOKEN_OPTIMIZATION_BENCHMARK.md) for full benchmark breakdown)*:
 
 | Payload Section | Before (Tokens) | % Contribution | After (Tokens) | Net Savings | Primary Optimization Mechanism |
 | :--- | :---: | :---: | :---: | :---: | :--- |

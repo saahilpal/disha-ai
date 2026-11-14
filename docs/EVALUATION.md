@@ -81,6 +81,8 @@ Evaluated across 50 adversarial and standard coaching sentences:
 
 ### 2.5 2026 RAG & Token-Diet Optimization Ledger
 
+*(For full methodology, query-by-query breakdown, and reproducibility instructions, see [Token & RAG Optimization Benchmark Report](TOKEN_OPTIMIZATION_BENCHMARK.md).)*
+
 | Optimization Metric | Baseline (Pre-Optimization) | Optimized (Post-Pass) | Net Gain / Delta |
 |:---|:---:|:---:|:---:|
 | **Mean Input Tokens (Grand Avg)** | 1,862.8 tokens | 812.0 tokens | **-56.4%** |
