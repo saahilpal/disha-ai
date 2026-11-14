@@ -1626,6 +1626,10 @@
       if (!state.isPlayingAudio) {
         setTelephonyStatus('listening');
       }
+    } else if (data.type === 'silence') {
+      if (!state.isPlayingAudio && state.isInCall) {
+        setTelephonyStatus('listening');
+      }
     } else if (data.type === 'error') {
       setTextTurnPending(false);
       showAlert(data.message || 'Consultation error');
@@ -2395,8 +2399,8 @@
 
       const bufferLength = analyser.frequencyBinCount || 0;
       const dataArray = new Uint8Array(bufferLength);
-      const ENERGY_THRESHOLD = 20;
-      const BARGE_IN_THRESHOLD = 95;
+      const ENERGY_THRESHOLD = 12;
+      const BARGE_IN_THRESHOLD = 40;
       let silenceTimer = null;
 
       // Real-time MediaRecorder for speech capture
@@ -2481,11 +2485,17 @@
             }
           }
 
-          // Real-Time VAD & Barge-In Check
+          // Real-Time VAD & Barge-In Check (speech band focused on bins 0-8)
           analyser.getByteFrequencyData(dataArray);
           let sum = 0;
-          for (let i = 0; i < bufferLength; i++) sum += dataArray[i];
+          let speechSum = 0;
+          const speechBins = Math.min(bufferLength, 8);
+          for (let i = 0; i < bufferLength; i++) {
+            sum += dataArray[i];
+            if (i < speechBins) speechSum += dataArray[i];
+          }
           const avg = bufferLength > 0 ? sum / bufferLength : 0;
+          const speechAvg = speechBins > 0 ? speechSum / speechBins : 0;
           if (!state.isPlayingAudio) {
             drawStethoscopeVisualizer(avg);
           }
@@ -2495,15 +2505,15 @@
           const micVal = dom.micMeterValue || (typeof document !== 'undefined' ? document.getElementById('mic-meter-value') : null);
           const micMeter = dom.micAudioMeter || (typeof document !== 'undefined' ? document.getElementById('mic-audio-meter') : null);
           if (micFill && micVal) {
-            const levelPct = (state.isMuted || !state.isInCall) ? 0 : Math.min(100, Math.max(0, Math.round((avg / 96) * 100)));
+            const levelPct = (state.isMuted || !state.isInCall) ? 0 : Math.min(100, Math.max(0, Math.round((speechAvg / 80) * 100)));
             micFill.style.width = `${levelPct}%`;
             micVal.textContent = `${levelPct}%`;
             if (micMeter) micMeter.setAttribute('aria-valuenow', String(levelPct));
           }
 
-          if (avg > ENERGY_THRESHOLD) {
+          if (speechAvg > ENERGY_THRESHOLD) {
             if (state.isPlayingAudio) {
-              if (avg > BARGE_IN_THRESHOLD) {
+              if (speechAvg > BARGE_IN_THRESHOLD) {
                 onUserSpeechDetected();
               }
             } else {

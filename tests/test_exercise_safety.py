@@ -26,6 +26,17 @@ def test_recorded_restriction_withholds_that_exercise() -> None:
     assert result.alternatives == []
 
 
+def test_acute_symptoms_require_assessment_without_exercise_suggestion() -> None:
+    result = evaluate_exercise_suitability(
+        "brisk_walking",
+        reported_symptoms=["severe sharp chest pain"],
+    )
+
+    assert result.category == SuitabilityCategory.REQUIRES_CLINICAL_ASSESSMENT
+    assert result.alternatives == []
+    assert result.modifications == []
+
+
 def test_safety_tags_preserve_known_user_limitations() -> None:
     tags = extract_patient_health_tags(
         reported_symptoms=["My knee hurts"],

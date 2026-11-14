@@ -121,10 +121,6 @@ HINGLISH_PHONETIC_MAP = {
 
 WHISPER_SILENCE_HALLUCINATIONS = frozenset(
     {
-        "thank you",
-        "thank you very much",
-        "thank you so much",
-        "thank you for your time",
         "thank you for watching",
         "thank you for watching this video",
         "thank you for listening",
@@ -150,26 +146,6 @@ WHISPER_SILENCE_HALLUCINATIONS = frozenset(
         "opensubtitles",
         "transcribed by",
         "translated by",
-        "swagat hai",
-        "swagat hai aapka",
-        "aapka swagat hai",
-        "namaskar",
-        "namaste",
-        "shukriya",
-        "dhanyawad",
-        "obrigado",
-        "obrigada",
-        "muito obrigado",
-        "gracias",
-        "muchas gracias",
-        "merci",
-        "merci beaucoup",
-        "danke",
-        "dankeschon",
-        "tack",
-        "tack sa mycket",
-        "bye",
-        "goodbye",
         "see you next time",
         "see you in the next video",
         "see you in the next one",
@@ -308,7 +284,7 @@ def is_silent_audio(audio: bytes, min_bytes: int = 128) -> bool:
     if audio.startswith(b"RIFF") and len(audio) > 44 and b"WAVE" in audio[:16]:
         try:
             pcm_data = audio[44:]
-            num_samples = len(pcm_data) // 2
+            num_samples = min(len(pcm_data) // 2, 4096)
             if num_samples > 0:
                 samples = struct.unpack(f"<{num_samples}h", pcm_data[: num_samples * 2])
                 rms = (sum(s * s for s in samples) / num_samples) ** 0.5
