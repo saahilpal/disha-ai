@@ -308,7 +308,7 @@ class GroqProvider:
                     "model": self.settings.groq_model,
                     "messages": chat_messages,
                     "temperature": 0.2,
-                    "max_completion_tokens": 256,
+                    "max_completion_tokens": 120,
                     "stream": True,
                 },
             ) as response:
@@ -368,7 +368,7 @@ class GeminiProvider:
                 json={
                     "systemInstruction": {"parts": [{"text": system_prompt or SYSTEM_PROMPT}]},
                     "contents": contents,
-                    "generationConfig": {"temperature": 0.2, "maxOutputTokens": 256},
+                    "generationConfig": {"temperature": 0.2, "maxOutputTokens": 120},
                 },
             ) as response:
                 if response.status_code >= 400:

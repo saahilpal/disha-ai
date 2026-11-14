@@ -385,11 +385,16 @@ async def rehydrate_session_state(
 
 def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
     pep = context.get("pep")
+    intent = str(getattr(context.get("intent", ""), "value", context.get("intent", "")) or "").lower()
+    is_conversational = intent in {"greeting", "chitchat", "app_meta", "out_of_scope"}
+    is_meal = "meal" in intent or "diet" in intent or context.get("meal_relevant", False)
+    is_exercise = "exercise" in intent or "workout" in intent or context.get("exercise_relevant", False)
+
     focus_xml = ""
     diet_rule_xml = ""
     pep_rule_xml = ""
     brief_xml = ""
-    if pep:
+    if pep and not is_conversational:
         habits_raw = pep.get("habits")
         if habits_raw:
             try:
@@ -432,14 +437,19 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
             diet_rule_xml = f'<DIETARY_PREFERENCE preference="{html.escape(diet_pref, quote=True)}"/>'
         else:
             diet_rule_xml = '<DIETARY_PREFERENCE status="NOT_RECORDED"/>'
+    elif pep:
+        # JIT conversational pruning: load language preference only, omit clinical permissions
+        valid_lang = normalize_preferred_language(pep.get("language"))
+        lang_xml = f'<USER_LANGUAGE preferred="{html.escape(valid_lang, quote=True)}"/>'
+        pep_xml = ""
     else:
-        pep_xml = '<PEP_PERMISSIONS status="NOT_FOUND"/>'
+        pep_xml = '<PEP_PERMISSIONS status="NOT_FOUND"/>' if not is_conversational else ""
         lang_xml = '<USER_LANGUAGE preferred="hinglish"/>'
-        diet_rule_xml = '<DIETARY_PREFERENCE status="NOT_RECORDED"/>'
+        diet_rule_xml = '<DIETARY_PREFERENCE status="NOT_RECORDED"/>' if not is_conversational else ""
 
     facts_xml = ""
     facts = context.get("patient_facts") or ()
-    if facts:
+    if facts and not is_conversational:
         fact_elements = []
         for f in facts:
             cat = html.escape(str(f.get("category", "lifestyle")), quote=True)
@@ -451,20 +461,24 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
             facts_xml = f"<PATIENT_FACTS>{''.join(fact_elements)}</PATIENT_FACTS>"
 
     clinical_parts = []
-    # Cap to top 2 chunks to eliminate prompt bloat while ensuring clinical grounding
-    for chunk in list(chunks)[:2]:
-        getter = chunk.get if hasattr(chunk, "get") else lambda key, default=None: getattr(chunk, key, default)
-        chunk_id = html.escape(str(getter("chunk_id", "")), quote=True)
-        citation = html.escape(str(getter("source_citation", "")), quote=True)
-        header = html.escape(str(getter("context_header", "")))
-        content = html.escape(str(getter("guideline_content", "")))
-        clinical_parts.append(f'<CHUNK id="{chunk_id}" source="{citation}">{header} {content}</CHUNK>')
-    clinical_xml = (
-        f"<CLINICAL_GROUNDING>{''.join(clinical_parts)}</CLINICAL_GROUNDING>"
-        if clinical_parts
-        else '<CLINICAL_GROUNDING status="NOT_FOUND"/>'
-    )
-    diet_xml = context.get("diet_slot_xml", "")
+    if not is_conversational:
+        # Cap to top 2 chunks to eliminate prompt bloat while ensuring clinical grounding
+        for chunk in list(chunks)[:2]:
+            getter = chunk.get if hasattr(chunk, "get") else lambda key, default=None: getattr(chunk, key, default)
+            chunk_id = html.escape(str(getter("chunk_id", "")), quote=True)
+            citation = html.escape(str(getter("source_citation", "")), quote=True)
+            header = html.escape(str(getter("context_header", "")))
+            content = html.escape(str(getter("guideline_content", "")))
+            clinical_parts.append(f'<CHUNK id="{chunk_id}" source="{citation}">{header} {content}</CHUNK>')
+        clinical_xml = (
+            f"<CLINICAL_GROUNDING>{''.join(clinical_parts)}</CLINICAL_GROUNDING>"
+            if clinical_parts
+            else '<CLINICAL_GROUNDING status="NOT_FOUND"/>'
+        )
+    else:
+        clinical_xml = ""
+
+    diet_xml = context.get("diet_slot_xml", "") if not is_conversational else ""
     if not isinstance(diet_xml, str):
         diet_xml = ""
 
@@ -482,7 +496,7 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
 
     contradiction_xml = ""
     contradictions = context.get("contradictions") or ()
-    if contradictions:
+    if contradictions and not is_conversational:
         c_parts = []
         for c in contradictions:
             slot = html.escape(str(c.get("slot_key", "")), quote=True)
@@ -501,7 +515,7 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
 
     slots_xml = ""
     slots = context.get("patient_slots") or ()
-    if slots:
+    if slots and not is_conversational:
         slot_parts = []
         for s in slots:
             k = html.escape(str(s.get("slot_key", "")), quote=True)
@@ -586,7 +600,7 @@ def render_user_payload(user_input: str, context: dict[str, Any], chunks: Any = 
     conversation_state_xml = ""
     if recent_history:
         turns = []
-        for turn in recent_history[-16:]:
+        for turn in recent_history[-8:]:
             speaker = html.escape(str(turn.get("role", "user")), quote=True)
             content = html.escape(str(turn.get("content", "")))
             if content:
@@ -603,8 +617,7 @@ def render_user_payload(user_input: str, context: dict[str, Any], chunks: Any = 
                 else ""
             )
             conversation_state_xml = (
-                f'<CONVERSATION_STATE is_followup_or_short_reply="{str(short_followup).lower()}" '
-                'note="Recent turns; use them to resolve references and corrections.">'
+                f'<CONVERSATION_STATE is_followup_or_short_reply="{str(short_followup).lower()}">'
                 f"{''.join(turns)}"
                 f"{last_assistant_xml}"
                 "</CONVERSATION_STATE>"
