@@ -60,6 +60,31 @@ STOP_WORDS = frozenset(
         "kaise",
         "karna",
         "karo",
+        "fix",
+        "write",
+        "give",
+        "who",
+        "when",
+        "where",
+        "why",
+        "from",
+        "that",
+        "this",
+        "they",
+        "them",
+        "some",
+        "any",
+        "about",
+        "your",
+        "have",
+        "has",
+        "had",
+        "will",
+        "does",
+        "make",
+        "need",
+        "want",
+        "good",
     }
 )
 
@@ -170,7 +195,7 @@ async def retrieve_chunks(
 
         # Quality thresholding: direct tag match, or sufficient trigram / full-text score
         is_tag_match = bool(tag_list and tag in tag_list)
-        is_relevant = is_tag_match or (trigram_sc >= threshold) or (text_sc >= 0.03)
+        is_relevant = is_tag_match or (trigram_sc >= threshold) or (text_sc >= 0.06)
 
         if is_relevant:
             if cid is not None:
