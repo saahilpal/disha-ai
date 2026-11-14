@@ -83,6 +83,33 @@ ALIASES: dict[str, tuple[str, ...]] = {
         "वज़न घटाना",
         "वजन कम",
     ),
+    "HEADACHE": ("headache", "headaches", "sar dard", "sir dard", "matha dard", "सिर दर्द", "सर दर्द"),
+    "FATIGUE_WEAKNESS": ("fatigue", "weakness", "kamzori", "thakan", "thakaan", "कमजोरी", "थकान"),
+    "DIZZINESS": ("dizziness", "chakkar", "vertigo", "चक्कर"),
+}
+
+HINGLISH_CLINICAL_CANONICAL: dict[str, str] = {
+    "paet dard": "pet dard stomach pain",
+    "paet": "pet stomach",
+    "pet kharab": "pet kharab loose motions diarrhea",
+    "chakkar": "chakkar dizziness vertigo",
+    "kamzori": "kamzori weakness fatigue",
+    "thakan": "thakan fatigue tiredness",
+    "sar dard": "sar dard headache",
+    "sir dard": "sir dard headache",
+    "sine me jalan": "seene me jalan heartburn acidity acid reflux",
+    "seene mein jalan": "seene me jalan heartburn acidity acid reflux",
+    "chhati me dard": "chest pain chhati me dard",
+    "sugar badh": "sugar badh high blood sugar diabetes",
+    "sugar kam": "sugar kam hypoglycemia low blood sugar",
+    "bp badh": "bp badh high blood pressure hypertension",
+    "ghutne me dard": "ghutne me dard knee pain arthritis",
+    "gale me kharash": "gale me kharash sore throat cough",
+    "dast": "dast loose motions diarrhea",
+    "kabz": "kabz constipation bowel",
+    "pet phoolna": "pet phoolna bloating gas",
+    "paet phoolna": "pet phoolna bloating gas",
+    "khatti dakar": "khatti dakar acid reflux acidity",
 }
 
 HINDI_CLINICAL_TRANSLITERATION: dict[str, str] = {
@@ -359,6 +386,18 @@ def _patterns() -> tuple[tuple[str, re.Pattern[str]], ...]:
 def normalize(text: str) -> NormalizedText:
     normalized = " ".join(unicodedata.normalize("NFKC", text).casefold().split())
     tags = tuple(tag for tag, pattern in _patterns() if pattern.search(normalized))
+
+    # Augment Hinglish phonetic/colloquial variants with canonical search tokens
+    hinglish_extras: list[str] = []
+    for variant, canonical in HINGLISH_CLINICAL_CANONICAL.items():
+        if re.search(r"\b" + re.escape(variant) + r"\b", normalized, re.I):
+            hinglish_extras.extend(canonical.split())
+    if hinglish_extras:
+        seen: set[str] = set()
+        unique_extras = [t for t in hinglish_extras if not (t in seen or seen.add(t))]
+        normalized = f"{normalized} {' '.join(unique_extras)}"
+        if not tags:
+            tags = tuple(tag for tag, pattern in _patterns() if pattern.search(normalized))
 
     # If text contains Devanagari characters, augment normalized query with transliterated tokens for GIN full-text & trigram indexes
     if re.search(r"[\u0900-\u097F]", text):

@@ -451,7 +451,8 @@ def render_context_xml(context: dict[str, Any], chunks: Any = ()) -> str:
             facts_xml = f"<PATIENT_FACTS>{''.join(fact_elements)}</PATIENT_FACTS>"
 
     clinical_parts = []
-    for chunk in chunks:
+    # Cap to top 2 chunks to eliminate prompt bloat while ensuring clinical grounding
+    for chunk in list(chunks)[:2]:
         getter = chunk.get if hasattr(chunk, "get") else lambda key, default=None: getattr(chunk, key, default)
         chunk_id = html.escape(str(getter("chunk_id", "")), quote=True)
         citation = html.escape(str(getter("source_citation", "")), quote=True)

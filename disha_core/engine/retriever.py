@@ -174,7 +174,7 @@ async def retrieve_chunks(
         raw_results = await connection.fetch(RETRIEVE_SQL, query_norm, limit * 2, tag_list, tsquery_or)
 
     # Post-retrieval deduplication and strict quality thresholding
-    deduped: list[Any] = []
+    candidates: list[Any] = []
     seen_ids: set[Any] = set()
     seen_contents: set[tuple[str, str]] = set()
 
@@ -201,11 +201,27 @@ async def retrieve_chunks(
             if cid is not None:
                 seen_ids.add(cid)
             seen_contents.add(dedup_tuple)
-            deduped.append(item)
-            if len(deduped) >= limit:
-                break
+            candidates.append(item)
 
-    results = tuple(deduped)
+    # Reciprocal Rank Fusion (RRF, k=60) combining lexical ts_rank and trigram similarity
+    if len(candidates) > 1:
+        k = 60
+        get_val = lambda itm, k_name: float((itm.get(k_name) if hasattr(itm, "get") else getattr(itm, k_name, 0.0)) or 0.0)
+        by_text = sorted(enumerate(candidates), key=lambda x: get_val(x[1], "text_score"), reverse=True)
+        text_ranks = {orig_idx: rank for rank, (orig_idx, _) in enumerate(by_text)}
+        by_trigram = sorted(enumerate(candidates), key=lambda x: get_val(x[1], "trigram_score"), reverse=True)
+        trigram_ranks = {orig_idx: rank for rank, (orig_idx, _) in enumerate(by_trigram)}
+
+        def rrf_score(orig_idx: int, itm: Any) -> float:
+            r_text = text_ranks.get(orig_idx, len(candidates))
+            r_trigram = trigram_ranks.get(orig_idx, len(candidates))
+            itm_tag = str((itm.get("condition_tag") if hasattr(itm, "get") else getattr(itm, "condition_tag", "")) or "")
+            tag_bonus = 0.1 if (tag_list and itm_tag in tag_list) else 0.0
+            return (1.0 / (k + r_text)) + (1.0 / (k + r_trigram)) + tag_bonus
+
+        candidates.sort(key=lambda itm: rrf_score(candidates.index(itm), itm), reverse=True)
+
+    results = tuple(candidates[:limit])
 
     if use_cache:
         if len(_RETRIEVAL_CACHE) >= _CACHE_MAX_SIZE:
