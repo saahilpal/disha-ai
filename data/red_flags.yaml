@@ -104,7 +104,8 @@ categories:
     - name: cardio regex
       pattern: \b(?:chhati|chaati|seene|chest|chst|dil|myocardial|angina|heart)\b.{0,35}?\b(?:dard|drd|daba+v|pressure|pain|attack|crushing|crushng|tightness|daura|infarction|pectoris|arrest|stopped)\b|\bcrush(?:ing|ng)\s+ch[e]?st\s+pain\b|\bleft\s+(?:hand|arm)\s+pain\b|\b(?:no|lost)\s+pulse\b|\bpulseless\b|(?:छाती|सीने|दिल|धड़कन).{0,35}?(?:दर्द|दबाव|दौरा|बंद|रुक)
     negation_patterns:
-    - (?:do\s+not|don't|no)\s+(?:have|feel)\s+(?:any\s+)?(?:chest\s+pain|chest\s+pressure|heart\s+attack)
+    - (?:do\s+not|don't|no|have\s+no|feel\s+no)\s+(?:have|feel\s+)?(?:any\s+)?(?:chest\s+pain|chest\s+pressure|heart\s+attack(?:\s+symptoms)?)
+    - no\s+(?:chest\s+pain|chest\s+pressure|heart\s+attack(?:\s+symptoms)?)
     - chhati\s+m(?:ein)?\s+koi\s+d(?:a)?rd\s+n(?:a)?hi
     - seene\s+m(?:ein|e)?\s+bilkul\s+dard\s+nahi
     - dil\s+ka\s+daura\s+nahi\s+pada
@@ -182,10 +183,11 @@ categories:
       pattern: \b(?:saans|saas|sans|breath(?:e|ing)?|dum|respiratory)\b.{0,35}?\b(?:nahi|ni|takleef|taklif|dikkat|ruk|choking|choke|gasping|cannot|can't|cant|phool|ghut|distress|failure|atak)\b|\basthma\s+attack\b|\bsuffocating\b|\b(?:throat\s+is\s+closing|throat\s+closing|anaphylaxis|stridor|lips\s+turning\s+blue)\b|\b(?:oxygen|spo2)\b.{0,25}?\b(?:drop|gir|fall|low|kam)\b|सांस.{0,25}?(?:नहीं|रुक|फूल|दिक्कत|तकलीफ|बंद|अटक)|ऑक्सीजन.{0,20}?गिर
     negation_patterns:
     - (?:do\s+not|don't|no)\s+(?:have|feel)\s+(?:any\s+)?(?:difficulty\s+breathing|shortness\s+of\s+breath)
-    - not\s+having\s+any\s+breathing\s+trouble
+    - no\s+shortness\s+of\s+breath
+    - not\s+having\s+any\s+(?:breathing\s+trouble|difficulty\s+breathing)
     - saans\s+lene\s+m(?:ein)?\s+koi\s+dikkat\s+n(?:a)?hi
     - saans\s+phool\s+nahi\s+rahi
-    - सांस\s+लेने\s+में\s+(?:कोई\s+)?(?:तकलीफ|दिक्कत)\s+नहीं
+    - सांस\s+लेने\s+में\s+(?:कोई\s+)?(?:तकलीफ|दिक्कत|परेशानी)(?:\s+या\s+परेशानी|\s+या\s+दिक्कत)?\s+नहीं
   NEUROLOGICAL:
     severity: CRITICAL
     protocol_text: Yeh emergency ho sakti hai. Abhi 112 par call karein ya kisi paas
@@ -255,14 +257,15 @@ categories:
     negation_patterns:
     - does\s+not\s+have\s+(?:face\s+drooping|weakness)
     - patient\s+is\s+not\s+unconscious
+    - never\s+had\s+a\s+stroke
     - chehra\s+tedha\s+nahi\s+hua
     - behosh\s+nahi\s+hua
+    - sugar\s+kam\s+nahi\s+hui
     - चेहरा\s+टेढ़ा\s+नहीं\s+हुआ
     - बेहोश\s+नहीं\s+है
   CRISIS:
     severity: EMERGENCY_CRISIS
-    protocol_text: Agar aap turant khatre mein hain, 112 par call karein ya kisi bharosemand
-      vyakti ke paas jaayen. Tele-MANAS se 14416 par bhi baat kar sakte hain.
+    protocol_text: Agar aap turant khatre mein hain, turant 112 par call karein. Tele-MANAS toll-free 1800-891-4416 (ya 14416) aur KIRAN Helpline 1800-599-0019 par 24x7 muft madad uplabdh hai.
     languages:
     - en
     - hi
@@ -319,7 +322,8 @@ categories:
     - name: crisis regex
       pattern: \bsuicide\b|\bkill\s+myself\b|\bend\s+my\s+life\b|\bself\s+harm\b|\bwant\s+to\s+die\b|\bkhudkushi\b|\bjaan\s+(?:dena|lena)\b|\bzeher\b|\bpoison\b|\bfaansi\b|\bfaasi\b|\b(?:overdose|sleeping\s+pills?|pesticide|rat\s+poison|cut(?:ting)?\s+(?:my\s+)?wrists?|hang(?:ing)?\s+myself)\b|\bneend\s+ki\s+.*goli|\b(?:tezaab|acid)\b.{0,20}?\b(?:pi|drank|pee)\b|आत्महत्या|खुदकुशी|ज़हर|फांसी|नींद\s+की.*गोली
     negation_patterns:
-    - no\s+thoughts\s+of\s+suicide
+    - (?:zero|no)\s+thoughts\s+of\s+(?:suicide|self\s+harm)
+    - did\s+not\s+poison\s+myself
     - suicide\s+ke\s+khayal\s+bilkul\s+n(?:a)?hi
     - आत्महत्या\s+का\s+कोई\s+विचार\s+नहीं
   TRAUMA:
@@ -396,5 +400,76 @@ categories:
       pattern: \b(?:khoon|blood|internal|abdominal|acute|arterial|massive)\b.{0,30}?\b(?:ulti|vomit|beh|nikal|heavy|arterial|bleeding|hemorrhage|haemorrhage|loss)\b|\b(?:hypovolemic|septic|cardiogenic)\s+shock\b|\b(?:in\s+shock|patient\s+is\s+in\s+shock)\b|\bextensive\s+burns?\b|\bsevere\s+burns?\b|\bhead\s+injury\b|\bgoli\s+lag\b|\bchaku\s+lag\b|\b(?:bleeding\s+uncontrollably|stabbed|stab\s+wound|gunshot(?:\s+wound)?|coughing\s+(?:up\s+)?blood|hemoptysis|hematemesis)\b|\b(?:chaku|goli)\b.{0,25}?(?:lag|mar|lagi|mara)\b|खून\s+(?:की\s+उल्टी|बह|निकल)|चाकू|गोली
     negation_patterns:
     - no\s+active\s+bleeding
+    - blood\s+vomiting\s+nahi\s+hui
     - khoon\s+n(?:a)?hi\s+beh\s+r(?:a)?h(?:a)?
     - कोई\s+खून\s+नहीं\s+बह\s+रहा
+  PREGNANCY_EMERGENCY:
+    severity: CRITICAL
+    protocol_text: Yeh pregnancy emergency ho sakti hai. Turant najdeeki hospital ke emergency room jaayen ya 112 par call karein.
+    languages:
+    - en
+    - hi
+    - hinglish
+    scripts:
+    - Latn
+    - Deva
+    terms:
+      en:
+      - vaginal bleeding in pregnancy
+      - heavy bleeding during pregnancy
+      - eclampsia seizures
+      - ectopic pregnancy
+      - no fetal movement
+      - amniotic fluid leaking
+      hinglish:
+      - pregnancy mein bleeding
+      - pregnancy me tez dard
+      - bachhe ki movement band
+      - garbhavastha me bleeding
+      - eclampsia ke daure
+      hi:
+      - गर्भावस्था में रक्तस्राव
+      - बच्चे की हलचल बंद
+      - गर्भावस्था में असहनीय पेट दर्द
+    regex_patterns:
+    - name: pregnancy regex
+      pattern: \b(?:pregnan(?:t|cy)|garbhavastha|गर्भावस्था)\b.{0,40}?\b(?:bleeding|blood|seizure|daure|cramp|dard|movement\s+band|ectopic|fluid)\b|\b(?:no\s+fetal\s+movement|vaginal\s+bleeding\s+in\s+pregnancy|heavy\s+vaginal\s+bleeding)\b|(?:गर्भावस्था|बच्चे\s+की\s+हलचल).{0,35}?(?:रक्तस्राव|दर्द|बंद)
+    negation_patterns:
+    - no\s+(?:bleeding|cramping)\s+(?:during\s+this\s+pregnancy|in\s+pregnancy|during\s+pregnancy|so\s+far)
+    - no\s+(?:bleeding|cramping)
+    - bachhe\s+ki\s+movement\s+normal\s+hai
+    - कोई\s+रक्तस्राव\s+नहीं
+  ACUTE_ABDOMEN:
+    severity: CRITICAL
+    protocol_text: Yeh acute abdominal emergency ho sakti hai. Kripya turant najdeeki emergency department jaayen ya 112 call karein.
+    languages:
+    - en
+    - hi
+    - hinglish
+    scripts:
+    - Latn
+    - Deva
+    terms:
+      en:
+      - rigid belly cannot touch
+      - board like rigidity
+      - acute abdominal pain
+      - acute pancreatitis
+      - ruptured appendix
+      - severe right lower abdominal pain
+      hinglish:
+      - pet pathar jaisa tight
+      - pet phatne jaisa dard
+      - pet chhone par cheekh nikal
+      - appendix phat gaya
+      hi:
+      - पेट में असहनीय भयंकर दर्द
+      - पेट छूने पर चीख निकल रही
+      - पेट फटने जैसा दर्द
+    regex_patterns:
+    - name: acute abdomen regex
+      pattern: \b(?:rigid|board-like|board\s+like|acute|excruciating|agonizing|severe\s+sharp)\b.{0,30}?\b(?:belly|abdomen|abdominal|pancreatitis|appendix|appendicitis)\b|\bpet\s+(?:pathar\s+jaisa|phatne\s+jaisa|chhone\s+par\s+cheekh)\b|\b(?:ruptured\s+appendix|acute\s+pancreatitis|board-like\s+rigid\s+belly)\b|(?:पेट\s+छूने\s+पर\s+चीख|पेट\s+फटने\s+जैसा\s+दर्द)
+    negation_patterns:
+    - no\s+severe\s+abdominal\s+pain
+    - pet\s+me\s+koi\s+khas\s+dard\s+nahi
+    - कोई\s+गंभीर\s+दर्द\s+नहीं

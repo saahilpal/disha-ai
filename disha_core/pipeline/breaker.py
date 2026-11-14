@@ -298,10 +298,25 @@ class EmergencyBreaker:
 
         self._regexes = tuple(compiled)
 
+        # Compile negation patterns from clinician data table
+        negations: list[tuple[str, re.Pattern[str]]] = []
+        if not self._explicit_patterns:
+            for category, cat_spec in self._table.get("categories", {}).items():
+                for neg_pat in cat_spec.get("negation_patterns", []):
+                    if isinstance(neg_pat, str) and neg_pat.strip():
+                        negations.append((category, re.compile(neg_pat, re.I)))
+        self._negations = tuple(negations)
+
     def reload(self, data_path: str | Path | None = None) -> None:
         """Zero-downtime hot reload of clinician-owned red flags table in <50ms."""
         self._table = load_red_flags_table(data_path or self.data_path)
         self._init_engine()
+
+    def _is_negated(self, category: str, matched_text: str, candidate: str) -> bool:
+        for cat, pat in self._negations:
+            if cat == category and pat.search(candidate):
+                return True
+        return False
 
     def check(self, text: str) -> BreakerResult:
         """Evaluate utterance against clinician red-flag rules. Fail-safe on error."""
@@ -327,13 +342,13 @@ class EmergencyBreaker:
                 found = self._automaton.find(candidate)
                 if found:
                     category, phrase = found
-                    if not self._is_exception(phrase, candidate):
+                    if not self._is_exception(phrase, candidate) and not self._is_negated(category, phrase, candidate):
                         return self._result(started, category, phrase)
                 for phrase, pattern, category in self._regexes:
                     match = pattern.search(candidate)
                     if match:
                         matched_text = match.group(0) or phrase
-                        if not self._is_exception(matched_text, candidate):
+                        if not self._is_exception(matched_text, candidate) and not self._is_negated(category, matched_text, candidate):
                             return self._result(started, category, matched_text)
 
             return BreakerResult(False, elapsed_ms=(time.perf_counter_ns() - started) / 1_000_000)

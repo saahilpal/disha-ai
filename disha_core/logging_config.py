@@ -95,12 +95,13 @@ class ZeroPHIJsonFormatter(logging.Formatter):
 
 
 def setup_structured_logging(level: int = logging.INFO) -> None:
-    """Configure the root or disha logger to use structured JSON logging."""
-    root_logger = logging.getLogger("disha")
-    root_logger.setLevel(level)
+    """Configure root, disha, and disha_core loggers to use structured Zero-PHI JSON logging."""
+    formatter = ZeroPHIJsonFormatter()
 
-    # Avoid adding duplicate handlers if already configured
-    if not any(isinstance(h.formatter, ZeroPHIJsonFormatter) for h in root_logger.handlers):
-        handler = logging.StreamHandler()
-        handler.setFormatter(ZeroPHIJsonFormatter())
-        root_logger.addHandler(handler)
+    for name in ("", "disha", "disha_core"):
+        logger = logging.getLogger(name)
+        logger.setLevel(level)
+        if not any(isinstance(h.formatter, ZeroPHIJsonFormatter) for h in logger.handlers):
+            handler = logging.StreamHandler()
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
