@@ -297,9 +297,9 @@ class TestPolicyPackContents:
         loader = get_policy_loader(force_new=True)
         pricing = loader.require_policy("pricing_product")
 
-        # Must contain ₹0 free and ₹1,499 nutritionist plan
+        # Must confirm Disha is 100% free (₹0) with zero subscription fees
         assert any("₹0" in m or "free" in m.lower() for m in pricing.must)
-        assert any("1,499" in m or "1499" in m for m in pricing.must)
+        assert any("zero" in m.lower() or "free" in m.lower() for m in pricing.must)
 
 
 class TestPolicyPackHotReload:

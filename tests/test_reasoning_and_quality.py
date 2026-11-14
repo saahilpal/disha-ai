@@ -66,14 +66,14 @@ class AntiEchoQualityTests(unittest.TestCase):
         self.assertNotIn("I understand you have been feeling tired", filtered[0])
 
     def test_filter_response_sentences_suppresses_redundant_greetings_with_history(self) -> None:
-        user_input = "Dedicated nutritionist plan ka kya price hai?"
+        user_input = "Disha app ka price kya hai?"
         raw_sentences = [
             "Namaste! Main Disha hoon. Aapka swagat hai.",
-            "Dedicated nutritionist plan ₹1,499 per month hai.",
+            "Disha AI ke sabhi features bilkul free (₹0) hain.",
         ]
         filtered = filter_response_sentences(raw_sentences, user_input, has_history=True)
         self.assertEqual(len(filtered), 1)
-        self.assertEqual(filtered[0], "Dedicated nutritionist plan ₹1,499 per month hai.")
+        self.assertEqual(filtered[0], "Disha AI ke sabhi features bilkul free (₹0) hain.")
 
     def test_affirmative_answers_not_mutilated(self) -> None:
         user_input = "Kya main subah aam kha sakta hoon?"
