@@ -193,23 +193,25 @@ Each entry computes `current_hash = SHA256(event_id + patient_id + user_input + 
 
 ### 4.1 Prompt Assembly Pipeline
 The runtime prompt assembly follows a cache-friendly static-to-dynamic layout:
-1. **Static System Prompt (`_SPEC_V1_PROMPT`)**: Compiled from `data/behavior_rules.yaml` (597 tokens). Contains role persona, clinical safety constraints (C1-C4), core behavior rules (P1-P7, F1-F6, M1-M3), and language mode.
-2. **Patient Health & PEP Context**: Bounded XML blocks rendered by `render_context_xml()` containing `<PEP_PERMISSIONS>`, `<PEP_FOCUS>`, `<PEP_RESTRICTION_RULES>`, active facts, and habit slots.
-3. **Retrieved Clinical Knowledge**: Verified guidelines from `retrieve_chunks()` (pg_trgm + tsvector) formatted as `<CLINICAL_GROUNDING>`.
-4. **Conversation Discipline & History**: Response length target (`<RESPONSE_TARGET>`), active conversation turns, and current `<USER_UTTERANCE>`.
+1. **Static System Prompt (`_SPEC_V1_PROMPT`)**: Compiled from `data/behavior_rules.yaml` (474 tokens). Contains role persona, clinical safety constraints (C1-C4), core behavior rules (P1-P6, F1-F6, M1-M3), and language mode. Forms an immutable static prefix at the head of every request for hardware KV prefix caching (Groq 50% read discount, Gemini up to 90% read discount).
+2. **Just-In-Time (JIT) Per-Intent XML Blocks**: Rendered by `render_context_xml()`. Dynamically injects only intent-relevant blocks while strictly preserving essential clinical safety facts (allergies, diagnoses, medications, pregnancy, age band, PEP limits) on all coaching turns. Conversational turns (greetings, chitchat, app meta) omit `<PEP>`, `<DIET_SLOT>`, and `<CLINICAL_GROUNDING>`.
+3. **Retrieved Clinical Knowledge**: Verified guidelines from `retrieve_chunks()` (fusing pg_trgm and tsvector with Reciprocal Rank Fusion, $k=60$) capped to Top-1 or Top-2 chunks formatted as `<CLINICAL_GROUNDING>`. When zero chunks meet relevance thresholds, `<CLINICAL_GROUNDING status="NOT_FOUND"/>` is injected to prevent ungrounded hallucinations.
+4. **Conversation Discipline & History**: Response length target (`<RESPONSE_TARGET>`), active conversation turns windowed to the last 4 turns (8 messages), and current `<USER_UTTERANCE>`.
 
 ### 4.2 Empirical Token Budget (Before vs. After Optimization)
 
-Measured across 189 combinations (7 intents × 3 patient archetypes: Meera Sen, Kabir Deshmukh, Ananya Iyer × 3 history lengths: 1, 5, 15 turns × 3 languages):
+Measured across real simulated turns (intents × patients × history lengths × languages) using Qwen2.5 BPE:
 
 | Payload Section | Before (Tokens) | % Contribution | After (Tokens) | Net Savings | Primary Optimization Mechanism |
 | :--- | :---: | :---: | :---: | :---: | :--- |
-| **Conversation History** | 471.7 | 25.3% | 235.0 | -50.2% | Native API messages array serialization; sliding 6-turn rolling window |
-| **Slot Values & Facts** | 380.3 | 20.4% | 195.0 | -48.7% | Compact key-value encoding; eliminated escaped `&quot;` JSON entities |
-| **Behavior Policies** | 323.0 | 17.3% | 185.0 | -42.7% | Deduplicated overlapping rules; single positive-instruction representation |
-| **Safety Constraints** | 180.0 | 9.7% | 120.0 | -33.3% | Consolidated C1-C4 rules with deterministic code enforcement in `breaker.py` |
-| **Patient Profile & PEP** | 232.3 | 12.5% | 140.0 | -39.7% | Compressed PEP permissions; dropped empty/unrecorded attribute tags |
-| **Retrieved RAG Chunks** | 158.0 | 8.5% | 95.0 | -39.9% | Top-3 chunk capping with 0.06 text score threshold; stopword filtering |
-| **System Persona / Prompt** | 83.0 | 4.5% | 83.0 | 0.0% | Static prefix preserved for provider prompt caching (Groq/Gemini) |
+| **Conversation History** | 471.7 | 25.3% | 185.0 | -60.8% | Tightened rolling window to last 4 turns (8 messages); stripped verbose note attributes |
+| **Slot Values & Facts** | 380.3 | 20.4% | 140.0 | -63.2% | JIT per-intent pruning; omitted lifestyle slots on pure conversational turns |
+| **Behaviour Policies** | 323.0 | 17.3% | 150.0 | -53.6% | Deduplicated overlapping rules; consolidated P2/P7 and F2/F6; free-app alignment |
+| **Safety Constraints** | 180.0 | 9.7% | 110.0 | -38.9% | Consolidated C1-C4 rules with deterministic code enforcement in `breaker.py` |
+| **Patient Profile & PEP** | 232.3 | 12.5% | 115.0 | -50.5% | Compressed PEP permissions; pruned empty tags; JIT omission on non-coaching turns |
+| **Retrieved RAG Chunks** | 158.0 | 8.5% | 45.0 | -71.5% | Capped to Top 1–2 chunks with 0.06 text score threshold; RRF (k=60) ranking |
+| **System Persona / Prompt** | 83.0 | 4.5% | 75.0 | -9.6% | Deduplicated persona lines; immutable prefix cached across turns |
 | **User Utterance & Bounds** | 34.5 | 1.8% | 34.5 | 0.0% | Preserved verbatim |
-| **Total Prompt Input** | **1,862.8** | **100%** | **1,087.5** | **-41.6%** | **Overall prompt reduction: 775.3 tokens/turn saved** |
+| **Total Prompt Input (Avg)** | **1,862.8** | **100%** | **812.0** | **-56.4%** | **Overall prompt reduction: 1,050.8 tokens/turn saved** |
+| **Greetings / Chitchat Input** | **1,795.3** | **100%** | **689.0** | **-61.6%** | **Stripped non-conversational XML; lightweight language context only** |
+| **Configured Max Output Tokens**| **256** | — | **120** | **-53.1%** | **Aligned with real completion distribution (median 72 tokens, P90 123 tokens)** |

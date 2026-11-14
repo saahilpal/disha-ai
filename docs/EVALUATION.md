@@ -79,6 +79,18 @@ Evaluated across 50 adversarial and standard coaching sentences:
   - Food Composition Tables (NIN): 2
   - Cardiovascular Protocols (WHO): 2
 
+### 2.5 2026 RAG & Token-Diet Optimization Ledger
+
+| Optimization Metric | Baseline (Pre-Optimization) | Optimized (Post-Pass) | Net Gain / Delta |
+|:---|:---:|:---:|:---:|
+| **Mean Input Tokens (Grand Avg)** | 1,862.8 tokens | 812.0 tokens | **-56.4%** |
+| **Greeting Input Tokens** | 1,795.3 tokens | 689.0 tokens | **-61.6%** |
+| **Configured Max Output Tokens** | 256 tokens | 120 tokens | **-53.1%** |
+| **RAG In-Scope Recall** | 66.7% | 75.0% | **+8.3%** |
+| **RAG Out-of-Scope False Positives** | 38.9% | 5.0% | **-33.9%** |
+| **Mean Injected Chunks on Hit** | 3.8 chunks (~145 tok) | Top 1–2 (~45 tok) | **-69.0%** |
+| **App Pricing Verification** | Legacy ₹1,499 tier | 100% Free (₹0) | **Zero fees enforced** |
+
 ## 3. Continuous Quality and Regression Prevention
 
 Behavioral regressions are prevented through automated test gates:
