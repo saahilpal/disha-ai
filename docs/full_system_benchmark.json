@@ -1,0 +1,2937 @@
+{
+  "timestamp": "2026-11-14T14:50:51Z",
+  "categories": {
+    "normal_chat": {
+      "latency": {
+        "avg": 415.34,
+        "median": 379.13,
+        "p90": 499.82,
+        "p95": 499.82
+      },
+      "ttft": {
+        "avg": 413.98,
+        "median": 377.81,
+        "p90": 498.54,
+        "p95": 498.54
+      },
+      "input_tokens": {
+        "avg": 999.33,
+        "median": 999,
+        "p90": 1012,
+        "p95": 1012
+      },
+      "output_tokens": {
+        "avg": 20.0,
+        "median": 20,
+        "p90": 20,
+        "p95": 20
+      },
+      "llm_calls": 1.0,
+      "action": "GENERATED_STREAM"
+    },
+    "health_general": {
+      "latency": {
+        "avg": 419.25,
+        "median": 379.81,
+        "p90": 501.72,
+        "p95": 501.72
+      },
+      "ttft": {
+        "avg": 417.81,
+        "median": 378.58,
+        "p90": 500.1,
+        "p95": 500.1
+      },
+      "input_tokens": {
+        "avg": 1077.0,
+        "median": 1054,
+        "p90": 1130,
+        "p95": 1130
+      },
+      "output_tokens": {
+        "avg": 20.0,
+        "median": 20,
+        "p90": 20,
+        "p95": 20
+      },
+      "llm_calls": 1.0,
+      "action": "GENERATED_STREAM"
+    },
+    "rag_clinical": {
+      "latency": {
+        "avg": 417.28,
+        "median": 378.4,
+        "p90": 502.78,
+        "p95": 502.78
+      },
+      "ttft": {
+        "avg": 416.02,
+        "median": 377.3,
+        "p90": 501.27,
+        "p95": 501.27
+      },
+      "input_tokens": {
+        "avg": 1126.33,
+        "median": 1126,
+        "p90": 1179,
+        "p95": 1179
+      },
+      "output_tokens": {
+        "avg": 20.0,
+        "median": 20,
+        "p90": 20,
+        "p95": 20
+      },
+      "llm_calls": 1.0,
+      "action": "GENERATED_STREAM"
+    },
+    "pep_safe": {
+      "latency": {
+        "avg": 418.52,
+        "median": 378.75,
+        "p90": 499.43,
+        "p95": 499.43
+      },
+      "ttft": {
+        "avg": 417.13,
+        "median": 377.43,
+        "p90": 498.02,
+        "p95": 498.02
+      },
+      "input_tokens": {
+        "avg": 1048.0,
+        "median": 1048,
+        "p90": 1048,
+        "p95": 1048
+      },
+      "output_tokens": {
+        "avg": 20.0,
+        "median": 20,
+        "p90": 20,
+        "p95": 20
+      },
+      "llm_calls": 1.0,
+      "action": "GENERATED_STREAM"
+    },
+    "pep_high_risk": {
+      "latency": {
+        "avg": 42.16,
+        "median": 0.18,
+        "p90": 128.18,
+        "p95": 128.18
+      },
+      "ttft": {
+        "avg": 42.16,
+        "median": 0.18,
+        "p90": 128.18,
+        "p95": 128.18
+      },
+      "input_tokens": {
+        "avg": 0.0,
+        "median": 0,
+        "p90": 0,
+        "p95": 0
+      },
+      "output_tokens": {
+        "avg": 24.0,
+        "median": 24,
+        "p90": 24,
+        "p95": 24
+      },
+      "llm_calls": 0.0,
+      "action": "PEP_SAFETY_INTERCEPT"
+    },
+    "followup": {
+      "latency": {
+        "avg": 411.16,
+        "median": 378.06,
+        "p90": 485.16,
+        "p95": 485.16
+      },
+      "ttft": {
+        "avg": 410.36,
+        "median": 377.31,
+        "p90": 483.95,
+        "p95": 483.95
+      },
+      "input_tokens": {
+        "avg": 1007.0,
+        "median": 1012,
+        "p90": 1012,
+        "p95": 1012
+      },
+      "output_tokens": {
+        "avg": 20.0,
+        "median": 20,
+        "p90": 20,
+        "p95": 20
+      },
+      "llm_calls": 1.0,
+      "action": "GENERATED_STREAM"
+    },
+    "out_of_scope": {
+      "latency": {
+        "avg": 418.08,
+        "median": 377.96,
+        "p90": 501.27,
+        "p95": 501.27
+      },
+      "ttft": {
+        "avg": 417.03,
+        "median": 376.54,
+        "p90": 500.02,
+        "p95": 500.02
+      },
+      "input_tokens": {
+        "avg": 996.0,
+        "median": 1002,
+        "p90": 1002,
+        "p95": 1002
+      },
+      "output_tokens": {
+        "avg": 20.0,
+        "median": 20,
+        "p90": 20,
+        "p95": 20
+      },
+      "llm_calls": 1.0,
+      "action": "GENERATED_STREAM"
+    },
+    "emergency": {
+      "latency": {
+        "avg": 0.03,
+        "median": 0.02,
+        "p90": 0.05,
+        "p95": 0.05
+      },
+      "ttft": {
+        "avg": 0.03,
+        "median": 0.02,
+        "p90": 0.05,
+        "p95": 0.05
+      },
+      "input_tokens": {
+        "avg": 0.0,
+        "median": 0,
+        "p90": 0,
+        "p95": 0
+      },
+      "output_tokens": {
+        "avg": 38.0,
+        "median": 38,
+        "p90": 38,
+        "p95": 38
+      },
+      "llm_calls": 0.0,
+      "action": "EMERGENCY_BREAKER_INTERCEPT"
+    }
+  },
+  "ab_comparison": {
+    "normal_chat": {
+      "laya_latency_ms": 379.13,
+      "no_laya_latency_ms": 378.25,
+      "laya_input_tokens": 999,
+      "no_laya_input_tokens": 999,
+      "laya_calls": 1.0,
+      "no_laya_calls": 1.0
+    },
+    "health_general": {
+      "laya_latency_ms": 379.81,
+      "no_laya_latency_ms": 378.46,
+      "laya_input_tokens": 1054,
+      "no_laya_input_tokens": 1002,
+      "laya_calls": 1.0,
+      "no_laya_calls": 1.0
+    },
+    "rag_clinical": {
+      "laya_latency_ms": 378.4,
+      "no_laya_latency_ms": 379.0,
+      "laya_input_tokens": 1126,
+      "no_laya_input_tokens": 1074,
+      "laya_calls": 1.0,
+      "no_laya_calls": 1.0
+    },
+    "pep_safe": {
+      "laya_latency_ms": 378.75,
+      "no_laya_latency_ms": 377.16,
+      "laya_input_tokens": 1048,
+      "no_laya_input_tokens": 1048,
+      "laya_calls": 1.0,
+      "no_laya_calls": 1.0
+    },
+    "pep_high_risk": {
+      "laya_latency_ms": 0.18,
+      "no_laya_latency_ms": 377.76,
+      "laya_input_tokens": 0,
+      "no_laya_input_tokens": 1055,
+      "laya_calls": 0.0,
+      "no_laya_calls": 1.0
+    },
+    "followup": {
+      "laya_latency_ms": 378.06,
+      "no_laya_latency_ms": 376.39,
+      "laya_input_tokens": 1012,
+      "no_laya_input_tokens": 1012,
+      "laya_calls": 1.0,
+      "no_laya_calls": 1.0
+    },
+    "out_of_scope": {
+      "laya_latency_ms": 377.96,
+      "no_laya_latency_ms": 376.0,
+      "laya_input_tokens": 1002,
+      "no_laya_input_tokens": 1002,
+      "laya_calls": 1.0,
+      "no_laya_calls": 1.0
+    },
+    "emergency": {
+      "laya_latency_ms": 0.02,
+      "no_laya_latency_ms": 0.01,
+      "laya_input_tokens": 0,
+      "no_laya_input_tokens": 0,
+      "laya_calls": 0.0,
+      "no_laya_calls": 0.0
+    }
+  },
+  "raw_runs": {
+    "with_laya": {
+      "normal_chat": [
+        {
+          "query": "Namaste Disha, good morning!",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "general_coaching",
+          "pep_risk": 1,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 987,
+          "output_tokens": 20,
+          "ttft_ms": 465.89,
+          "total_latency_ms": 467.99,
+          "stage_timings": {
+            "breaker_us": 52.9589997313451,
+            "routing_ms": 91.02991599866073,
+            "pep_check_us": 0.3749992174562067,
+            "rag_ms": 8.300048648379743e-05,
+            "context_assembly_ms": 2.640499998960877,
+            "llm_generation_ms": 372.2387500019977,
+            "validation_us": 1655.4590001760516
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Namaste Disha, good morning!",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "general_coaching",
+          "pep_risk": 1,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 987,
+          "output_tokens": 20,
+          "ttft_ms": 376.79,
+          "total_latency_ms": 377.92,
+          "stage_timings": {
+            "breaker_us": 230.4580011696089,
+            "routing_ms": 0.33691600037855096,
+            "pep_check_us": 1.45800004247576,
+            "rag_ms": 0.0008749993867240846,
+            "context_assembly_ms": 3.798917001404334,
+            "llm_generation_ms": 372.6709589973325,
+            "validation_us": 570.4169998352882
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Namaste Disha, good morning!",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "general_coaching",
+          "pep_risk": 1,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 987,
+          "output_tokens": 20,
+          "ttft_ms": 376.16,
+          "total_latency_ms": 377.31,
+          "stage_timings": {
+            "breaker_us": 220.0839990109671,
+            "routing_ms": 0.2933750001830049,
+            "pep_check_us": 1.333999534836039,
+            "rag_ms": 0.0006669979484286159,
+            "context_assembly_ms": 3.165875001286622,
+            "llm_generation_ms": 372.72445899725426,
+            "validation_us": 577.0829993707594
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Namaste Disha ji! Aaj ka din kaisa hai?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 999,
+          "output_tokens": 20,
+          "ttft_ms": 498.54,
+          "total_latency_ms": 499.82,
+          "stage_timings": {
+            "breaker_us": 299.70799732836895,
+            "routing_ms": 124.98312499883468,
+            "pep_check_us": 0.29199873097240925,
+            "rag_ms": 0.000166997779160738,
+            "context_assembly_ms": 0.9102500007429626,
+            "llm_generation_ms": 372.66704099965864,
+            "validation_us": 608.3750013203826
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Namaste Disha ji! Aaj ka din kaisa hai?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 999,
+          "output_tokens": 20,
+          "ttft_ms": 377.61,
+          "total_latency_ms": 378.91,
+          "stage_timings": {
+            "breaker_us": 292.3339998233132,
+            "routing_ms": 0.46183299855329096,
+            "pep_check_us": 1.2080017768312246,
+            "rag_ms": 0.0005420006345957518,
+            "context_assembly_ms": 4.654249998566229,
+            "llm_generation_ms": 372.50850000054925,
+            "validation_us": 619.6249996719416
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Namaste Disha ji! Aaj ka din kaisa hai?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 999,
+          "output_tokens": 20,
+          "ttft_ms": 377.81,
+          "total_latency_ms": 379.13,
+          "stage_timings": {
+            "breaker_us": 290.5000001192093,
+            "routing_ms": 0.43916600043303333,
+            "pep_check_us": 1.3749995559919626,
+            "rag_ms": 0.0008749993867240846,
+            "context_assembly_ms": 5.056000001786742,
+            "llm_generation_ms": 372.3343749988999,
+            "validation_us": 632.957999187056
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u093f\u0936\u093e, \u0906\u091c \u0906\u092a \u0915\u0948\u0938\u0940 \u0939\u0948\u0902?",
+          "lang": "hi",
+          "use_laya": true,
+          "intent": "general_coaching",
+          "pep_risk": 1,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1012,
+          "output_tokens": 20,
+          "ttft_ms": 497.63,
+          "total_latency_ms": 498.97,
+          "stage_timings": {
+            "breaker_us": 358.41700082528405,
+            "routing_ms": 123.94170799962012,
+            "pep_check_us": 0.3749992174562067,
+            "rag_ms": 0.00012500095181167126,
+            "context_assembly_ms": 0.9367499988002237,
+            "llm_generation_ms": 372.7653339992685,
+            "validation_us": 622.125000518281
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u093f\u0936\u093e, \u0906\u091c \u0906\u092a \u0915\u0948\u0938\u0940 \u0939\u0948\u0902?",
+          "lang": "hi",
+          "use_laya": true,
+          "intent": "general_coaching",
+          "pep_risk": 1,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1012,
+          "output_tokens": 20,
+          "ttft_ms": 377.06,
+          "total_latency_ms": 378.32,
+          "stage_timings": {
+            "breaker_us": 348.24999966076575,
+            "routing_ms": 0.5566660001932178,
+            "pep_check_us": 1.3749995559919626,
+            "rag_ms": 0.0012080017768312246,
+            "context_assembly_ms": 3.753042001335416,
+            "llm_generation_ms": 372.7692920001573,
+            "validation_us": 589.6249967918266
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u093f\u0936\u093e, \u0906\u091c \u0906\u092a \u0915\u0948\u0938\u0940 \u0939\u0948\u0902?",
+          "lang": "hi",
+          "use_laya": true,
+          "intent": "general_coaching",
+          "pep_risk": 1,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1012,
+          "output_tokens": 20,
+          "ttft_ms": 378.34,
+          "total_latency_ms": 379.67,
+          "stage_timings": {
+            "breaker_us": 321.70800113817677,
+            "routing_ms": 0.5405420015449636,
+            "pep_check_us": 1.2089985830243677,
+            "rag_ms": 0.0006249974831007421,
+            "context_assembly_ms": 5.12233400149853,
+            "llm_generation_ms": 372.6923340000212,
+            "validation_us": 640.4580017260741
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        }
+      ],
+      "health_general": [
+        {
+          "query": "How many glasses of water should I drink daily in summer?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "meal_query",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1130,
+          "output_tokens": 20,
+          "ttft_ms": 496.48,
+          "total_latency_ms": 497.77,
+          "stage_timings": {
+            "breaker_us": 252.9580015107058,
+            "routing_ms": 122.69129099877318,
+            "pep_check_us": 0.33299875212833285,
+            "rag_ms": 0.05183400207897648,
+            "context_assembly_ms": 1.11220799954026,
+            "llm_generation_ms": 372.6988749986049,
+            "validation_us": 636.7090027197264
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "How many glasses of water should I drink daily in summer?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "meal_query",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1130,
+          "output_tokens": 20,
+          "ttft_ms": 378.88,
+          "total_latency_ms": 380.27,
+          "stage_timings": {
+            "breaker_us": 393.99999877787195,
+            "routing_ms": 0.6340410000120755,
+            "pep_check_us": 1.2499986041802913,
+            "rag_ms": 0.06316600047284737,
+            "context_assembly_ms": 5.482167001900962,
+            "llm_generation_ms": 372.7810419986781,
+            "validation_us": 632.6670009002555
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "How many glasses of water should I drink daily in summer?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "meal_query",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1130,
+          "output_tokens": 20,
+          "ttft_ms": 378.14,
+          "total_latency_ms": 379.62,
+          "stage_timings": {
+            "breaker_us": 397.7090018452145,
+            "routing_ms": 0.6338330022117589,
+            "pep_check_us": 1.4590004866477102,
+            "rag_ms": 0.06341699918266386,
+            "context_assembly_ms": 4.732792000140762,
+            "llm_generation_ms": 372.79483300153515,
+            "validation_us": 636.2919993989635
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Din bhar mein kitna paani peena chahiye hydration ke liye?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1054,
+          "output_tokens": 20,
+          "ttft_ms": 499.25,
+          "total_latency_ms": 500.68,
+          "stage_timings": {
+            "breaker_us": 385.5840004689526,
+            "routing_ms": 125.57687500157044,
+            "pep_check_us": 0.33400283427909017,
+            "rag_ms": 0.013666998711414635,
+            "context_assembly_ms": 0.9966670004359912,
+            "llm_generation_ms": 372.6919580003596,
+            "validation_us": 623.6250010260846
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Din bhar mein kitna paani peena chahiye hydration ke liye?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1054,
+          "output_tokens": 20,
+          "ttft_ms": 375.72,
+          "total_latency_ms": 377.16,
+          "stage_timings": {
+            "breaker_us": 374.00000292109326,
+            "routing_ms": 0.4653329997381661,
+            "pep_check_us": 0.5420006345957518,
+            "rag_ms": 0.028667000151472166,
+            "context_assembly_ms": 2.527125001506647,
+            "llm_generation_ms": 372.7498750013183,
+            "validation_us": 631.0839999059681
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Din bhar mein kitna paani peena chahiye hydration ke liye?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1054,
+          "output_tokens": 20,
+          "ttft_ms": 378.58,
+          "total_latency_ms": 379.81,
+          "stage_timings": {
+            "breaker_us": 389.1670021403115,
+            "routing_ms": 0.6177499999466818,
+            "pep_check_us": 1.2919990695081651,
+            "rag_ms": 0.07308399653993547,
+            "context_assembly_ms": 5.381833001592895,
+            "llm_generation_ms": 372.60033300117357,
+            "validation_us": 578.9159986306913
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0905\u091a\u094d\u091b\u0940 \u0938\u0947\u0939\u0924 \u0915\u0947 \u0932\u093f\u090f \u0926\u093f\u0928 \u092e\u0947\u0902 \u0915\u093f\u0924\u0928\u093e \u092a\u093e\u0928\u0940 \u092a\u0940\u0928\u093e \u091a\u093e\u0939\u093f\u090f?",
+          "lang": "hi",
+          "use_laya": true,
+          "intent": "meal_query",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1047,
+          "output_tokens": 20,
+          "ttft_ms": 500.1,
+          "total_latency_ms": 501.72,
+          "stage_timings": {
+            "breaker_us": 541.749999683816,
+            "routing_ms": 126.5371250010503,
+            "pep_check_us": 0.33299875212833285,
+            "rag_ms": 0.010291998478351161,
+            "context_assembly_ms": 0.9814170007302891,
+            "llm_generation_ms": 372.6065409973671,
+            "validation_us": 640.5419990187511
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0905\u091a\u094d\u091b\u0940 \u0938\u0947\u0939\u0924 \u0915\u0947 \u0932\u093f\u090f \u0926\u093f\u0928 \u092e\u0947\u0902 \u0915\u093f\u0924\u0928\u093e \u092a\u093e\u0928\u0940 \u092a\u0940\u0928\u093e \u091a\u093e\u0939\u093f\u090f?",
+          "lang": "hi",
+          "use_laya": true,
+          "intent": "meal_query",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1047,
+          "output_tokens": 20,
+          "ttft_ms": 376.68,
+          "total_latency_ms": 378.19,
+          "stage_timings": {
+            "breaker_us": 557.3329981416464,
+            "routing_ms": 0.9517090002191253,
+            "pep_check_us": 1.4999968698248267,
+            "rag_ms": 0.02745899837464094,
+            "context_assembly_ms": 2.9555830005847383,
+            "llm_generation_ms": 372.7937080002448,
+            "validation_us": 611.0409995017108
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0905\u091a\u094d\u091b\u0940 \u0938\u0947\u0939\u0924 \u0915\u0947 \u0932\u093f\u090f \u0926\u093f\u0928 \u092e\u0947\u0902 \u0915\u093f\u0924\u0928\u093e \u092a\u093e\u0928\u0940 \u092a\u0940\u0928\u093e \u091a\u093e\u0939\u093f\u090f?",
+          "lang": "hi",
+          "use_laya": true,
+          "intent": "meal_query",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1047,
+          "output_tokens": 20,
+          "ttft_ms": 376.44,
+          "total_latency_ms": 378.03,
+          "stage_timings": {
+            "breaker_us": 530.9590014803689,
+            "routing_ms": 0.8533330001228023,
+            "pep_check_us": 1.0830008250195533,
+            "rag_ms": 0.028457998269004747,
+            "context_assembly_ms": 2.9100829997332767,
+            "llm_generation_ms": 372.69733299763175,
+            "validation_us": 628.1249989115167
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        }
+      ],
+      "rag_clinical": [
+        {
+          "query": "What foods should I eat to lower high blood pressure naturally?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "meal_query",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1126,
+          "output_tokens": 20,
+          "ttft_ms": 497.26,
+          "total_latency_ms": 498.62,
+          "stage_timings": {
+            "breaker_us": 408.74999831430614,
+            "routing_ms": 123.57804199928069,
+            "pep_check_us": 0.29200236895121634,
+            "rag_ms": 0.0134170004457701,
+            "context_assembly_ms": 1.004375000775326,
+            "llm_generation_ms": 372.6954999983718,
+            "validation_us": 627.500001428416
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "What foods should I eat to lower high blood pressure naturally?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "meal_query",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1126,
+          "output_tokens": 20,
+          "ttft_ms": 376.64,
+          "total_latency_ms": 378.09,
+          "stage_timings": {
+            "breaker_us": 414.33400110690854,
+            "routing_ms": 0.6644999994023237,
+            "pep_check_us": 1.2500022421590984,
+            "rag_ms": 0.06283399852691218,
+            "context_assembly_ms": 3.295375001471257,
+            "llm_generation_ms": 372.7037079988804,
+            "validation_us": 615.5420014692936
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "What foods should I eat to lower high blood pressure naturally?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "meal_query",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1126,
+          "output_tokens": 20,
+          "ttft_ms": 377.3,
+          "total_latency_ms": 378.72,
+          "stage_timings": {
+            "breaker_us": 423.95800119265914,
+            "routing_ms": 0.6528749981953297,
+            "pep_check_us": 2.0420011423993856,
+            "rag_ms": 0.06737500007147901,
+            "context_assembly_ms": 3.8853750011185184,
+            "llm_generation_ms": 372.77916699895286,
+            "validation_us": 604.1249980626162
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Subah khali pet gas aur khatti dakar ka gharelu ilaj kya hai?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1074,
+          "output_tokens": 20,
+          "ttft_ms": 487.26,
+          "total_latency_ms": 488.27,
+          "stage_timings": {
+            "breaker_us": 393.12499939114787,
+            "routing_ms": 113.64099999991595,
+            "pep_check_us": 0.4159992386121303,
+            "rag_ms": 0.019374998373677954,
+            "context_assembly_ms": 0.9939579977071844,
+            "llm_generation_ms": 372.6405829984287,
+            "validation_us": 377.1250012505334
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Subah khali pet gas aur khatti dakar ka gharelu ilaj kya hai?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1074,
+          "output_tokens": 20,
+          "ttft_ms": 376.21,
+          "total_latency_ms": 377.42,
+          "stage_timings": {
+            "breaker_us": 232.9579983779695,
+            "routing_ms": 0.3664579999167472,
+            "pep_check_us": 0.957999873207882,
+            "rag_ms": 0.05529199916054495,
+            "context_assembly_ms": 3.0583750012738165,
+            "llm_generation_ms": 372.8077910018328,
+            "validation_us": 619.2910004756413
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Subah khali pet gas aur khatti dakar ka gharelu ilaj kya hai?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1074,
+          "output_tokens": 20,
+          "ttft_ms": 376.8,
+          "total_latency_ms": 378.21,
+          "stage_timings": {
+            "breaker_us": 398.6669980804436,
+            "routing_ms": 0.6644999994023237,
+            "pep_check_us": 1.2089985830243677,
+            "rag_ms": 0.06291699901339598,
+            "context_assembly_ms": 3.3791249989008065,
+            "llm_generation_ms": 372.77720799829694,
+            "validation_us": 617.4169975565746
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0939\u093e\u0908 \u092c\u0940\u092a\u0940 \u092e\u0947\u0902 \u0928\u092e\u0915 \u0915\u093f\u0924\u0928\u093e \u0932\u0947\u0928\u093e \u091a\u093e\u0939\u093f\u090f \u0914\u0930 \u0915\u094d\u092f\u093e \u0916\u093e\u0928\u093e \u091a\u093e\u0939\u093f\u090f?",
+          "lang": "hi",
+          "use_laya": true,
+          "intent": "meal_query",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1179,
+          "output_tokens": 20,
+          "ttft_ms": 501.27,
+          "total_latency_ms": 502.78,
+          "stage_timings": {
+            "breaker_us": 589.2499975743704,
+            "routing_ms": 127.41575000109151,
+            "pep_check_us": 0.4169996827840805,
+            "rag_ms": 0.017292000848101452,
+            "context_assembly_ms": 1.1160829999425914,
+            "llm_generation_ms": 372.7591669994581,
+            "validation_us": 628.2920003286563
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0939\u093e\u0908 \u092c\u0940\u092a\u0940 \u092e\u0947\u0902 \u0928\u092e\u0915 \u0915\u093f\u0924\u0928\u093e \u0932\u0947\u0928\u093e \u091a\u093e\u0939\u093f\u090f \u0914\u0930 \u0915\u094d\u092f\u093e \u0916\u093e\u0928\u093e \u091a\u093e\u0939\u093f\u090f?",
+          "lang": "hi",
+          "use_laya": true,
+          "intent": "meal_query",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1179,
+          "output_tokens": 20,
+          "ttft_ms": 377.59,
+          "total_latency_ms": 378.4,
+          "stage_timings": {
+            "breaker_us": 600.9999997331761,
+            "routing_ms": 1.0266669996781275,
+            "pep_check_us": 1.3329990906640887,
+            "rag_ms": 0.10024999937741086,
+            "context_assembly_ms": 4.744833000586368,
+            "llm_generation_ms": 371.8177499977173,
+            "validation_us": 106.54099969542585
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0939\u093e\u0908 \u092c\u0940\u092a\u0940 \u092e\u0947\u0902 \u0928\u092e\u0915 \u0915\u093f\u0924\u0928\u093e \u0932\u0947\u0928\u093e \u091a\u093e\u0939\u093f\u090f \u0914\u0930 \u0915\u094d\u092f\u093e \u0916\u093e\u0928\u093e \u091a\u093e\u0939\u093f\u090f?",
+          "lang": "hi",
+          "use_laya": true,
+          "intent": "meal_query",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1179,
+          "output_tokens": 20,
+          "ttft_ms": 373.85,
+          "total_latency_ms": 375.0,
+          "stage_timings": {
+            "breaker_us": 105.04200326977298,
+            "routing_ms": 0.18383299902779981,
+            "pep_check_us": 0.2500019036233425,
+            "rag_ms": 0.016125002730404958,
+            "context_assembly_ms": 0.9931669992511161,
+            "llm_generation_ms": 372.69125000239,
+            "validation_us": 624.1250011953525
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        }
+      ],
+      "pep_safe": [
+        {
+          "query": "Can I do 20 minutes brisk walking with mild knee pain?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1048,
+          "output_tokens": 20,
+          "ttft_ms": 498.02,
+          "total_latency_ms": 499.43,
+          "stage_timings": {
+            "breaker_us": 377.0830007852055,
+            "routing_ms": 124.4113329994434,
+            "pep_check_us": 0.4169996827840805,
+            "rag_ms": 0.012749998859362677,
+            "context_assembly_ms": 0.9542919979139697,
+            "llm_generation_ms": 372.6784169994062,
+            "validation_us": 626.5000010898802
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Can I do 20 minutes brisk walking with mild knee pain?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1048,
+          "output_tokens": 20,
+          "ttft_ms": 375.93,
+          "total_latency_ms": 377.37,
+          "stage_timings": {
+            "breaker_us": 377.04100031987764,
+            "routing_ms": 0.6205829995451495,
+            "pep_check_us": 1.3749995559919626,
+            "rag_ms": 0.05795900142402388,
+            "context_assembly_ms": 2.9366250018938445,
+            "llm_generation_ms": 372.3908329993719,
+            "validation_us": 623.0840008356608
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Can I do 20 minutes brisk walking with mild knee pain?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1048,
+          "output_tokens": 20,
+          "ttft_ms": 377.43,
+          "total_latency_ms": 378.75,
+          "stage_timings": {
+            "breaker_us": 371.99999860604294,
+            "routing_ms": 0.6121250007709023,
+            "pep_check_us": 1.333999534836039,
+            "rag_ms": 0.060999998822808266,
+            "context_assembly_ms": 4.735041999083478,
+            "llm_generation_ms": 372.09454199910397,
+            "validation_us": 623.500000074273
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        }
+      ],
+      "pep_high_risk": [
+        {
+          "query": "Can I start lifting 80kg heavy deadlifts in gym from tomorrow?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "emergency_triage",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 24,
+          "ttft_ms": 128.18,
+          "total_latency_ms": 128.18,
+          "stage_timings": {
+            "breaker_us": 289.9999999499414,
+            "routing_ms": 127.89004099977319,
+            "pep_check_us": 0.7500020728912205
+          },
+          "action": "PEP_SAFETY_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Can I start lifting 80kg heavy deadlifts in gym from tomorrow?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "emergency_triage",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 24,
+          "ttft_ms": 0.17,
+          "total_latency_ms": 0.17,
+          "stage_timings": {
+            "breaker_us": 68.95899787195958,
+            "routing_ms": 0.10458399992785417,
+            "pep_check_us": 0.33300239010713995
+          },
+          "action": "PEP_SAFETY_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Can I start lifting 80kg heavy deadlifts in gym from tomorrow?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "emergency_triage",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 24,
+          "ttft_ms": 0.13,
+          "total_latency_ms": 0.13,
+          "stage_timings": {
+            "breaker_us": 46.58300167648122,
+            "routing_ms": 0.08770800195634365,
+            "pep_check_us": 0.12500095181167126
+          },
+          "action": "PEP_SAFETY_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Kya main gym me heavy weight lifting aur squats kar sakta hoon?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "exercise_query",
+          "pep_risk": 2,
+          "skip_retrieval": false,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 24,
+          "ttft_ms": 124.16,
+          "total_latency_ms": 124.16,
+          "stage_timings": {
+            "breaker_us": 396.37499867239967,
+            "routing_ms": 123.76204099928145,
+            "pep_check_us": 0.5829970177728683
+          },
+          "action": "PEP_SAFETY_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Kya main gym me heavy weight lifting aur squats kar sakta hoon?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "exercise_query",
+          "pep_risk": 2,
+          "skip_retrieval": false,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 24,
+          "ttft_ms": 0.18,
+          "total_latency_ms": 0.18,
+          "stage_timings": {
+            "breaker_us": 70.49999840091914,
+            "routing_ms": 0.10808300066855736,
+            "pep_check_us": 0.16700141713954508
+          },
+          "action": "PEP_SAFETY_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Kya main gym me heavy weight lifting aur squats kar sakta hoon?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "exercise_query",
+          "pep_risk": 2,
+          "skip_retrieval": false,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 24,
+          "ttft_ms": 0.14,
+          "total_latency_ms": 0.14,
+          "stage_timings": {
+            "breaker_us": 46.54200165532529,
+            "routing_ms": 0.09220799984177575,
+            "pep_check_us": 0.12500095181167126
+          },
+          "action": "PEP_SAFETY_INTERCEPT",
+          "intercepted": true
+        }
+      ],
+      "followup": [
+        {
+          "query": "Kal raat acchi neend nahi aayi stress tha aur thoda sir dard bhi hai",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1012,
+          "output_tokens": 20,
+          "ttft_ms": 478.23,
+          "total_latency_ms": 478.66,
+          "stage_timings": {
+            "breaker_us": 137.33399828197435,
+            "routing_ms": 104.97712500000489,
+            "pep_check_us": 0.3749992174562067,
+            "rag_ms": 0.018792001355905086,
+            "context_assembly_ms": 0.9167919997707941,
+            "llm_generation_ms": 372.33754100088845,
+            "validation_us": 161.8330024939496
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Kal raat acchi neend nahi aayi stress tha aur thoda sir dard bhi hai",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1012,
+          "output_tokens": 20,
+          "ttft_ms": 374.06,
+          "total_latency_ms": 374.46,
+          "stage_timings": {
+            "breaker_us": 106.70899791875854,
+            "routing_ms": 0.17720799951348454,
+            "pep_check_us": 0.4169996827840805,
+            "rag_ms": 0.025124998501269147,
+            "context_assembly_ms": 1.4073750026000198,
+            "llm_generation_ms": 372.4809159975848,
+            "validation_us": 148.667000757996
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Kal raat acchi neend nahi aayi stress tha aur thoda sir dard bhi hai",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1012,
+          "output_tokens": 20,
+          "ttft_ms": 373.91,
+          "total_latency_ms": 374.69,
+          "stage_timings": {
+            "breaker_us": 99.95800064643845,
+            "routing_ms": 0.1775839991751127,
+            "pep_check_us": 0.4169996827840805,
+            "rag_ms": 0.02445800055284053,
+            "context_assembly_ms": 1.2174170005891938,
+            "llm_generation_ms": 372.52454200279317,
+            "validation_us": 385.6250004901085
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Haan maine paani pee liya hai, aage kya karoon?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 483.95,
+          "total_latency_ms": 485.16,
+          "stage_timings": {
+            "breaker_us": 111.74999963259324,
+            "routing_ms": 110.58074999891687,
+            "pep_check_us": 0.4579997039400041,
+            "rag_ms": 0.013458000466926023,
+            "context_assembly_ms": 0.8957499994721729,
+            "llm_generation_ms": 372.49391700242995,
+            "validation_us": 628.0000015976839
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Haan maine paani pee liya hai, aage kya karoon?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 377.31,
+          "total_latency_ms": 378.06,
+          "stage_timings": {
+            "breaker_us": 345.1250013313256,
+            "routing_ms": 0.5517079989658669,
+            "pep_check_us": 1.3750031939707696,
+            "rag_ms": 0.07062499935273081,
+            "context_assembly_ms": 4.352416999608977,
+            "llm_generation_ms": 372.41766700026346,
+            "validation_us": 223.24999736156315
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Haan maine paani pee liya hai, aage kya karoon?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 374.72,
+          "total_latency_ms": 375.94,
+          "stage_timings": {
+            "breaker_us": 116.16700066952035,
+            "routing_ms": 0.17904200285556726,
+            "pep_check_us": 0.5420006345957518,
+            "rag_ms": 0.02591700103948824,
+            "context_assembly_ms": 1.8024589990091044,
+            "llm_generation_ms": 372.75366700123413,
+            "validation_us": 633.1669974315446
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        }
+      ],
+      "out_of_scope": [
+        {
+          "query": "How do I install python and configure vscode on mac?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "general_coaching",
+          "pep_risk": 1,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 990,
+          "output_tokens": 20,
+          "ttft_ms": 498.38,
+          "total_latency_ms": 499.16,
+          "stage_timings": {
+            "breaker_us": 364.12500048754737,
+            "routing_ms": 125.02591600059532,
+            "pep_check_us": 0.6250011210795492,
+            "rag_ms": 0.00016600097296759486,
+            "context_assembly_ms": 0.9057079987542238,
+            "llm_generation_ms": 372.4556660017697,
+            "validation_us": 240.6249986961484
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "How do I install python and configure vscode on mac?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "general_coaching",
+          "pep_risk": 1,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 990,
+          "output_tokens": 20,
+          "ttft_ms": 374.71,
+          "total_latency_ms": 375.65,
+          "stage_timings": {
+            "breaker_us": 109.95900083798915,
+            "routing_ms": 0.16870800027390942,
+            "pep_check_us": 0.33299875212833285,
+            "rag_ms": 0.0005000001692678779,
+            "context_assembly_ms": 1.6246250015683472,
+            "llm_generation_ms": 372.9274580000492,
+            "validation_us": 467.49999819439836
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "How do I install python and configure vscode on mac?",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "general_coaching",
+          "pep_risk": 1,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 990,
+          "output_tokens": 20,
+          "ttft_ms": 376.13,
+          "total_latency_ms": 376.62,
+          "stage_timings": {
+            "breaker_us": 249.5419976185076,
+            "routing_ms": 0.38204200245672837,
+            "pep_check_us": 1.3749995559919626,
+            "rag_ms": 0.0010419971658848226,
+            "context_assembly_ms": 3.147167000861373,
+            "llm_generation_ms": 372.60616600178764,
+            "validation_us": 119.2499985336326
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Delhi me aaj sone ka bhav kya chal raha hai?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 500.02,
+          "total_latency_ms": 501.27,
+          "stage_timings": {
+            "breaker_us": 203.62500072224066,
+            "routing_ms": 126.42379200042342,
+            "pep_check_us": 0.4169996827840805,
+            "rag_ms": 0.011166997865075245,
+            "context_assembly_ms": 0.906000001123175,
+            "llm_generation_ms": 372.7096670008905,
+            "validation_us": 612.9579996922985
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Delhi me aaj sone ka bhav kya chal raha hai?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 376.38,
+          "total_latency_ms": 377.81,
+          "stage_timings": {
+            "breaker_us": 353.12500040163286,
+            "routing_ms": 0.5472909979289398,
+            "pep_check_us": 1.1669981176964939,
+            "rag_ms": 0.05741600034525618,
+            "context_assembly_ms": 3.029041999980109,
+            "llm_generation_ms": 372.8266660000372,
+            "validation_us": 624.9580001167487
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Delhi me aaj sone ka bhav kya chal raha hai?",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "symptom_complaint",
+          "pep_risk": 1,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 376.54,
+          "total_latency_ms": 377.96,
+          "stage_timings": {
+            "breaker_us": 343.2500016060658,
+            "routing_ms": 0.5035840003984049,
+            "pep_check_us": 1.2500022421590984,
+            "rag_ms": 0.0408750020142179,
+            "context_assembly_ms": 3.3365829985996243,
+            "llm_generation_ms": 372.7161659990088,
+            "validation_us": 616.4169972180389
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        }
+      ],
+      "emergency": [
+        {
+          "query": "Severe crushing chest pain radiating to left arm and shortness of breath",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.04,
+          "total_latency_ms": 0.04,
+          "stage_timings": {
+            "breaker_us": 38.70900036417879
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Severe crushing chest pain radiating to left arm and shortness of breath",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.02,
+          "total_latency_ms": 0.02,
+          "stage_timings": {
+            "breaker_us": 18.62499993876554
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Severe crushing chest pain radiating to left arm and shortness of breath",
+          "lang": "en",
+          "use_laya": true,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.01,
+          "total_latency_ms": 0.01,
+          "stage_timings": {
+            "breaker_us": 13.083001249469817
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Seene me bohot tez dard ho raha hai aur sans ruk rahi hai",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.05,
+          "total_latency_ms": 0.05,
+          "stage_timings": {
+            "breaker_us": 49.250000301981345
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Seene me bohot tez dard ho raha hai aur sans ruk rahi hai",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.04,
+          "total_latency_ms": 0.04,
+          "stage_timings": {
+            "breaker_us": 37.95800148509443
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Seene me bohot tez dard ho raha hai aur sans ruk rahi hai",
+          "lang": "hinglish",
+          "use_laya": true,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.03,
+          "total_latency_ms": 0.03,
+          "stage_timings": {
+            "breaker_us": 34.87499998300336
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "\u0938\u0940\u0928\u0947 \u092e\u0947\u0902 \u092c\u0939\u0941\u0924 \u0924\u0947\u091c \u0926\u0930\u094d\u0926 \u0939\u0948 \u0914\u0930 \u092a\u0938\u0940\u0928\u093e \u0906 \u0930\u0939\u093e \u0939\u0948",
+          "lang": "hi",
+          "use_laya": true,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.02,
+          "total_latency_ms": 0.02,
+          "stage_timings": {
+            "breaker_us": 16.083002265077084
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "\u0938\u0940\u0928\u0947 \u092e\u0947\u0902 \u092c\u0939\u0941\u0924 \u0924\u0947\u091c \u0926\u0930\u094d\u0926 \u0939\u0948 \u0914\u0930 \u092a\u0938\u0940\u0928\u093e \u0906 \u0930\u0939\u093e \u0939\u0948",
+          "lang": "hi",
+          "use_laya": true,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.01,
+          "total_latency_ms": 0.01,
+          "stage_timings": {
+            "breaker_us": 10.0840006780345
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "\u0938\u0940\u0928\u0947 \u092e\u0947\u0902 \u092c\u0939\u0941\u0924 \u0924\u0947\u091c \u0926\u0930\u094d\u0926 \u0939\u0948 \u0914\u0930 \u092a\u0938\u0940\u0928\u093e \u0906 \u0930\u0939\u093e \u0939\u0948",
+          "lang": "hi",
+          "use_laya": true,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.01,
+          "total_latency_ms": 0.01,
+          "stage_timings": {
+            "breaker_us": 8.957998943515122
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        }
+      ]
+    },
+    "without_laya": {
+      "normal_chat": [
+        {
+          "query": "Namaste Disha, good morning!",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "greeting",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 987,
+          "output_tokens": 20,
+          "ttft_ms": 377.63,
+          "total_latency_ms": 378.82,
+          "stage_timings": {
+            "breaker_us": 203.66699754958972,
+            "routing_ms": 2.635500000906177,
+            "pep_check_us": 1.2079981388524175,
+            "rag_ms": 0.0002499982656445354,
+            "context_assembly_ms": 2.258208998682676,
+            "llm_generation_ms": 372.7581250022922,
+            "validation_us": 593.2089989073575
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Namaste Disha, good morning!",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "greeting",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 987,
+          "output_tokens": 20,
+          "ttft_ms": 377.77,
+          "total_latency_ms": 379.02,
+          "stage_timings": {
+            "breaker_us": 213.95800285972655,
+            "routing_ms": 0.20420899818418548,
+            "pep_check_us": 1.2499986041802913,
+            "rag_ms": 0.0011250012903474271,
+            "context_assembly_ms": 4.900042000372196,
+            "llm_generation_ms": 372.6814590008871,
+            "validation_us": 623.5420005396008
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Namaste Disha, good morning!",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "greeting",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 987,
+          "output_tokens": 20,
+          "ttft_ms": 377.79,
+          "total_latency_ms": 379.1,
+          "stage_timings": {
+            "breaker_us": 227.54199744667858,
+            "routing_ms": 0.20179100101813674,
+            "pep_check_us": 1.2499986041802913,
+            "rag_ms": 0.000833999365568161,
+            "context_assembly_ms": 4.9549169998499565,
+            "llm_generation_ms": 372.660208002344,
+            "validation_us": 617.9580013849773
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Namaste Disha ji! Aaj ka din kaisa hai?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "greeting",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 999,
+          "output_tokens": 20,
+          "ttft_ms": 376.57,
+          "total_latency_ms": 377.91,
+          "stage_timings": {
+            "breaker_us": 300.79199859756045,
+            "routing_ms": 0.28537500111269765,
+            "pep_check_us": 1.4170000213198364,
+            "rag_ms": 0.000833999365568161,
+            "context_assembly_ms": 3.662792001705384,
+            "llm_generation_ms": 372.6447909975832,
+            "validation_us": 625.9169967961498
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Namaste Disha ji! Aaj ka din kaisa hai?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "greeting",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 999,
+          "output_tokens": 20,
+          "ttft_ms": 375.76,
+          "total_latency_ms": 377.14,
+          "stage_timings": {
+            "breaker_us": 300.3330020874273,
+            "routing_ms": 0.27624999711406417,
+            "pep_check_us": 1.6669982869643718,
+            "rag_ms": 0.0011669981176964939,
+            "context_assembly_ms": 3.599374998884741,
+            "llm_generation_ms": 371.8993330003286,
+            "validation_us": 618.4169978951104
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Namaste Disha ji! Aaj ka din kaisa hai?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "greeting",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 999,
+          "output_tokens": 20,
+          "ttft_ms": 378.12,
+          "total_latency_ms": 379.48,
+          "stage_timings": {
+            "breaker_us": 297.0409987028688,
+            "routing_ms": 0.2802499984682072,
+            "pep_check_us": 1.2499986041802913,
+            "rag_ms": 0.0010420008038636297,
+            "context_assembly_ms": 5.10920799933956,
+            "llm_generation_ms": 372.7492079997319,
+            "validation_us": 633.1670010695234
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u093f\u0936\u093e, \u0906\u091c \u0906\u092a \u0915\u0948\u0938\u0940 \u0939\u0948\u0902?",
+          "lang": "hi",
+          "use_laya": false,
+          "intent": "greeting",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1012,
+          "output_tokens": 20,
+          "ttft_ms": 375.92,
+          "total_latency_ms": 377.3,
+          "stage_timings": {
+            "breaker_us": 344.0000000409782,
+            "routing_ms": 0.3192919975845143,
+            "pep_check_us": 1.3750031939707696,
+            "rag_ms": 0.0012500022421590984,
+            "context_assembly_ms": 3.2617500000924338,
+            "llm_generation_ms": 372.3555420001503,
+            "validation_us": 618.5420024849009
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u093f\u0936\u093e, \u0906\u091c \u0906\u092a \u0915\u0948\u0938\u0940 \u0939\u0948\u0902?",
+          "lang": "hi",
+          "use_laya": false,
+          "intent": "greeting",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1012,
+          "output_tokens": 20,
+          "ttft_ms": 377.07,
+          "total_latency_ms": 378.25,
+          "stage_timings": {
+            "breaker_us": 332.41599885514006,
+            "routing_ms": 0.3061660027015023,
+            "pep_check_us": 8.082999556791037,
+            "rag_ms": 0.001291002263315022,
+            "context_assembly_ms": 4.273666003427934,
+            "llm_generation_ms": 372.5042499972915,
+            "validation_us": 471.8749987659976
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0928\u092e\u0938\u094d\u0924\u0947 \u0926\u093f\u0936\u093e, \u0906\u091c \u0906\u092a \u0915\u0948\u0938\u0940 \u0939\u0948\u0902?",
+          "lang": "hi",
+          "use_laya": false,
+          "intent": "greeting",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1012,
+          "output_tokens": 20,
+          "ttft_ms": 375.64,
+          "total_latency_ms": 376.62,
+          "stage_timings": {
+            "breaker_us": 215.74999846052378,
+            "routing_ms": 0.14779100092709996,
+            "pep_check_us": 1.4159995771478862,
+            "rag_ms": 0.0012080017768312246,
+            "context_assembly_ms": 2.5930830015568063,
+            "llm_generation_ms": 372.9160000002594,
+            "validation_us": 411.7919997952413
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        }
+      ],
+      "health_general": [
+        {
+          "query": "How many glasses of water should I drink daily in summer?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 991,
+          "output_tokens": 20,
+          "ttft_ms": 377.96,
+          "total_latency_ms": 379.3,
+          "stage_timings": {
+            "breaker_us": 391.91700125229545,
+            "routing_ms": 0.3751250005734619,
+            "pep_check_us": 1.4170000213198364,
+            "rag_ms": 0.0006669979484286159,
+            "context_assembly_ms": 4.850332999922102,
+            "llm_generation_ms": 372.7511659999436,
+            "validation_us": 622.0420000317972
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "How many glasses of water should I drink daily in summer?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 991,
+          "output_tokens": 20,
+          "ttft_ms": 376.67,
+          "total_latency_ms": 378.02,
+          "stage_timings": {
+            "breaker_us": 389.58299774094485,
+            "routing_ms": 0.36970899964217097,
+            "pep_check_us": 1.3749995559919626,
+            "rag_ms": 0.0009169998520519584,
+            "context_assembly_ms": 3.5812499991152436,
+            "llm_generation_ms": 372.73370800176053,
+            "validation_us": 603.29199914122
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "How many glasses of water should I drink daily in summer?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 991,
+          "output_tokens": 20,
+          "ttft_ms": 377.63,
+          "total_latency_ms": 378.96,
+          "stage_timings": {
+            "breaker_us": 368.29199962085113,
+            "routing_ms": 0.3648750025604386,
+            "pep_check_us": 1.3749995559919626,
+            "rag_ms": 0.0010000003385357559,
+            "context_assembly_ms": 4.510291000769939,
+            "llm_generation_ms": 372.77512500077137,
+            "validation_us": 638.749999779975
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Din bhar mein kitna paani peena chahiye hydration ke liye?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 377.98,
+          "total_latency_ms": 379.27,
+          "stage_timings": {
+            "breaker_us": 335.5409971845802,
+            "routing_ms": 0.3525419997458812,
+            "pep_check_us": 1.4170000213198364,
+            "rag_ms": 0.0008750030247028917,
+            "context_assembly_ms": 4.945374999806518,
+            "llm_generation_ms": 372.695375001058,
+            "validation_us": 628.0000015976839
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Din bhar mein kitna paani peena chahiye hydration ke liye?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 375.84,
+          "total_latency_ms": 376.68,
+          "stage_timings": {
+            "breaker_us": 379.37500019324943,
+            "routing_ms": 0.3648329984571319,
+            "pep_check_us": 1.667001924943179,
+            "rag_ms": 0.001167001755675301,
+            "context_assembly_ms": 2.9783329991914798,
+            "llm_generation_ms": 372.5003330000618,
+            "validation_us": 228.3750000060536
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Din bhar mein kitna paani peena chahiye hydration ke liye?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 374.76,
+          "total_latency_ms": 375.79,
+          "stage_timings": {
+            "breaker_us": 119.58300092373975,
+            "routing_ms": 0.11299999823677354,
+            "pep_check_us": 0.5000001692678779,
+            "rag_ms": 0.0002500019036233425,
+            "context_assembly_ms": 1.982333000341896,
+            "llm_generation_ms": 372.68466699970304,
+            "validation_us": 592.2080017626286
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0905\u091a\u094d\u091b\u0940 \u0938\u0947\u0939\u0924 \u0915\u0947 \u0932\u093f\u090f \u0926\u093f\u0928 \u092e\u0947\u0902 \u0915\u093f\u0924\u0928\u093e \u092a\u093e\u0928\u0940 \u092a\u0940\u0928\u093e \u091a\u093e\u0939\u093f\u090f?",
+          "lang": "hi",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1026,
+          "output_tokens": 20,
+          "ttft_ms": 377.28,
+          "total_latency_ms": 378.46,
+          "stage_timings": {
+            "breaker_us": 544.9579984997399,
+            "routing_ms": 0.5351250001695007,
+            "pep_check_us": 1.4170000213198364,
+            "rag_ms": 0.0007079979695845395,
+            "context_assembly_ms": 3.958457997214282,
+            "llm_generation_ms": 372.79874999876483,
+            "validation_us": 336.6660021129064
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0905\u091a\u094d\u091b\u0940 \u0938\u0947\u0939\u0924 \u0915\u0947 \u0932\u093f\u090f \u0926\u093f\u0928 \u092e\u0947\u0902 \u0915\u093f\u0924\u0928\u093e \u092a\u093e\u0928\u0940 \u092a\u0940\u0928\u093e \u091a\u093e\u0939\u093f\u090f?",
+          "lang": "hi",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1026,
+          "output_tokens": 20,
+          "ttft_ms": 375.24,
+          "total_latency_ms": 376.51,
+          "stage_timings": {
+            "breaker_us": 288.33300166297704,
+            "routing_ms": 0.26066600185004063,
+            "pep_check_us": 1.2080017768312246,
+            "rag_ms": 0.000667001586407423,
+            "context_assembly_ms": 2.705082999455044,
+            "llm_generation_ms": 372.2901250002906,
+            "validation_us": 626.4580006245524
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0905\u091a\u094d\u091b\u0940 \u0938\u0947\u0939\u0924 \u0915\u0947 \u0932\u093f\u090f \u0926\u093f\u0928 \u092e\u0947\u0902 \u0915\u093f\u0924\u0928\u093e \u092a\u093e\u0928\u0940 \u092a\u0940\u0928\u093e \u091a\u093e\u0939\u093f\u090f?",
+          "lang": "hi",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1026,
+          "output_tokens": 20,
+          "ttft_ms": 378.5,
+          "total_latency_ms": 380.1,
+          "stage_timings": {
+            "breaker_us": 539.4999971031211,
+            "routing_ms": 0.536750001629116,
+            "pep_check_us": 1.667001924943179,
+            "rag_ms": 0.0007919989002402872,
+            "context_assembly_ms": 5.382125000323867,
+            "llm_generation_ms": 372.5960000010673,
+            "validation_us": 623.541996901622
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        }
+      ],
+      "rag_clinical": [
+        {
+          "query": "What foods should I eat to lower high blood pressure naturally?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 991,
+          "output_tokens": 20,
+          "ttft_ms": 376.8,
+          "total_latency_ms": 377.48,
+          "stage_timings": {
+            "breaker_us": 400.4580005130265,
+            "routing_ms": 0.37758400139864534,
+            "pep_check_us": 1.8749997252598405,
+            "rag_ms": 0.0011669981176964939,
+            "context_assembly_ms": 4.441249999217689,
+            "llm_generation_ms": 371.99091700313147,
+            "validation_us": 131.37499990989454
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "What foods should I eat to lower high blood pressure naturally?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 991,
+          "output_tokens": 20,
+          "ttft_ms": 373.8,
+          "total_latency_ms": 374.91,
+          "stage_timings": {
+            "breaker_us": 81.87500134226866,
+            "routing_ms": 0.07849999747122638,
+            "pep_check_us": 0.2080014382954687,
+            "rag_ms": 0.000166997779160738,
+            "context_assembly_ms": 0.9722079994389787,
+            "llm_generation_ms": 372.77241599804256,
+            "validation_us": 622.9169994185213
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "What foods should I eat to lower high blood pressure naturally?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 991,
+          "output_tokens": 20,
+          "ttft_ms": 376.42,
+          "total_latency_ms": 377.89,
+          "stage_timings": {
+            "breaker_us": 424.1659989929758,
+            "routing_ms": 0.4134999981033616,
+            "pep_check_us": 1.3330027286428958,
+            "rag_ms": 0.0007920025382190943,
+            "context_assembly_ms": 3.3139580009446945,
+            "llm_generation_ms": 372.7165420023084,
+            "validation_us": 619.916998402914
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Subah khali pet gas aur khatti dakar ka gharelu ilaj kya hai?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "symptom_complaint",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1074,
+          "output_tokens": 20,
+          "ttft_ms": 378.61,
+          "total_latency_ms": 380.03,
+          "stage_timings": {
+            "breaker_us": 401.1250020994339,
+            "routing_ms": 0.3773749995161779,
+            "pep_check_us": 1.5410005289595574,
+            "rag_ms": 0.09829100235947408,
+            "context_assembly_ms": 5.537334000109695,
+            "llm_generation_ms": 372.71291599972756,
+            "validation_us": 598.833998083137
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Subah khali pet gas aur khatti dakar ka gharelu ilaj kya hai?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "symptom_complaint",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1074,
+          "output_tokens": 20,
+          "ttft_ms": 375.84,
+          "total_latency_ms": 377.26,
+          "stage_timings": {
+            "breaker_us": 399.4170001533348,
+            "routing_ms": 0.37487500230781734,
+            "pep_check_us": 1.4170000213198364,
+            "rag_ms": 0.06833400038885884,
+            "context_assembly_ms": 3.3485409985587467,
+            "llm_generation_ms": 372.13579200033564,
+            "validation_us": 599.4579987600446
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Subah khali pet gas aur khatti dakar ka gharelu ilaj kya hai?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "symptom_complaint",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1074,
+          "output_tokens": 20,
+          "ttft_ms": 378.62,
+          "total_latency_ms": 379.94,
+          "stage_timings": {
+            "breaker_us": 393.91700192936696,
+            "routing_ms": 0.3717920008057263,
+            "pep_check_us": 1.1669981176964939,
+            "rag_ms": 0.09841599967330694,
+            "context_assembly_ms": 5.549749999772757,
+            "llm_generation_ms": 372.70970800091163,
+            "validation_us": 622.7500016393606
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0939\u093e\u0908 \u092c\u0940\u092a\u0940 \u092e\u0947\u0902 \u0928\u092e\u0915 \u0915\u093f\u0924\u0928\u093e \u0932\u0947\u0928\u093e \u091a\u093e\u0939\u093f\u090f \u0914\u0930 \u0915\u094d\u092f\u093e \u0916\u093e\u0928\u093e \u091a\u093e\u0939\u093f\u090f?",
+          "lang": "hi",
+          "use_laya": false,
+          "intent": "meal_query",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1179,
+          "output_tokens": 20,
+          "ttft_ms": 377.79,
+          "total_latency_ms": 379.47,
+          "stage_timings": {
+            "breaker_us": 584.6660023962613,
+            "routing_ms": 0.5625830017379485,
+            "pep_check_us": 1.2500022421590984,
+            "rag_ms": 0.09012499867822044,
+            "context_assembly_ms": 4.587791001540609,
+            "llm_generation_ms": 372.6596670021536,
+            "validation_us": 631.9589992926922
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0939\u093e\u0908 \u092c\u0940\u092a\u0940 \u092e\u0947\u0902 \u0928\u092e\u0915 \u0915\u093f\u0924\u0928\u093e \u0932\u0947\u0928\u093e \u091a\u093e\u0939\u093f\u090f \u0914\u0930 \u0915\u094d\u092f\u093e \u0916\u093e\u0928\u093e \u091a\u093e\u0939\u093f\u090f?",
+          "lang": "hi",
+          "use_laya": false,
+          "intent": "meal_query",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1179,
+          "output_tokens": 20,
+          "ttft_ms": 377.32,
+          "total_latency_ms": 379.0,
+          "stage_timings": {
+            "breaker_us": 587.4580019735731,
+            "routing_ms": 0.5562500009546056,
+            "pep_check_us": 1.5000005078036338,
+            "rag_ms": 0.09154200233751908,
+            "context_assembly_ms": 4.077417001099093,
+            "llm_generation_ms": 372.7074169983098,
+            "validation_us": 629.9999986367766
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "\u0939\u093e\u0908 \u092c\u0940\u092a\u0940 \u092e\u0947\u0902 \u0928\u092e\u0915 \u0915\u093f\u0924\u0928\u093e \u0932\u0947\u0928\u093e \u091a\u093e\u0939\u093f\u090f \u0914\u0930 \u0915\u094d\u092f\u093e \u0916\u093e\u0928\u093e \u091a\u093e\u0939\u093f\u090f?",
+          "lang": "hi",
+          "use_laya": false,
+          "intent": "meal_query",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1179,
+          "output_tokens": 20,
+          "ttft_ms": 377.68,
+          "total_latency_ms": 379.23,
+          "stage_timings": {
+            "breaker_us": 591.666997934226,
+            "routing_ms": 0.5689999998139683,
+            "pep_check_us": 1.5830009942874312,
+            "rag_ms": 0.09262499952455983,
+            "context_assembly_ms": 4.443125002580928,
+            "llm_generation_ms": 372.68787500215694,
+            "validation_us": 623.7919988052454
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        }
+      ],
+      "pep_safe": [
+        {
+          "query": "Can I do 20 minutes brisk walking with mild knee pain?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "symptom_complaint",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1048,
+          "output_tokens": 20,
+          "ttft_ms": 376.36,
+          "total_latency_ms": 377.56,
+          "stage_timings": {
+            "breaker_us": 358.41699718730524,
+            "routing_ms": 0.34920799953397363,
+            "pep_check_us": 1.2499986041802913,
+            "rag_ms": 0.04162500044913031,
+            "context_assembly_ms": 3.380333997483831,
+            "llm_generation_ms": 372.64074999984587,
+            "validation_us": 583.7500029883813
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Can I do 20 minutes brisk walking with mild knee pain?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "symptom_complaint",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1048,
+          "output_tokens": 20,
+          "ttft_ms": 376.54,
+          "total_latency_ms": 377.16,
+          "stage_timings": {
+            "breaker_us": 354.0420002536848,
+            "routing_ms": 0.34087500171153806,
+            "pep_check_us": 1.167001755675301,
+            "rag_ms": 0.05712500205845572,
+            "context_assembly_ms": 4.341291998571251,
+            "llm_generation_ms": 371.8587499970454,
+            "validation_us": 130.2499986195471
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Can I do 20 minutes brisk walking with mild knee pain?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "symptom_complaint",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1048,
+          "output_tokens": 20,
+          "ttft_ms": 373.8,
+          "total_latency_ms": 374.65,
+          "stage_timings": {
+            "breaker_us": 80.91599738691002,
+            "routing_ms": 0.0709589985490311,
+            "pep_check_us": 0.24999826564453542,
+            "rag_ms": 0.012999997125007212,
+            "context_assembly_ms": 1.055542001267895,
+            "llm_generation_ms": 372.68987499919604,
+            "validation_us": 433.5410012572538
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        }
+      ],
+      "pep_high_risk": [
+        {
+          "query": "Can I start lifting 80kg heavy deadlifts in gym from tomorrow?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "exercise_query",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1051,
+          "output_tokens": 20,
+          "ttft_ms": 373.63,
+          "total_latency_ms": 374.75,
+          "stage_timings": {
+            "breaker_us": 44.20899858814664,
+            "routing_ms": 0.053750001825392246,
+            "pep_check_us": 0.12500095181167126,
+            "rag_ms": 0.012249998690094799,
+            "context_assembly_ms": 0.8824579999782145,
+            "llm_generation_ms": 372.71291599972756,
+            "validation_us": 632.9999996523838
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Can I start lifting 80kg heavy deadlifts in gym from tomorrow?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "exercise_query",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1051,
+          "output_tokens": 20,
+          "ttft_ms": 376.66,
+          "total_latency_ms": 378.01,
+          "stage_timings": {
+            "breaker_us": 427.99999937415123,
+            "routing_ms": 0.3707089999807067,
+            "pep_check_us": 1.4170000213198364,
+            "rag_ms": 0.06533399937325157,
+            "context_assembly_ms": 3.5609580008895136,
+            "llm_generation_ms": 372.7462090027984,
+            "validation_us": 606.5000015951227
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Can I start lifting 80kg heavy deadlifts in gym from tomorrow?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "exercise_query",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1051,
+          "output_tokens": 20,
+          "ttft_ms": 376.3,
+          "total_latency_ms": 377.76,
+          "stage_timings": {
+            "breaker_us": 398.2920025009662,
+            "routing_ms": 0.3617920010583475,
+            "pep_check_us": 1.2919990695081651,
+            "rag_ms": 0.0659159995848313,
+            "context_assembly_ms": 3.366708002431551,
+            "llm_generation_ms": 372.59487499977695,
+            "validation_us": 604.7079987183679
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Kya main gym me heavy weight lifting aur squats kar sakta hoon?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "exercise_query",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1055,
+          "output_tokens": 20,
+          "ttft_ms": 373.7,
+          "total_latency_ms": 374.79,
+          "stage_timings": {
+            "breaker_us": 45.999997382750735,
+            "routing_ms": 0.054957999964244664,
+            "pep_check_us": 0.12499731383286417,
+            "rag_ms": 0.014083001588005573,
+            "context_assembly_ms": 0.869625000632368,
+            "llm_generation_ms": 372.7976669979398,
+            "validation_us": 601.5840008330997
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Kya main gym me heavy weight lifting aur squats kar sakta hoon?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "exercise_query",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1055,
+          "output_tokens": 20,
+          "ttft_ms": 377.03,
+          "total_latency_ms": 378.63,
+          "stage_timings": {
+            "breaker_us": 433.5830017225817,
+            "routing_ms": 0.35933300023316406,
+            "pep_check_us": 1.45800004247576,
+            "rag_ms": 0.09316700015915558,
+            "context_assembly_ms": 3.989457996794954,
+            "llm_generation_ms": 372.70312500186265,
+            "validation_us": 701.3329995970707
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Kya main gym me heavy weight lifting aur squats kar sakta hoon?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "exercise_query",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1055,
+          "output_tokens": 20,
+          "ttft_ms": 376.02,
+          "total_latency_ms": 376.8,
+          "stage_timings": {
+            "breaker_us": 428.45800271607004,
+            "routing_ms": 0.37329100086935796,
+            "pep_check_us": 1.3330027286428958,
+            "rag_ms": 0.05670800237567164,
+            "context_assembly_ms": 3.1702910018793773,
+            "llm_generation_ms": 372.4801669995941,
+            "validation_us": 189.91600154549815
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        }
+      ],
+      "followup": [
+        {
+          "query": "Kal raat acchi neend nahi aayi stress tha aur thoda sir dard bhi hai",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "symptom_complaint",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1012,
+          "output_tokens": 20,
+          "ttft_ms": 375.84,
+          "total_latency_ms": 376.39,
+          "stage_timings": {
+            "breaker_us": 276.1249998002313,
+            "routing_ms": 0.2540419991419185,
+            "pep_check_us": 0.8749993867240846,
+            "rag_ms": 0.06299999949987978,
+            "context_assembly_ms": 3.1932079982652795,
+            "llm_generation_ms": 372.39587499789195,
+            "validation_us": 131.54100088286214
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Kal raat acchi neend nahi aayi stress tha aur thoda sir dard bhi hai",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "symptom_complaint",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1012,
+          "output_tokens": 20,
+          "ttft_ms": 373.78,
+          "total_latency_ms": 374.32,
+          "stage_timings": {
+            "breaker_us": 89.45800072979182,
+            "routing_ms": 0.08308299948112108,
+            "pep_check_us": 0.2090018824674189,
+            "rag_ms": 0.021457999537233263,
+            "context_assembly_ms": 1.0676250021788292,
+            "llm_generation_ms": 372.6380420011992,
+            "validation_us": 237.62499768054113
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Kal raat acchi neend nahi aayi stress tha aur thoda sir dard bhi hai",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "symptom_complaint",
+          "pep_risk": 0,
+          "skip_retrieval": false,
+          "llm_calls": 1,
+          "input_tokens": 1012,
+          "output_tokens": 20,
+          "ttft_ms": 374.81,
+          "total_latency_ms": 375.35,
+          "stage_timings": {
+            "breaker_us": 154.3750004202593,
+            "routing_ms": 0.1519999968877528,
+            "pep_check_us": 0.37500285543501377,
+            "rag_ms": 0.038542002585018054,
+            "context_assembly_ms": 1.9121250006719492,
+            "llm_generation_ms": 372.74866699954146,
+            "validation_us": 210.4580016748514
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Haan maine paani pee liya hai, aage kya karoon?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 376.53,
+          "total_latency_ms": 377.39,
+          "stage_timings": {
+            "breaker_us": 375.25000152527355,
+            "routing_ms": 0.3241659978812095,
+            "pep_check_us": 1.958000211743638,
+            "rag_ms": 0.0015830009942874312,
+            "context_assembly_ms": 4.089124999154592,
+            "llm_generation_ms": 372.1319169999333,
+            "validation_us": 237.58299721521325
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Haan maine paani pee liya hai, aage kya karoon?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 374.61,
+          "total_latency_ms": 375.52,
+          "stage_timings": {
+            "breaker_us": 137.49999925494194,
+            "routing_ms": 0.11349999840604141,
+            "pep_check_us": 0.8749993867240846,
+            "rag_ms": 0.0002090018824674189,
+            "context_assembly_ms": 1.8317499998374842,
+            "llm_generation_ms": 372.68425000002026,
+            "validation_us": 392.7919970010407
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Haan maine paani pee liya hai, aage kya karoon?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 375.75,
+          "total_latency_ms": 377.03,
+          "stage_timings": {
+            "breaker_us": 224.29199816542678,
+            "routing_ms": 0.1712909979687538,
+            "pep_check_us": 1.0000003385357559,
+            "rag_ms": 0.0007079979695845395,
+            "context_assembly_ms": 2.7656249985739123,
+            "llm_generation_ms": 372.8294590000587,
+            "validation_us": 622.3750024219044
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        }
+      ],
+      "out_of_scope": [
+        {
+          "query": "How do I install python and configure vscode on mac?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 990,
+          "output_tokens": 20,
+          "ttft_ms": 372.66,
+          "total_latency_ms": 373.25,
+          "stage_timings": {
+            "breaker_us": 64.37500269385055,
+            "routing_ms": 0.06187500184751116,
+            "pep_check_us": 0.24999826564453542,
+            "rag_ms": 0.00029199873097240925,
+            "context_assembly_ms": 0.8882500005711336,
+            "llm_generation_ms": 371.728374997474,
+            "validation_us": 257.4170030129608
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "How do I install python and configure vscode on mac?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 990,
+          "output_tokens": 20,
+          "ttft_ms": 374.84,
+          "total_latency_ms": 376.0,
+          "stage_timings": {
+            "breaker_us": 147.08399976370856,
+            "routing_ms": 0.13233299978310242,
+            "pep_check_us": 0.3749992174562067,
+            "rag_ms": 0.0003749992174562067,
+            "context_assembly_ms": 1.904084001580486,
+            "llm_generation_ms": 372.82333400071366,
+            "validation_us": 668.9580004604068
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "How do I install python and configure vscode on mac?",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 990,
+          "output_tokens": 20,
+          "ttft_ms": 377.45,
+          "total_latency_ms": 378.53,
+          "stage_timings": {
+            "breaker_us": 381.87499740161,
+            "routing_ms": 0.3677079985209275,
+            "pep_check_us": 1.2500022421590984,
+            "rag_ms": 0.0010000003385357559,
+            "context_assembly_ms": 4.291334000299685,
+            "llm_generation_ms": 372.80529199779266,
+            "validation_us": 360.04199864692055
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Delhi me aaj sone ka bhav kya chal raha hai?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 377.48,
+          "total_latency_ms": 378.35,
+          "stage_timings": {
+            "breaker_us": 332.24999788217247,
+            "routing_ms": 0.31895800202619284,
+            "pep_check_us": 1.5000005078036338,
+            "rag_ms": 0.000957999873207882,
+            "context_assembly_ms": 5.142917001649039,
+            "llm_generation_ms": 372.03287499869475,
+            "validation_us": 269.1250010684598
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Delhi me aaj sone ka bhav kya chal raha hai?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 374.83,
+          "total_latency_ms": 375.71,
+          "stage_timings": {
+            "breaker_us": 165.62499877181835,
+            "routing_ms": 0.12945800335728563,
+            "pep_check_us": 0.833999365568161,
+            "rag_ms": 0.0005420006345957518,
+            "context_assembly_ms": 2.135915998223936,
+            "llm_generation_ms": 372.573790999013,
+            "validation_us": 293.95800083875656
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        },
+        {
+          "query": "Delhi me aaj sone ka bhav kya chal raha hai?",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "general_coaching",
+          "pep_risk": 0,
+          "skip_retrieval": true,
+          "llm_calls": 1,
+          "input_tokens": 1002,
+          "output_tokens": 20,
+          "ttft_ms": 374.99,
+          "total_latency_ms": 375.44,
+          "stage_timings": {
+            "breaker_us": 137.87499847239815,
+            "routing_ms": 0.1324579970969353,
+            "pep_check_us": 0.3749992174562067,
+            "rag_ms": 0.0006249974831007421,
+            "context_assembly_ms": 1.960333000170067,
+            "llm_generation_ms": 372.908749999624,
+            "validation_us": 158.20900080143474
+          },
+          "action": "GENERATED_STREAM",
+          "intercepted": false
+        }
+      ],
+      "emergency": [
+        {
+          "query": "Severe crushing chest pain radiating to left arm and shortness of breath",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.01,
+          "total_latency_ms": 0.01,
+          "stage_timings": {
+            "breaker_us": 11.33399928221479
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Severe crushing chest pain radiating to left arm and shortness of breath",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.01,
+          "total_latency_ms": 0.01,
+          "stage_timings": {
+            "breaker_us": 11.166001058882102
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Severe crushing chest pain radiating to left arm and shortness of breath",
+          "lang": "en",
+          "use_laya": false,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.01,
+          "total_latency_ms": 0.01,
+          "stage_timings": {
+            "breaker_us": 11.292002454865724
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Seene me bohot tez dard ho raha hai aur sans ruk rahi hai",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.03,
+          "total_latency_ms": 0.03,
+          "stage_timings": {
+            "breaker_us": 33.958000130951405
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Seene me bohot tez dard ho raha hai aur sans ruk rahi hai",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.03,
+          "total_latency_ms": 0.03,
+          "stage_timings": {
+            "breaker_us": 32.95799979241565
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "Seene me bohot tez dard ho raha hai aur sans ruk rahi hai",
+          "lang": "hinglish",
+          "use_laya": false,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.03,
+          "total_latency_ms": 0.03,
+          "stage_timings": {
+            "breaker_us": 32.79200245742686
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "\u0938\u0940\u0928\u0947 \u092e\u0947\u0902 \u092c\u0939\u0941\u0924 \u0924\u0947\u091c \u0926\u0930\u094d\u0926 \u0939\u0948 \u0914\u0930 \u092a\u0938\u0940\u0928\u093e \u0906 \u0930\u0939\u093e \u0939\u0948",
+          "lang": "hi",
+          "use_laya": false,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.01,
+          "total_latency_ms": 0.01,
+          "stage_timings": {
+            "breaker_us": 8.833998435875401
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "\u0938\u0940\u0928\u0947 \u092e\u0947\u0902 \u092c\u0939\u0941\u0924 \u0924\u0947\u091c \u0926\u0930\u094d\u0926 \u0939\u0948 \u0914\u0930 \u092a\u0938\u0940\u0928\u093e \u0906 \u0930\u0939\u093e \u0939\u0948",
+          "lang": "hi",
+          "use_laya": false,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.01,
+          "total_latency_ms": 0.01,
+          "stage_timings": {
+            "breaker_us": 8.582999726058915
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        },
+        {
+          "query": "\u0938\u0940\u0928\u0947 \u092e\u0947\u0902 \u092c\u0939\u0941\u0924 \u0924\u0947\u091c \u0926\u0930\u094d\u0926 \u0939\u0948 \u0914\u0930 \u092a\u0938\u0940\u0928\u093e \u0906 \u0930\u0939\u093e \u0939\u0948",
+          "lang": "hi",
+          "use_laya": false,
+          "intent": "EMERGENCY_TRIAGE",
+          "pep_risk": 2,
+          "skip_retrieval": true,
+          "llm_calls": 0,
+          "input_tokens": 0,
+          "output_tokens": 38,
+          "ttft_ms": 0.01,
+          "total_latency_ms": 0.01,
+          "stage_timings": {
+            "breaker_us": 8.541999704902992
+          },
+          "action": "EMERGENCY_BREAKER_INTERCEPT",
+          "intercepted": true
+        }
+      ]
+    }
+  }
+}
