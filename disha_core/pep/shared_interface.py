@@ -56,6 +56,42 @@ class SlotOperation(BaseModel):
     evidence: str = ""
 
 
+class SharedPEPUpdater:
+    """Base abstract interface for Patient Evolution Profile (PEP) update pipelines."""
+
+    async def on_turn(
+        self,
+        patient_id: str,
+        user_text: str,
+        assistant_text: str,
+        session_id: str = "default",
+        call_id: str | None = None,
+        conn: Any = None,
+        app_state: Any = None,
+        turn_context: Any = None,
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    async def on_session_end(
+        self,
+        patient_id: str,
+        session_id: str = "default",
+        call_id: str | None = None,
+        conn: Any = None,
+        app_state: Any = None,
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+    def context_slice(
+        self,
+        patient_id: str,
+        intent: str | None = None,
+        context: dict[str, Any] | None = None,
+        app_state: Any = None,
+    ) -> dict[str, Any]:
+        raise NotImplementedError
+
+
 def get_pep_update_mode() -> str:
     """Return active PEP update mode ('classifier', 'summary', or 'off')."""
     return os.getenv("PEP_UPDATE_MODE", "off").lower().strip()
@@ -157,7 +193,13 @@ async def on_session_end(
 ) -> dict[str, Any]:
     """Session-end hook executed upon idle timeout or explicit session close."""
     mode = get_pep_update_mode()
-    if mode == "summary":
+    if mode == "classifier":
+        try:
+            from disha_core.pep.classifier_gated import on_session_end_classifier
+            return await on_session_end_classifier(patient_id, session_id, call_id, conn, app_state)
+        except ImportError:
+            return {"mode": mode, "status": "module_not_implemented"}
+    elif mode == "summary":
         try:
             from disha_core.pep.summary_update import on_session_end_summary
             return await on_session_end_summary(patient_id, session_id, call_id, conn, app_state)
