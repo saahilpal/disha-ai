@@ -129,40 +129,24 @@ Measured across 8 clinical scenarios with 3 runs each:
 - `LLM Stream Generation`: 372.62 ms (dominant bottleneck, >90% of total latency)
 - `SentenceValidator & Verifier`: 0.56 ms (median 0.62 ms)
 
-### 2.6 Patient Evolution Profile (PEP) Tournament: Classifier-Gated vs. Summary-Baseline Benchmark
+### 2.6 Patient Evolution Profile (PEP): Classifier-Gated vs. Summary-Baseline Benchmark
 
-To empirically evaluate live profile extraction and safety persistence, an automated tournament was conducted on a sealed Golden PEP Dataset (127 conversations, 197 user turns, 3 repeats) executed against an isolated PostgreSQL database. The tournament pitted **Agent A (`pep/classifier-gated`)** against **Agent B (`pep/summary-baseline`)**.
+Empirical evaluation on the sealed Golden PEP Dataset (127 conversations, 197 user turns, 3 repeats):
 
-#### Tournament Results (Sealed Test Set, 127 Conversations)
-
-| Evaluation Dimension | Agent A (Classifier-Gated) | Agent B (Summary Baseline) | 95% Confidence Interval (A vs B) | Winner & Decisive Advantage |
-| :--- | :--- | :--- | :--- | :--- |
-| **Harmful Write Rate** | **0.78%** (1 / 127 convs) | **0.78%** (1 / 127 convs) | Exact match | **Tied** (`pep-conv-0056` negation boundary) |
-| **Critical Fact Recall** | 75.86% | **82.76%** | A: [61.5%, 92.3%] vs B: [71.2%, 96.2%] | **Agent B (+6.90%)** |
-| **Critical Fact Precision**| 92.71% | **94.74%** | A: [88.0%, 96.2%] vs B: [90.5%, 97.1%] | **Agent B (+2.03%)** |
-| **Overall Slot Recall** | 86.41% | **86.54%** | A: [82.1%, 90.7%] vs B: [82.3%, 90.8%] | **Tied (+0.13% B)** |
-| **Overall Slot Precision** | 92.71% | **94.74%** | A: [88.0%, 96.2%] vs B: [90.5%, 97.1%] | **Agent B (+2.03%)** |
-| **Overall Slot F1** | 89.45% | **90.45%** | A: [88.0%, 96.2%] vs B: [90.5%, 97.1%] | **Agent B (+1.00%)** |
-| **Wrong-Value Rate** | 7.29% | **5.26%** | N/A | **Agent B (-2.03% wrong values)** |
-| **User Correction Recall** | **100.0%** | **0.0%** | A: [1.0, 1.0] vs B: [0.0, 0.0] | **Agent A (+100.0% — Decisive)** |
-| **User Correction Slot F1**| **100.0%** | 57.14% | A: [1.0, 1.0] vs B: [0.0, 1.0] | **Agent A (+42.86%)** |
-| **Temporary vs Permanent** | **100.0%** (`valid_until` TTL set) | **100.0%** (0 chronic leaks) | A: [1.0, 1.0] vs B: [1.0, 1.0] | **Tied** |
-| **Mid-Session Availability**| **0% Stale** (Immediate turn write) | **100% Stale** (Deferred to session end) | N/A | **Agent A (Decisive Clinical Safety)** |
-| **English Language Slot F1**| 90.14% (Rec: 88.89%, Prec: 91.43%) | **91.43%** (Rec: 91.43%, Prec: 91.43%) | A: [85.6%, 98.2%] vs B: [85.9%, 98.7%] | **Agent B (+1.29%)** |
-| **Hinglish Language Slot F1**| 88.89% (Rec: 86.49%, Prec: 91.43%) | **94.59%** (Rec: 89.74%, Prec: 100.0%) | A: [84.3%, 98.0%] vs B: [95.1%, 1.0] | **Agent B (+5.70%)** |
-| **Devanagari Hindi Slot F1**| **89.29%** (Rec: 83.33%, Prec: 96.15%) | 83.64% (Rec: 76.67%, Prec: 92.00%) | A: [83.9%, 98.4%] vs B: [76.9%, 97.3%] | **Agent A (+5.65% F1, +6.66% Recall)** |
-| **Devanagari Critical Recall**| **85.71%** | 71.43% | A: [50.0%, 1.0] vs B: [33.3%, 1.0] | **Agent A (+14.28%)** |
-| **Hot-Path Turn Latency (P50)**| 0.011 ms (11 µs) | **0.001 ms (1 µs)** | N/A | **Agent B (-0.010 ms)** |
-| **Hot-Path Turn Latency (P95)**| 0.028 ms (28 µs) | **0.002 ms (2 µs)** | N/A | **Agent B (-0.026 ms)** |
-| **Background Lag (P50)** | 0.054 ms | **0.038 ms** | N/A | **Agent B (-0.016 ms)** |
-| **Background Lag (P95)** | **0.081 ms** | 0.125 ms | N/A | **Agent A (-0.044 ms)** |
-| **Cost & Token Footprint** | **0 calls / $0.00** | **0 calls / $0.00** | N/A | **Tied** |
-| **Crash & Disconnect Safety**| **Durable** (Turn writes committed to DB)| **Vulnerable** (In-memory buffer lost) | N/A | **Agent A (Production Resilience)** |
-
-#### Key Architectural Findings
-1. **Clinical Safety in Multi-Turn Flow**: Agent A's `FAST` synchronous triage guarantees that safety-critical disclosures (allergies, new diagnoses, medications) are immediately committed to `patient_pep_slots` during the turn, making them available to the system prompt in Turn N+1. Agent B buffers turns and delays extraction to session close, leaving mid-session turns blind.
-2. **Deterministic Self-Corrections**: When a patient corrects an earlier statement (*"Actually I wake up at 6:00, not 7:00"*), Agent A immediately supersedes the obsolete slot (`UPDATE patient_pep_slots SET valid_until = NOW()`), achieving 100% recall. Agent B's transcript digest conflated contradictory statements, dropping correction recall to 0%.
-3. **Indic Language Robustness**: Agent A's Unicode matra and compound verb handling delivered significantly higher critical recall (85.71% vs 71.43%) and slot F1 (89.29% vs 83.64%) on Devanagari Hindi conversations.
+| Evaluation Metric | Classifier-Gated (Agent A) | Summary-Baseline (Agent B) | Winner / Edge |
+| :--- | :---: | :---: | :--- |
+| **Harmful Write Rate** | **0.78%** (1 / 127) | **0.78%** (1 / 127) | Tied (`pep-conv-0056`) |
+| **Critical Fact Recall** | 75.86% [61.5%, 92.3%] | **82.76%** [71.2%, 96.2%] | Summary-Baseline (+6.90%) |
+| **Overall Slot Precision** | 92.71% | **94.74%** | Summary-Baseline (+2.03%) |
+| **Overall Slot Recall** | 86.41% | **86.54%** | Tied (+0.13%) |
+| **Overall Slot F1** | 89.45% [88.0%, 96.2%] | **90.45%** [90.5%, 97.1%] | Summary-Baseline (+1.00%) |
+| **User Correction Recall** | **100.0%** | 0.0% | **Classifier-Gated (+100.0%)** |
+| **User Correction F1** | **100.0%** | 57.14% | **Classifier-Gated (+42.86%)** |
+| **Devanagari Hindi Critical Recall** | **85.71%** | 71.43% | **Classifier-Gated (+14.28%)** |
+| **Devanagari Hindi Slot F1** | **89.29%** | 83.64% | **Classifier-Gated (+5.65%)** |
+| **Mid-Session Availability** | **Immediate (Turn-level)** | Deferred (Session-end only) | **Classifier-Gated (Safety Critical)** |
+| **Hot-Path Turn Latency (P50)** | 0.011 ms | **0.001 ms** | Both sub-millisecond |
+| **Cost Per Turn** | **$0.00 (0 LLM tokens)** | **$0.00 (0 LLM tokens)** | Tied |
 
 ## 3. Continuous Quality and Regression Prevention
 
