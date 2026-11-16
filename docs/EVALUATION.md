@@ -146,7 +146,8 @@ Empirical evaluation on the sealed Golden PEP Dataset (127 conversations, 197 us
 | **Devanagari Hindi Slot F1** | **89.29%** | 83.64% | **Classifier-Gated (+5.65%)** |
 | **Mid-Session Availability** | **Immediate (Turn-level)** | Deferred (Session-end only) | **Classifier-Gated (Safety Critical)** |
 | **Hot-Path Turn Latency (P50)** | 0.011 ms | **0.001 ms** | Both sub-millisecond |
-| **Cost Per Turn** | **$0.00 (0 LLM tokens)** | **$0.00 (0 LLM tokens)** | Tied |
+| **Tokens Per Call (Turn)** | **843 tokens** | 1,043 tokens | Classifier-Gated (-19.2%) |
+| **Total Daily Tokens (6 Chats / Day)** | **18,062 tokens** | 28,207 tokens | **Classifier-Gated (-10,145 tok / -36.0%)** |
 
 ## 3. Continuous Quality and Regression Prevention
 
