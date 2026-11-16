@@ -478,6 +478,21 @@ class TestPatientJourneyScheduler(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(journey["current_stage"], 1)
         self.assertEqual(journey["patient_id"], "pt_transient_fail_patient")
 
+    # -------------------------------------------------------------------------
+    # Scenario 20: PEP Core gym_clearance and secondary_focuses persistence
+    # -------------------------------------------------------------------------
+    async def test_20_pep_core_exercise_clearance_and_secondary_goals_persisted(self) -> None:
+        await record_field_answer(self.test_pid, "exercise_clearance", True, "Doctor cleared me for light exercise", "chat", self.conn)
+        await record_field_answer(self.test_pid, "secondary_health_goals", ["Better sleep", "Stress management"], "Sleep and stress", "chat", self.conn)
+
+        pep_row = await self.conn.fetchrow(
+            "SELECT gym_clearance, secondary_focuses FROM patient_pep WHERE patient_id = $1",
+            self.test_pid,
+        )
+        self.assertIsNotNone(pep_row)
+        self.assertTrue(pep_row["gym_clearance"])
+        self.assertEqual(pep_row["secondary_focuses"], ["Better sleep", "Stress management"])
+
 
 if __name__ == "__main__":
     unittest.main()

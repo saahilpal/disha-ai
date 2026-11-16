@@ -500,6 +500,27 @@ async def record_field_answer(
                 patient_id,
                 str(val),
             )
+        elif field_def.dest_column == "gym_clearance":
+            await conn.execute(
+                """INSERT INTO patient_pep (patient_id, gym_clearance, updated_at)
+                   VALUES ($1, $2, $3)
+                   ON CONFLICT (patient_id) DO UPDATE SET
+                   gym_clearance = EXCLUDED.gym_clearance, updated_at = $3""",
+                patient_id,
+                bool(val),
+                now,
+            )
+        elif field_def.dest_column == "secondary_focuses":
+            sec_list = val if isinstance(val, list) else [str(val)]
+            await conn.execute(
+                """INSERT INTO patient_pep (patient_id, secondary_focuses, updated_at)
+                   VALUES ($1, $2, $3)
+                   ON CONFLICT (patient_id) DO UPDATE SET
+                   secondary_focuses = EXCLUDED.secondary_focuses, updated_at = $3""",
+                patient_id,
+                sec_list,
+                now,
+            )
     elif dest == FieldDestination.HABIT_SLOT:
         slot_key = field_def.dest_column
         await commit_habit_slot(
