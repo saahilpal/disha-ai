@@ -9,8 +9,7 @@ Disha AI is a real-time, full-duplex conversational voice and text lifestyle hea
 - [High-Level Architecture (HLD)](docs/HLD.md) — System context, end-to-end request flows, and deployment topology.
 - [Low-Level Design (LLD)](docs/LLD.md) — Class hierarchies, turn context contracts, response harness, and verification pipelines.
 - [Clinical & Knowledge Data Reference (DATA)](docs/DATA.md) — Schema definitions, clinical guideline chunk provenance, and ingestion pipelines.
-- [System Evaluation & Verification (EVALUATION)](docs/EVALUATION.md) — Automated test suites, benchmark methodologies, latency profiles, and safety guarantees.
-- [Token & RAG Optimization Benchmark (BENCHMARK)](docs/TOKEN_OPTIMIZATION_BENCHMARK.md) — Verified empirical token budget, JIT pruning measurements, and multilingual RAG benchmarks.
+- [System Evaluation & Verification (EVALUATION)](docs/EVALUATION.md) — Automated test suites, benchmark methodologies, latency profiles, token diet, and safety guarantees.
 - [Known Issues & Technical Debt (KNOWN_ISSUES)](docs/KNOWN_ISSUES.md) — Documented architectural defects, migration notes, and tracking.
 
 ---

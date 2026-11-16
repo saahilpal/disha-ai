@@ -34,6 +34,7 @@ erDiagram
     patient_profiles ||--o{ habit_observations : "discloses"
     patient_profiles ||--o{ habit_rollups : "aggregates"
     patient_profiles ||--o{ habit_current_state : "summarizes"
+    patient_profiles ||--o{ patient_pep_slots : "stores"
     patient_profiles ||--o{ audit_claim_ledger : "audits"
 
     knowledge_sources {
@@ -132,6 +133,16 @@ Stores clinician-authorized permissions and health stage metrics:
 - `gym_clearance`: Boolean flag. If false, high-intensity exercise queries trigger immediate safe deflection.
 - `restricted_modalities`: Array of forbidden exercises (e.g., `heavy weights`, `HIIT`, `valsalva`).
 - `allowed_modalities`: Array of permitted exercises (e.g., `brisk walking`, `light yoga`).
+
+### 3.4 Unified PEP Slot Storage (`patient_pep_slots`)
+Stores granular facts and lifestyle parameters shared across classifier-gated and summary PEP update modes:
+- `slot`: Canonical key string identifying the metric or boundary (e.g., `wake_time`, `allergies`, `diagnosed_conditions`).
+- `value`: JSONB payload containing the structured or normalized fact.
+- `source`: Authority provenance enum: `onboarding`, `chat_user`, `clinician`, `system`.
+- `clinical_status`: Clinical lifecycle state: `active`, `inactive`, `resolved`.
+- `verification_status`: Epistemic verification state: `unconfirmed`, `confirmed`, `entered_in_error`.
+- `valid_from` & `valid_until`: Temporal validity window. Active rows maintain `valid_until IS NULL`. Superseded facts record retirement timestamps without hard deletion.
+- `evidence`: Raw quote string or provenance reference attributing the disclosure.
 
 ## 4. Clinical Knowledge Ingestion Pipeline
 

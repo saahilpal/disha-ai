@@ -28,6 +28,24 @@ This document catalogs known architectural defects, test limitations, and deferr
 - **Pregnancy & Acute Abdomen Red-Flag Symptoms**: Sourced from NHS 111 clinical pathways and AIIMS Emergency Medicine Triage protocols (accessed November 2026). Clinician review recommended for boundary weights.
 - **Crisis Helpline Numbers**: Tele-MANAS (`14416` / `1800-891-4416`) and National KIRAN Mental Health Helpline (`1800-599-0019`) sourced from official Ministry of Health and Family Welfare (MoHFW) directories (accessed November 2026).
 - **Acute Pain Herbal Deflection**: Botanical remedy checks in `SentenceValidator` deflect home remedies (turmeric/haldi, ashwagandha) during acute abdominal complaints. Clinician review recommended.
+- **Transient Symptom Expiry Defaults**: Ephemeral complaints (bloating, headache, acidity, fever) expire after 48 hours in `habit_episodes`. Clinician review recommended to validate whether acute fever requires shorter 24-hour reassessment.
+- **Sodium Restriction Threshold in Hypertension**: Automated flagging quarantines user reports claiming high sodium / namkeen intake when clinical protocol denotes stage 2 hypertension. Clinician review recommended for precise dietary sodium thresholds.
+- **Physical Activity Clearance Modalities**: Clinician-verified restrictions distinguish walking from heavy deadlifts / Valsalva exertion; boundary list requires periodic clinical review against cardiovascular rehabilitation guidelines.
+
+---
+
+## 4. Architectural & Schema Debt (Identified in PEP Audit)
+- **Dual Table Fact Redundancy**:
+  - `diagnosed_conditions` is maintained in both `patient_pep.diagnosed_conditions` and `patient_profiles.health_conditions`.
+  - `dietary_preference` is duplicated across `patient_pep.dietary_preference`, `patient_profiles.dietary_preference`, and `habit_current_state` (under slot `meal_preferences`).
+  - `primary_health_goal` is stored in both `patient_pep.primary_focus` and `patient_profiles.health_goals`.
+  - Resolution: Maintain `patient_pep_slots` and `patient_pep` as the authoritative source of clinical truth, deprecating raw text fields on `patient_profiles`.
+- **Dangling Destination Mapping**:
+  - `JOURNEY_FIELDS["personalisation_readiness"]` maps to `FieldDestination.PEP_CORE` column `is_personalized`, which is not present in PostgreSQL `patient_pep` schema.
+  - Resolution: Store readiness directly in `patient_journey_state.overall_status` or add an explicit boolean column.
+- **Habit Hysteresis Staging Gap**:
+  - In `commit_habit_slot`, when an established habit (`confirm_count >= 2`) receives a conflicting mention without an explicit permanence cue ("ab se", "from now on"), the engine flags `status="pending_confirmation"` without storing the candidate new value in a persistent staging row. Subsequent mentions cannot confirm the unstaged value.
+  - Resolution: Use `patient_pep_slots` with `verification_status="unconfirmed"` as the staging buffer.
 
 ---
 

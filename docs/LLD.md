@@ -200,7 +200,7 @@ The runtime prompt assembly follows a cache-friendly static-to-dynamic layout:
 
 ### 4.2 Empirical Token Budget (Before vs. After Optimization)
 
-Measured across real simulated turns (intents × patients × history lengths × languages) using Qwen2.5 BPE *(see [Token & RAG Optimization Benchmark Report](TOKEN_OPTIMIZATION_BENCHMARK.md) for full benchmark breakdown)*:
+Measured across real simulated turns (intents × patients × history lengths × languages) using Qwen2.5 BPE *(see [System Evaluation & Verification](EVALUATION.md) for full benchmark breakdown)*:
 
 | Payload Section | Before (Tokens) | % Contribution | After (Tokens) | Net Savings | Primary Optimization Mechanism |
 | :--- | :---: | :---: | :---: | :---: | :--- |
@@ -215,3 +215,34 @@ Measured across real simulated turns (intents × patients × history lengths × 
 | **Total Prompt Input (Avg)** | **1,862.8** | **100%** | **812.0** | **-56.4%** | **Overall prompt reduction: 1,050.8 tokens/turn saved** |
 | **Greetings / Chitchat Input** | **1,795.3** | **100%** | **689.0** | **-61.6%** | **Stripped non-conversational XML; lightweight language context only** |
 | **Configured Max Output Tokens**| **256** | — | **120** | **-53.1%** | **Aligned with real completion distribution (median 72 tokens, P90 123 tokens)** |
+
+## 5. PEP, Habits & Onboarding Architecture
+
+### 5.1 Onboarding State Machine & Field Processing (`disha_core.journey`)
+The onboarding system manages a structured 5-stage onboarding flow across chat and voice channels:
+- Stage 1: Basic Patient Profile (name, age, gender, height, weight, preferred language).
+- Stage 2: Health Background and Clinical Safety (diagnosed conditions, active medications, allergies/intolerances, transient symptoms, physical limitations, doctor exercise clearance).
+- Stage 3: Lifestyle and Daily Routine (work shift schedule, wake time, sleep time, daily movement level, exercise habits, water intake target, tea/coffee frequency).
+- Stage 4: Goals, Diet, and Personal Preferences (primary health goal, secondary goals, dietary style, disliked foods, regional cuisine, meal prep habits).
+- Stage 5: Coaching Personalisation Readiness (verification that essential health safety parameters are recorded before unrestricted coaching).
+
+Onboarding disclosures are recorded directly by `record_field_answer` with `source="onboarding"` and `verification_status="confirmed"`, bypassing LLM extraction entirely to ensure 100% deterministic fidelity. Question attempts and answers are tracked in `journey_question_history` to prevent repeated questions and double-writing.
+
+### 5.2 Habits Engine & Hysteresis (`disha_core.pep.habits_engine`)
+Lifestyle metrics follow three storage shapes:
+1. **Current-State Habit Slots (`habit_current_state`)**: Active baseline metrics with partial unique index (`WHERE valid_to IS NULL`). Hysteresis rules require either an explicit permanence cue ("ab se", "from now on", "maine shuru kiya") or two reinforcing mentions before updating established baselines.
+2. **Time-Series Observations (`habit_observations`)**: Periodic numeric disclosures (steps, blood pressure readings, water intake) partitioned by observation date with BRIN indexes for efficient analytical rollups.
+3. **Transient Episodes (`habit_episodes`)**: Ephemeral symptoms (bloating, headache, loose motions) and short-term commitments tagged with automated expiration dates (default 48 hours for transient complaints).
+
+### 5.3 Shared PEP Update Interface (`disha_core.pep.shared_interface`)
+The PEP update lifecycle is unified across two competing strategies selected by `PEP_UPDATE_MODE`:
+- `PEP_UPDATE_MODE=classifier`: Dispatches to classifier-gated turn-level extraction (Agent A), executing fast regex/keyword gating on each turn with zero LLM overhead on routine chat, and queueing background extraction jobs for health-relevant turns.
+- `PEP_UPDATE_MODE=summary`: Dispatches to summary-then-update batch extraction (Agent B), executing a single structured LLM patch extraction upon session close or 10-minute idle timeout.
+- `PEP_UPDATE_MODE=off`: Passthrough mode where experimental extractors are inactive.
+
+Both strategies operate on the shared canonical slot schema (`PEPSlotRecord`): `slot`, `value`, `source` (`onboarding`, `chat_user`, `clinician`, `system`), `clinical_status` (`active`, `inactive`, `resolved`), `verification_status` (`unconfirmed`, `confirmed`, `entered_in_error`), `valid_from`, `valid_until`, and `evidence`.
+
+### 5.4 Clinical Boundary & Contradiction Protection (`disha_core.models.slots`)
+Clinical constraints are protected by deterministic gatekeepers before any slot is persisted:
+- **Authority Validation (`validate_authority`)**: Prevents patient self-reports or LLM extraction from granting medical clearance or altering clinician-governed parameters (`SourceAuthority.PEP_DOCTOR`).
+- **Contradiction Detection (`check_pep_contradiction`)**: Intercepts claims contradicting official doctor restrictions (e.g., patient claiming heavy weightlifting clearance while PEP restricts gym activity, or reporting high salt intake during clinical stage 2 hypertension). Detected contradictions are quarantined for clinician review with `epistemic_status="flagged_review"` and never silently applied.
