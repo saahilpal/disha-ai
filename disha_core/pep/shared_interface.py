@@ -11,12 +11,55 @@ from __future__ import annotations
 import json
 import logging
 import os
+from abc import ABC, abstractmethod
 from datetime import datetime, timezone
 from enum import Enum
 from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger("disha_core.pep.shared_interface")
+
+
+class SharedPEPUpdater(ABC):
+    """Abstract base class for PEP update implementations."""
+
+    @abstractmethod
+    async def on_turn(
+        self,
+        patient_id: str,
+        user_text: str,
+        assistant_text: str,
+        session_id: str = "default",
+        call_id: str | None = None,
+        conn: Any = None,
+        app_state: Any = None,
+        turn_context: Any = None,
+    ) -> dict[str, Any]:
+        """Turn-level hook executed on every user utterance."""
+        ...
+
+    @abstractmethod
+    async def on_session_end(
+        self,
+        patient_id: str,
+        session_id: str = "default",
+        call_id: str | None = None,
+        conn: Any = None,
+        app_state: Any = None,
+    ) -> dict[str, Any]:
+        """Session-end hook executed upon idle timeout or explicit session close."""
+        ...
+
+    @abstractmethod
+    def context_slice(
+        self,
+        patient_id: str,
+        intent: str | None = None,
+        context: dict[str, Any] | None = None,
+        app_state: Any = None,
+    ) -> dict[str, Any]:
+        """Retrieve intent-scoped context slice of PEP slots."""
+        ...
 
 
 class SlotSource(str, Enum):
@@ -144,7 +187,16 @@ async def on_turn(
             )
         except ImportError:
             return {"mode": mode, "status": "module_not_implemented"}
-    # In 'summary' or 'off' mode, turn-level extraction is skipped
+    elif mode == "summary":
+        try:
+            from disha_core.pep.summary_baseline import get_summary_baseline_updater
+            updater = get_summary_baseline_updater()
+            return await updater.on_turn(
+                patient_id, user_text, assistant_text, session_id, call_id, conn, app_state, turn_context
+            )
+        except ImportError:
+            return {"mode": mode, "status": "module_not_implemented"}
+    # In 'off' mode, turn-level extraction is skipped
     return {"mode": mode, "status": "skipped"}
 
 
@@ -159,8 +211,9 @@ async def on_session_end(
     mode = get_pep_update_mode()
     if mode == "summary":
         try:
-            from disha_core.pep.summary_update import on_session_end_summary
-            return await on_session_end_summary(patient_id, session_id, call_id, conn, app_state)
+            from disha_core.pep.summary_baseline import get_summary_baseline_updater
+            updater = get_summary_baseline_updater()
+            return await updater.on_session_end(patient_id, session_id, call_id, conn, app_state)
         except ImportError:
             return {"mode": mode, "status": "module_not_implemented"}
     return {"mode": mode, "status": "skipped"}
@@ -182,8 +235,9 @@ def context_slice(
             pass
     elif mode == "summary":
         try:
-            from disha_core.pep.summary_update import context_slice_summary
-            return context_slice_summary(patient_id, intent, context, app_state)
+            from disha_core.pep.summary_baseline import get_summary_baseline_updater
+            updater = get_summary_baseline_updater()
+            return updater.context_slice(patient_id, intent, context, app_state)
         except ImportError:
             pass
     return {"slots": {}}
