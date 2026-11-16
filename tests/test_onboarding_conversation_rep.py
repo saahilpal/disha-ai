@@ -275,8 +275,8 @@ class TestOnboardingConversationRepetition(unittest.IsolatedAsyncioTestCase):
         from disha_core.llm.client import _LEGACY_SYSTEM_PROMPT
 
         if get_settings().behavior_spec_v1:
-            self.assertIn("two to four useful sentences", SYSTEM_PROMPT)
-            self.assertIn("Normal replies end with exactly one meaningful question", SYSTEM_PROMPT)
+            self.assertIn("default to 2–3 concise sentences", SYSTEM_PROMPT)
+            self.assertIn("Emergencies and natural closings get zero follow-up questions", SYSTEM_PROMPT)
             self.assertIn("Selective empathy", SYSTEM_PROMPT)
         else:
             self.assertIn("RESPONSE LENGTH & TOKEN EFFICIENCY", _LEGACY_SYSTEM_PROMPT)
