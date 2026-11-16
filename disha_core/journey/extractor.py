@@ -167,12 +167,12 @@ def extract_patient_disclosures(
             extracted["wake_time"] = norm_wake
 
     sleep_match = re.search(
-        r"(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|raat|रात|in\s+the\s+morning|at\s+night)?)\s*(?:baje\s+|बजे\s+)?(?:ko\s+)?(?:sota|soti|sote|sleep|सोता|सोती|सोते)",
+        r"(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|raat|रात|in\s+the\s+morning|at\s+night)?)\s*(?:baje\s+|बजे\s+)?(?:ko\s+)?(?:sota|soti|sote|sleep|so\s+jata|so\s+jati|सोता|सोती|सोते|सो\s+जाता|सो\s+जाती|सो\s+जाते)",
         lower,
     )
     if not sleep_match:
         sleep_match = re.search(
-            r"(?:sleep|sota|soti|sote|bedtime|so\s+jata|so\s+jati|सोता|सोती|सोते).{0,15}?(?:around|at|ko)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|raat|रात|in\s+the\s+morning|at\s+night)?)(?:\s*baje|\s*बजे)?",
+            r"(?:sleep|sota|soti|sote|bedtime|so\s+jata|so\s+jati|सोता|सोती|सोते|सो\s+जाता|सो\s+जाती|सो\s+जाते).{0,15}?(?:around|at|ko)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|raat|रात|in\s+the\s+morning|at\s+night)?)(?:\s*baje|\s*बजे)?",
             lower,
         )
     if sleep_match:
