@@ -42,12 +42,19 @@ def generate_dataset() -> list[dict[str, Any]]:
         cid = f"pep-conv-{case_idx:04d}"
         case_idx += 1
         t_objs = [{"role": r, "text": txt, "gate_label": gl} for r, txt, gl in turns]
+        critical = [
+            item["slot"] for item in final_state
+            if item.get("slot") in ("dietary_restrictions", "diagnosed_conditions", "medications", "physical_limitations", "pregnancy_nursing")
+        ]
         return {
             "id": cid,
+            "conversation_id": cid,
             "language": lang,
             "category": cat,
             "turns": t_objs,
             "expected_final_state": final_state,
+            "critical_facts": critical,
+            "harmful_updates": forbidden,
             "forbidden_writes": forbidden,
             "next_turn_must_know": next_must_know,
             "provenance": provenance,

@@ -103,11 +103,11 @@ def evaluate_conversation(
     gate_predictions: list[dict[str, str]] | None = None,
     next_turn_context_text: str = "",
 ) -> ConversationEvalResult:
-    cid = conv["id"]
+    cid = conv.get("conversation_id") or conv["id"]
     lang = conv.get("language", "english")
     cat = conv.get("category", "general")
     expected_state = conv.get("expected_final_state", [])
-    forbidden = conv.get("forbidden_writes", [])
+    forbidden = conv.get("harmful_updates") or conv.get("forbidden_writes", [])
     next_must_know = conv.get("next_turn_must_know")
 
     res = ConversationEvalResult(
