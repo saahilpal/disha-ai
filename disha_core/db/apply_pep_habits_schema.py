@@ -129,6 +129,31 @@ async def apply_pep_habits_schema(pg_url: str = DEFAULT_PG_URL) -> None:
                 ON habit_episodes (patient_id, status);
         """)
 
+        # 6. patient_pep_slots (unified slot architecture for classifier and summary PEP modes)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS patient_pep_slots (
+                id BIGSERIAL PRIMARY KEY,
+                patient_id VARCHAR(64) NOT NULL,
+                slot VARCHAR(64) NOT NULL,
+                value JSONB NOT NULL,
+                source VARCHAR(32) NOT NULL DEFAULT 'chat_user' CHECK (source IN ('onboarding', 'chat_user', 'clinician', 'system')),
+                clinical_status VARCHAR(32) NOT NULL DEFAULT 'active' CHECK (clinical_status IN ('active', 'inactive', 'resolved')),
+                verification_status VARCHAR(32) NOT NULL DEFAULT 'unconfirmed' CHECK (verification_status IN ('unconfirmed', 'confirmed', 'entered_in_error')),
+                valid_from TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                valid_until TIMESTAMPTZ,
+                evidence TEXT NOT NULL DEFAULT '',
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_pep_slots_patient_slot 
+                ON patient_pep_slots (patient_id, slot) 
+                WHERE valid_until IS NULL;
+
+            CREATE INDEX IF NOT EXISTS idx_pep_slots_patient 
+                ON patient_pep_slots (patient_id);
+        """)
+
         print("Successfully applied PEP Habits scale schema to PostgreSQL.")
     finally:
         await conn.close()

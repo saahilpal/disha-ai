@@ -181,6 +181,27 @@ CREATE TABLE IF NOT EXISTS habit_episodes (
 CREATE INDEX IF NOT EXISTS idx_habit_episodes_pt_status 
     ON habit_episodes (patient_id, status);
 
+-- 5. Unified slot architecture for classifier-gated and summary PEP update modes
+CREATE TABLE IF NOT EXISTS patient_pep_slots (
+    id BIGSERIAL PRIMARY KEY,
+    patient_id VARCHAR(64) NOT NULL,
+    slot VARCHAR(64) NOT NULL,
+    value JSONB NOT NULL,
+    source VARCHAR(32) NOT NULL DEFAULT 'chat_user' CHECK (source IN ('onboarding', 'chat_user', 'clinician', 'system')),
+    clinical_status VARCHAR(32) NOT NULL DEFAULT 'active' CHECK (clinical_status IN ('active', 'inactive', 'resolved')),
+    verification_status VARCHAR(32) NOT NULL DEFAULT 'unconfirmed' CHECK (verification_status IN ('unconfirmed', 'confirmed', 'entered_in_error')),
+    valid_from TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    valid_until TIMESTAMPTZ,
+    evidence TEXT NOT NULL DEFAULT '',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_pep_slots_patient_slot 
+    ON patient_pep_slots (patient_id, slot) 
+    WHERE valid_until IS NULL;
+CREATE INDEX IF NOT EXISTS idx_pep_slots_patient 
+    ON patient_pep_slots (patient_id);
+
 -- Backward and forward compatibility view for clinical guideline retrieval
 CREATE OR REPLACE VIEW clinical_guideline_chunks AS
 SELECT * FROM clinical_knowledge_base;

@@ -77,11 +77,21 @@ async def _commit_turn(
 
     if getattr(app_state, "pool", None) is not None:
         with suppress(Exception):
+            from disha_core.pep.shared_interface import on_turn
             from disha_core.services.chat_service import persist_patient_disclosure, store_conversation_turn
 
             async with app_state.pool.acquire() as save_conn:
                 await store_conversation_turn(save_conn, patient_id, user_text, assistant_text, session_id, call_id)
                 await persist_patient_disclosure(save_conn, patient_id, user_text)
+                await on_turn(
+                    patient_id=patient_id,
+                    user_text=user_text,
+                    assistant_text=assistant_text,
+                    session_id=session_id,
+                    call_id=call_id,
+                    conn=save_conn,
+                    app_state=app_state,
+                )
 
 
 class ResponseHarness:

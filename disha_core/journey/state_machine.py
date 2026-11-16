@@ -574,7 +574,24 @@ async def record_field_answer(
         field_id,
     )
 
-    # 3. Reload journey state
+    # 3. Record directly to shared patient_pep_slots with source='onboarding' and verification_status='confirmed'
+    try:
+        from disha_core.pep.shared_interface import SlotSource, VerificationStatus, record_slot
+
+        await record_slot(
+            patient_id=patient_id,
+            slot=field_id,
+            value=val,
+            source=SlotSource.ONBOARDING,
+            clinical_status="active",
+            verification_status=VerificationStatus.CONFIRMED,
+            evidence=f"onboarding:{channel}:{field_id}",
+            conn=conn,
+        )
+    except Exception as exc:
+        logger.debug("Failed recording to shared patient_pep_slots: %s", exc)
+
+    # 4. Reload journey state
     updated_journey = await load_or_create_journey(patient_id, conn, channel=channel)
     return {
         "status": "success",
