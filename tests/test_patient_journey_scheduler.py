@@ -493,6 +493,27 @@ class TestPatientJourneyScheduler(unittest.IsolatedAsyncioTestCase):
         self.assertTrue(pep_row["gym_clearance"])
         self.assertEqual(pep_row["secondary_focuses"], ["Better sleep", "Stress management"])
 
+    # -------------------------------------------------------------------------
+    # Scenario 21: Devanagari Hindi onboarding answers parsed accurately
+    # -------------------------------------------------------------------------
+    def test_21_devanagari_hindi_onboarding_extraction(self) -> None:
+        from disha_core.journey.extractor import extract_patient_disclosures
+
+        # Devanagari condition disclosure
+        d1 = extract_patient_disclosures("मुझे बीपी और शुगर की बीमारी है", lang="hindi")
+        self.assertIn("diagnosed_conditions", d1)
+        self.assertIn("hypertension", d1["diagnosed_conditions"])
+        self.assertIn("type2_diabetes", d1["diagnosed_conditions"])
+
+        # Devanagari negative condition disclosure
+        d2 = extract_patient_disclosures("कोई बीमारी नहीं है, सब ठीक है", lang="hindi")
+        self.assertEqual(d2.get("diagnosed_conditions"), ["none"])
+
+        # Devanagari wake/sleep disclosure
+        d3 = extract_patient_disclosures("सुबह 6 बजे उठता हूँ और रात 11 बजे सोता हूँ", lang="hindi")
+        self.assertEqual(d3.get("wake_time"), "06:00")
+        self.assertEqual(d3.get("sleep_time"), "23:00")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -42,16 +42,16 @@ TRANSIENT_SYMPTOM_WORDS = (
     "tired",
 )
 
-# Clinical condition patterns
+# Clinical condition patterns (supports English, Roman Hinglish, and Devanagari Hindi with combining matras)
 CONDITION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
-    (re.compile(r"\b(?:hypertension|high\s+bp|high\s+blood\s+pressure|bp\s+ki\s+bimari)\b", re.I), "hypertension"),
-    (re.compile(r"\b(?:type\s*[12]\s+diabetes|diabetes|sugar\s+ki\s+bimari|madhumeh)\b", re.I), "type2_diabetes"),
-    (re.compile(r"\b(?:thyroid|hypothyroid|hyperthyroid)\b", re.I), "thyroid"),
-    (re.compile(r"\b(?:pcod|pcos)\b", re.I), "pcod"),
-    (re.compile(r"\b(?:heart\s+disease|cardiac|heart\s+attack|dil\s+ki\s+bimari)\b", re.I), "cardiac_history"),
+    (re.compile(r"(?:\b|(?:^|[\s,।]))(?:hypertension|high\s+bp|high\s+blood\s+pressure|bp\s+ki\s+bimari|बीपी|उच्च\s+रक्तचाप|हाई\s+बीपी)(?:\b|(?:[\s,।!?]|$))", re.I), "hypertension"),
+    (re.compile(r"(?:\b|(?:^|[\s,।]))(?:type\s*[12]\s+diabetes|diabetes|sugar\s+ki\s+bimari|madhumeh|मधुमेह|शुगर|डायबिटीज)(?:\b|(?:[\s,।!?]|$))", re.I), "type2_diabetes"),
+    (re.compile(r"(?:\b|(?:^|[\s,।]))(?:thyroid|hypothyroid|hyperthyroid|थायराइड)(?:\b|(?:[\s,।!?]|$))", re.I), "thyroid"),
+    (re.compile(r"(?:\b|(?:^|[\s,।]))(?:pcod|pcos|पीसीओडी|पीसीओएस)(?:\b|(?:[\s,।!?]|$))", re.I), "pcod"),
+    (re.compile(r"(?:\b|(?:^|[\s,।]))(?:heart\s+disease|cardiac|heart\s+attack|dil\s+ki\s+bimari|दिल\s+की\s+बीमारी|हार्ट\s+अटैक)(?:\b|(?:[\s,।!?]|$))", re.I), "cardiac_history"),
     (
         re.compile(
-            r"\b(?:none|no\s+conditions?|koi\s+bimari\s+nahi|kuch\s+nahi|kuch\s+ni|sab\s+theek\s+hai|koi\s+dikkat\s+nahi|koi\s+issue\s+nahi|bilkul\s+nahi|not\s+diagnosed)\b",
+            r"(?:\b|(?:^|[\s,।]))(?:none|no\s+conditions?|koi\s+bimari\s+nahi|kuch\s+nahi|kuch\s+ni|sab\s+theek\s+hai|koi\s+dikkat\s+nahi|koi\s+issue\s+nahi|bilkul\s+nahi|not\s+diagnosed|कोई\s+बीमारी\s+नहीं|सब\s+ठीक\s+है|कुछ\s+नहीं)(?:\b|(?:[\s,।!?]|$))",
             re.I,
         ),
         "none",
@@ -60,7 +60,7 @@ CONDITION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 
 # Generalized negative responses to closed questions
 NEGATIVE_AFFIRMATION_PATTERN = re.compile(
-    r"^\s*(?:nhi|nahi|nah|no|nope|na|nothing|none|kuch\s+nahi|kuch\s+ni|bilkul\s+nahi|not\s+really|koi\s+bhi\s+nahi|aisa\s+kuch\s+nahi|kuch\s+bhi\s+nahi|no\s+issue|all\s+good|sab\s+theek\s+hai)\b",
+    r"^\s*(?:nhi|nahi|nah|no|nope|na|nothing|none|kuch\s+nahi|kuch\s+ni|bilkul\s+nahi|not\s+really|koi\s+bhi\s+nahi|aisa\s+kuch\s+nahi|kuch\s+bhi\s+nahi|no\s+issue|all\s+good|sab\s+theek\s+hai|नहीं|कुछ\s+नहीं|सब\s+ठीक\s+है|ना)\b",
     re.I,
 )
 
@@ -72,8 +72,8 @@ MEDICATION_PATTERN = re.compile(
 
 # Work schedule patterns
 WORK_SCHEDULE_PATTERNS = [
-    (re.compile(r"\b(?:night\s+shifts?|raat\s+ki\s+shifts?|night\s+duty)\b", re.I), "night_shift"),
-    (re.compile(r"\b(?:day\s+shifts?|morning\s+shifts?|general\s+shifts?|din\s+ki\s+shifts?)\b", re.I), "day_shift"),
+    (re.compile(r"\b(?:night\s+shifts?|raat\s+ki\s+shifts?|night\s+duty|नाइट\s+शिफ्ट|रात\s+की\s+शिफ्ट)\b", re.I), "night_shift"),
+    (re.compile(r"\b(?:day\s+shifts?|morning\s+shifts?|general\s+shifts?|din\s+ki\s+shifts?|डे\s+शिफ्ट|दिन\s+की\s+शिफ्ट)\b", re.I), "day_shift"),
     (re.compile(r"\b(?:rotational(?:\s+shifts?)?|badalti\s+rehti\s+hai|shifting)\b", re.I), "rotational"),
     (re.compile(r"\b(?:desk\s+job|sitting\s+job|it\s+job|wfh|work\s+from\s+home)\b", re.I), "sedentary_desk_job"),
 ]
@@ -153,12 +153,12 @@ def extract_patient_disclosures(
     # 4. Sleep & Wake timings
     # Prefer pre-verb time expressions: "7:30 baje uthta hoon", "11:30 baje sota hoon"
     wake_match = re.search(
-        r"(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|morning)?)\s*(?:baje\s+)?(?:ko\s+)?(?:uthta|uthti|wake)",
+        r"(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|morning|सुबह)?)\s*(?:baje\s+|बजे\s+)?(?:ko\s+)?(?:uthta|uthti|uthte|wake|उठता|उठती|उठते)",
         lower,
     )
     if not wake_match:
         wake_match = re.search(
-            r"(?:wake|uthta|uthti|wake\s+up|jagne).{0,15}?(?:around|at|ko)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|morning)?)(?:\s*baje)?",
+            r"(?:wake|uthta|uthti|uthte|wake\s+up|jagne|उठता|उठती|उठते).{0,15}?(?:around|at|ko)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|morning|सुबह)?)(?:\s*baje|\s*बजे)?",
             lower,
         )
     if wake_match:
@@ -167,30 +167,25 @@ def extract_patient_disclosures(
             extracted["wake_time"] = norm_wake
 
     sleep_match = re.search(
-        r"(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|raat|in\s+the\s+morning|at\s+night)?)\s*(?:baje\s+)?(?:ko\s+)?(?:sota|soti|sleep)",
+        r"(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|raat|रात|in\s+the\s+morning|at\s+night)?)\s*(?:baje\s+|बजे\s+)?(?:ko\s+)?(?:sota|soti|sote|sleep|सोता|सोती|सोते)",
         lower,
     )
     if not sleep_match:
         sleep_match = re.search(
-            r"(?:sleep|sota|soti|bedtime|so\s+jata|so\s+jati).{0,15}?(?:around|at|ko)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|raat|in\s+the\s+morning|at\s+night)?)(?:\s*baje)?",
+            r"(?:sleep|sota|soti|sote|bedtime|so\s+jata|so\s+jati|सोता|सोती|सोते).{0,15}?(?:around|at|ko)?\s*(\d{1,2}(?::\d{2})?\s*(?:am|pm|subah|raat|रात|in\s+the\s+morning|at\s+night)?)(?:\s*baje|\s*बजे)?",
             lower,
         )
     if sleep_match:
-        raw_sleep = sleep_match.group(1)
-        # Contextual morning/night cues
-        if (
-            ("morning" in lower or "subah" in lower)
-            and "am" not in raw_sleep
-            and "pm" not in raw_sleep
-            and "raat" not in raw_sleep
-        ):
-            raw_sleep = f"{raw_sleep} am"
-        elif (
-            ("night" in lower or "raat" in lower or "shaam" in lower)
-            and "am" not in raw_sleep
-            and "pm" not in raw_sleep
-        ):
-            raw_sleep = f"{raw_sleep} pm"
+        raw_sleep = sleep_match.group(1).strip()
+        raw_has_morning = any(w in raw_sleep for w in ("am", "morning", "subah", "सुबह"))
+        raw_has_night = any(w in raw_sleep for w in ("pm", "night", "raat", "रात", "shaam", "शाम"))
+        if not raw_has_morning and not raw_has_night:
+            idx = lower.find(raw_sleep, max(0, sleep_match.start() - 10))
+            before_match = lower[max(0, idx - 15) : idx] if idx >= 0 else ""
+            if any(w in before_match for w in ("raat", "रात", "night", "shaam", "शाम", "pm")):
+                raw_sleep = f"{raw_sleep} pm"
+            elif any(w in before_match for w in ("subah", "सुबह", "morning", "am")):
+                raw_sleep = f"{raw_sleep} am"
         norm_sleep = normalize_time(raw_sleep, lang)
         if norm_sleep:
             extracted["sleep_time"] = norm_sleep
