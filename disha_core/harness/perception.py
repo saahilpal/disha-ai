@@ -115,8 +115,15 @@ _ACKNOWLEDGEMENT_TURNS = {
     "achha",
 }
 _REFUSAL_RE = re.compile(
-    r"^(?:no|no thanks|not now|don't|do not|i don't want|let's not|lets not|"
-    r"nahi|nahin|abhi nahi)\b",
+    r"^(?:no thanks|not now|i don't want|let's not|lets not|"
+    r"nahi chahiye|abhi nahi)\b",
+    re.IGNORECASE,
+)
+_EXPLICIT_REFUSAL_RE = re.compile(
+    r"(?:stop\s+asking|no\s+more\s+questions|don't\s+ask(?:\s+me)?\s+questions?|"
+    r"questions?\s+mat\s+pucho|sawal\s+mat\s+pucho|interview\s+mat\s+lo|stop\s+interviewing|"
+    r"i\s+don't\s+want\s+to\s+answer|nahi\s+batana|mujhe\s+nahi\s+batana|"
+    r"don't\s+want\s+coaching|leave\s+me\s+alone|baat\s+nahi\s+karni)\b",
     re.IGNORECASE,
 )
 _CONTINUATION_RE = re.compile(
@@ -144,7 +151,22 @@ def classify_conversation_control(
     if value in _CLOSING_TURNS or (value == "chalo theek hai" and bool(history)):
         return ConversationControl(is_closing=True, follow_up_allowed=False)
 
-    if value in _ACKNOWLEDGEMENT_TURNS or _REFUSAL_RE.match(value):
+    last_assistant_turn = next(
+        (str(t.get("content", "")) for t in reversed(history) if isinstance(t, dict) and t.get("role") == "assistant"),
+        "",
+    )
+    last_assistant_asked_question = "?" in last_assistant_turn
+
+    # If user is answering an assistant question, follow-up is allowed unless explicitly refused
+    if last_assistant_asked_question:
+        if _EXPLICIT_REFUSAL_RE.search(value):
+            return ConversationControl(follow_up_allowed=False)
+        return ConversationControl(follow_up_allowed=True)
+
+    if _EXPLICIT_REFUSAL_RE.search(value) or _REFUSAL_RE.match(value):
+        return ConversationControl(follow_up_allowed=False)
+
+    if value in _ACKNOWLEDGEMENT_TURNS:
         return ConversationControl(follow_up_allowed=False)
 
     return ConversationControl()

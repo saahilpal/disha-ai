@@ -112,13 +112,15 @@ def _response_metadata(
     conversation_id: str | None = None,
 ) -> dict[str, Any]:
     """Return bounded provenance metadata shared by all turn response channels."""
-    metadata = {
-        "status": status or state.validator_status,
+    eff_status = status or state.validator_status
+    metadata: dict[str, Any] = {
+        "status": eff_status,
         "evidence_ids": list(state.evidence_ids),
         "retrieval_status": state.retrieval_status,
-        "llm_provider": getattr(state, "llm_provider", "groq"),
-        "llm_model": getattr(state, "llm_model", "qwen/qwen3.8-27b"),
     }
+    if not (str(eff_status).startswith("triggered:") or str(eff_status).startswith("deflected:")):
+        metadata["llm_provider"] = getattr(state, "llm_provider", "groq") or "groq"
+        metadata["llm_model"] = getattr(state, "llm_model", "qwen/qwen3.8-27b") or "qwen/qwen3.8-27b"
     if conversation_id is not None:
         metadata["conversation_id"] = conversation_id
     return metadata

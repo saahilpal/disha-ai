@@ -347,6 +347,28 @@ class ResponseHarness:
                             )
                         journey_state = await load_or_create_journey(patient_id, conn=connection, channel=channel)
                         context["journey_state"] = journey_state
+                        if disclosures:
+                            pending_row = None
+                        elif pending_row:
+                            lower_t = payload.text.strip().lower()
+                            is_uncertainty = any(
+                                w in lower_t for w in ("don't know", "dont know", "not sure", "pata nahi", "nhi pata", "nahi pata", "check nahi", "yaad nahi")
+                            )
+                            is_skip = any(
+                                w in lower_t for w in ("skip", "baad me", "bad me", "later", "next", "aage badho", "chhod do")
+                            )
+                            if is_uncertainty or is_skip:
+                                with suppress(Exception):
+                                    await connection.execute(
+                                        """UPDATE journey_question_history
+                                           SET status = 'skipped', skip_reason = $3
+                                           WHERE patient_id = $1 AND question_id = $2 AND status = 'asked'""",
+                                        patient_id,
+                                        pending_row["question_id"],
+                                        "deferred: uncertainty" if is_uncertainty else "deferred: user_skipped",
+                                    )
+                                pending_row = None
+
                         is_coaching_query = bool(
                             normalized.is_meal_query
                             or normalized.is_exercise_query
@@ -362,6 +384,7 @@ class ResponseHarness:
                                     patient_id,
                                     pending_row["question_id"],
                                 )
+                            pending_row = None
                         is_onboarding_active = (
                             journey_state.get("overall_status") == "in_progress"
                             or journey_state.get("current_stage", 1) <= 3

@@ -513,7 +513,9 @@ def check_f6_question_requirement(text: str, context: dict[str, Any] | None = No
     concern = str(ctx.get("current_concern", "")).casefold()
     question_terms = {word for word in re.findall(r"\w+", question) if len(word) >= 4}
     source_terms = {word for word in re.findall(r"\w+", f"{latest} {concern}") if len(word) >= 4}
-    if candidate and question == candidate:
+    candidate_target = str((ctx.get("discovery_candidate") or {}).get("target_field", "")).strip().casefold()
+    candidate_terms = {word for word in re.findall(r"\w+", f"{candidate} {candidate_target.replace('_', ' ')}") if len(word) >= 4}
+    if candidate and (question == candidate or question_terms.intersection(candidate_terms)):
         source_terms = question_terms
     if source_terms and not question_terms.intersection(source_terms):
         return VerificationViolation(

@@ -190,6 +190,8 @@ class ChatResponse(BaseModel):
     evidence_ids: list[str] = Field(default_factory=list)
     retrieval_status: str = "not_requested"
     conversation_id: str | None = None
+    llm_provider: str | None = None
+    llm_model: str | None = None
 
 
 class ClientErrorPayload(BaseModel):

@@ -71,8 +71,11 @@ This document catalogs known architectural defects, test limitations, and deferr
 
 ---
 
-## Recently Resolved Issues (Verified in Test Suite)
+## Recently Resolved Issues (Verified in Test Suite & Production)
 
+- **Robotic Customer Support Fillers & Follow-Up Question Suppression (BUG-008)**: Resolved in current hotfix. System prompt and behavior rules upgraded from rigid procedural lecturing to perceptive, emotionally intelligent questioning. Classified answers to assistant inquiries (including short replies "no", "nahi", "okay", "don't know") as valid conversational turns rather than suppressing follow-ups. Cleared pending journey question upon resolution/uncertainty to prevent deadlock in question scheduler.
+- **Chat Hydration TDZ & Blocking Guard (BUG-006)**: Resolved in commit `38d29b4`. Uncaught ReferenceError in `navigate` accessing `views` before initialization blocked page boot and chat hydration on reload. Hoisted `views` as dynamic getters, moved initial session restore after router setup, and added 404/403 recovery and auto-retry to `dispatchTurn`.
+- **Voice Stutter, Mechanical Fallback & False Barge-In (BUG-007)**: Resolved in commit `38d29b4`. Replaced micro-chunk `decodeAudioData` onended chaining with Web Audio timeline clock scheduling `source.start(scheduledTime)`. Removed premature 1500ms `speechSynthesis` fallback watchdog. Increased VAD silence hangover to 750ms and raised barge-in echo rejection threshold. Added Safari/iOS MP4 audio container detection in `transcribe_groq`.
 - **Journey Acceptance 502 Bad Gateway**: Resolved by configuring `DISHA_HTTP_URL` to the direct backend endpoint and aligning Docker bridge network aliases (`dishaai_disha_internal`).
 - **Replay Journal Turn XML Idempotency Discrepancy**: Resolved by ordering habit consolidation prior to rehydration in `test_acceptance_resilience.py`.
 - **Gastrointestinal Transliteration Retrieval Gap**: Resolved by updating `ingest_open_datasets.py` to index colloquial Hinglish trigger terms (`pet`, `gas`, `bloating`) under approved clinical home remedies.

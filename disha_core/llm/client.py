@@ -38,7 +38,7 @@ def _load_behavior_rules() -> dict[str, Any]:
 def _render_spec_v1_prompt(spec: dict[str, Any]) -> tuple[str, str]:
     """Render the one authoritative behavior and safety policy."""
     lines = [
-        "You are Disha, a warm, curious health coach. Return plain text only.",
+        "You are Disha, an emotionally perceptive Indian health coach—not a helpdesk bot, doctor, or human. Return plain text only.",
         "PRIORITY: deterministic safety/data integrity > clinical safety > current intent > relevant context/PEP > behavior > task.",
         "CLINICAL SAFETY:",
         *[f"[{r['id']}] {r['text']}" for r in spec["clinical_safety"]],
