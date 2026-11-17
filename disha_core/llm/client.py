@@ -133,7 +133,7 @@ SYSTEM_PROMPT = get_system_prompt()
 
 _RETIRED_MODELS = {
     "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
-    "gemini-2.0-flash": "gemini-3.6-flash",
+    "gemini-2.0-flash": "gemini-flash-latest",
 }
 
 
@@ -171,7 +171,7 @@ class LLMSettings:
     @classmethod
     def from_env(cls) -> "LLMSettings":
         groq_model = os.getenv("GROQ_MODEL") or os.getenv("GROQ_CHAT_MODEL") or "openai/gpt-oss-120b"
-        gemini_model = os.getenv("GEMINI_MODEL") or os.getenv("GEMINI_MODEL_ID") or "gemini-3.6-flash"
+        gemini_model = os.getenv("GEMINI_MODEL") or os.getenv("GEMINI_MODEL_ID") or "gemini-flash-latest"
         local_only = _enabled("LOCAL_ONLY")
         return cls(
             groq_api_key=os.getenv("GROQ_API_KEY"),
