@@ -170,3 +170,30 @@ uv run pytest tests/
 
 5. Access web interface:
 Open `http://127.0.0.1:8080` in your browser.
+
+---
+
+## Free-Tier Cloud Deployment Guide
+
+Disha AI deploys 100% on free tiers across three dedicated services:
+
+1. **Frontend (Vercel)**:
+   - Configured via root `vercel.json` pointing to `disha_core/frontend` in region `bom1` (Mumbai).
+   - Deployed via `vercel --prod`.
+
+2. **Backend (Render Web Service)**:
+   - Configured via `render.yaml` as a Python 3.12 Web Service in region `singapore`.
+   - Start command: `uvicorn disha_core.main:app --host 0.0.0.0 --port $PORT`.
+   - Health check path: `/health`.
+
+3. **Database (Supabase PostgreSQL 16)**:
+   - Apply schema and migrations:
+     ```bash
+     DATABASE_URL="<SUPABASE_POOLED_URL>" python disha_core/db/apply_conversations_schema.py
+     DATABASE_URL="<SUPABASE_POOLED_URL>" python disha_core/db/apply_journey_schema.py
+     DATABASE_URL="<SUPABASE_POOLED_URL>" python disha_core/db/apply_pep_habits_schema.py
+     DATABASE_URL="<SUPABASE_POOLED_URL>" python disha_core/db/ingest_open_datasets.py
+     ```
+   - Transaction pooler port `6543` requires `PG_STATEMENT_CACHE_SIZE=0` (automatically detected).
+   - All public tables protected by Row-Level Security (RLS).
+

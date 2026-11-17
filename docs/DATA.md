@@ -169,3 +169,24 @@ Conversational memory is partitioned across 4 distinct retention tiers:
 4. **Audit Trail**:
    - Cryptographic append-only chain in `audit_claim_ledger`.
    - Retained permanently for compliance and safety auditability.
+
+## 6. Cloud Supabase Data Partitioning & Security
+
+When deployed to Supabase, the database strictly adheres to healthcare privacy boundaries:
+
+### 6.1 Allowed Reference Tables (Seeded by Repo Scripts)
+- `clinical_knowledge_base`: 478 approved guideline chunks.
+- `knowledge_sources`: Provenance registries and licenses.
+- `knowledge_chunks`: Ingested ICMR, WHO, API, and IFCT reference data.
+- `product_facts`: Grounded application pricing and capability limits.
+
+### 6.2 Patient & Security Fences (Zero-Data Invariant)
+The following tables are initialized with schema definitions but **MUST contain 0 rows** on the cloud database:
+- `patient_profiles`, `patient_pep`, `patient_pep_slots`, `patient_diet_schedules`, `patient_access_tokens`, `patient_turn_journal`, `patient_temporal_facts`, `memory_items`, `habit_current_state`, `habit_observations`, `habit_rollups`, `habit_episodes`, `call_summaries`, `conversations`, `messages`, `dialogue_state`, `audit_claim_ledger`, `audit_chain_head`.
+
+### 6.3 PostgREST REST API Hardening & Row-Level Security
+Supabase exposes the `public` schema via its PostgREST API by default. To prevent data leakage:
+- Row-Level Security (RLS) is enabled on every table in the public schema.
+- Read/write privileges for the `anon` and `authenticated` roles are revoked. A request using the Supabase `anon` public key returns empty arrays (`[]`) with HTTP 200 or 401 Unauthorized.
+- The FastAPI application connects via PostgreSQL wire protocol using the privileged connection string through the Supavisor IPv4 Transaction Pooler (port 6543) with `PG_STATEMENT_CACHE_SIZE=0`.
+

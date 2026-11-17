@@ -43,6 +43,28 @@ This document catalogs known architectural defects, test limitations, and deferr
 - **Dangling Destination Mapping**:
   - `JOURNEY_FIELDS["personalisation_readiness"]` maps to `FieldDestination.PEP_CORE` column `is_personalized`, which is not present in PostgreSQL `patient_pep` schema.
   - Resolution: Store readiness directly in `patient_journey_state.overall_status` or add an explicit boolean column.
+
+---
+
+## 5. Free-Tier Cloud Hosting & Operational Constraints
+
+1. **Render Free-Tier Idle Sleep & Cold Start**:
+   - Web services on Render's free tier sleep automatically after 15 minutes without active incoming requests.
+   - Waking a sleeping instance incurs a 30 to 50 second cold start delay.
+   - Render's Terms of Service strictly prohibit automated external cron/bot keep-alive pings.
+   - Resolution: The Vercel frontend embeds `checkBackendWarmup()`, displaying a non-blocking amber warmup indicator (`#warmup-banner`) with retry polling on cold page load.
+
+2. **Supabase Direct Host IPv6 & Transaction Pooler Configuration**:
+   - Supabase direct database connection hosts (`db.<ref>.supabase.co:5432`) resolve only via IPv6 on modern clusters. Free Render compute environments operate on IPv4-only networks.
+   - Resolution: Application connects exclusively through Supavisor IPv4 Pooler (`aws-0-<region>.pooler.supabase.com:6543`).
+   - Transaction poolers do not support prepared statement caches across multiplexed connections; `PG_STATEMENT_CACHE_SIZE=0` is required and enforced in `disha_core/adapters/db.py`.
+
+3. **Supabase Inactivity Pausing**:
+   - Supabase projects on the free plan pause automatically after 7 consecutive days of inactivity. Unpausing requires opening the Supabase dashboard.
+
+4. **Synthetic Demo Privacy Scope**:
+   - Because cloud model providers on free tiers (e.g., Google AI Studio) may use submitted inputs for service improvement unless covered by enterprise agreements, the app displays a mandatory disclaimer banner: `"Demo: Synthetic data only. Do not enter real medical details."` Real patient identifiers are prohibited on the demo instance.
+
 - **Habit Hysteresis Staging Gap**:
   - In `commit_habit_slot`, when an established habit (`confirm_count >= 2`) receives a conflicting mention without an explicit permanence cue ("ab se", "from now on"), the engine flags `status="pending_confirmation"` without storing the candidate new value in a persistent staging row. Subsequent mentions cannot confirm the unstaged value.
   - Resolution: Use `patient_pep_slots` with `verification_status="unconfirmed"` as the staging buffer.

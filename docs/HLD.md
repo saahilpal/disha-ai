@@ -185,3 +185,45 @@ The service runs across three containers defined in `docker-compose.yml`:
 | `generativelanguage.googleapis.com` | HTTPS | Primary LLM generation (Google Gemini 1.5 Flash) | 10.0s | Fallback to Groq secondary model via circuit breaker |
 | `api.groq.com` | HTTPS | STT transcription (Whisper) & Secondary LLM (Llama 3.3 70B) | 8.0s | Return deterministic offline error response |
 | Microsoft Edge-TTS Service | WebSocket / WSS | Streaming speech audio synthesis | 5.0s | Silent fallback to client text display |
+
+## 5. Free-Tier Cloud Deployment Architecture
+
+The production-ready demo deploys across three complimentary free-tier cloud platforms:
+
+```mermaid
+flowchart TD
+    subgraph ClientLayer ["Client Devices"]
+        MobileClient["Mobile Browser (PWA)"]
+        DesktopClient["Desktop Browser"]
+    end
+
+    subgraph VercelEdge ["Vercel Edge Network (Region: bom1 - Mumbai)"]
+        StaticFrontend["Static Assets (HTML5, JS, CSS, Locales)"]
+        WarmupHandler["Client Health & Warmup Poller"]
+    end
+
+    subgraph RenderCloud ["Render Cloud Web Service (Region: singapore)"]
+        FastAPIApp["FastAPI Runtime (Python 3.12, 512MB RAM)"]
+        WebSocketHandler["Stateful WebSocket Voice Handler (/voice)"]
+        LayaClassifier["Laya Multilingual Classifier"]
+        BreakerSpine["Emergency Breaker Spine"]
+    end
+
+    subgraph SupabaseDB ["Supabase Managed PostgreSQL 16"]
+        SupavisorPooler["Supavisor IPv4 Transaction Pooler (Port 6543)"]
+        ClinicalKnowledge[("Clinical Knowledge Tables (RLS Protected)")]
+    end
+
+    MobileClient -->|HTTPS / Static Assets| StaticFrontend
+    DesktopClient -->|HTTPS / Static Assets| StaticFrontend
+    WarmupHandler -->|HTTP /health Ping| FastAPIApp
+    MobileClient -->|WSS /voice| WebSocketHandler
+    DesktopClient -->|WSS /voice| WebSocketHandler
+    FastAPIApp -->|AsyncPG statement_cache_size=0| SupavisorPooler
+    SupavisorPooler --> ClinicalKnowledge
+```
+
+### Free-Tier Split & Boundary Rationale:
+1. **Frontend on Vercel (`bom1` Mumbai)**: Delivers sub-30ms static asset delivery across India, zero cold start for UI, and clean HTTPS termination. Vercel Hobby tier is personal/non-commercial, ideal for this demo.
+2. **Backend on Render (`singapore`)**: Provides stateful WebSocket support through its reverse proxy for bidirectional streaming voice. Handles 15-minute idle spindowns via client-side warmup banner (`#warmup-banner`) rather than illegal keep-alive pings.
+3. **Database on Supabase**: Provides managed PostgreSQL 16 with full `pg_trgm` support. Accessed exclusively via IPv4 Supavisor Transaction Pooler (`aws-0-ap-southeast-1.pooler.supabase.com:6543`) with `statement_cache_size=0` to ensure compatibility with Render's IPv4 routing. Row-Level Security (RLS) is enabled on all tables to prevent public PostgREST exposure.
