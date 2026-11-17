@@ -362,15 +362,22 @@ class ResponseHarness:
                                     patient_id,
                                     pending_row["question_id"],
                                 )
-                        if (
+                        is_onboarding_active = (
+                            journey_state.get("overall_status") == "in_progress"
+                            or journey_state.get("current_stage", 1) <= 3
+                        )
+                        allow_candidate = (
                             not pending_row
                             and not is_off_topic
-                            and intent
-                            not in {
-                                Intent.GREETING,
-                                Intent.APP_META,
-                            }
-                        ):
+                            and (
+                                intent not in {
+                                    Intent.GREETING,
+                                    Intent.APP_META,
+                                }
+                                or is_onboarding_active
+                            )
+                        )
+                        if allow_candidate:
                             candidate = await select_next_question(
                                 patient_id,
                                 journey_state,

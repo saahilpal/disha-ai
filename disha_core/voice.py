@@ -872,7 +872,11 @@ class VoiceSession:
         engine: str | None = None,
         rate: str | None = None,
     ) -> None:
-        await self.barge_in()
+        if self._active is not None and not self._active.done():
+            self._active.cancel()
+            with suppress(asyncio.CancelledError):
+                await self._active
+            self._active = None
         clean_text = validated_text.strip()
         prefetched_task = self._prefetch_tasks.pop(clean_text, None)
         routed_engine, routed_voice = route_tts(clean_text, language, preferred_engine=engine)
@@ -1082,7 +1086,5 @@ async def execute_voice_turn(
                 "retrieval_status": turn_state.retrieval_status,
             }
         )
-
-    return output
 
     return output
