@@ -13,6 +13,9 @@ dependencies = [
     "python-dotenv",
 ]
 
+[tool.setuptools.packages.find]
+include = ["disha_core*"]
+
 [tool.vulture]
 ignore_decorators = [
     "@app.*",
