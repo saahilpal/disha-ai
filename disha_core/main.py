@@ -116,6 +116,8 @@ def _response_metadata(
         "status": status or state.validator_status,
         "evidence_ids": list(state.evidence_ids),
         "retrieval_status": state.retrieval_status,
+        "llm_provider": getattr(state, "llm_provider", "groq"),
+        "llm_model": getattr(state, "llm_model", "qwen/qwen3.8-27b"),
     }
     if conversation_id is not None:
         metadata["conversation_id"] = conversation_id
@@ -283,9 +285,14 @@ def create_app() -> FastAPI:
         pool = getattr(request.app.state, "pool", None)
         if pool is None:
             raise HTTPException(status_code=503, detail="Database pool not initialized")
+        tables_ok = False
         try:
             async with pool.acquire() as conn:
                 await conn.fetchval("SELECT 1")
+                tbl_cnt = await conn.fetchval(
+                    "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public'"
+                )
+                tables_ok = (tbl_cnt or 0) > 0
         except Exception as exc:
             raise HTTPException(status_code=503, detail="Database connectivity failure") from exc
 
@@ -294,10 +301,17 @@ def create_app() -> FastAPI:
         if not is_classifier_ready:
             raise HTTPException(status_code=503, detail="Laya classifier not ready")
 
+        groq_ok = bool(os.getenv("GROQ_API_KEY"))
+        gemini_ok = bool(os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY"))
+
         return {
             "ok": True,
             "database": True,
-            "classifier": True,
+            "tables": tables_ok,
+            "groq_key_set": groq_ok,
+            "gemini_key_set": gemini_ok,
+            "classifier_loaded": is_classifier_ready,
+            "classifier": is_classifier_ready,
             "schema_version": "2026-11-07.v1",
         }
 

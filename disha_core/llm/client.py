@@ -489,34 +489,27 @@ class DualProviderClient:
         self.providers: tuple[Provider, ...] = tuple(providers)
         self._default_providers: tuple[Provider, ...] = tuple(providers)
         self.circuit = ConsecutiveFailureCircuitBreaker(threshold=2)
+        self.last_provider: str = "groq"
+        self.last_model: str = self.settings.groq_model or "qwen/qwen3.8-27b"
 
     def _get_providers_for_channel(self, channel: str | None = None) -> list[Provider]:
-        if set(self.providers) != set(self._default_providers) or len(self.providers) < 2:
-            return list(self.providers)
-
         channel_mode = (channel or "chat").casefold()
-        if channel_mode == "voice":
-            pref = os.getenv("LLM_PRIMARY_VOICE", "gemini").casefold()
-        else:
-            pref = os.getenv("LLM_PRIMARY_CHAT", "groq").casefold()
-
-        ordered: list[Provider] = []
-        if pref == "gemini":
+        if channel_mode in ("voice", "call", "ws"):
+            # Voice Call: Gemini primary, Groq fallback. No local models.
+            ordered: list[Provider] = []
             if self.gemini_provider in self.providers:
                 ordered.append(self.gemini_provider)
             if self.groq_provider in self.providers:
                 ordered.append(self.groq_provider)
+            return ordered or list(self.providers)
         else:
+            # Chat: Groq primary, Gemini fallback. No local models.
+            ordered: list[Provider] = []
             if self.groq_provider in self.providers:
                 ordered.append(self.groq_provider)
             if self.gemini_provider in self.providers:
                 ordered.append(self.gemini_provider)
-        if self.ollama_provider in self.providers:
-            ordered.append(self.ollama_provider)
-        for p in self.providers:
-            if p not in ordered:
-                ordered.append(p)
-        return ordered or list(self.providers)
+            return ordered or list(self.providers)
 
     async def stream(
         self,
@@ -551,6 +544,9 @@ class DualProviderClient:
                     await close()
             else:
                 await self.circuit.record_success()
+                prov_name = "groq" if isinstance(primary, GroqProvider) else ("gemini" if isinstance(primary, GeminiProvider) else "ollama")
+                self.last_provider = prov_name
+                self.last_model = getattr(self.settings, f"{prov_name}_model", "unknown")
                 for piece in early_pieces:
                     yield piece
                 try:
@@ -566,9 +562,12 @@ class DualProviderClient:
         last_exc: Exception | None = None
         for fallback in fallbacks:
             try:
+                prov_name = "gemini" if isinstance(fallback, GeminiProvider) else ("groq" if isinstance(fallback, GroqProvider) else "ollama")
                 async for piece in _yield_provider(
                     fallback, prompt, self.settings.first_token_timeout, messages=messages, system_prompt=system_prompt
                 ):
+                    self.last_provider = prov_name
+                    self.last_model = getattr(self.settings, f"{prov_name}_model", "unknown")
                     yield piece
                 return
             except Exception as exc:

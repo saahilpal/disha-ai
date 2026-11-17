@@ -577,6 +577,9 @@ class ResponseHarness:
                 return
 
         tc.record_stage_latency("GENERATE", (time.monotonic() - t2) * 1000.0)
+        state.llm_provider = getattr(llm_instance, "last_provider", "groq")
+        state.llm_model = getattr(llm_instance, "last_model", "qwen/qwen3.8-27b")
+        logger.info("Turn completed via llm_provider=%s llm_model=%s", state.llm_provider, state.llm_model)
 
         # ==========================================
         # 6. COMMIT

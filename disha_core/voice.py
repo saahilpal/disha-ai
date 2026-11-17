@@ -585,6 +585,12 @@ async def transcribe_groq(
     elif audio.startswith(b"OggS"):
         actual_filename = "turn.ogg"
         actual_content_type = "audio/ogg"
+    elif len(audio) > 8 and (audio[4:8] == b"ftyp" or b"ftyp" in audio[:32]):
+        actual_filename = "turn.m4a"
+        actual_content_type = "audio/mp4"
+    elif audio.startswith(b"\xff\xfb") or audio.startswith(b"\xff\xf3") or audio.startswith(b"ID3"):
+        actual_filename = "turn.mp3"
+        actual_content_type = "audio/mpeg"
 
     try:
         import httpx
@@ -975,11 +981,11 @@ class VoiceSession:
         if prefetched_task is not None:
             try:
                 chunks = await prefetched_task
-                for chunk in chunks:
-                    if chunk:
-                        result = send_audio(chunk)
-                        if inspect.isawaitable(result):
-                            await result
+                if chunks:
+                    full_audio = b"".join(chunks)
+                    result = send_audio(full_audio)
+                    if inspect.isawaitable(result):
+                        await result
                 return
             except asyncio.CancelledError:
                 raise
@@ -992,11 +998,25 @@ class VoiceSession:
             kwargs["engine"] = engine
         if "rate" in sig.parameters and rate is not None:
             kwargs["rate"] = rate
+        min_chunk_bytes = int(os.getenv("TTS_MIN_CHUNK_BYTES", "0"))
+        stream_buf = bytearray()
         async for chunk in self._synthesizer(text, voice, **kwargs):
             if chunk:
-                result = send_audio(chunk)
-                if inspect.isawaitable(result):
-                    await result
+                if min_chunk_bytes <= 0:
+                    result = send_audio(chunk)
+                    if inspect.isawaitable(result):
+                        await result
+                else:
+                    stream_buf.extend(chunk)
+                    if len(stream_buf) >= min_chunk_bytes:
+                        result = send_audio(bytes(stream_buf))
+                        if inspect.isawaitable(result):
+                            await result
+                        stream_buf.clear()
+        if stream_buf:
+            result = send_audio(bytes(stream_buf))
+            if inspect.isawaitable(result):
+                await result
 
 
 async def execute_voice_turn(

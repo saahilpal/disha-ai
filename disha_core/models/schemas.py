@@ -19,6 +19,8 @@ class TurnState:
     validator_status: str = "accepted"
     retrieval_status: str = "not_requested"
     evidence_ids: list[str] = field(default_factory=list)
+    llm_provider: str = "groq"
+    llm_model: str = "qwen/qwen3.8-27b"
 
 
 class TurnRequest(BaseModel):
@@ -124,12 +126,16 @@ class HealthResponse(BaseModel):
 
 
 class ReadyResponse(BaseModel):
-    """Readiness probe status."""
+    """Readiness probe status reporting required health booleans."""
 
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="ignore")
 
     ok: bool = True
     database: bool = True
+    tables: bool = True
+    groq_key_set: bool = True
+    gemini_key_set: bool = True
+    classifier_loaded: bool = True
     classifier: bool = True
     schema_version: str = "2026-11-07.v1"
 

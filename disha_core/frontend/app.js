@@ -1338,6 +1338,7 @@
     state.token = token;
     state.patientId = patientId;
     state.patientName = patientName;
+    state.conversationId = null;
     state.conversationHydrated = false;
     if (typeof localStorage !== 'undefined') {
       try {
@@ -1345,6 +1346,7 @@
         localStorage.setItem('disha_patient_id', patientId);
         localStorage.setItem('disha_patient_name', patientName);
         localStorage.setItem('disha_medical_consent_accepted', 'true');
+        localStorage.removeItem('disha_conversation_id');
       } catch (e) {}
     }
     if (typeof sessionStorage !== 'undefined') {
@@ -1352,6 +1354,7 @@
         sessionStorage.setItem('disha_token', token);
         sessionStorage.setItem('disha_patient_id', patientId);
         sessionStorage.setItem('disha_patient_name', patientName);
+        sessionStorage.removeItem('disha_conversation_id');
       } catch (e) {}
     }
   }
@@ -1374,8 +1377,29 @@
     await fetchChatHistory();
   }
 
+  function showChatHydrationRetry(reason) {
+    const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
+    if (!stream) return;
+    const existing = document.getElementById('chat-hydration-error-banner');
+    if (existing) existing.remove();
+    const banner = document.createElement('div');
+    banner.id = 'chat-hydration-error-banner';
+    banner.className = 'chat-alert-banner warning';
+    banner.style.cssText = 'padding: 10px 14px; margin: 8px 16px; background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); border-radius: 8px; display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--text-primary);';
+    banner.innerHTML = `<span>Unable to load conversation: ${escapeHtml(reason || 'connection error')}.</span><button id="btn-retry-hydration" class="btn btn-secondary btn-sm" style="margin-left: 8px; padding: 4px 10px; font-size: 12px; cursor: pointer;">Retry</button>`;
+    stream.appendChild(banner);
+    const retryBtn = banner.querySelector('#btn-retry-hydration');
+    if (retryBtn) {
+      retryBtn.addEventListener('click', () => {
+        banner.remove();
+        fetchChatHistory();
+      });
+    }
+  }
+
   async function fetchChatHistory() {
     if (!state.token) return false;
+    state.conversationLoading = true;
     try {
       const config = getBackendConfig();
       // Hydrate from active conversation endpoint first (Contract 2 / Spec M1)
@@ -1384,7 +1408,11 @@
           'Authorization': `Bearer ${state.token}`
         }
       });
-      if (res.status === 404) {
+      if (res.status === 404 || res.status === 403) {
+        state.conversationId = null;
+        if (typeof localStorage !== 'undefined') {
+          try { localStorage.removeItem('disha_conversation_id'); } catch (e) {}
+        }
         res = await fetch(`${config.httpBase}/chat/history?limit=30`, {
           headers: {
             'Authorization': `Bearer ${state.token}`
@@ -1395,12 +1423,18 @@
         const data = await res.json();
         if (data.conversation_id) {
           state.conversationId = data.conversation_id;
+          if (typeof localStorage !== 'undefined') {
+            try { localStorage.setItem('disha_conversation_id', data.conversation_id); } catch (e) {}
+          }
         }
         const history = data.messages || data.history || [];
         const stream = dom.chatStream || (typeof document !== 'undefined' ? document.getElementById('chat-stream') : null);
         if (stream) stream.innerHTML = '';
         state.transcriptHistory = [];
         state.welcomeRendered = false;
+        const existingBanner = document.getElementById('chat-hydration-error-banner');
+        if (existingBanner) existingBanner.remove();
+
         if (stream && history.length > 0) {
           for (const turn of history) {
             const role = turn.role === 'assistant' ? 'assistant' : 'user';
@@ -1417,12 +1451,15 @@
         return false;
       }
       const detail = await res.json().catch(() => ({}));
-      throw new Error(detail.detail || 'Conversation history could not be loaded. Please retry.');
+      const reason = detail.detail || `Server status ${res.status}: conversation history unavailable.`;
+      throw new Error(reason);
     } catch (e) {
       console.warn('Failed to load chat history:', e);
       state.conversationHydrated = false;
-      showAlert('Your conversation could not be loaded. Please retry; it has not been deleted.');
+      showChatHydrationRetry(e.message || 'Connection failure');
       return null;
+    } finally {
+      state.conversationLoading = false;
     }
   }
 
@@ -1791,18 +1828,6 @@
       appendChatMessage('assistant', data.text, 'Disha AI Health Coach');
       updateLiveCaptions('assistant', data.text);
       setTelephonyStatus('speaking');
-      const introText = data.text;
-      setTimeout(() => {
-        if (state.audioQueue.length === 0 && !state.isPlayingAudio && state.isInCall) {
-          if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
-            try {
-              const utter = new SpeechSynthesisUtterance(introText);
-              utter.lang = state.language === 'hi' ? 'hi-IN' : (state.language === 'en' ? 'en-IN' : 'hi-IN');
-              window.speechSynthesis.speak(utter);
-            } catch (e) {}
-          }
-        }
-      }, 1500);
       return;
     }
 
@@ -2722,8 +2747,8 @@
       const MAX_NOISE_FLOOR = 32.0;
       const NOISE_EMA_ALPHA = 0.03; // Smooth background noise tracking
       const SPEECH_SNR_OFFSET = 8.0; // Required SNR above noise floor for speech onset
-      const BARGE_IN_SNR_OFFSET = 12.0; // Responsive SNR above noise floor for immediate barge-in onset (<300ms)
-      const VAD_SILENCE_HANGOVER_MS = 280; // Calibrated <300ms silence hangover for immediate conversational handoff
+      const BARGE_IN_SNR_OFFSET = 12.0; // Responsive SNR above noise floor for immediate barge-in onset
+      const VAD_SILENCE_HANGOVER_MS = (typeof window !== 'undefined' && window.DISHA_VAD_HANGOVER_MS) || 750; // Natural conversational cadence without premature truncation
       let silenceTimer = null;
       let bargeInFrames = 0;
 
@@ -2864,14 +2889,16 @@
             );
           }
           const dynamicEnergyThreshold = Math.max(12.0, adaptiveNoiseFloor + SPEECH_SNR_OFFSET);
-          const dynamicBargeInThreshold = Math.max(20.0, adaptiveNoiseFloor + BARGE_IN_SNR_OFFSET);
+          // Protect playback against acoustic echo from device speakers
+          const speakerEchoThreshold = Math.max(38.0, (ttsAvg || 0) * 0.95, adaptiveNoiseFloor + BARGE_IN_SNR_OFFSET + 10.0);
+          const dynamicBargeInThreshold = speakerEchoThreshold;
 
           if (speechAvg > dynamicEnergyThreshold) {
             if (state.isPlayingAudio) {
               if (speechAvg > dynamicBargeInThreshold) {
                 bargeInFrames++;
-                if (bargeInFrames >= 2) {
-                  // Confirmed speech onset in ~30ms (<300ms budget) — trigger fast barge-in
+                if (bargeInFrames >= 5) {
+                  // Confirmed intentional user speech onset above speaker acoustic echo
                   bargeInFrames = 0;
                   onUserSpeechDetected();
                 }
@@ -2949,6 +2976,7 @@
   function stopAudioPlayback() {
     state.audioQueue.length = 0; // Instantly drain audio playback queue
     state.isPlayingAudio = false;
+    state.nextAudioStartTime = 0;
 
     if (state.ttsAnalyser) {
       try { state.ttsAnalyser.disconnect(); } catch (e) {}
@@ -2995,7 +3023,21 @@
 
   async function playNextAudio() {
     if (state.audioQueue.length === 0) {
+      if (state.audioContext && state.nextAudioStartTime > state.audioContext.currentTime) {
+        const remainingMs = Math.max(10, Math.round((state.nextAudioStartTime - state.audioContext.currentTime) * 1000));
+        setTimeout(() => {
+          if (state.audioQueue.length === 0 && (!state.audioContext || state.audioContext.currentTime >= (state.nextAudioStartTime - 0.05))) {
+            state.isPlayingAudio = false;
+            state.nextAudioStartTime = 0;
+            if (state.isInCall && state.telephonyStatus === 'speaking') {
+              setTelephonyStatus('listening');
+            }
+          }
+        }, remainingMs);
+        return;
+      }
       state.isPlayingAudio = false;
+      state.nextAudioStartTime = 0;
       if (state.isInCall && state.telephonyStatus === 'speaking') {
         setTelephonyStatus('listening');
       }
@@ -3034,6 +3076,11 @@
       state.currentAudioSource = source;
       state.ttsAnalyser = ttsAnalyser;
 
+      const now = state.audioContext.currentTime;
+      const scheduledTime = Math.max(now + 0.02, state.nextAudioStartTime || 0);
+      source.start(scheduledTime);
+      state.nextAudioStartTime = scheduledTime + audioBuffer.duration;
+
       source.onended = () => {
         if (state.currentAudioSource === source) {
           state.currentAudioSource = null;
@@ -3041,16 +3088,25 @@
             try { state.ttsAnalyser.disconnect(); } catch (e) {}
             state.ttsAnalyser = null;
           }
-          playNextAudio();
         }
       };
-      source.start();
+
+      if (state.audioQueue.length > 0) {
+        playNextAudio();
+      } else {
+        const checkDelay = Math.max(20, Math.round((state.nextAudioStartTime - state.audioContext.currentTime) * 1000));
+        setTimeout(() => {
+          if (state.audioQueue.length === 0 && state.audioContext && state.audioContext.currentTime >= (state.nextAudioStartTime - 0.05)) {
+            state.isPlayingAudio = false;
+            state.nextAudioStartTime = 0;
+            if (state.isInCall && state.telephonyStatus === 'speaking') {
+              setTelephonyStatus('listening');
+            }
+          }
+        }, checkDelay);
+      }
     } catch (err) {
       console.warn('[Disha Voice] Audio chunk decode error:', err);
-      if (state.lastEmergencyText) {
-        speakEmergencyFallback(state.lastEmergencyText);
-        state.lastEmergencyText = null;
-      }
       state.currentAudioSource = null;
       if (state.ttsAnalyser) {
         try { state.ttsAnalyser.disconnect(); } catch (e) {}
@@ -3131,8 +3187,16 @@
     const query = String(text || '').trim();
     if (!query) return;
     if (state.token && !state.conversationHydrated) {
-      showAlert('Your conversation is still loading. Please retry in a moment.');
-      return;
+      if (state.conversationLoading) {
+        showAlert('Your conversation is still loading. Please wait a moment...');
+        return;
+      }
+      showAlert('Connecting to conversation...');
+      await fetchChatHistory();
+      if (!state.conversationHydrated) {
+        showAlert('Unable to connect to conversation. Please click Retry in the chat.');
+        return;
+      }
     }
     state.lastUserQuery = query;
     const clientMsgId = options.clientMsgId || ('msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9));
@@ -3401,11 +3465,6 @@
     });
   });
 
-  // Check initial session
-  if (state.token && dom.dashboardView) {
-    transitionToDashboard();
-  }
-
   // --- LIFECYCLE, UNLOAD & VISIBILITY EVENT LISTENERS ---
   if (typeof window !== 'undefined') {
     const cleanupAll = () => {
@@ -3446,14 +3505,14 @@
 
   // --- SPA ROUTING & NAVIGATION ENGINE ---
   const views = {
-    chat: dom.dashboardView || (typeof document !== 'undefined' ? document.getElementById('dashboard-view') : null),
-    consultation: dom.dashboardView || (typeof document !== 'undefined' ? document.getElementById('dashboard-view') : null),
-    meals: typeof document !== 'undefined' ? document.getElementById('view-meals') : null,
-    profile: typeof document !== 'undefined' ? document.getElementById('view-profile') : null,
-    settings: dom.viewSettings || (typeof document !== 'undefined' ? document.getElementById('view-settings') : null),
-    signin: dom.authView || (typeof document !== 'undefined' ? document.getElementById('auth-view') : null),
-    auth: dom.authView || (typeof document !== 'undefined' ? document.getElementById('auth-view') : null),
-    '404': dom.view404 || (typeof document !== 'undefined' ? document.getElementById('view-404') : null),
+    get chat() { return dom.dashboardView || (typeof document !== 'undefined' ? document.getElementById('dashboard-view') : null); },
+    get consultation() { return dom.dashboardView || (typeof document !== 'undefined' ? document.getElementById('dashboard-view') : null); },
+    get meals() { return typeof document !== 'undefined' ? document.getElementById('view-meals') : null; },
+    get profile() { return typeof document !== 'undefined' ? document.getElementById('view-profile') : null; },
+    get settings() { return dom.viewSettings || (typeof document !== 'undefined' ? document.getElementById('view-settings') : null); },
+    get signin() { return dom.authView || (typeof document !== 'undefined' ? document.getElementById('auth-view') : null); },
+    get auth() { return dom.authView || (typeof document !== 'undefined' ? document.getElementById('auth-view') : null); },
+    get '404'() { return dom.view404 || (typeof document !== 'undefined' ? document.getElementById('view-404') : null); },
   };
 
   function navigate(rawRoute) {
@@ -3655,6 +3714,15 @@
     window.addEventListener('hashchange', () => {
       navigate(window.location.hash);
     });
+  }
+
+  // --- SAFE INITIAL SESSION RESTORATION ---
+  if (state.token && dom.dashboardView) {
+    transitionToDashboard().catch((err) => {
+      console.warn('[Disha] Initial transition to dashboard error:', err);
+    });
+  } else if (!state.token && dom.authView) {
+    navigate(window.location.hash || 'signin');
   }
 
   // --- SCREEN WAKE LOCK API ---
