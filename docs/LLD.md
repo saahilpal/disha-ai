@@ -141,7 +141,7 @@ classDiagram
 - **STT Transcription**: Groq Whisper Large v3 Turbo conditioned with `GROQ_WHISPER_PROMPT_VOCABULARY` containing 38 Indian clinical, vital, symptom, and dietary terms. Auto-detects `audio/wav`, `audio/webm`, and `audio/ogg`.
 - **Audio Synthesis**: Sentence-level streaming pipeline. Completed punctuation sentences stream immediately to Edge-TTS (`hi-IN-SwaraNeural` for Hindi/Hinglish, `en-IN-NeerjaExpressiveNeural` / `en-IN-NeerjaNeural` for English).
 - **Instant Emergency Audio Fallback**: Pre-rendered neural audio files stored in `disha_core/data/emergency_audio/` and RAM cache deliver red-flag responses in **0.012 ms**, completely bypassing cloud TTS latency. Browser `speechSynthesis` acts as client-side backup.
-- **Fast Barge-In Cancellation**: User speech during audio playback instantly drains `state.audioQueue`, stops Web Audio buffer sources, pauses HTML5 audio, and dispatches `{"type": "interrupt"}` over WebSocket. Cancellation completes in **0.015 ms** (target $< 300\text{ ms}$).
+- **Fast Barge-In Cancellation**: User speech during audio playback instantly drains `state.audioQueue`, stops Web Audio buffer sources, pauses HTML5 audio, and dispatches `{"type": "interrupt"}` over WebSocket. Flag flip in Python asyncio completes in **0.015 ms** `[LOCAL-COMPONENT]` — this measures the in-process `asyncio.Event` cancellation only; true acoustic barge-in (VAD onset → audio silence) is not yet measured end-to-end (target $\le 300\text{ ms}$).
 
 ## 3. Wire Formats and Schemas
 

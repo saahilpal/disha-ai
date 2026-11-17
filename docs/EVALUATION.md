@@ -70,7 +70,7 @@ Evaluated across 50 adversarial and standard coaching sentences:
 
 ### 2.4 Knowledge Tables Ingestion Counts
 
-- `clinical_knowledge_base`: 478 approved/draft guideline chunks.
+- `clinical_knowledge_base`: chunk count unverified in this audit run (table may differ from `knowledge_chunks`; `approval_status` column does not exist on `knowledge_chunks` — the "478 approved/draft" figure is RETRACTED).
 - `knowledge_chunks`: 482 provenance-tracked chunks across 6 domains:
   - Integrative Health (API): 362
   - Women's Health (PCOS): 87
@@ -151,25 +151,26 @@ Empirical evaluation on the sealed Golden PEP Dataset (127 conversations, 197 us
 
 ### 2.7 Real-Time Voice Pipeline & Latency Benchmark
 
-Empirical evaluation on the 30-scenario multilingual test suite (`scripts/benchmark_voice_pipeline.py`) across English, Hinglish, and Devanagari Hindi:
+Empirical evaluation on the 30-scenario multilingual test suite (`scripts/benchmark_voice_pipeline.py`) across English, Hinglish, and Devanagari Hindi. Every metric is strictly labeled per system audit rules:
 
-| Evaluation Dimension | Target Spec | Measured Benchmark | Status / Verification |
-| :--- | :---: | :---: | :--- |
-| **Client VAD Silence Hangover** | $\le 500\text{ ms}$ | **500.0 ms** | Calibrated (-41.2% turn-taking latency vs 850ms baseline) |
-| **Emergency Breaker Check (P50 / P95)** | $< 1.0\text{ ms}$ | **0.057 ms / 0.133 ms** | Sub-millisecond deterministic safety check |
-| **TTS Engine & Voice Routing (P50)** | $< 1.0\text{ ms}$ | **0.010 ms** | Zero-latency script and dialect matching |
-| **Instant Emergency Audio Fallback (P50)** | $< 100\text{ ms}$ | **0.012 ms** | Pre-rendered neural audio bypasses cloud TTS |
-| **Barge-In Interruption Cancel (P50 / P95)** | $\le 300\text{ ms}$ | **0.015 ms / 0.015 ms** | Instant playback buffer flush & server task cancellation |
-| **Estimated End-of-Speech to Audio (P50)** | $\le 1,500\text{ ms}$ | **1,480.9 ms** | Target met (VAD 500ms + STT 380ms + Breaker 0.06ms + LLM 280ms + TTS 320ms) |
-| **Estimated End-of-Speech to Audio (P95)** | $\le 1,850\text{ ms}$ | **1,821.3 ms** | Target met under high network variance |
-| **STT Word Error Rate (English)** | $\le 5.0\%$ | **0.0%** | Zero error with Groq Whisper prompt conditioning |
-| **STT Word Error Rate (Hinglish)** | $\le 8.0\%$ | **0.83%** | Grounded in 38 Indian clinical & dietary vocabulary terms |
-| **STT Word Error Rate (Devanagari Hindi)** | $\le 5.0\%$ | **0.0%** | Native script accuracy with zero phonetic drift |
-| **Emergency Red Flag Catch Rate** | $100.0\%$ | **100.0%** | Zero leak; 100% emergency triggers caught before LLM |
+| Evaluation Dimension | Target Spec | Measured Benchmark | Label & Status | Verification & Boundary Notes |
+| :--- | :---: | :---: | :---: | :--- |
+| **Client VAD Silence Hangover** | $\le 500\text{ ms}$ | **500.0 ms** | `[LOCAL]` PASS | Calibrated energy-based VAD hangover (-41.2% turn-taking latency vs 850ms baseline) |
+| **Emergency Breaker Check (P50 / P95)** | $< 1.0\text{ ms}$ | **0.057 ms / 0.133 ms** | `[LOCAL-COMPONENT]` PASS | Sub-millisecond deterministic safety check in-memory |
+| **TTS Engine & Voice Routing (P50)** | $< 1.0\text{ ms}$ | **0.010 ms** | `[LOCAL-COMPONENT]` PASS | Script and dialect matching logic in memory |
+| **Instant Emergency Audio Fallback (P50)** | $< 100\text{ ms}$ | **0.012 ms** | `[LOCAL-COMPONENT]` PASS | In-memory cache lookup of pre-rendered MP3 buffer bytes; excludes network transport |
+| **Barge-In Interruption Cancel (P50 / P95)** | $\le 300\text{ ms}$ | **0.015 ms / 0.015 ms** | `[LOCAL-COMPONENT]` PASS | Python `asyncio.Event` cancellation flag flip only. True acoustic barge-in involves VAD detection + audio buffer flushing (target $\le 300\text{ ms}$) |
+| **Calculated End-of-Speech to Audio (P50)** | $\le 1,000\text{ ms}$ | **1,480.9 ms** | `[ESTIMATE / SUM-OF-MEDIANS]` MISS | **Sum of component medians** (VAD 500ms + STT 380ms + Breaker 0.06ms + LLM 280ms + TTS 320ms), not a true single-run distribution. Deployed target remains P50 $\le 1.0\text{ s}$, P95 $\le 1.8\text{ s}$ |
+| **Calculated End-of-Speech to Audio (P95)** | $\le 1,800\text{ ms}$ | **1,821.3 ms** | `[ESTIMATE / SUM-OF-MEDIANS]` MISS | Sum of 95th percentiles; slightly breaches 1.8s SLA under high synthetic latency |
+| **STT Word Error Rate (English)** | $\le 5.0\%$ | **0.0%** | `[SYNTHETIC]` PASS | Evaluated on Edge-TTS synthetic audio clips; real speech WER requires human corpus |
+| **STT Word Error Rate (Hinglish)** | $\le 8.0\%$ | **0.83%** | `[SYNTHETIC]` PASS | Evaluated on synthetic Edge-TTS clips conditioned on 38 Indian clinical terms. **Unmeasured on open human recordings** (no open Hinglish dataset) |
+| **STT Word Error Rate (Devanagari Hindi)** | $\le 5.0\%$ | **0.0%** | `[SYNTHETIC]` PASS | Evaluated on synthetic audio; human benchmark requires Mozilla Common Voice Hindi |
+| **Emergency Red Flag Catch Rate** | $100.0\%$ | **100.0%** | `[LOCAL]` PASS | Zero leak; 100% emergency triggers caught by deterministic breaker before LLM |
 
 ## 3. Continuous Quality and Regression Prevention
 
 Behavioral regressions are prevented through automated test gates:
-- Unit & Invariant Tests: 489 passing tests executed against a live PostgreSQL 16 container.
+- Unit & Invariant Tests: **513 collected tests** (expanded from 489 baseline on `main` with 24 new voice pipeline tests and 2 host-security tests). 100% pass when live PostgreSQL is active and manual load markers are excluded.
+- Zero Weakened Assertions: Restored canonical schema assertions in `test_knowledge_provenance.py`. Zero skipped tests in CI when dev container is up.
 - Cryptographic Audit Verification: `test_clinical_safety_and_ledger.py` verifies the SHA-256 chain integrity of the `audit_claim_ledger`.
 - Gate Mutation Verification: `test_gate_mutations.py` plants synthetic hardcoded prices and fake secret tokens to verify that safety gates fail closed before deployment.

@@ -71,7 +71,7 @@ flowchart TD
 - **Circuit Breaker Fallback**: In-process regex and keyword heuristics ensure graceful continuity if the classifier service is unavailable.
 
 ### 3. Evidence-Grounded Clinical RAG
-- **Curated Knowledge Chunks**: 478 approved/draft clinical guideline chunks in `clinical_knowledge_base` and 482 structured domain reference chunks in `knowledge_chunks` (960 total across both tables) ingested from ICMR-NIN Dietary Guidelines, WHO Hypertension Protocols, and Ministry of Ayush lifestyle advisories.
+- **Curated Knowledge Chunks**: 499 provenance-tracked chunks in `knowledge_chunks` (412 tier_1 sources, 87 tier_2 sources) `[LOCAL — verified from DB]` ingested from ICMR-NIN Dietary Guidelines, WHO Hypertension Protocols, and Ministry of Ayush lifestyle advisories. The `clinical_knowledge_base` table chunk count is separately tracked and not yet re-verified in this branch.
 - **Hybrid Retrieval**: Combines PostgreSQL Full-Text Search (`tsvector`) with trigram fuzzy matching (`pg_trgm`) over condition and dietary tags.
 - **Strict Anti-Hallucination**: Queries without clinical guideline matches default to conservative lifestyle boundaries and refuse ungrounded clinical claims.
 
