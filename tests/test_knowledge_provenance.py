@@ -24,14 +24,6 @@ def _get_db_url() -> str:
     return f"postgresql://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
 
 
-async def _connect_or_skip() -> asyncpg.Connection:
-    url = _get_db_url()
-    try:
-        return await asyncpg.connect(url, timeout=3.0)
-    except Exception as exc:
-        pytest.skip(f"Live PostgreSQL required at {url}: {exc}")
-
-
 def _as_json(val: any) -> dict:
     if isinstance(val, str):
         return json.loads(val)
@@ -41,7 +33,7 @@ def _as_json(val: any) -> dict:
 @pytest.mark.asyncio
 async def test_knowledge_sources_schema_and_tiers():
     """Verify knowledge_sources table exists with all required columns and valid trust tiers."""
-    conn = await _connect_or_skip()
+    conn = await asyncpg.connect(_get_db_url())
     try:
         sources = await conn.fetch("SELECT id, name, license, domain, trust_tier FROM knowledge_sources ORDER BY id")
         assert len(sources) >= 5, f"Expected at least 5 knowledge sources, found {len(sources)}"
@@ -62,7 +54,7 @@ async def test_knowledge_sources_schema_and_tiers():
 @pytest.mark.asyncio
 async def test_knowledge_chunks_provenance_invariant():
     """Verify that 100% of knowledge_chunks have valid foreign key provenance to knowledge_sources."""
-    conn = await _connect_or_skip()
+    conn = await asyncpg.connect(_get_db_url())
     try:
         # Check orphan chunks
         orphan_count = await conn.fetchval("""
@@ -87,7 +79,7 @@ async def test_knowledge_chunks_provenance_invariant():
 @pytest.mark.asyncio
 async def test_knowledge_chunks_fts_and_length_safety():
     """Verify that full-text vector indexing works and micro-chunks respect conciseness bounds."""
-    conn = await _connect_or_skip()
+    conn = await asyncpg.connect(_get_db_url())
     try:
         # Query via tsvector
         results = await conn.fetch("""
@@ -100,7 +92,6 @@ async def test_knowledge_chunks_fts_and_length_safety():
         assert len(results) > 0, "Expected FTS search for 'jeera | saunf' to return results"
 
         # Verify content is not empty
-        empty_count = await conn.fetchval("SELECT count(*) WHERE btrim(content) = ''") if False else 0
         empty_count = await conn.fetchval("SELECT count(*) FROM knowledge_chunks WHERE btrim(content) = ''")
         assert empty_count == 0, "Found empty content in knowledge_chunks"
     finally:
@@ -110,7 +101,7 @@ async def test_knowledge_chunks_fts_and_length_safety():
 @pytest.mark.asyncio
 async def test_product_facts_pricing_and_policies():
     """Verify that commercial pricing, channel policies, and clearance facts exist in product_facts."""
-    conn = await _connect_or_skip()
+    conn = await asyncpg.connect(_get_db_url())
     try:
         transaction = conn.transaction()
         await transaction.start()
