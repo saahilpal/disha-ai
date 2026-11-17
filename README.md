@@ -175,7 +175,19 @@ Open `http://127.0.0.1:8080` in your browser.
 
 ## Free-Tier Cloud Deployment Guide
 
-Disha AI deploys 100% on free tiers across three dedicated services:
+Disha AI is live on free tiers:
+
+- **Frontend (Vercel)**: [https://disha-ai-gray.vercel.app](https://disha-ai-gray.vercel.app) (Region: `bom1` Mumbai)
+- **Backend API (Render)**: [https://disha-ai-backend-vjo6.onrender.com](https://disha-ai-backend-vjo6.onrender.com) (Region: `singapore`)
+- **Telephony WebSocket**: `wss://disha-ai-backend-vjo6.onrender.com/ws/conversation`
+- **Database (PostgreSQL 16)**: 25 tables, clinical knowledge base, and synthetic demo patients seeded.
+
+### Verification Endpoints
+- **Health Check**: `curl https://disha-ai-backend-vjo6.onrender.com/health` → `{"ok":true,"database":true}`
+- **System Ready**: `curl https://disha-ai-backend-vjo6.onrender.com/ready` → `{"ok":true,"database":true,"classifier":true,"schema_version":"2026-11-07.v1"}`
+- **Demo Patient Profile**: `curl -H "Authorization: Bearer pt_test_cardiac_bearer_token" https://disha-ai-backend-vjo6.onrender.com/patient/profile`
+
+### Architecture Configuration
 
 1. **Frontend (Vercel)**:
    - Configured via root `vercel.json` pointing to `disha_core/frontend` in region `bom1` (Mumbai).
