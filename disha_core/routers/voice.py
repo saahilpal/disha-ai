@@ -10,7 +10,13 @@ from fastapi import APIRouter, HTTPException, WebSocket
 
 from disha_core.compliance.ledger import AuditRecord
 from disha_core.models.schemas import TurnState
-from disha_core.voice import VoiceSession, detect_turn_language, execute_voice_turn, transcribe_groq
+from disha_core.voice import (
+    VoiceSession,
+    detect_turn_language,
+    execute_voice_turn,
+    get_emergency_audio,
+    transcribe_groq,
+)
 
 router = APIRouter(tags=["Voice"])
 
@@ -137,48 +143,58 @@ async def voice(websocket: WebSocket) -> None:
             text_input = None
             is_interrupt = False
             if audio is None and message.get("text"):
-                with suppress(Exception):
+                try:
                     parsed = json.loads(message["text"])
-                    if isinstance(parsed, dict):
-                        msg_type = str(parsed.get("type", "")).strip().casefold()
-                        if msg_type in ("interrupt", "interrupted", "barge_in"):
-                            is_interrupt = True
-                        elif msg_type == "auth":
-                            with suppress(Exception):
-                                await websocket.send_json({"type": "authenticated", "patient_id": patient_id})
-                            continue
-                        elif msg_type == "ping":
-                            with suppress(Exception):
-                                await websocket.send_json({"type": "pong"})
-                            continue
-                        elif msg_type == "audio" and parsed.get("data"):
-                            import base64
+                except Exception:
+                    parsed = None
+                if isinstance(parsed, dict):
+                    msg_type = str(parsed.get("type", "")).strip().casefold()
+                    if msg_type in ("interrupt", "interrupted", "barge_in"):
+                        is_interrupt = True
+                    elif msg_type == "auth":
+                        with suppress(Exception):
+                            await websocket.send_json({"type": "authenticated", "patient_id": patient_id})
+                        continue
+                    elif msg_type == "ping":
+                        with suppress(Exception):
+                            await websocket.send_json({"type": "pong"})
+                        continue
+                    elif msg_type == "audio" and parsed.get("data"):
+                        import base64
 
-                            audio = base64.b64decode(parsed["data"])
-                        elif msg_type == "text" and parsed.get("text"):
-                            text_input = str(parsed["text"]).strip()
-                        elif msg_type in ("interim_transcript", "interim", "partial_transcript") and parsed.get("text"):
+                        audio = base64.b64decode(parsed["data"])
+                    elif msg_type == "text" and parsed.get("text"):
+                        text_input = str(parsed["text"]).strip()
+                    elif msg_type in ("interim_transcript", "interim", "partial_transcript") and parsed.get("text"):
                             interim_text = str(parsed["text"]).strip()
                             if interim_text:
                                 router = getattr(websocket.app.state, "router", None)
-                                breaker = getattr(router, "breaker", None) if router else None
-                                if breaker:
-                                    emergency = breaker.check(interim_text)
-                                    if emergency.triggered:
-                                        await cancel_active_turn()
-                                        resp_text = emergency.response or breaker.default_protocol
+                                breaker = getattr(router, "breaker", None) if router else getattr(websocket.app.state, "breaker", None)
+                                if breaker is None:
+                                    from disha_core.pipeline.breaker import EmergencyBreaker
+                                    breaker = EmergencyBreaker()
+                                emergency = breaker.check(interim_text)
+                                if emergency.triggered:
+                                    await cancel_active_turn()
+                                    resp_text = emergency.response or breaker.default_protocol
+                                    sent_lang = detect_turn_language(resp_text)
+                                    with suppress(Exception):
+                                        await websocket.send_json(
+                                            {"type": "transcript", "text": interim_text, "is_interim": True}
+                                        )
+                                        await websocket.send_json({"type": "sentence", "text": resp_text})
+                                        await websocket.send_json(
+                                            {"type": "done", "status": f"triggered:{emergency.category}"}
+                                        )
+                                    # Instant emergency audio fallback: serve pre-rendered audio without waiting for cloud TTS
+                                    em_audio = get_emergency_audio(emergency.category, resp_text, sent_lang)
+                                    if em_audio:
                                         with suppress(Exception):
-                                            await websocket.send_json(
-                                                {"type": "transcript", "text": interim_text, "is_interim": True}
-                                            )
-                                            await websocket.send_json({"type": "sentence", "text": resp_text})
-                                            await websocket.send_json(
-                                                {"type": "done", "status": f"triggered:{emergency.category}"}
-                                            )
-                                        sent_lang = detect_turn_language(resp_text)
+                                            await websocket.send_bytes(em_audio)
+                                    else:
                                         with suppress(Exception):
                                             await session.speak(resp_text, websocket.send_bytes, language=sent_lang)
-                                        continue
+                            continue
 
             if is_interrupt:
                 await cancel_active_turn()

@@ -64,7 +64,13 @@ from disha_core.services.auth_service import (
     register_patient,
 )
 from disha_core.services.patient_service import fetch_patient_profile, update_patient_profile
-from disha_core.voice import VoiceSession, detect_turn_language, execute_voice_turn, transcribe_groq
+from disha_core.voice import (
+    VoiceSession,
+    detect_turn_language,
+    execute_voice_turn,
+    get_emergency_audio,
+    transcribe_groq,
+)
 
 MAX_VOICE_TURN_BYTES = 10 * 1024 * 1024  # 10 MB limit for voice turns
 logger = logging.getLogger(__name__)
@@ -222,13 +228,23 @@ def create_app() -> FastAPI:
     app.state.today_ist = lambda: datetime.now(ZoneInfo("Asia/Kolkata")).strftime("%A").casefold()
 
     # CORS configuration
-    origins = [v.strip() for v in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",") if v.strip()]
+    origins_raw = os.getenv("CORS_ALLOWED_ORIGINS", "")
+    origins = [v.strip() for v in origins_raw.split(",") if v.strip()]
     if origins:
         app.add_middleware(
             CORSMiddleware,
             allow_origins=origins,
-            allow_methods=["GET", "POST", "PUT"],
-            allow_headers=["Authorization", "Content-Type"],
+            allow_credentials=True,
+            allow_methods=["GET", "POST", "PUT", "OPTIONS", "HEAD"],
+            allow_headers=["*"],
+        )
+    else:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=["*"],
+            allow_credentials=False,
+            allow_methods=["GET", "POST", "PUT", "OPTIONS", "HEAD"],
+            allow_headers=["*"],
         )
 
     # Request body size limiter middleware (Max 2 MB for standard JSON payloads)
@@ -965,24 +981,38 @@ def create_app() -> FastAPI:
                                 interim_text = str(parsed["text"]).strip()
                                 if interim_text:
                                     router = getattr(websocket.app.state, "router", None)
-                                    breaker = getattr(router, "breaker", None) if router else None
-                                    if breaker:
-                                        emergency = breaker.check(interim_text)
-                                        if emergency.triggered:
-                                            await cancel_active_turn()
-                                            resp_text = emergency.response or breaker.default_protocol
+                                    breaker = (
+                                        getattr(router, "breaker", None)
+                                        if router
+                                        else getattr(websocket.app.state, "breaker", None)
+                                    )
+                                    if breaker is None:
+                                        from disha_core.pipeline.breaker import EmergencyBreaker
+
+                                        breaker = EmergencyBreaker()
+                                    emergency = breaker.check(interim_text)
+                                    if emergency.triggered:
+                                        await cancel_active_turn()
+                                        resp_text = emergency.response or breaker.default_protocol
+                                        sent_lang = detect_turn_language(resp_text)
+                                        with suppress(Exception):
+                                            await websocket.send_json(
+                                                {"type": "transcript", "text": interim_text, "is_interim": True}
+                                            )
+                                            await websocket.send_json({"type": "sentence", "text": resp_text})
+                                            await websocket.send_json(
+                                                {"type": "done", "status": f"triggered:{emergency.category}"}
+                                            )
+                                        # Instant emergency audio fallback: serve pre-rendered audio without waiting for cloud TTS
+                                        em_audio = get_emergency_audio(emergency.category, resp_text, sent_lang)
+                                        if em_audio:
                                             with suppress(Exception):
-                                                await websocket.send_json(
-                                                    {"type": "transcript", "text": interim_text, "is_interim": True}
-                                                )
-                                                await websocket.send_json({"type": "sentence", "text": resp_text})
-                                                await websocket.send_json(
-                                                    {"type": "done", "status": f"triggered:{emergency.category}"}
-                                                )
-                                            sent_lang = detect_turn_language(resp_text)
+                                                await websocket.send_bytes(em_audio)
+                                        else:
                                             with suppress(Exception):
                                                 await session.speak(resp_text, websocket.send_bytes, language=sent_lang)
-                                            continue
+                                        continue
+                                continue
 
                 if is_interrupt:
                     await cancel_active_turn()

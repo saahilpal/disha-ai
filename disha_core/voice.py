@@ -16,8 +16,59 @@ from urllib.parse import urlsplit
 
 logger = logging.getLogger("disha_core.voice")
 
-HINDI_VOICE = "hi-IN-SwaraNeural"
-ENGLISH_VOICE = "en-IN-NeerjaNeural"
+HINDI_VOICE = os.getenv("EDGE_TTS_HINDI_VOICE", "hi-IN-SwaraNeural")
+ENGLISH_VOICE = os.getenv("EDGE_TTS_ENGLISH_VOICE", "en-IN-NeerjaNeural")
+ENGLISH_EXPRESSIVE_VOICE = "en-IN-NeerjaExpressiveNeural"
+
+# Pre-rendered emergency spoken audio clips directory & in-memory cache
+EMERGENCY_AUDIO_DIR = Path(__file__).parent / "data" / "emergency_audio"
+EMERGENCY_AUDIO_CACHE: dict[str, bytes] = {}
+
+
+def load_emergency_audio_cache() -> None:
+    """Pre-load pre-rendered emergency spoken audio clips into memory for instant (<15ms) playback."""
+    if not EMERGENCY_AUDIO_DIR.exists():
+        return
+    for audio_file in EMERGENCY_AUDIO_DIR.glob("*.mp3"):
+        try:
+            EMERGENCY_AUDIO_CACHE[audio_file.stem] = audio_file.read_bytes()
+        except Exception as exc:
+            logger.warning("Failed to load emergency audio clip %s: %s", audio_file, exc)
+
+
+def get_emergency_audio(
+    category: str | None = None,
+    text: str | None = None,
+    language: str | None = None,
+) -> bytes | None:
+    """Retrieve pre-rendered spoken audio for emergency red flags without waiting for cloud TTS."""
+    if not EMERGENCY_AUDIO_CACHE:
+        load_emergency_audio_cache()
+
+    lang = detect_turn_language(text or "", language)
+    if lang == "en" and "default_en" in EMERGENCY_AUDIO_CACHE:
+        return EMERGENCY_AUDIO_CACHE["default_en"]
+
+    if category:
+        clean_cat = category.strip().upper()
+        if clean_cat in EMERGENCY_AUDIO_CACHE:
+            return EMERGENCY_AUDIO_CACHE[clean_cat]
+
+    return EMERGENCY_AUDIO_CACHE.get("default")
+
+
+# Pre-load emergency audio at module initialization
+load_emergency_audio_cache()
+
+# Groq Whisper prompt vocabulary conditioning for Indian clinical, vitals & dietary terms
+GROQ_WHISPER_PROMPT_VOCABULARY = (
+    "Disha clinical consultation in India. Patient discussing health, symptoms, diet, vitals, medications: "
+    "Namaste, blood pressure, hypertension, diabetes, sugar, HbA1c, thyroid, PCOS, ECG, creatinine. "
+    "Dietary items: khichdi, daliya, poha, upma, moong dal, roti, sabzi, dahi, chaas, paneer, sprouts, "
+    "makhana, jeera, saunf, ajwain, methi, haldi, tulsi, adrak, karela, amla, ragi, bajra. "
+    "Symptoms & terms: pet dard, chaati me dard, seene me dard, saans phoolna, ghabrahat, chakkar, "
+    "kamzori, thakan, kabz, acidity, gas, jalan, bukhar, khansi, tablet, dawai, goli, khali pet."
+)
 
 QWEN3_DEFAULT_VOICE = "disha-warm-hinglish"
 QWEN3_DEFAULT_MODEL = "qwen3-tts"
@@ -436,6 +487,18 @@ async def transcribe_groq(
     if is_silent_audio(audio):
         raise RuntimeError(f"{backend} Whisper returned an empty transcript (empty or silent audio frame filtered)")
 
+    actual_filename = filename
+    actual_content_type = content_type
+    if audio.startswith(b"RIFF") and len(audio) > 12 and audio[8:12] == b"WAVE":
+        actual_filename = "turn.wav"
+        actual_content_type = "audio/wav"
+    elif audio.startswith(b"\x1a\x45\xdf\xa3"):
+        actual_filename = "turn.webm"
+        actual_content_type = "audio/webm"
+    elif audio.startswith(b"OggS"):
+        actual_filename = "turn.ogg"
+        actual_content_type = "audio/ogg"
+
     try:
         import httpx
     except ImportError as exc:
@@ -443,7 +506,13 @@ async def transcribe_groq(
     factory = client_factory or httpx.AsyncClient
     headers = {"Authorization": f"Bearer {key}"} if key else {}
     async with factory(timeout=timeout) as client:
-        stt_data: dict[str, Any] = {"model": model, "response_format": "json"}
+        indian_health_prompt = os.getenv("GROQ_STT_PROMPT", GROQ_WHISPER_PROMPT_VOCABULARY)
+        stt_data: dict[str, Any] = {
+            "model": model,
+            "response_format": "json",
+            "temperature": 0.0,
+            "prompt": indian_health_prompt,
+        }
         if language:
             lang_clean = str(language).lower()
             if lang_clean in ("hi", "hindi", "hinglish"):
@@ -454,7 +523,7 @@ async def transcribe_groq(
         response = await client.post(
             url,
             headers=headers,
-            files={"file": (filename, audio, content_type)},
+            files={"file": (actual_filename, audio, actual_content_type)},
             data=stt_data,
         )
     if response.status_code >= 400:
@@ -771,6 +840,15 @@ async def execute_voice_turn(
             await send_json({"type": "sentence", "text": sentence})
         if send_audio is not None:
             sent_lang = detect_turn_language(sentence, language_hint=turn_lang)
+            # Instant emergency audio fallback: deliver pre-rendered emergency audio without cloud TTS latency
+            if turn_state.breaker_status and turn_state.breaker_status.startswith("triggered:"):
+                cat = turn_state.breaker_status.split(":", 1)[1]
+                em_audio = get_emergency_audio(cat, sentence, sent_lang)
+                if em_audio:
+                    result = send_audio(em_audio)
+                    if inspect.isawaitable(result):
+                        await result
+                    continue
             await session.speak(sentence, send_audio, language=sent_lang)
 
     if send_json is not None:

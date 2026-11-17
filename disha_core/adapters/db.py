@@ -27,6 +27,13 @@ async def create_database_pool(
         logger.warning("asyncpg not installed; database pool unavailable")
         return None
 
+    statement_cache_size = int(
+        os.getenv(
+            "PG_STATEMENT_CACHE_SIZE",
+            "0" if (database_url and ("6543" in database_url or "pooler" in database_url)) else "100",
+        )
+    )
+
     last_error: Exception | None = None
     for attempt in range(1, retries + 1):
         try:
@@ -39,8 +46,14 @@ async def create_database_pool(
                     command_timeout=command_timeout,
                     max_inactive_connection_lifetime=max_inactive_connection_lifetime,
                     max_queries=50000,
+                    statement_cache_size=statement_cache_size,
                 )
-                logger.info("Database connection pool initialized (min=%d, max=%d)", min_size, max_size)
+                logger.info(
+                    "Database connection pool initialized (min=%d, max=%d, stmt_cache=%d)",
+                    min_size,
+                    max_size,
+                    statement_cache_size,
+                )
                 return pool
 
             required = ("DB_HOST", "DB_NAME", "DB_USER", "DB_PASSWORD")
@@ -57,8 +70,14 @@ async def create_database_pool(
                     command_timeout=command_timeout,
                     max_inactive_connection_lifetime=max_inactive_connection_lifetime,
                     max_queries=50000,
+                    statement_cache_size=statement_cache_size,
                 )
-                logger.info("Database connection pool initialized (min=%d, max=%d)", min_size, max_size)
+                logger.info(
+                    "Database connection pool initialized (min=%d, max=%d, stmt_cache=%d)",
+                    min_size,
+                    max_size,
+                    statement_cache_size,
+                )
                 return pool
             break
         except Exception as exc:

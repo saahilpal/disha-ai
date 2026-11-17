@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: disha-ai-backend
+    runtime: python
+    region: singapore
+    plan: free
+    buildCommand: pip install -U pip setuptools wheel && pip install -e .
+    startCommand: uvicorn disha_core.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0
+      - key: ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_HEALTH_DATA_AUTHORIZED
+        value: "true"
+      - key: GEMINI_HEALTH_DATA_AUTHORIZED
+        value: "true"
+      - key: GROQ_HEALTH_DATA_PROCESSING_APPROVED
+        value: "true"
+      - key: EDGE_TTS_HEALTH_DATA_PROCESSING_APPROVED
+        value: "true"
+      - key: TTS_ENGINE
+        value: "edge-tts"
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: ADMIN_API_KEY
+        sync: false
+      - key: LOCAL_ONLY
+        value: "false"
+      - key: PG_STATEMENT_CACHE_SIZE
+        value: "0"

@@ -14,6 +14,7 @@ from disha_core.models.schemas import TurnRequest, TurnState
 from disha_core.pipeline.validator import SentenceValidator
 from disha_core.voice import (
     ENGLISH_VOICE,
+    GROQ_WHISPER_PROMPT_VOCABULARY,
     HINDI_VOICE,
     QWEN3_DEFAULT_MODEL,
     QWEN3_DEFAULT_VOICE,
@@ -21,6 +22,7 @@ from disha_core.voice import (
     VoiceSession,
     detect_turn_language,
     execute_voice_turn,
+    get_emergency_audio,
     is_hindi_turn,
     is_silence_hallucination,
     is_silent_audio,
@@ -658,3 +660,188 @@ class VoicePipelineTests(IsolatedAsyncioTestCase):
                 ws.send_json({"type": "barge_in"})
                 interrupt_frame = ws.receive_json()
                 self.assertEqual(interrupt_frame["type"], "interrupted")
+
+    async def test_groq_whisper_prompt_vocabulary_conditioning(self) -> None:
+        """Verify transcribe_groq conditions Groq Whisper with Indian clinical and dietary vocabulary."""
+        last_request_data = {}
+
+        class MockPostResponse:
+            status_code = 200
+
+            def json(self):
+                return {"text": "Aap subah khichdi aur daliya lijiye."}
+
+        class MockClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+            async def post(self, url, headers=None, files=None, data=None):
+                last_request_data["url"] = url
+                last_request_data["data"] = data
+                last_request_data["files"] = files
+                return MockPostResponse()
+
+        dummy_audio = b"\x1a\x45\xdf\xa3" + bytes(range(200))
+        with patch.dict(
+            "os.environ",
+            {
+                "GROQ_HEALTH_DATA_PROCESSING_APPROVED": "true",
+                "GROQ_API_KEY": "gsk-mock-key-for-test",
+            },
+        ):
+            transcript = await transcribe_groq(dummy_audio, client_factory=lambda **_: MockClient())
+            self.assertIn("khichdi", transcript)
+            self.assertIn("prompt", last_request_data["data"])
+            prompt_val = last_request_data["data"]["prompt"]
+            self.assertIn("khichdi", prompt_val)
+            self.assertIn("daliya", prompt_val)
+            self.assertIn("pet dard", prompt_val)
+            self.assertIn("jeera", prompt_val)
+            self.assertIn("saunf", prompt_val)
+
+    async def test_groq_whisper_auto_detects_wav_container(self) -> None:
+        """Verify transcribe_groq detects RIFF WAVE magic header and sets audio/wav content type."""
+        last_files = {}
+
+        class MockPostResponse:
+            status_code = 200
+
+            def json(self):
+                return {"text": "Namaste doctor."}
+
+        class MockClient:
+            async def __aenter__(self):
+                return self
+
+            async def __aexit__(self, *args):
+                pass
+
+            async def post(self, url, headers=None, files=None, data=None):
+                last_files.update(files or {})
+                return MockPostResponse()
+
+        # Simulated WAV buffer with valid RIFF header and audible RMS energy
+        pcm_samples = (500).to_bytes(2, "little", signed=True) * 200
+        wav_audio = (
+            b"RIFF"
+            + (44 + len(pcm_samples) - 8).to_bytes(4, "little")
+            + b"WAVEfmt \x10\x00\x00\x00\x01\x00\x01\x00\x80>\x00\x00\x00}\x00\x00\x02\x00\x10\x00data"
+            + len(pcm_samples).to_bytes(4, "little")
+            + pcm_samples
+        )
+
+        with patch.dict(
+            "os.environ",
+            {
+                "GROQ_HEALTH_DATA_PROCESSING_APPROVED": "true",
+                "GROQ_API_KEY": "gsk-mock-key-for-test",
+            },
+        ):
+            transcript = await transcribe_groq(wav_audio, client_factory=lambda **_: MockClient())
+            self.assertEqual(transcript, "Namaste doctor.")
+            file_tuple = last_files["file"]
+            self.assertEqual(file_tuple[0], "turn.wav")
+            self.assertEqual(file_tuple[2], "audio/wav")
+
+    def test_emergency_audio_fallback_retrieval(self) -> None:
+        """Verify get_emergency_audio returns pre-rendered audio buffers without cloud latency."""
+        audio_cardio = get_emergency_audio(category="CARDIOVASCULAR")
+        self.assertIsNotNone(audio_cardio)
+        self.assertGreater(len(audio_cardio), 1000)
+
+        audio_default = get_emergency_audio()
+        self.assertIsNotNone(audio_default)
+        self.assertGreater(len(audio_default), 1000)
+
+        audio_en = get_emergency_audio(text="Please call 911 or 112 emergency", language="en")
+        self.assertIsNotNone(audio_en)
+        self.assertGreater(len(audio_en), 1000)
+
+    async def test_execute_voice_turn_emergency_audio_delivery_without_cloud_tts(self) -> None:
+        """Verify execute_voice_turn delivers pre-rendered emergency audio without invoking cloud TTS."""
+        mock_ws = SimpleNamespace(
+            app=SimpleNamespace(
+                state=SimpleNamespace(
+                    harness=SimpleNamespace(
+                        execute_turn=self._mock_emergency_harness_turn,
+                    )
+                )
+            )
+        )
+        audio_chunks_received = []
+
+        async def mock_send_audio(chunk: bytes):
+            audio_chunks_received.append(chunk)
+
+        speak_called = False
+
+        async def fake_speak(*args, **kwargs):
+            nonlocal speak_called
+            speak_called = True
+
+        session = VoiceSession()
+        session.speak = fake_speak
+
+        turn_state = TurnState()
+        sentences = await execute_voice_turn(
+            mock_ws,
+            "patient-emergency",
+            "Mujhe severe chest pain hai",
+            session,
+            send_audio=mock_send_audio,
+            state=turn_state,
+        )
+
+        # Emergency audio delivered directly
+        self.assertFalse(speak_called, "Cloud TTS speak() should NOT be called on emergency red flag")
+        self.assertEqual(len(audio_chunks_received), 1)
+        self.assertGreater(len(audio_chunks_received[0]), 1000)
+
+    async def _mock_emergency_harness_turn(self, request, patient_id, payload, legacy_state=None, turn_context=None):
+        if legacy_state is not None:
+            legacy_state.breaker_status = "triggered:CARDIOVASCULAR"
+            legacy_state.validator_status = "triggered:CARDIOVASCULAR"
+        yield "Yeh emergency ho sakti hai. Abhi 112 par call karein ya kisi paas ke vyakti se call karne ko kahein."
+
+    def test_websocket_interim_emergency_instant_audio_delivery(self) -> None:
+        """Verify WebSocket receives instant pre-rendered emergency audio when interim red flag triggers."""
+        from fastapi.testclient import TestClient
+
+        app = app_main.create_app()
+
+        with (
+            patch.object(app_main, "_authenticated_patient", return_value="pt_emergency_test"),
+        ):
+            client = TestClient(app)
+            with client.websocket_connect("/voice?token=valid_tok") as ws:
+                # Send interim transcript with severe red flag
+                ws.send_json({
+                    "type": "interim_transcript",
+                    "text": "Mujhe bohot tezz seene me dard ho raha hai aur chakkar aa raha hai",
+                })
+
+                # Expect interruption frame to immediately cancel client playback
+                frame_interrupt = ws.receive_json()
+                self.assertEqual(frame_interrupt["type"], "interrupted")
+
+                # Expect transcript confirmation
+                frame1 = ws.receive_json()
+                self.assertEqual(frame1["type"], "transcript")
+                self.assertTrue(frame1["is_interim"])
+
+                # Expect emergency sentence
+                frame2 = ws.receive_json()
+                self.assertEqual(frame2["type"], "sentence")
+                self.assertIn("112", frame2["text"])
+
+                # Expect done status with triggered category
+                frame3 = ws.receive_json()
+                self.assertEqual(frame3["type"], "done")
+                self.assertTrue(frame3["status"].startswith("triggered:"))
+
+                # Expect pre-rendered binary audio bytes delivered immediately!
+                audio_bytes = ws.receive_bytes()
+                self.assertGreater(len(audio_bytes), 1000)

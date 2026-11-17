@@ -44,7 +44,9 @@
     currentHtmlAudio: null,
     mediaRecorder: null,
     audioChunks: [],
+    preRollBuffer: [],
     isRecording: false,
+    isRecordingSpeech: false,
     audioQueue: [],
     isPlayingAudio: false,
     micStream: null,
@@ -200,6 +202,16 @@
     globalAlert: typeof document !== 'undefined' ? document.getElementById('global-alert') : null,
     alertContent: typeof document !== 'undefined' ? document.getElementById('alert-content') : null,
     alertDismiss: typeof document !== 'undefined' ? document.querySelector('.alert-dismiss') : null,
+
+    // Banners & Guided Error Controls
+    warmupBanner: typeof document !== 'undefined' ? document.getElementById('warmup-banner') : null,
+    warmupBannerText: typeof document !== 'undefined' ? document.getElementById('warmup-banner-text') : null,
+    warmupDismissBtn: typeof document !== 'undefined' ? document.getElementById('warmup-dismiss-btn') : null,
+    micPermissionBanner: typeof document !== 'undefined' ? document.getElementById('mic-permission-banner') : null,
+    useTextChatFallbackBtn: typeof document !== 'undefined' ? document.getElementById('use-text-chat-fallback-btn') : null,
+    micPermDismissBtn: typeof document !== 'undefined' ? document.getElementById('mic-perm-dismiss-btn') : null,
+    speechFallbackCard: typeof document !== 'undefined' ? document.getElementById('speech-recognition-fallback-card') : null,
+    speechFallbackTextBtn: typeof document !== 'undefined' ? document.getElementById('speech-fallback-text-btn') : null,
 
     // Tabs
     tabLogin: typeof document !== 'undefined' ? document.getElementById('tab-login') : null,
@@ -519,6 +531,7 @@
     dom.alertContent.textContent = msg;
     if (isEmergency) {
       dom.globalAlert.className = 'alert-banner alert-emergency';
+      speakEmergencyFallback(msg);
     } else {
       dom.globalAlert.className = 'alert-banner alert-toast-sage';
       alertDismissTimer = setTimeout(() => {
@@ -534,6 +547,154 @@
         alertDismissTimer = null;
       }
       if (dom.globalAlert) dom.globalAlert.style.display = 'none';
+    });
+  }
+
+  // --- EMERGENCY SPEECH SYNTHESIS FALLBACK ---
+  function speakEmergencyFallback(text) {
+    if (typeof window === 'undefined' || !window.speechSynthesis || !text) return false;
+    try {
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.rate = 0.95;
+      utterance.pitch = 1.0;
+      const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+      const voice = voices.find(v => v.lang && (v.lang.startsWith('hi') || v.lang.includes('IN'))) || voices[0];
+      if (voice) utterance.voice = voice;
+      utterance.onstart = () => {
+        setTelephonyStatus('speaking');
+        state.isPlayingAudio = true;
+      };
+      utterance.onend = () => {
+        state.isPlayingAudio = false;
+        if (state.isInCall) setTelephonyStatus('listening');
+      };
+      utterance.onerror = () => {
+        state.isPlayingAudio = false;
+        if (state.isInCall) setTelephonyStatus('listening');
+      };
+      window.speechSynthesis.speak(utterance);
+      console.info('[Disha Voice] Browser speechSynthesis fallback active for emergency response.');
+      return true;
+    } catch (err) {
+      console.warn('[Disha Voice] SpeechSynthesis fallback error:', err);
+      return false;
+    }
+  }
+
+  // --- RENDER BACKEND WARMUP CHECKER ---
+  async function checkBackendWarmup() {
+    const warmupBanner = dom.warmupBanner || (typeof document !== 'undefined' ? document.getElementById('warmup-banner') : null);
+    const warmupText = dom.warmupBannerText || (typeof document !== 'undefined' ? document.getElementById('warmup-banner-text') : null);
+    const config = getBackendConfig();
+    const healthUrl = `${config.httpBase}/health`;
+
+    let isResolved = false;
+    const warmupTimer = setTimeout(() => {
+      if (!isResolved && warmupBanner) {
+        warmupBanner.style.display = 'flex';
+        if (warmupText) {
+          warmupText.textContent = 'Waking up backend server (Render free-tier cold start, ~30s)... Ready shortly.';
+        }
+        if (state.telephonyStatus === 'idle' || state.telephonyStatus === 'ready' || state.telephonyStatus === 'connecting') {
+          setTelephonyStatus('waking up');
+        }
+      }
+    }, 1200);
+
+    try {
+      const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      const timeoutId = controller ? setTimeout(() => controller.abort(), 45000) : null;
+      const resp = await fetch(healthUrl, {
+        method: 'GET',
+        signal: controller ? controller.signal : undefined,
+        headers: { 'Accept': 'application/json' }
+      });
+      if (timeoutId) clearTimeout(timeoutId);
+      isResolved = true;
+      clearTimeout(warmupTimer);
+
+      if (resp.ok) {
+        if (warmupBanner && warmupBanner.style.display !== 'none') {
+          if (warmupText) warmupText.textContent = 'Backend ready! All services connected.';
+          setTimeout(() => {
+            if (warmupBanner) warmupBanner.style.display = 'none';
+          }, 2500);
+        }
+        if (state.telephonyStatus === 'waking up' || state.telephonyStatus === 'idle') {
+          setTelephonyStatus('ready');
+        }
+        return true;
+      } else {
+        throw new Error(`Health check returned status ${resp.status}`);
+      }
+    } catch (err) {
+      isResolved = true;
+      clearTimeout(warmupTimer);
+      if (warmupBanner) {
+        warmupBanner.style.display = 'flex';
+        if (warmupText) {
+          warmupText.textContent = 'Waking up backend server (Render free-tier cold start, ~30s)... Ready shortly.';
+        }
+      }
+      return false;
+    }
+  }
+
+  // --- GUIDED MIC PERMISSION & SPEECH FALLBACK HELPERS ---
+  function showMicPermissionError() {
+    const banner = dom.micPermissionBanner || (typeof document !== 'undefined' ? document.getElementById('mic-permission-banner') : null);
+    if (banner) banner.style.display = 'flex';
+    setTelephonyStatus('error');
+    updateLiveCaptions('system', 'Microphone access is blocked. Switch to text chat anytime.');
+  }
+
+  function hideMicPermissionError() {
+    const banner = dom.micPermissionBanner || (typeof document !== 'undefined' ? document.getElementById('mic-permission-banner') : null);
+    if (banner) banner.style.display = 'none';
+  }
+
+  function showSpeechRecognitionFallback() {
+    const card = dom.speechFallbackCard || (typeof document !== 'undefined' ? document.getElementById('speech-recognition-fallback-card') : null);
+    if (card) card.style.display = 'flex';
+    updateLiveCaptions('system', "I didn't quite catch that. Feel free to speak again or use text chat.");
+  }
+
+  function hideSpeechRecognitionFallback() {
+    const card = dom.speechFallbackCard || (typeof document !== 'undefined' ? document.getElementById('speech-recognition-fallback-card') : null);
+    if (card) card.style.display = 'none';
+  }
+
+  if (dom.warmupDismissBtn) {
+    dom.warmupDismissBtn.addEventListener('click', () => {
+      const banner = dom.warmupBanner || (typeof document !== 'undefined' ? document.getElementById('warmup-banner') : null);
+      if (banner) banner.style.display = 'none';
+    });
+  }
+
+  if (dom.useTextChatFallbackBtn) {
+    dom.useTextChatFallbackBtn.addEventListener('click', () => {
+      hideMicPermissionError();
+      if (state.isInCall) endCall();
+      navigate('#/chat');
+      const inputEl = dom.userTextInput || (typeof document !== 'undefined' ? document.getElementById('user-text-input') : null);
+      if (inputEl) inputEl.focus();
+    });
+  }
+
+  if (dom.micPermDismissBtn) {
+    dom.micPermDismissBtn.addEventListener('click', () => {
+      hideMicPermissionError();
+    });
+  }
+
+  if (dom.speechFallbackTextBtn) {
+    dom.speechFallbackTextBtn.addEventListener('click', () => {
+      hideSpeechRecognitionFallback();
+      if (state.isInCall) endCall();
+      navigate('#/chat');
+      const inputEl = dom.userTextInput || (typeof document !== 'undefined' ? document.getElementById('user-text-input') : null);
+      if (inputEl) inputEl.focus();
     });
   }
 
@@ -1612,17 +1773,35 @@
     }
 
     if (data.type === 'transcript') {
+      hideSpeechRecognitionFallback();
       if (data.is_text_echo || (state.transcriptHistory && state.transcriptHistory.length && state.transcriptHistory[state.transcriptHistory.length - 1].role === 'user' && state.transcriptHistory[state.transcriptHistory.length - 1].text === data.text)) {
-        setTelephonyStatus('processing');
+        setTelephonyStatus('thinking');
         return;
       }
       appendChatMessage('user', data.text);
       updateLiveCaptions('user', data.text);
-      setTelephonyStatus('processing');
+      setTelephonyStatus('thinking');
     } else if (data.type === 'sentence') {
+      hideSpeechRecognitionFallback();
       appendChatMessage('assistant', data.text, 'Validated & Grounded');
       updateLiveCaptions('assistant', data.text);
       setTelephonyStatus('speaking');
+
+      const isEmergency = Boolean(
+        data.emergency ||
+        (data.status && String(data.status).startsWith('triggered:')) ||
+        (data.text && /\b(112|ambulance|emergency|chest pain|heart attack|acute breathlessness)\b/i.test(data.text))
+      );
+      if (isEmergency) {
+        state.lastEmergencyText = data.text;
+        // Emergency TTS Watchdog: if cloud audio fails to arrive within 1500ms or is offline, invoke browser speechSynthesis
+        if (state.emergencyTtsTimer) clearTimeout(state.emergencyTtsTimer);
+        state.emergencyTtsTimer = setTimeout(() => {
+          if (state.audioQueue.length === 0 && !state.isPlayingAudio && state.lastEmergencyText) {
+            speakEmergencyFallback(state.lastEmergencyText);
+          }
+        }, 1500);
+      }
     } else if (data.type === 'done') {
       setTextTurnPending(false);
       applyMessageProvenance(state.lastAssistantMessageElement, state.lastAssistantHistoryEntry, data);
@@ -1637,17 +1816,36 @@
         dom.latestMerkleHash.textContent = truncated;
         dom.latestMerkleHash.title = rawHash;
       }
+
+      const isEmergencyDone = Boolean(
+        data.emergency ||
+        (data.status && String(data.status).startsWith('triggered:')) ||
+        data.category === 'emergency'
+      );
+      if (isEmergencyDone && state.lastEmergencyText && state.audioQueue.length === 0 && !state.isPlayingAudio) {
+        speakEmergencyFallback(state.lastEmergencyText);
+      }
+
       if (!state.isPlayingAudio) {
         setTelephonyStatus('listening');
       }
     } else if (data.type === 'silence') {
+      showSpeechRecognitionFallback();
       if (!state.isPlayingAudio && state.isInCall) {
         setTelephonyStatus('listening');
       }
     } else if (data.type === 'error') {
       setTextTurnPending(false);
-      showAlert(data.message || 'Consultation error');
-      setTelephonyStatus('listening');
+      const isSpeechFail = data.message && (
+        /silence|did not hear|not recognized|no speech|understand/i.test(data.message)
+      );
+      if (isSpeechFail) {
+        showSpeechRecognitionFallback();
+        setTelephonyStatus('listening');
+      } else {
+        showAlert(data.message || 'Consultation error');
+        setTelephonyStatus('error');
+      }
     }
   }
 
@@ -2042,28 +2240,42 @@
     const statusPillEl = dom.telephonyStatusPill || (typeof document !== 'undefined' ? document.getElementById('telephony-status-pill') : null);
     if (!statusTextEl || !statusPillEl) return;
 
+    const normalizedClass = String(status).toLowerCase().trim().replace(/[\s_]+/g, '-');
     const dot = statusPillEl.querySelector('.indicator-dot');
-    if (dot) dot.className = `indicator-dot ${status}`;
+    if (dot) dot.className = `indicator-dot ${normalizedClass}`;
 
     if (dom.spectrumBars) {
       dom.spectrumBars.className = 'spectrum-bars';
-      if (status === 'listening') dom.spectrumBars.classList.add('active-listening');
-      else if (status === 'speaking') dom.spectrumBars.classList.add('active-speaking');
-      else if (status === 'interrupting' || status === 'interrupted') dom.spectrumBars.classList.add('active-interrupting');
+      if (normalizedClass === 'listening') dom.spectrumBars.classList.add('active-listening');
+      else if (normalizedClass === 'hearing-you') dom.spectrumBars.classList.add('active-hearing-you');
+      else if (normalizedClass === 'speaking') dom.spectrumBars.classList.add('active-speaking');
+      else if (normalizedClass === 'thinking' || normalizedClass === 'processing') dom.spectrumBars.classList.add('active-thinking');
+      else if (normalizedClass === 'interrupted' || normalizedClass === 'interrupting') dom.spectrumBars.classList.add('active-interrupting');
     }
 
     const labels = {
       idle: 'Ready for consultation',
+      ready: 'Ready',
       connecting: 'Connecting to Disha Core...',
+      'waking up': 'Waking up...',
+      waking_up: 'Waking up...',
+      'waking-up': 'Waking up...',
       listening: 'Listening...',
+      'hearing you': 'Hearing you...',
+      hearing_you: 'Hearing you...',
+      'hearing-you': 'Hearing you...',
+      thinking: 'Thinking...',
       processing: 'Processing...',
       speaking: 'Disha speaking...',
       interrupting: 'Interrupted...',
       interrupted: 'Interrupted...',
+      offline: 'Offline',
+      error: 'Error',
       muted: 'Microphone muted',
       ended: 'Call ended',
     };
-    statusTextEl.textContent = labels[status] || 'Ready for consultation';
+    const normKey = String(status).toLowerCase().trim();
+    statusTextEl.textContent = labels[normKey] || labels[normalizedClass] || 'Ready for consultation';
   }
 
   // Primary Call Action Button Click Handler
@@ -2080,7 +2292,8 @@
       try {
         const permStatus = await navigator.permissions.query({ name: 'microphone' });
         if (permStatus && permStatus.state === 'denied') {
-          showAlert('Microphone permission is blocked in your browser settings. Please allow microphone access in your browser address bar permissions, then click Start Voice Consultation again.');
+          showMicPermissionError();
+          showAlert('Microphone permission is blocked in your browser settings. Please allow microphone access or use text chat.', false);
           return;
         }
       } catch (permErr) {
@@ -2180,11 +2393,14 @@
       updateLiveCaptions('system', 'Listening… speak naturally.');
     } catch (err) {
       if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
-        showAlert('Microphone permission denied. Please allow microphone access in your browser address bar permissions, then click Start Voice Consultation again.');
+        showMicPermissionError();
+        showAlert('Microphone permission denied. Switch to text chat anytime.', false);
       } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
-        showAlert('No microphone device detected. Please connect an audio input device (headset or mic) and try again.');
+        showMicPermissionError();
+        showAlert('No microphone device detected. Connect a mic or use text chat.', false);
       } else {
         showAlert('Microphone or connection access denied: ' + err.message);
+        setTelephonyStatus('error');
       }
       endCall();
     }
@@ -2413,17 +2629,25 @@
 
       const bufferLength = analyser.frequencyBinCount || 0;
       const dataArray = new Uint8Array(bufferLength);
-      const ENERGY_THRESHOLD = 12;
-      const BARGE_IN_THRESHOLD = 40;
+      // Dynamic Adaptive Noise Floor Calibration & Hangover Control
+      let adaptiveNoiseFloor = 10.0;
+      const MIN_NOISE_FLOOR = 6.0;
+      const MAX_NOISE_FLOOR = 32.0;
+      const NOISE_EMA_ALPHA = 0.03; // Smooth background noise tracking
+      const SPEECH_SNR_OFFSET = 8.0; // Required SNR above noise floor for speech onset
+      const BARGE_IN_SNR_OFFSET = 20.0; // Required SNR above noise floor for barge-in
+      const VAD_SILENCE_HANGOVER_MS = 500; // Calibrated 500ms hangover timeout (reduced from 850ms)
       let silenceTimer = null;
 
-      // Real-time MediaRecorder for speech capture
+      // Real-time MediaRecorder for speech capture with 200ms audio pre-roll buffer
       if (typeof MediaRecorder !== 'undefined' && stream) {
         try {
           if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
             try { state.mediaRecorder.stop(); } catch (e) {}
           }
           let chunks = [];
+          state.preRollBuffer = []; // 200ms audio pre-roll buffer
+          const PRE_ROLL_MAX_CHUNKS = 2; // ~200ms rolling window with 100ms timeslices
           let mimeType = 'audio/webm;codecs=opus';
           if (!MediaRecorder.isTypeSupported(mimeType)) {
             mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : '';
@@ -2432,15 +2656,31 @@
           state.mediaRecorder = recorder;
 
           recorder.ondataavailable = (e) => {
-            if (e.data && e.data.size > 0) chunks.push(e.data);
+            if (e.data && e.data.size > 0) {
+              chunks.push(e.data);
+              // Maintain 200ms pre-roll rolling window so initial speech syllables are never clipped
+              if (!state.isRecordingSpeech) {
+                state.preRollBuffer.push(e.data);
+                if (state.preRollBuffer.length > PRE_ROLL_MAX_CHUNKS) {
+                  state.preRollBuffer.shift();
+                }
+              }
+            }
           };
 
           recorder.onstop = async () => {
+            state.isRecordingSpeech = false;
             if (chunks.length === 0 || !state.isInCall) {
               chunks = [];
               return;
             }
-            const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+            // Prepend 200ms pre-roll buffer if available to preserve onset syllables
+            let turnAudioChunks = chunks;
+            if (state.preRollBuffer && state.preRollBuffer.length > 0) {
+              turnAudioChunks = [...state.preRollBuffer, ...chunks];
+              state.preRollBuffer = [];
+            }
+            const blob = new Blob(turnAudioChunks, { type: recorder.mimeType || 'audio/webm' });
             chunks = [];
             if (blob.size >= 1200 && state.ws && state.ws.readyState === WebSocket.OPEN) {
               setTelephonyStatus('processing');
@@ -2525,9 +2765,22 @@
             if (micMeter) micMeter.setAttribute('aria-valuenow', String(levelPct));
           }
 
-          if (speechAvg > ENERGY_THRESHOLD) {
+          // Dynamic Adaptive Noise Floor Tracking
+          if (speechAvg < adaptiveNoiseFloor + 4.0 && !state.isPlayingAudio) {
+            adaptiveNoiseFloor = Math.max(
+              MIN_NOISE_FLOOR,
+              Math.min(
+                MAX_NOISE_FLOOR,
+                adaptiveNoiseFloor * (1 - NOISE_EMA_ALPHA) + speechAvg * NOISE_EMA_ALPHA
+              )
+            );
+          }
+          const dynamicEnergyThreshold = Math.max(12.0, adaptiveNoiseFloor + SPEECH_SNR_OFFSET);
+          const dynamicBargeInThreshold = Math.max(28.0, adaptiveNoiseFloor + BARGE_IN_SNR_OFFSET);
+
+          if (speechAvg > dynamicEnergyThreshold) {
             if (state.isPlayingAudio) {
-              if (speechAvg > BARGE_IN_THRESHOLD) {
+              if (speechAvg > dynamicBargeInThreshold) {
                 onUserSpeechDetected();
               }
             } else {
@@ -2536,10 +2789,16 @@
                 silenceTimer = null;
               }
               if (state.mediaRecorder && state.mediaRecorder.state === 'inactive') {
-                try { state.mediaRecorder.start(); } catch (e) {}
+                try {
+                  state.isRecordingSpeech = true;
+                  state.mediaRecorder.start();
+                } catch (e) {}
+              } else if (state.mediaRecorder && state.mediaRecorder.state === 'recording') {
+                state.isRecordingSpeech = true;
               }
-              if (state.telephonyStatus !== 'speaking' && state.telephonyStatus !== 'processing' && state.telephonyStatus !== 'interrupted' && state.telephonyStatus !== 'interrupting') {
-                setTelephonyStatus('listening');
+              if (state.telephonyStatus !== 'speaking' && state.telephonyStatus !== 'processing' && state.telephonyStatus !== 'thinking' && state.telephonyStatus !== 'interrupted' && state.telephonyStatus !== 'interrupting') {
+                setTelephonyStatus('hearing you');
+                updateLiveCaptions('user', 'Hearing you...');
               }
             }
           } else {
@@ -2549,7 +2808,11 @@
                   try { state.mediaRecorder.stop(); } catch (e) {}
                 }
                 silenceTimer = null;
-              }, 850);
+                if (state.telephonyStatus === 'hearing you') {
+                  setTelephonyStatus('thinking');
+                  updateLiveCaptions('system', 'Thinking...');
+                }
+              }, VAD_SILENCE_HANGOVER_MS);
             }
           }
         } catch (err) {
@@ -2569,11 +2832,11 @@
     }
   }
 
-  // Real-Time User Speech Detected (Barge-In) Hook
+  // Real-Time User Speech Detected (Fast Barge-In) Hook (< 5ms response)
   function onUserSpeechDetected() {
     if (state.isPlayingAudio) {
-      console.info('[Disha Voice Engine] Speech detected during active audio playback. Triggering barge-in interruption.');
-      setTelephonyStatus('interrupted');
+      console.info('[Disha Voice Engine] Speech detected during active audio playback. Triggering fast barge-in interruption.');
+      setTelephonyStatus('interrupting');
       stopAudioPlayback();
       resetWaveformVisualizer();
 
@@ -2581,17 +2844,14 @@
         state.ws.send(JSON.stringify({ type: 'interrupt' }));
       }
 
-      setTimeout(() => {
-        if (state.isInCall && (state.telephonyStatus === 'interrupted' || state.telephonyStatus === 'interrupting')) {
-          setTelephonyStatus('listening');
-        }
-      }, 800);
+      // Immediately return to listening status so user speech is captured without lag
+      setTelephonyStatus('listening');
     }
   }
 
   // --- AUDIO PLAYBACK QUEUE ---
   function stopAudioPlayback() {
-    state.audioQueue = [];
+    state.audioQueue.length = 0; // Instantly drain audio playback queue
     state.isPlayingAudio = false;
 
     if (state.ttsAnalyser) {
@@ -2613,6 +2873,19 @@
         state.currentHtmlAudio.currentTime = 0;
       } catch (e) {}
       state.currentHtmlAudio = null;
+    }
+
+    // Stop any auxiliary HTML5 audio elements on the document
+    if (typeof document !== 'undefined') {
+      try {
+        const audioNodes = document.querySelectorAll('audio');
+        audioNodes.forEach(audioEl => {
+          try {
+            audioEl.pause();
+            audioEl.currentTime = 0;
+          } catch (e) {}
+        });
+      } catch (e) {}
     }
   }
 
@@ -2677,6 +2950,11 @@
       };
       source.start();
     } catch (err) {
+      console.warn('[Disha Voice] Audio chunk decode error:', err);
+      if (state.lastEmergencyText) {
+        speakEmergencyFallback(state.lastEmergencyText);
+        state.lastEmergencyText = null;
+      }
       state.currentAudioSource = null;
       if (state.ttsAnalyser) {
         try { state.ttsAnalyser.disconnect(); } catch (e) {}
@@ -4065,10 +4343,32 @@
     });
   }
 
-  // Initial Route Check
+  // Online & Offline Network State Listeners
+  if (typeof window !== 'undefined') {
+    window.addEventListener('online', () => {
+      if (dom.chatOfflineBanner) dom.chatOfflineBanner.style.display = 'none';
+      if (state.isInCall && state.telephonyStatus === 'offline') {
+        setTelephonyStatus('listening');
+        updateLiveCaptions('system', 'Back online. Listening…');
+      }
+    });
+    window.addEventListener('offline', () => {
+      if (dom.chatOfflineBanner) dom.chatOfflineBanner.style.display = 'inline-flex';
+      if (state.isInCall) {
+        setTelephonyStatus('offline');
+        updateLiveCaptions('system', 'Network offline. Reconnecting…');
+      }
+      if (state.lastEmergencyText) {
+        speakEmergencyFallback(state.lastEmergencyText);
+      }
+    });
+  }
+
+  // Initial Route Check & Render Free-Tier Warmup Check
   if (typeof window !== 'undefined') {
     const initHash = window.location.hash;
     navigate(initHash);
+    checkBackendWarmup();
   }
 
   // --- EXPORTS FOR TESTING & DIAGNOSTICS ---
@@ -4110,6 +4410,13 @@
     updateLiveCaptions,
     updateInChatJourneyBanner,
     renderWelcome,
+    checkBackendWarmup,
+    speakEmergencyFallback,
+    showMicPermissionError,
+    hideMicPermissionError,
+    showSpeechRecognitionFallback,
+    hideSpeechRecognitionFallback,
+    showAlert,
   };
 
   if (typeof window !== 'undefined') {

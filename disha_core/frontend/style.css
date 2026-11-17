@@ -166,9 +166,12 @@ h1, h2, h3, h4 {
   flex-direction: column;
   height: 100vh;
   min-height: 100vh;
+  min-height: 100dvh;
   width: 100%;
   max-width: 100%;
   background-color: var(--paper);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 
 /* App Header */
@@ -179,8 +182,8 @@ h1, h2, h3, h4 {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 60px;
-  padding: 0 var(--space-lg);
+  min-height: 60px;
+  padding: env(safe-area-inset-top, 0px) var(--space-lg) 0 var(--space-lg);
   background-color: var(--surface);
   border-bottom: 1px solid var(--border);
   gap: var(--space-md);
@@ -373,7 +376,215 @@ h1, h2, h3, h4 {
   color: var(--danger);
 }
 
-/* Global Alert Banner */
+/* Mandatory Demo Banner */
+.demo-banner {
+  background-color: var(--surface-alt);
+  border-bottom: 1px solid var(--border);
+  padding: 6px var(--space-md);
+  font-size: 0.8125rem;
+  color: var(--ink-secondary);
+  text-align: center;
+  position: relative;
+  z-index: 100;
+}
+
+.demo-banner-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-xs);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.demo-banner-text {
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.demo-emergency-link {
+  color: var(--danger);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.demo-emergency-link:hover {
+  color: var(--danger-hover);
+}
+
+/* Render Free-Tier Warmup Banner */
+.warmup-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px var(--space-lg);
+  background-color: var(--warning-subtle);
+  border-bottom: 1px solid var(--warning-border);
+  color: var(--warning-ink);
+  font-size: 0.84rem;
+  font-weight: 500;
+  position: relative;
+  z-index: 99;
+}
+
+.warmup-banner-inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+}
+
+.warmup-pulse-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background-color: var(--warning);
+  display: inline-block;
+  animation: warmupPulse 1.8s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+@keyframes warmupPulse {
+  0% {
+    transform: scale(0.92);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+  }
+  70% {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 6px rgba(245, 158, 11, 0);
+  }
+  100% {
+    transform: scale(0.92);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+  }
+}
+
+.warmup-dismiss {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  opacity: 0.8;
+}
+.warmup-dismiss:hover {
+  opacity: 1;
+}
+
+/* Guided Microphone Permission Error Banner */
+.mic-permission-banner {
+  display: flex;
+  background-color: var(--danger-subtle);
+  border-bottom: 1px solid var(--danger-border);
+  color: var(--danger-ink);
+  padding: var(--space-sm) var(--space-lg);
+  font-size: 0.88rem;
+  position: relative;
+  z-index: 98;
+}
+
+.mic-perm-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.mic-perm-icon {
+  color: var(--danger);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+
+.mic-perm-body {
+  flex: 1;
+  min-width: 240px;
+}
+
+.mic-perm-title {
+  display: block;
+  font-weight: 600;
+  color: var(--danger-ink);
+  margin-bottom: 2px;
+}
+
+.mic-perm-desc {
+  font-size: 0.8125rem;
+  color: var(--danger-ink);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.mic-perm-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  flex-shrink: 0;
+}
+
+.mic-perm-fallback-btn, .speech-fallback-btn {
+  background-color: var(--accent);
+  color: var(--ink-inverse);
+  border: 1px solid transparent;
+  padding: 6px 14px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: background-color var(--duration-fast);
+  white-space: nowrap;
+}
+
+.mic-perm-fallback-btn:hover, .speech-fallback-btn:hover {
+  background-color: var(--accent-hover);
+}
+
+.mic-perm-dismiss-btn {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: inherit;
+  cursor: pointer;
+  padding: 2px 6px;
+  opacity: 0.8;
+}
+.mic-perm-dismiss-btn:hover {
+  opacity: 1;
+}
+
+/* In-Call Speech Recognition Friendly Fallback Card */
+.speech-fallback-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  padding: 8px 14px;
+  margin: var(--space-xs) 0;
+  background-color: var(--surface-alt);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  color: var(--ink);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.speech-fallback-msg {
+  flex: 1;
+  color: var(--ink-secondary);
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+/* Global Alert Banner & Calm Red-Flag Emergency Banner */
 .alert-banner {
   display: flex;
   align-items: center;
@@ -383,6 +594,39 @@ h1, h2, h3, h4 {
   border-bottom: 1px solid var(--warning-border);
   color: var(--warning-ink);
   font-size: 0.88rem;
+}
+
+.alert-banner.alert-emergency {
+  background-color: var(--danger-subtle);
+  border-bottom: 2px solid var(--danger);
+  color: var(--danger-ink);
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(185, 28, 28, 0.1);
+}
+
+.alert-banner.alert-emergency .alert-text {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  font-weight: 600;
+  color: var(--danger-ink);
+}
+
+.alert-banner.alert-emergency .alert-text::before {
+  content: "";
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: var(--danger);
+  flex-shrink: 0;
+}
+
+.alert-banner.alert-emergency a {
+  color: var(--danger);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
 
 .alert-dismiss {
@@ -1245,7 +1489,7 @@ h1, h2, h3, h4 {
 
 /* Chat Composer Bar */
 .chat-composer-bar {
-  padding: var(--space-sm) var(--space-md);
+  padding: var(--space-sm) var(--space-md) calc(var(--space-sm) + env(safe-area-inset-bottom, 0px)) var(--space-md);
   border-top: 1px solid var(--border);
   background-color: var(--surface);
   flex-shrink: 0;
@@ -1389,6 +1633,7 @@ h1, h2, h3, h4 {
   flex-direction: column;
   align-items: center;
   gap: var(--space-xl);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .call-modal-head {
@@ -1546,15 +1791,60 @@ h1, h2, h3, h4 {
   height: 8px;
   border-radius: 50%;
   display: inline-block;
+  transition: background-color var(--duration-fast);
 }
-.indicator-dot.idle { background-color: #94a3b8; }
-.indicator-dot.connecting { background-color: #f59e0b; animation: spin-pulse 1.5s infinite; }
-.indicator-dot.listening { background-color: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.6); }
-.indicator-dot.processing { background-color: #f59e0b; animation: spin-pulse 1s infinite; }
-.indicator-dot.speaking { background-color: #6366f1; box-shadow: 0 0 8px rgba(99, 102, 241, 0.6); }
-.indicator-dot.interrupted, .indicator-dot.interrupting { background-color: #ef4444; }
-.indicator-dot.muted { background-color: #ef4444; }
-.indicator-dot.ended { background-color: #64748b; }
+
+/* 10 Voice States */
+.indicator-dot.connecting {
+  background-color: #f59e0b;
+  animation: spin-pulse 1.4s infinite;
+}
+.indicator-dot.waking-up,
+.indicator-dot.waking_up {
+  background-color: #f59e0b;
+  animation: warmupPulse 1.8s infinite;
+}
+.indicator-dot.ready,
+.indicator-dot.idle {
+  background-color: #94a3b8;
+}
+.indicator-dot.listening {
+  background-color: #10b981;
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+}
+.indicator-dot.hearing-you,
+.indicator-dot.hearing_you {
+  background-color: #059669;
+  box-shadow: 0 0 10px rgba(5, 150, 105, 0.7);
+  animation: spin-pulse 0.9s infinite;
+}
+.indicator-dot.thinking,
+.indicator-dot.processing {
+  background-color: #f59e0b;
+  animation: spin-pulse 1s infinite;
+}
+.indicator-dot.speaking {
+  background-color: #6366f1;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.6);
+}
+.indicator-dot.interrupted,
+.indicator-dot.interrupting {
+  background-color: #ef4444;
+}
+.indicator-dot.offline {
+  background-color: #64748b;
+  opacity: 0.75;
+}
+.indicator-dot.error {
+  background-color: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.5);
+}
+.indicator-dot.muted {
+  background-color: #ef4444;
+}
+.indicator-dot.ended {
+  background-color: #64748b;
+}
 
 /* Responsive Microphone Audio Level Meter */
 .call-mic-meter-wrapper {
