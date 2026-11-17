@@ -69,6 +69,7 @@ from disha_core.voice import (
     detect_turn_language,
     execute_voice_turn,
     get_emergency_audio,
+    get_intro_greeting,
     transcribe_groq,
 )
 
@@ -714,6 +715,13 @@ def create_app() -> FastAPI:
                 yield f"event: done\ndata: {json.dumps(_response_metadata(state, conversation_id=conversation_id))}\n\n"
             except (asyncio.CancelledError, GeneratorExit):
                 pass
+            except Exception as exc:
+                logger.error("Chat turn unhandled error: %s", exc)
+                if not output:
+                    fallback_msg = "Maaf kijiye, abhi response generate karne mein dikkat aa rahi hai. Kripya thodi der baad dobara koshish karein."
+                    output.append(fallback_msg)
+                    yield f"data: {json.dumps({'sentence': fallback_msg}, ensure_ascii=False)}\n\n"
+                yield f"event: done\ndata: {json.dumps(_response_metadata(state, status='error:provider_unavailable', conversation_id=conversation_id))}\n\n"
             finally:
                 if pool is not None and asst_msg_id is not None:
                     with suppress(Exception):
@@ -798,6 +806,45 @@ def create_app() -> FastAPI:
                 row = await pool.fetchrow("SELECT language FROM patient_profiles WHERE patient_id = $1", patient_id)
                 if row and row.get("language"):
                     stored_lang = str(row["language"])
+
+        async def launch_voice_intro(req_lang: str | None = None) -> None:
+            active_lang = req_lang or stored_lang
+            intro_text, intro_audio = get_intro_greeting(active_lang)
+            with suppress(Exception):
+                await websocket.send_json({"type": "intro", "text": intro_text, "language": active_lang})
+            if intro_audio:
+                with suppress(Exception):
+                    await websocket.send_bytes(intro_audio)
+
+            question_text = ""
+            if pool is not None:
+                with suppress(Exception):
+                    async with pool.acquire() as conn:
+                        from disha_core.journey import load_or_create_journey, select_next_question
+
+                        journey_state = await load_or_create_journey(patient_id, conn)
+                        candidate = await select_next_question(
+                            patient_id,
+                            journey_state,
+                            channel="voice",
+                            conn=conn,
+                            preferred_lang=active_lang,
+                            auto_record=True,
+                        )
+                        if candidate and candidate.text:
+                            question_text = candidate.text
+
+            if question_text:
+                with suppress(Exception):
+                    await websocket.send_json({"type": "question", "text": question_text})
+                with suppress(Exception):
+                    await session.speak(question_text, websocket.send_bytes, language=active_lang)
+
+            with suppress(Exception):
+                await websocket.send_json({"type": "ready_to_listen"})
+
+        if websocket.query_params.get("start_call") in ("true", "1") or websocket.query_params.get("launch") in ("true", "1"):
+            await launch_voice_intro()
 
         async def process_audio(audio: bytes) -> None:
             transcript = ""
@@ -960,6 +1007,9 @@ def create_app() -> FastAPI:
                             msg_type = str(parsed.get("type", "")).strip().casefold()
                             if msg_type in ("interrupt", "interrupted", "barge_in"):
                                 is_interrupt = True
+                            elif msg_type in ("start_call", "intro"):
+                                await launch_voice_intro(req_lang=parsed.get("language"))
+                                continue
                             elif msg_type == "auth":
                                 with suppress(Exception):
                                     await websocket.send_json({"type": "authenticated", "patient_id": patient_id})

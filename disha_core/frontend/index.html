@@ -362,28 +362,28 @@
         <div class="consent-modal" id="consent-modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="consent-modal-title">
           <div class="consent-modal-dialog">
             <div class="consent-modal-header">
-              <h3 id="consent-modal-title" class="consent-title">Clinical AI Health Coach Disclosure &amp; Consent</h3>
+              <h3 id="consent-modal-title" class="consent-title" data-i18n="consent.modal_title">Clinical AI Health Coach Disclosure &amp; Consent</h3>
             </div>
             <div class="consent-modal-body">
               <div class="consent-disclosure-card">
-                <p class="disclosure-main">
+                <p class="disclosure-main" data-i18n="consent.intro">
                   <strong>Disha AI</strong> is your personalized lifestyle, nutrition, and habit health coach.
                 </p>
                 <ul class="disclosure-points">
-                  <li><strong>AI Coach Disclosure:</strong> Disha is an artificial intelligence health coach, not a licensed medical doctor or clinical practitioner.</li>
-                  <li><strong>No Prescriptions:</strong> Disha cannot diagnose illnesses, alter doctor-prescribed medication dosages, or prescribe pharmaceuticals.</li>
-                  <li><strong>Emergency Protocol:</strong> If you or someone with you experiences chest pain, acute breathlessness, or severe trauma, call <strong>112</strong> or <strong>108</strong> immediately.</li>
-                  <li><strong>Voice Processing Consent:</strong> Audio is captured for speech-to-text processing solely to conduct this consultation session.</li>
+                  <li data-i18n="consent.not_doctor"><strong>AI Coach Disclosure:</strong> Disha is an artificial intelligence health coach, not a licensed medical doctor or clinical practitioner.</li>
+                  <li data-i18n="consent.no_prescription"><strong>No Prescriptions:</strong> Disha cannot diagnose illnesses, alter doctor-prescribed medication dosages, or prescribe pharmaceuticals.</li>
+                  <li data-i18n="consent.emergency"><strong>Emergency Protocol:</strong> If you or someone with you experiences chest pain, acute breathlessness, or severe trauma, call <strong>112</strong> or <strong>108</strong> immediately.</li>
+                  <li data-i18n="consent.voice_processing"><strong>Voice Processing Consent:</strong> Audio is captured for speech-to-text processing solely to conduct this consultation session.</li>
                 </ul>
               </div>
               <label class="consent-checkbox-label" for="medical-consent-checkbox">
                 <input type="checkbox" id="medical-consent-checkbox" />
-                <span>I understand Disha is an AI health coach and consent to voice consultation processing.</span>
+                <span data-i18n="consent.checkbox">I understand Disha is an AI health coach and consent to voice consultation processing.</span>
               </label>
             </div>
             <div class="consent-modal-footer">
-              <button type="button" id="consent-cancel-btn" class="secondary-btn">Stay in Chat</button>
-              <button type="button" id="consent-accept-btn" class="primary-btn" disabled>Accept &amp; Start Call</button>
+              <button type="button" id="consent-cancel-btn" class="secondary-btn" data-i18n="consent.btn_cancel">Stay in Chat</button>
+              <button type="button" id="consent-accept-btn" class="primary-btn" disabled data-i18n="consent.btn_accept">Accept &amp; Start Call</button>
             </div>
           </div>
         </div>
@@ -436,10 +436,10 @@
             <!-- Live Spoken Subtitles & Captions Box -->
             <div class="voice-subtitles-box" id="voice-subtitles-card" role="region" aria-label="Live Call Captions" aria-live="polite">
               <div class="subtitles-header">
-                <span class="captions-badge">LIVE CAPTIONS</span>
+                <span class="captions-badge" data-i18n="telephony.captions_title">LIVE CAPTIONS</span>
                 <span class="captions-speaker" id="voice-captions-speaker">Disha AI</span>
               </div>
-              <p class="subtitles-text" id="voice-subtitles-text">Listening… speak naturally.</p>
+              <p class="subtitles-text" id="voice-subtitles-text" data-i18n="telephony.captions_listening">Listening… speak naturally.</p>
             </div>
 
             <!-- Speech Recognition Friendly Fallback Card ("did not hear") -->
@@ -458,7 +458,7 @@
                     <line x1="8" y1="23" x2="16" y2="23"></line>
                   </svg>
                 </span>
-                <span id="mic-label">Mute</span>
+                <span id="mic-label" data-i18n="telephony.btn_mute">Mute</span>
               </button>
 
               <button type="button" id="call-btn" class="call-action-btn end-call" title="End Call" aria-label="End voice consultation and return to chat">
@@ -466,21 +466,21 @@
                   <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"></path>
                   <line x1="23" y1="1" x2="1" y2="23"></line>
                 </svg>
-                <span id="call-btn-label">End Call</span>
+                <span id="call-btn-label" data-i18n="telephony.btn_end_call">End Call</span>
               </button>
 
               <button type="button" id="switch-to-chat-btn" class="call-action-btn secondary" title="Switch to text view" aria-label="Return to chat preserving state">
                 <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
                 </svg>
-                <span>To Chat</span>
+                <span data-i18n="telephony.btn_to_chat">To Chat</span>
               </button>
 
               <button id="mic-btn" style="display:none"></button>
             </div>
 
             <div class="call-disclaimer-notice font-sans">
-              <span>Disha AI Health Coach &bull; Lifestyle guidance only &bull; In an emergency, dial 112</span>
+              <span data-i18n="telephony.call_disclaimer">Disha AI Health Coach &bull; Lifestyle guidance only &bull; In an emergency, dial 112</span>
             </div>
             <div class="call-advisory-notice font-sans" id="call-advisory-pill" role="note" data-i18n="telephony.call_api_limit_advisory">
               Live voice calls may experience latency due to provider quotas. Feel free to switch to chat anytime.

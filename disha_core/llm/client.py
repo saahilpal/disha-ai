@@ -471,23 +471,61 @@ async def _yield_provider(
 class DualProviderClient:
     def __init__(self, settings: LLMSettings | None = None) -> None:
         self.settings = settings or LLMSettings.from_env()
+        self.groq_provider = GroqProvider(self.settings) if self.settings.groq_enabled else None
+        self.gemini_provider = GeminiProvider(self.settings) if self.settings.gemini_enabled else None
+        self.ollama_provider = OllamaProvider(self.settings) if (self.settings.ollama_enabled or self.settings.local_only) else None
+
         if self.settings.local_only:
-            providers = [OllamaProvider(self.settings)]
+            providers = [self.ollama_provider] if self.ollama_provider else []
         else:
             providers = []
-            if self.settings.groq_enabled:
-                providers.append(GroqProvider(self.settings))
-            if self.settings.gemini_enabled:
-                providers.append(GeminiProvider(self.settings))
-            if self.settings.ollama_enabled:
-                providers.append(OllamaProvider(self.settings))
+            if self.groq_provider:
+                providers.append(self.groq_provider)
+            if self.gemini_provider:
+                providers.append(self.gemini_provider)
+            if self.ollama_provider:
+                providers.append(self.ollama_provider)
+
         self.providers: tuple[Provider, ...] = tuple(providers)
+        self._default_providers: tuple[Provider, ...] = tuple(providers)
         self.circuit = ConsecutiveFailureCircuitBreaker(threshold=2)
 
+    def _get_providers_for_channel(self, channel: str | None = None) -> list[Provider]:
+        if set(self.providers) != set(self._default_providers) or len(self.providers) < 2:
+            return list(self.providers)
+
+        channel_mode = (channel or "chat").casefold()
+        if channel_mode == "voice":
+            pref = os.getenv("LLM_PRIMARY_VOICE", "gemini").casefold()
+        else:
+            pref = os.getenv("LLM_PRIMARY_CHAT", "groq").casefold()
+
+        ordered: list[Provider] = []
+        if pref == "gemini":
+            if self.gemini_provider in self.providers:
+                ordered.append(self.gemini_provider)
+            if self.groq_provider in self.providers:
+                ordered.append(self.groq_provider)
+        else:
+            if self.groq_provider in self.providers:
+                ordered.append(self.groq_provider)
+            if self.gemini_provider in self.providers:
+                ordered.append(self.gemini_provider)
+        if self.ollama_provider in self.providers:
+            ordered.append(self.ollama_provider)
+        for p in self.providers:
+            if p not in ordered:
+                ordered.append(p)
+        return ordered or list(self.providers)
+
     async def stream(
-        self, prompt: str, messages: list[dict[str, str]] | None = None, system_prompt: str | None = None
+        self,
+        prompt: str,
+        messages: list[dict[str, str]] | None = None,
+        system_prompt: str | None = None,
+        channel: str | None = None,
     ) -> AsyncIterator[str]:
-        providers = list(self.providers)
+        providers = self._get_providers_for_channel(channel)
         if not providers:
             raise ProviderError("No providers configured", retryable=False)
 

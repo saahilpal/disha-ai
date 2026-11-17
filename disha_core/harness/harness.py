@@ -501,17 +501,20 @@ class ResponseHarness:
         prompt = payload_renderer(normalized.normalized, context, chunks)
 
         llm_instance = getattr(app_state, "llm", self.llm)
-        language_mode = normalize_preferred_language((context.get("pep") or {}).get("language"))
+        language_mode = normalize_preferred_language(payload.language or (context.get("pep") or {}).get("language"))
         from disha_core.llm.client import get_system_prompt
 
         system_prompt = get_system_prompt(language_mode=language_mode)
         try:
-            llm_stream = llm_instance.stream(prompt, messages=history, system_prompt=system_prompt)
+            llm_stream = llm_instance.stream(prompt, messages=history, system_prompt=system_prompt, channel=channel)
         except TypeError:
             try:
-                llm_stream = llm_instance.stream(prompt, messages=history)
+                llm_stream = llm_instance.stream(prompt, messages=history, system_prompt=system_prompt)
             except TypeError:
-                llm_stream = llm_instance.stream(prompt)
+                try:
+                    llm_stream = llm_instance.stream(prompt, messages=history)
+                except TypeError:
+                    llm_stream = llm_instance.stream(prompt)
 
         generated_sentences: list[str] = []
         emitted = False

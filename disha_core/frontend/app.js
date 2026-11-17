@@ -27,6 +27,7 @@
     token: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_token')) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_token')) || null,
     patientId: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_patient_id')) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_id')) || null,
     patientName: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_patient_name')) || (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('disha_patient_name')) || null,
+    conversationId: (typeof localStorage !== 'undefined' && localStorage.getItem('disha_conversation_id')) || null,
     conversationHydrated: false,
     welcomeRendered: false,
     language: normalizeLanguageCode(
@@ -442,6 +443,7 @@
       const res = await fetch(`/locales/${l}.json`);
       if (res.ok) {
         const data = await res.json();
+        state.i18nTelephony = data.telephony || null;
         document.querySelectorAll('[data-i18n]').forEach(el => {
           const key = el.getAttribute('data-i18n');
           if (!key) return;
@@ -454,6 +456,9 @@
             el.textContent = val;
           }
         });
+        if (state.telephonyStatus) {
+          setTelephonyStatus(state.telephonyStatus);
+        }
       }
     } catch (e) {
       // Graceful fallback
@@ -1462,14 +1467,18 @@
   function updateDrawerUI(data) {
     if (!data) return;
     state.patientProfile = data;
-    if (data.profile?.language) {
+    const localLang = typeof localStorage !== 'undefined' ? localStorage.getItem('disha_language') : null;
+    if (localLang) {
+      state.language = normalizeLanguageCode(localLang);
+    } else if (data.profile?.language) {
       state.language = normalizeLanguageCode(data.profile.language);
-      if (dom.onboardLanguage) dom.onboardLanguage.value = state.language;
-      if (dom.languageSelect) dom.languageSelect.value = state.language;
       try {
         localStorage.setItem('disha_language', state.language);
       } catch (e) {}
     }
+    if (dom.onboardLanguage) dom.onboardLanguage.value = state.language;
+    if (dom.languageSelect) dom.languageSelect.value = state.language;
+    updateI18nTexts(state.language);
     if (dom.dispPatientId) dom.dispPatientId.textContent = data.patient_id || state.patientId || '--';
 
     const dispFocus = dom.dispHealthFocus || (typeof document !== 'undefined' ? document.getElementById('disp-health-focus') : null);
@@ -1686,6 +1695,9 @@
         if (state.token) {
           state.ws.send(JSON.stringify({ type: 'auth', token: state.token }));
         }
+        if (state.isInCall) {
+          state.ws.send(JSON.stringify({ type: 'start_call', language: state.language }));
+        }
       };
 
       state.ws.onmessage = async (event) => {
@@ -1771,6 +1783,41 @@
 
     if (data.type === 'authenticated') {
       console.info('[Disha Voice] Authenticated session confirmed for:', data.patient_id);
+      return;
+    }
+
+    if (data.type === 'intro') {
+      hideSpeechRecognitionFallback();
+      appendChatMessage('assistant', data.text, 'Disha AI Health Coach');
+      updateLiveCaptions('assistant', data.text);
+      setTelephonyStatus('speaking');
+      const introText = data.text;
+      setTimeout(() => {
+        if (state.audioQueue.length === 0 && !state.isPlayingAudio && state.isInCall) {
+          if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+            try {
+              const utter = new SpeechSynthesisUtterance(introText);
+              utter.lang = state.language === 'hi' ? 'hi-IN' : (state.language === 'en' ? 'en-IN' : 'hi-IN');
+              window.speechSynthesis.speak(utter);
+            } catch (e) {}
+          }
+        }
+      }, 1500);
+      return;
+    }
+
+    if (data.type === 'question') {
+      hideSpeechRecognitionFallback();
+      appendChatMessage('assistant', data.text, 'Onboarding');
+      updateLiveCaptions('assistant', data.text);
+      setTelephonyStatus('speaking');
+      return;
+    }
+
+    if (data.type === 'ready_to_listen') {
+      if (!state.isPlayingAudio && state.isInCall) {
+        setTelephonyStatus('listening');
+      }
       return;
     }
 
@@ -2269,6 +2316,14 @@
       else if (normalizedClass === 'interrupted' || normalizedClass === 'interrupting') dom.spectrumBars.classList.add('active-interrupting');
     }
 
+    const normKey = String(status).toLowerCase().trim();
+    const statusKey = `status_${normalizedClass.replace(/-/g, '_')}`;
+    let localized = state.i18nTelephony && state.i18nTelephony[statusKey];
+    if (localized) {
+      statusTextEl.textContent = localized;
+      return;
+    }
+
     const labels = {
       idle: 'Ready for consultation',
       ready: 'Ready',
@@ -2290,7 +2345,6 @@
       muted: 'Microphone muted',
       ended: 'Call ended',
     };
-    const normKey = String(status).toLowerCase().trim();
     statusTextEl.textContent = labels[normKey] || labels[normalizedClass] || 'Ready for consultation';
   }
 
@@ -2380,8 +2434,11 @@
       }
       state.micStream = stream;
 
-      // 3. Connect WebSocket
+      // 3. Connect WebSocket & send start_call frame
       initWebSocket();
+      if (state.ws && state.ws.readyState === (typeof WebSocket !== 'undefined' ? WebSocket.OPEN : 1)) {
+        state.ws.send(JSON.stringify({ type: 'start_call', language: state.language }));
+      }
 
       // 4. Setup VAD & Spectrum Analyser
       setupMicAnalyserAndVad(stream);

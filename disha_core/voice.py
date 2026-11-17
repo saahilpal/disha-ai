@@ -28,6 +28,10 @@ EMERGENCY_AUDIO_CACHE: dict[str, bytes] = {}
 FILLER_AUDIO_DIR = Path(__file__).parent / "data" / "filler_audio"
 FILLER_AUDIO_CACHE: dict[str, bytes] = {}
 
+# Pre-rendered static intro audio clips directory & in-memory cache
+INTRO_AUDIO_DIR = Path(__file__).parent / "data" / "intro_audio"
+INTRO_AUDIO_CACHE: dict[str, tuple[str, bytes]] = {}
+
 CONVERSATIONAL_FILLERS_HI = (
     "Haan ji...",
     "Sun rahi hoon...",
@@ -100,9 +104,48 @@ def get_filler_audio(
     return FILLER_AUDIO_CACHE.get("default") or FILLER_AUDIO_CACHE.get("hi")
 
 
-# Pre-load emergency and filler audio at module initialization
+def load_intro_audio_cache() -> None:
+    """Pre-load pre-rendered introductory greeting audio clips into memory for instant (<10ms) playback."""
+    if not INTRO_AUDIO_DIR.exists():
+        return
+    mapping = (
+        ("hinglish", "intro_hinglish.mp3", "Hi, main Disha, aapki AI health coach hoon."),
+        ("en", "intro_en.mp3", "Hi, I'm Disha, your AI health coach."),
+        ("hi", "intro_hi.mp3", "हाय, मैं दिशा, आपकी एआई हेल्थ कोच हूँ।"),
+    )
+    for lang, fname, text in mapping:
+        audio_file = INTRO_AUDIO_DIR / fname
+        if audio_file.exists():
+            try:
+                INTRO_AUDIO_CACHE[lang] = (text, audio_file.read_bytes())
+            except Exception as exc:
+                logger.warning("Failed to load intro audio clip %s: %s", audio_file, exc)
+
+
+def get_intro_greeting(language: str = "hinglish") -> tuple[str, bytes | None]:
+    """Retrieve pre-rendered introductory greeting (text, audio_bytes) per language."""
+    if not INTRO_AUDIO_CACHE:
+        load_intro_audio_cache()
+    lang = (language or "hinglish").strip().lower()
+    if lang in ("hi", "hindi"):
+        key = "hi"
+        fallback_text = "हाय, मैं दिशा, आपकी एआई हेल्थ कोच हूँ।"
+    elif lang in ("en", "english"):
+        key = "en"
+        fallback_text = "Hi, I'm Disha, your AI health coach."
+    else:
+        key = "hinglish"
+        fallback_text = "Hi, main Disha, aapki AI health coach hoon."
+
+    if key in INTRO_AUDIO_CACHE:
+        return INTRO_AUDIO_CACHE[key]
+    return fallback_text, None
+
+
+# Pre-load emergency, filler, and intro audio at module initialization
 load_emergency_audio_cache()
 load_filler_audio_cache()
+load_intro_audio_cache()
 
 # Groq Whisper prompt vocabulary conditioning for Indian clinical, vitals & dietary terms
 GROQ_WHISPER_PROMPT_VOCABULARY = (
