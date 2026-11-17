@@ -5,7 +5,7 @@
   "description": "Disha AI Health Coach — Full-Duplex Deterministic Telephony Platform",
   "scripts": {
     "sync": "bash scripts/sync-frontend.sh",
-    "build": "bash scripts/sync-frontend.sh",
+    "build": "echo 'Disha AI static frontend ready'",
     "lint:duplication": "npx jscpd"
   },
   "devDependencies": {
