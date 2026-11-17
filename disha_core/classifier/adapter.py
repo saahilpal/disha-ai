@@ -170,6 +170,7 @@ class LayaClassifierAdapter:
                 raise ValueError("LOCAL_ONLY requires the classifier endpoint to be local")
         self.min_confidence = float(os.getenv("LAYA_MIN_CONFIDENCE", str(min_confidence)))
         self.model_name = os.getenv("LAYA_MODEL", model_name)
+        self.enabled = os.getenv("LAYA_ENABLED", "true").strip().casefold() not in {"false", "0", "no", "off"}
         self.timeout_seconds = float(os.getenv("LAYA_TIMEOUT_SECONDS", "2.0"))
 
         self.circuit_breaker = ClassifierCircuitBreaker()
@@ -408,6 +409,10 @@ class LayaClassifierAdapter:
                 latency_ms=hit_latency,
                 raw_answers=cached.raw_answers,
             )
+
+        if not self.enabled:
+            latency = (time.monotonic() - start_time) * 1000.0
+            return self._fallback_classification(text, "laya_disabled", latency)
 
         if not self.circuit_breaker.allow_request():
             latency = (time.monotonic() - start_time) * 1000.0

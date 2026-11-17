@@ -57,6 +57,7 @@ class Settings:
 
     # Behavior Spec v1 feature flag (rollback to legacy by setting env BEHAVIOR_SPEC_V1=false)
     behavior_spec_v1: bool = True
+    laya_enabled: bool = True
     confirm_critical_values: bool = False  # D2: confirm allergies/medicines/doses; default OFF
     language_switch_threshold: int = 2  # D5: consecutive msgs before silent language switch
 
@@ -105,6 +106,7 @@ class Settings:
             rate_limit_enabled=os.getenv("RATE_LIMIT_ENABLED", "true").casefold() != "false",
             password_salt=os.getenv("PASSWORD_SALT", "disha_salt_v1"),
             behavior_spec_v1=os.getenv("BEHAVIOR_SPEC_V1", "true").casefold() == "true",
+            laya_enabled=os.getenv("LAYA_ENABLED", "true").casefold() not in {"false", "0", "no", "off"},
             confirm_critical_values=os.getenv("CONFIRM_CRITICAL_VALUES", "false").casefold() == "true",
             language_switch_threshold=int(os.getenv("LANGUAGE_SWITCH_THRESHOLD", "2")),
         )
