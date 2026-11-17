@@ -58,8 +58,8 @@ async def main():
 
     settings = get_settings()
     db_url = os.getenv("DATABASE_URL") or getattr(settings, "database_url", None)
-    if not db_url or "nitrousoxide" in db_url:
-        db_url = "postgresql://disha:disha_secure_pass_123@127.0.0.1:5432/disha"
+    if not db_url:
+        db_url = f"postgresql://{settings.db_user}:{settings.db_password}@{settings.db_host}:{settings.db_port}/{settings.db_name}"
     logger.info("Connecting to database: %s", db_url)
     conn = await asyncpg.connect(db_url)
     try:
