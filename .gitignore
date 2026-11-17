@@ -128,3 +128,4 @@ agent/
 # Interview and internal QA documentation (stored outside repository)
 docs/interview/
 
+.env*

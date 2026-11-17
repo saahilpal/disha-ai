@@ -24,6 +24,20 @@ ENGLISH_EXPRESSIVE_VOICE = "en-IN-NeerjaExpressiveNeural"
 EMERGENCY_AUDIO_DIR = Path(__file__).parent / "data" / "emergency_audio"
 EMERGENCY_AUDIO_CACHE: dict[str, bytes] = {}
 
+# Pre-rendered acoustic filler audio clips directory & in-memory cache
+FILLER_AUDIO_DIR = Path(__file__).parent / "data" / "filler_audio"
+FILLER_AUDIO_CACHE: dict[str, bytes] = {}
+
+CONVERSATIONAL_FILLERS_HI = (
+    "Haan ji...",
+    "Sun rahi hoon...",
+    "Ji...",
+)
+CONVERSATIONAL_FILLERS_EN = (
+    "Yes, I am listening...",
+    "I'm with you...",
+)
+
 
 def load_emergency_audio_cache() -> None:
     """Pre-load pre-rendered emergency spoken audio clips into memory for instant (<15ms) playback."""
@@ -34,6 +48,17 @@ def load_emergency_audio_cache() -> None:
             EMERGENCY_AUDIO_CACHE[audio_file.stem] = audio_file.read_bytes()
         except Exception as exc:
             logger.warning("Failed to load emergency audio clip %s: %s", audio_file, exc)
+
+
+def load_filler_audio_cache() -> None:
+    """Pre-load pre-rendered acoustic filler audio clips into memory for instant (<10ms) playback."""
+    if not FILLER_AUDIO_DIR.exists():
+        return
+    for audio_file in FILLER_AUDIO_DIR.glob("*.mp3"):
+        try:
+            FILLER_AUDIO_CACHE[audio_file.stem] = audio_file.read_bytes()
+        except Exception as exc:
+            logger.warning("Failed to load filler audio clip %s: %s", audio_file, exc)
 
 
 def get_emergency_audio(
@@ -57,8 +82,27 @@ def get_emergency_audio(
     return EMERGENCY_AUDIO_CACHE.get("default")
 
 
-# Pre-load emergency audio at module initialization
+def get_filler_audio(
+    language: str | None = None,
+    category: str | None = None,
+) -> bytes | None:
+    """Retrieve pre-rendered acoustic filler audio for instant acknowledgement during TTFT."""
+    if not FILLER_AUDIO_CACHE:
+        load_filler_audio_cache()
+
+    if category and category in FILLER_AUDIO_CACHE:
+        return FILLER_AUDIO_CACHE[category]
+
+    lang = detect_turn_language(category or "", language)
+    if lang == "en":
+        return FILLER_AUDIO_CACHE.get("default_en") or FILLER_AUDIO_CACHE.get("en")
+
+    return FILLER_AUDIO_CACHE.get("default") or FILLER_AUDIO_CACHE.get("hi")
+
+
+# Pre-load emergency and filler audio at module initialization
 load_emergency_audio_cache()
+load_filler_audio_cache()
 
 # Groq Whisper prompt vocabulary conditioning for Indian clinical, vitals & dietary terms
 GROQ_WHISPER_PROMPT_VOCABULARY = (
@@ -665,8 +709,18 @@ async def stream_mlx_cli_tts(text: str, voice: str, model: str) -> AsyncIterator
         yield files[0].read_bytes()
 
 
-async def stream_edge_tts(text: str, voice: str) -> AsyncIterator[bytes]:
-    """Synthesize speech using Microsoft Edge-TTS neural engine."""
+EDGE_TTS_DEFAULT_RATE = os.getenv("EDGE_TTS_RATE", "+12%")
+
+
+async def stream_edge_tts(
+    text: str,
+    voice: str,
+    *,
+    rate: str | None = None,
+    pitch: str | None = None,
+    volume: str | None = None,
+) -> AsyncIterator[bytes]:
+    """Synthesize speech using Microsoft Edge-TTS neural engine with configurable speaking rate."""
     if not text.strip():
         raise ValueError("text must not be empty")
     if _local_only():
@@ -678,8 +732,15 @@ async def stream_edge_tts(text: str, voice: str) -> AsyncIterator[bytes]:
     except ImportError as exc:
         raise RuntimeError("Install edge-tts to synthesize speech") from exc
 
+    effective_rate = rate if rate is not None else os.getenv("EDGE_TTS_RATE", "+12%")
+    comm_kwargs: dict[str, Any] = {"voice": voice, "rate": effective_rate}
+    if pitch:
+        comm_kwargs["pitch"] = pitch
+    if volume:
+        comm_kwargs["volume"] = volume
+
     phonetic_text = normalize_hinglish_phonetics(text, engine="edge-tts")
-    async for item in edge_tts.Communicate(phonetic_text, voice=voice).stream():
+    async for item in edge_tts.Communicate(phonetic_text, **comm_kwargs).stream():
         if item.get("type") == "audio" and item.get("data"):
             yield item["data"]
 
@@ -691,6 +752,7 @@ async def synthesize_speech_stream(
     engine: str | None = None,
     client_factory: Any = None,
     language: str | None = None,
+    rate: str | None = None,
 ) -> AsyncIterator[bytes]:
     """Unified speech synthesis with language-routed dual engine policy.
 
@@ -734,7 +796,11 @@ async def synthesize_speech_stream(
                 if selected_voice.endswith("Neural")
                 else (HINDI_VOICE if detect_turn_language(text, language) == "hi" else ENGLISH_VOICE)
             )
-            async for chunk in stream_edge_tts(text, fallback_voice):
+            sig = inspect.signature(stream_edge_tts)
+            kwargs: dict[str, Any] = {}
+            if "rate" in sig.parameters and rate is not None:
+                kwargs["rate"] = rate
+            async for chunk in stream_edge_tts(text, fallback_voice, **kwargs):
                 if chunk:
                     yield chunk
     else:
@@ -743,13 +809,17 @@ async def synthesize_speech_stream(
             if selected_voice.endswith("Neural")
             else (HINDI_VOICE if detect_turn_language(text, language) == "hi" else ENGLISH_VOICE)
         )
-        async for chunk in stream_edge_tts(text, edge_voice):
+        sig = inspect.signature(stream_edge_tts)
+        kwargs = {}
+        if "rate" in sig.parameters and rate is not None:
+            kwargs["rate"] = rate
+        async for chunk in stream_edge_tts(text, edge_voice, **kwargs):
             if chunk:
                 yield chunk
 
 
 class VoiceSession:
-    """Full-duplex conversational voice session with barge-in cancellation and dual-engine synthesis."""
+    """Full-duplex conversational voice session with barge-in cancellation and concurrent dual-engine prefetch."""
 
     def __init__(
         self,
@@ -757,6 +827,41 @@ class VoiceSession:
     ) -> None:
         self._synthesizer = synthesizer
         self._active: asyncio.Task[None] | None = None
+        self._prefetch_tasks: dict[str, asyncio.Task[list[bytes]]] = {}
+
+    def prefetch(
+        self,
+        text: str,
+        *,
+        language: str | None = None,
+        engine: str | None = None,
+        rate: str | None = None,
+    ) -> asyncio.Task[list[bytes]] | None:
+        """Start background TTS prefetch for sentence N+1 while sentence N plays."""
+        if not text or not text.strip():
+            return None
+        clean_text = text.strip()
+        existing = self._prefetch_tasks.get(clean_text)
+        if existing is not None and not existing.done():
+            return existing
+
+        async def _run_prefetch() -> list[bytes]:
+            routed_engine, routed_voice = route_tts(clean_text, language, preferred_engine=engine)
+            sig = inspect.signature(self._synthesizer)
+            kwargs: dict[str, Any] = {}
+            if "engine" in sig.parameters and routed_engine:
+                kwargs["engine"] = routed_engine
+            if "rate" in sig.parameters and rate is not None:
+                kwargs["rate"] = rate
+            chunks: list[bytes] = []
+            async for chunk in self._synthesizer(clean_text, routed_voice, **kwargs):
+                if chunk:
+                    chunks.append(chunk)
+            return chunks
+
+        task = asyncio.create_task(_run_prefetch())
+        self._prefetch_tasks[clean_text] = task
+        return task
 
     async def speak(
         self,
@@ -765,10 +870,22 @@ class VoiceSession:
         *,
         language: str | None = None,
         engine: str | None = None,
+        rate: str | None = None,
     ) -> None:
         await self.barge_in()
-        routed_engine, routed_voice = route_tts(validated_text, language, preferred_engine=engine)
-        task = asyncio.create_task(self._emit(validated_text, send_audio, routed_voice, routed_engine))
+        clean_text = validated_text.strip()
+        prefetched_task = self._prefetch_tasks.pop(clean_text, None)
+        routed_engine, routed_voice = route_tts(clean_text, language, preferred_engine=engine)
+        task = asyncio.create_task(
+            self._emit(
+                clean_text,
+                send_audio,
+                routed_voice,
+                routed_engine,
+                prefetched_task=prefetched_task,
+                rate=rate,
+            )
+        )
         self._active = task
         try:
             await task
@@ -785,11 +902,19 @@ class VoiceSession:
                 self._active = None
 
     async def barge_in(self) -> None:
+        """Immediately cancel active speech emission and any pending prefetch tasks."""
         task, self._active = self._active, None
         if task is not None and not task.done():
             task.cancel()
             with suppress(asyncio.CancelledError):
                 await task
+
+        for p_task in list(self._prefetch_tasks.values()):
+            if not p_task.done():
+                p_task.cancel()
+                with suppress(asyncio.CancelledError):
+                    await p_task
+        self._prefetch_tasks.clear()
 
     async def _emit(
         self,
@@ -797,11 +922,29 @@ class VoiceSession:
         send_audio: Callable[[bytes], Awaitable[None]],
         voice: str,
         engine: str | None = None,
+        prefetched_task: asyncio.Task[list[bytes]] | None = None,
+        rate: str | None = None,
     ) -> None:
+        if prefetched_task is not None:
+            try:
+                chunks = await prefetched_task
+                for chunk in chunks:
+                    if chunk:
+                        result = send_audio(chunk)
+                        if inspect.isawaitable(result):
+                            await result
+                return
+            except asyncio.CancelledError:
+                raise
+            except Exception as exc:
+                logger.warning("Prefetched TTS playback error (%s); falling back to direct stream", exc)
+
         sig = inspect.signature(self._synthesizer)
         kwargs: dict[str, Any] = {}
         if "engine" in sig.parameters and engine:
             kwargs["engine"] = engine
+        if "rate" in sig.parameters and rate is not None:
+            kwargs["rate"] = rate
         async for chunk in self._synthesizer(text, voice, **kwargs):
             if chunk:
                 result = send_audio(chunk)
@@ -819,12 +962,16 @@ async def execute_voice_turn(
     send_audio: Callable[[bytes], Awaitable[None]] | None = None,
     state: Any = None,
     language: str | None = None,
+    enable_filler: bool | None = None,
+    filler_delay_sec: float | None = None,
 ) -> list[str]:
     """Execute unified voice turn using the shared clinical reasoning pipeline.
 
-    Guarantees that voice turns utilize the exact same patient context, clinical rules,
-    retrieved datasets, PEP permissions, and multi-turn conversation history as chat turns,
-    and persists the voice turn into conversation history.
+    Guarantees:
+    - Incremental sentence streaming from harness without blocking
+    - Concurrent TTS prefetch for sentence N+1 while sentence N audio is being delivered
+    - Instant conversational filler acknowledgement ("Haan ji...", "Sun rahi hoon...") to eliminate TTFT dead air
+    - Clean barge-in cancellation and full clinical context / history persistence
     """
     import disha_core.main as app_main
     from disha_core.models.schemas import TurnRequest, TurnState
@@ -834,22 +981,97 @@ async def execute_voice_turn(
     payload = TurnRequest(text=text)
     output: list[str] = []
 
-    async for sentence in app_main._turn_sentences(request_or_ws, patient_id, payload, turn_state):
-        output.append(sentence)
-        if send_json is not None:
-            await send_json({"type": "sentence", "text": sentence})
-        if send_audio is not None:
-            sent_lang = detect_turn_language(sentence, language_hint=turn_lang)
-            # Instant emergency audio fallback: deliver pre-rendered emergency audio without cloud TTS latency
-            if turn_state.breaker_status and turn_state.breaker_status.startswith("triggered:"):
-                cat = turn_state.breaker_status.split(":", 1)[1]
-                em_audio = get_emergency_audio(cat, sentence, sent_lang)
-                if em_audio:
-                    result = send_audio(em_audio)
-                    if inspect.isawaitable(result):
-                        await result
-                    continue
-            await session.speak(sentence, send_audio, language=sent_lang)
+    is_filler_enabled = (
+        enable_filler
+        if enable_filler is not None
+        else os.getenv("ENABLE_VOICE_FILLER", "true").casefold() in {"1", "true", "yes"}
+    )
+    delay_sec = (
+        filler_delay_sec
+        if filler_delay_sec is not None
+        else float(os.getenv("VOICE_FILLER_DELAY_SEC", "0.35"))
+    )
+
+    first_sentence_event = asyncio.Event()
+    filler_sent = False
+
+    async def filler_watchdog() -> None:
+        nonlocal filler_sent
+        if not is_filler_enabled or send_audio is None:
+            return
+        try:
+            await asyncio.sleep(delay_sec)
+            if not first_sentence_event.is_set():
+                # Emergency breaker check: never emit casual filler if emergency is active
+                if turn_state.breaker_status and turn_state.breaker_status.startswith("triggered:"):
+                    return
+                f_audio = get_filler_audio(language=turn_lang)
+                if f_audio:
+                    filler_sent = True
+                    if send_json is not None:
+                        filler_text = "Haan ji..." if turn_lang == "hi" else "Yes, I am listening..."
+                        await send_json({"type": "filler", "text": filler_text})
+                    res = send_audio(f_audio)
+                    if inspect.isawaitable(res):
+                        await res
+        except asyncio.CancelledError:
+            pass
+        except Exception as exc:
+            logger.debug("Filler watchdog error: %s", exc)
+
+    watchdog_task = asyncio.create_task(filler_watchdog())
+
+    # Concurrent sentence queue connecting generator producer with audio consumer
+    sentence_queue: asyncio.Queue[tuple[str, str] | None] = asyncio.Queue()
+
+    async def sentence_producer() -> None:
+        try:
+            async for sentence in app_main._turn_sentences(request_or_ws, patient_id, payload, turn_state):
+                first_sentence_event.set()
+                sent_lang = detect_turn_language(sentence, language_hint=turn_lang)
+                # Concurrent TTS prefetch: synthesize sentence N+1 in background while sentence N audio plays
+                if send_audio is not None and not (
+                    turn_state.breaker_status and turn_state.breaker_status.startswith("triggered:")
+                ):
+                    session.prefetch(sentence, language=sent_lang)
+                await sentence_queue.put((sentence, sent_lang))
+        except Exception as exc:
+            logger.warning("Voice turn sentence producer error: %s", exc)
+        finally:
+            first_sentence_event.set()
+            await sentence_queue.put(None)
+
+    producer_task = asyncio.create_task(sentence_producer())
+
+    try:
+        while True:
+            item = await sentence_queue.get()
+            if item is None:
+                break
+            sentence, sent_lang = item
+            output.append(sentence)
+            if send_json is not None:
+                await send_json({"type": "sentence", "text": sentence})
+            if send_audio is not None:
+                # Instant emergency audio fallback: deliver pre-rendered emergency audio without cloud TTS latency
+                if turn_state.breaker_status and turn_state.breaker_status.startswith("triggered:"):
+                    cat = turn_state.breaker_status.split(":", 1)[1]
+                    em_audio = get_emergency_audio(cat, sentence, sent_lang)
+                    if em_audio:
+                        result = send_audio(em_audio)
+                        if inspect.isawaitable(result):
+                            await result
+                        continue
+                await session.speak(sentence, send_audio, language=sent_lang)
+    finally:
+        if not watchdog_task.done():
+            watchdog_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await watchdog_task
+        if not producer_task.done():
+            producer_task.cancel()
+            with suppress(asyncio.CancelledError):
+                await producer_task
 
     if send_json is not None:
         await send_json(
@@ -860,5 +1082,7 @@ async def execute_voice_turn(
                 "retrieval_status": turn_state.retrieval_status,
             }
         )
+
+    return output
 
     return output

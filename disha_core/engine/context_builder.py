@@ -87,10 +87,12 @@ def determine_length_policy(
     user_input: str,
     intent: str | None = None,
     is_emergency: bool = False,
+    channel: str | None = None,
 ) -> LengthPolicy:
     """
     Determine target response sentence bounds based on query intent and complexity:
     - Emergency: 1 to 2 sentences (immediate direct safety action)
+    - Voice consultation: 1 to 2 conversational sentences (listener comfort & pacing)
     - User requested detail: 3 to 7 sentences
     - Simple factual query: 1 to 2 crisp sentences
     - Complex health concern: 3 to 5 structured sentences
@@ -98,6 +100,9 @@ def determine_length_policy(
     """
     if is_emergency or intent in {"EMERGENCY_TRIAGE", "emergency_escalation"}:
         return LengthPolicy(category="emergency", min_sentences=1, max_sentences=2)
+
+    if channel == "voice":
+        return LengthPolicy(category="voice", min_sentences=1, max_sentences=2)
 
     if is_detail_requested(user_input):
         return LengthPolicy(category="detailed", min_sentences=3, max_sentences=7)
@@ -623,9 +628,19 @@ def render_user_payload(user_input: str, context: dict[str, Any], chunks: Any = 
                 "</CONVERSATION_STATE>"
             )
 
+    voice_discipline_xml = ""
+    if context.get("channel") == "voice":
+        voice_discipline_xml = (
+            '<SPOKEN_VOICE_MODE active="true" formatting="none" max_sentences="2">'
+            'Spoken voice consultation: do NOT use markdown bullets, asterisks, or numbered lists. '
+            'Speak naturally in 1 to 2 warm, empathetic sentences followed by at most 1 short follow-up question.'
+            '</SPOKEN_VOICE_MODE>'
+        )
+
     return (
         f"{render_context_xml(context, chunks)}"
         f"{discipline_xml}"
+        f"{voice_discipline_xml}"
         f"{conversation_state_xml}"
         f"{older_turns_xml}"
         f"<USER_UTTERANCE>{html.escape(user_input)}</USER_UTTERANCE>"

@@ -227,6 +227,9 @@ class ResponseHarness:
         context["conversation_control"] = conv_control
         context["clinical_tags"] = normalized.tags
         context["intent"] = intent.value if intent else Intent.UNKNOWN.value
+        channel = "voice" if hasattr(request, "client_state") or "WebSocket" in str(type(request)) else "chat"
+        context["channel"] = channel
+        tc.channel = channel
         context["pep_risk"] = pep_risk
         context["user_input"] = payload.text
         context["is_closing"] = conv_control.is_closing
@@ -238,6 +241,7 @@ class ResponseHarness:
             payload.text,
             intent.value if intent else None,
             is_emergency=False,
+            channel=channel,
         )
 
         # 1e. Prescribed Meal & Diet Status Checks
@@ -305,8 +309,6 @@ class ResponseHarness:
         tc.memory_brief.history_turns = list(history)
 
         # 1h. RAG Retrieval via single acquired connection
-        channel = "voice" if hasattr(request, "client_state") or "WebSocket" in str(type(request)) else "chat"
-        tc.channel = channel
         chunks: tuple[Any, ...] = ()
 
         if getattr(app_state, "pool", None) is not None:
@@ -545,36 +547,14 @@ class ResponseHarness:
                     generated_sentences.append(s)
                     yield s
             else:
-                raw_sentences = []
+                # In voice mode, stream out validated sentences incrementally as soon as emitted
+                context["raw_violations"] = []
+                context["repair_count"] = 0
                 async for sentence in val_stream_fn(llm_stream, validator_instance, context):
-                    raw_sentences.append(sentence)
-                full_draft = " ".join(raw_sentences).strip()
-                v_res = verify_response(full_draft, context)
-                if not v_res.is_valid:
-                    context["raw_violations"] = [v.check_name for v in v_res.violations]
-                    context["repair_count"] = 1
-                    repaired_draft, ok, _ = await repair_turn(
-                        llm_instance,
-                        prompt,
-                        full_draft,
-                        v_res,
-                        context,
-                        messages=history,
-                        system_prompt=system_prompt,
-                        max_attempts=2,
-                    )
-                    final_full = repaired_draft
-                else:
-                    context["raw_violations"] = []
-                    context["repair_count"] = 0
-                    final_full = full_draft
-
-                from disha_core.harness.verifier import split_sentences_multilingual
-
-                for final_sent in split_sentences_multilingual(final_full):
-                    emitted = True
-                    generated_sentences.append(final_sent)
-                    yield final_sent
+                    if sentence:
+                        emitted = True
+                        generated_sentences.append(sentence)
+                        yield sentence
 
         except Exception as exc:
             logger.exception("LLM generation stream failed: %s", exc)

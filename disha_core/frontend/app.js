@@ -2665,9 +2665,10 @@
       const MAX_NOISE_FLOOR = 32.0;
       const NOISE_EMA_ALPHA = 0.03; // Smooth background noise tracking
       const SPEECH_SNR_OFFSET = 8.0; // Required SNR above noise floor for speech onset
-      const BARGE_IN_SNR_OFFSET = 20.0; // Required SNR above noise floor for barge-in
-      const VAD_SILENCE_HANGOVER_MS = 500; // Calibrated 500ms hangover timeout (reduced from 850ms)
+      const BARGE_IN_SNR_OFFSET = 12.0; // Responsive SNR above noise floor for immediate barge-in onset (<300ms)
+      const VAD_SILENCE_HANGOVER_MS = 280; // Calibrated <300ms silence hangover for immediate conversational handoff
       let silenceTimer = null;
+      let bargeInFrames = 0;
 
       // Real-time MediaRecorder for speech capture with 200ms audio pre-roll buffer
       if (typeof MediaRecorder !== 'undefined' && stream) {
@@ -2806,14 +2807,22 @@
             );
           }
           const dynamicEnergyThreshold = Math.max(12.0, adaptiveNoiseFloor + SPEECH_SNR_OFFSET);
-          const dynamicBargeInThreshold = Math.max(28.0, adaptiveNoiseFloor + BARGE_IN_SNR_OFFSET);
+          const dynamicBargeInThreshold = Math.max(20.0, adaptiveNoiseFloor + BARGE_IN_SNR_OFFSET);
 
           if (speechAvg > dynamicEnergyThreshold) {
             if (state.isPlayingAudio) {
               if (speechAvg > dynamicBargeInThreshold) {
-                onUserSpeechDetected();
+                bargeInFrames++;
+                if (bargeInFrames >= 2) {
+                  // Confirmed speech onset in ~30ms (<300ms budget) — trigger fast barge-in
+                  bargeInFrames = 0;
+                  onUserSpeechDetected();
+                }
+              } else {
+                bargeInFrames = Math.max(0, bargeInFrames - 1);
               }
             } else {
+              bargeInFrames = 0;
               if (silenceTimer) {
                 clearTimeout(silenceTimer);
                 silenceTimer = null;

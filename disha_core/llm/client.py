@@ -133,7 +133,7 @@ SYSTEM_PROMPT = get_system_prompt()
 
 _RETIRED_MODELS = {
     "llama-3.3-70b-versatile": "openai/gpt-oss-120b",
-    "gemini-2.0-flash": "gemini-flash-latest",
+    "gemini-2.0-flash": "gemini-3.6-flash",
 }
 
 

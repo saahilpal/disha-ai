@@ -23,12 +23,14 @@ from disha_core.voice import (
     detect_turn_language,
     execute_voice_turn,
     get_emergency_audio,
+    get_filler_audio,
     is_hindi_turn,
     is_silence_hallucination,
     is_silent_audio,
     normalize_hinglish_phonetics,
     route_tts,
     select_tts_voice,
+    stream_edge_tts,
     stream_qwen3_tts,
     synthesize_speech_stream,
     transcribe_groq,
@@ -845,3 +847,237 @@ class VoicePipelineTests(IsolatedAsyncioTestCase):
                 # Expect pre-rendered binary audio bytes delivered immediately!
                 audio_bytes = ws.receive_bytes()
                 self.assertGreater(len(audio_bytes), 1000)
+
+    async def test_harness_voice_incremental_sentence_streaming(self) -> None:
+        """Verify ResponseHarness yields sentences incrementally in voice mode without buffering all sentences."""
+        from disha_core.harness.harness import ResponseHarness
+
+        first_sentence_yielded = asyncio.Event()
+        second_chunk_released = asyncio.Event()
+
+        class MockIncrementalLLM:
+            def stream(self, prompt: str, **kwargs):
+                async def gen():
+                    yield "Aap halka khana lein. "
+                    # Wait until test confirms sentence 1 was already received by caller
+                    await asyncio.wait_for(first_sentence_yielded.wait(), timeout=1.0)
+                    second_chunk_released.set()
+                    yield "Thoda aaram bhi karein."
+
+                return gen()
+
+        mock_state = SimpleNamespace(
+            router=SimpleNamespace(route=lambda text: (SimpleNamespace(triggered=False), None)),
+            today_ist=lambda: "monday",
+            pool=None,
+            validator=SentenceValidator(),
+            llm=MockIncrementalLLM(),
+            conversation_history={},
+        )
+        # client_state signals channel == "voice"
+        mock_req = SimpleNamespace(app=SimpleNamespace(state=mock_state), client_state=True)
+
+        harness = ResponseHarness(MockIncrementalLLM())
+        turn_req = TurnRequest(text="Namaste, aaj ka schedule kya hai?")
+
+        yielded_sentences = []
+        async for s in harness.execute_turn(mock_req, "pt_voice_stream", turn_req):
+            yielded_sentences.append(s)
+            if len(yielded_sentences) == 1:
+                # First sentence was emitted! Signal the mock LLM to release second chunk
+                first_sentence_yielded.set()
+
+        self.assertTrue(second_chunk_released.is_set())
+        self.assertEqual(len(yielded_sentences), 2)
+        self.assertIn("halka khana", yielded_sentences[0])
+        self.assertIn("aaram", yielded_sentences[1])
+
+    async def test_voice_turn_concurrent_tts_prefetch(self) -> None:
+        """Verify execute_voice_turn prefetches sentence N+1 while sentence N audio is delivered."""
+        prefetched_texts = []
+
+        class PrefetchTrackingSession(VoiceSession):
+            def prefetch(self, text: str, **kwargs):
+                prefetched_texts.append(text)
+                return super().prefetch(text, **kwargs)
+
+        async def fake_tts(text: str, voice: str, **kwargs):
+            yield b"prefetched_audio_bytes"
+
+        session = PrefetchTrackingSession(synthesizer=fake_tts)
+
+        async def mock_turn_gen(ws, patient_id, payload, state):
+            yield "Pehla sentence yeh hai."
+            yield "Doosra sentence yeh hai."
+            yield "Teesra sentence yeh hai."
+
+        audio_received = []
+
+        async def mock_send_audio(chunk: bytes):
+            audio_received.append(chunk)
+
+        mock_ws = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace()))
+
+        with patch("disha_core.main._turn_sentences", side_effect=mock_turn_gen):
+            sentences = await execute_voice_turn(
+                mock_ws,
+                "pt_prefetch_test",
+                "Kya main walk kar sakta hoon?",
+                session,
+                send_audio=mock_send_audio,
+                enable_filler=False,
+            )
+
+        self.assertEqual(len(sentences), 3)
+        self.assertEqual(len(audio_received), 3)
+        # All sentences were registered for prefetch
+        self.assertIn("Pehla sentence yeh hai.", prefetched_texts)
+        self.assertIn("Doosra sentence yeh hai.", prefetched_texts)
+        self.assertIn("Teesra sentence yeh hai.", prefetched_texts)
+
+    async def test_voice_turn_conversational_filler_dispatch_on_slow_ttft(self) -> None:
+        """Verify instant conversational filler is dispatched when LLM TTFT takes time."""
+        json_frames = []
+        audio_frames = []
+
+        async def mock_send_json(data: dict):
+            json_frames.append(data)
+
+        async def mock_send_audio(data: bytes):
+            audio_frames.append(data)
+
+        async def slow_turn_gen(ws, patient_id, payload, state):
+            # Simulate high TTFT (100ms) with a 20ms filler delay
+            await asyncio.sleep(0.10)
+            yield "Aap garam paani lejiye."
+
+        async def fake_tts(text: str, voice: str, **kwargs):
+            yield b"sentence_audio"
+
+        session = VoiceSession(synthesizer=fake_tts)
+        mock_ws = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace()))
+
+        with patch("disha_core.main._turn_sentences", side_effect=slow_turn_gen):
+            sentences = await execute_voice_turn(
+                mock_ws,
+                "pt_filler_test",
+                "Mujhe thoda dard hai",
+                session,
+                send_json=mock_send_json,
+                send_audio=mock_send_audio,
+                enable_filler=True,
+                filler_delay_sec=0.02,  # Short delay for fast test execution
+            )
+
+        self.assertEqual(sentences, ["Aap garam paani lejiye."])
+        # Filler event dispatched in json
+        filler_frames = [f for f in json_frames if f.get("type") == "filler"]
+        self.assertEqual(len(filler_frames), 1)
+        self.assertIn("Haan ji", filler_frames[0]["text"])
+        # Filler audio received before sentence audio
+        self.assertGreaterEqual(len(audio_frames), 2)
+
+    async def test_voice_turn_filler_suppressed_on_fast_ttft_and_emergency(self) -> None:
+        """Verify conversational filler is suppressed when response is fast or emergency triggers."""
+        json_frames = []
+        audio_frames = []
+
+        async def mock_send_json(data: dict):
+            json_frames.append(data)
+
+        async def mock_send_audio(data: bytes):
+            audio_frames.append(data)
+
+        # 1. Fast response (< filler delay)
+        async def fast_turn_gen(ws, patient_id, payload, state):
+            yield "Instant response sentence."
+
+        async def fake_fast_tts(text: str, voice: str, **kwargs):
+            yield b"fast_audio"
+
+        session = VoiceSession(synthesizer=fake_fast_tts)
+        mock_ws = SimpleNamespace(app=SimpleNamespace(state=SimpleNamespace()))
+
+        with patch("disha_core.main._turn_sentences", side_effect=fast_turn_gen):
+            await execute_voice_turn(
+                mock_ws,
+                "pt_fast_test",
+                "Fast query",
+                session,
+                send_json=mock_send_json,
+                send_audio=mock_send_audio,
+                enable_filler=True,
+                filler_delay_sec=0.20,
+            )
+
+        filler_frames = [f for f in json_frames if f.get("type") == "filler"]
+        self.assertEqual(len(filler_frames), 0, "Filler should NOT be sent when TTFT is fast")
+
+        # 2. Emergency response
+        json_frames.clear()
+        audio_frames.clear()
+
+        async def emergency_turn_gen(ws, patient_id, payload, state):
+            state.breaker_status = "triggered:CARDIOVASCULAR"
+            await asyncio.sleep(0.05)
+            yield "Emergency 112 protocol."
+
+        with patch("disha_core.main._turn_sentences", side_effect=emergency_turn_gen):
+            await execute_voice_turn(
+                mock_ws,
+                "pt_em_test",
+                "Severe chest pain",
+                session,
+                send_json=mock_send_json,
+                send_audio=mock_send_audio,
+                enable_filler=True,
+                filler_delay_sec=0.01,
+            )
+
+        em_filler_frames = [f for f in json_frames if f.get("type") == "filler"]
+        self.assertEqual(len(em_filler_frames), 0, "Filler should NEVER be sent on emergency red flag")
+
+    async def test_edge_tts_rate_tuning_and_cadence(self) -> None:
+        """Verify stream_edge_tts passes configured rate (e.g. +12%) for natural Indian cadence."""
+        last_kwargs = {}
+
+        class FakeEdgeCommunicate:
+            def __init__(self, text, **kwargs):
+                last_kwargs.update(kwargs)
+
+            async def stream(self):
+                yield {"type": "audio", "data": b"edge_audio"}
+
+        with (
+            patch.dict("os.environ", {"LOCAL_ONLY": "false", "EDGE_TTS_HEALTH_DATA_PROCESSING_APPROVED": "true"}),
+            patch("edge_tts.Communicate", FakeEdgeCommunicate),
+        ):
+            # Test default rate (+12%)
+            chunks = [chunk async for chunk in stream_edge_tts("Aap namaste karein", HINDI_VOICE)]
+            self.assertEqual(chunks, [b"edge_audio"])
+            self.assertEqual(last_kwargs.get("rate"), "+12%")
+
+            # Test custom rate (+15%)
+            last_kwargs.clear()
+            chunks = [chunk async for chunk in stream_edge_tts("Aap namaste karein", HINDI_VOICE, rate="+15%")]
+            self.assertEqual(last_kwargs.get("rate"), "+15%")
+
+    async def test_voice_session_barge_in_cancels_prefetch_tasks(self) -> None:
+        """Verify barge_in cleanly cancels in-flight prefetch tasks without leaks."""
+        started = asyncio.Event()
+
+        async def slow_synth(text, voice, **kwargs):
+            started.set()
+            while True:
+                yield b"chunk"
+                await asyncio.sleep(0.05)
+
+        session = VoiceSession(synthesizer=slow_synth)
+        prefetch_task = session.prefetch("Long background sentence for prefetch")
+        self.assertIsNotNone(prefetch_task)
+        await started.wait()
+
+        self.assertFalse(prefetch_task.done())
+        await session.barge_in()
+        self.assertTrue(prefetch_task.cancelled() or prefetch_task.done())
+        self.assertEqual(len(session._prefetch_tasks), 0)
