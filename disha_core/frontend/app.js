@@ -1645,8 +1645,24 @@
 
   // --- TELEPHONY WEBSOCKET PROTOCOL ---
   function initWebSocket() {
+    if (state.wsReconnectTimer) {
+      clearTimeout(state.wsReconnectTimer);
+      state.wsReconnectTimer = null;
+    }
+
     if (state.ws && (state.ws.readyState === WebSocket.CONNECTING || state.ws.readyState === WebSocket.OPEN)) {
       return;
+    }
+
+    if (state.ws) {
+      try {
+        state.ws.onopen = null;
+        state.ws.onmessage = null;
+        state.ws.onerror = null;
+        state.ws.onclose = null;
+        state.ws.close();
+      } catch (e) {}
+      state.ws = null;
     }
 
     const config = getBackendConfig();
@@ -2469,6 +2485,20 @@
           state.micStream.getTracks().forEach(t => t.stop());
         } catch (e) {}
         state.micStream = null;
+      }
+      if (state.wsReconnectTimer) {
+        clearTimeout(state.wsReconnectTimer);
+        state.wsReconnectTimer = null;
+      }
+      if (state.audioContext) {
+        try {
+          if (state.audioContext.state !== 'closed') {
+            state.audioContext.close();
+          }
+        } catch (e) {
+          console.warn('[Disha AudioContext] Close on endCall failed:', e);
+        }
+        state.audioContext = null;
       }
       if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
         try { state.mediaRecorder.stop(); } catch (e) {}
